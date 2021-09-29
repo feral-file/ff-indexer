@@ -102,16 +102,17 @@ func (s *MongodbIndexerStore) GetTokens(ctx context.Context, ids []string) ([]To
 		ProjectMetadata VersionedProjectMetadata `json:"projectMetadata"`
 	}
 
+	cursor, err := s.tokenCollection.Find(ctx, bson.M{"id": bson.M{"$in": ids}})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
 	assets := map[string]asset{}
-	for _, id := range ids {
-
-		tokenResult := s.tokenCollection.FindOne(ctx, bson.M{"id": id})
-		if err := tokenResult.Err(); err != nil {
-			return nil, err
-		}
-
+	for cursor.Next(ctx) {
 		var token Token
-		if err := tokenResult.Decode(&token); err != nil {
+
+		if err := cursor.Decode(&token); err != nil {
 			return nil, err
 		}
 
