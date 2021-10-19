@@ -25,10 +25,16 @@ config:
 	fi
 
 nft-indexer:
-	go build -o bin/nft-indexer .
+	go build -o bin/nft-indexer ./services/nft-indexer
+
+nft-indexer-background:
+	go build -o bin/nft-indexer-background ./services/nft-indexer-background
 
 run-nft-indexer: nft-indexer
 	./bin/nft-indexer -c config.yaml
+
+run-nft-indexer-background: nft-indexer-background
+	./bin/nft-indexer-background -c config.yaml
 
 build: nft-indexer
 
