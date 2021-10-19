@@ -23,7 +23,7 @@ RUN go mod download
 
 ADD . .
 
-RUN go build -o /go/bin/nft-indexer .
+RUN go build -o /go/bin/nft-indexer ./services/nft-indexer
 
 # ---
 

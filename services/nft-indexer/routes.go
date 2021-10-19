@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
+	indexer "github.com/bitmark-inc/nft-indexer"
 )
 
 func (s *NFTIndexerServer) SetupRoute() {
@@ -18,7 +20,7 @@ func (s *NFTIndexerServer) SetupRoute() {
 // IndexAsset indexes the data of assets and tokens
 func (s *NFTIndexerServer) IndexAsset(c *gin.Context) {
 	assetID := c.Param("asset_id")
-	var input AssetUpdates
+	var input indexer.AssetUpdates
 	if err := c.Bind(&input); err != nil {
 		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
 		return
