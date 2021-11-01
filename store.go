@@ -99,7 +99,7 @@ func (s *MongodbIndexerStore) GetTokens(ctx context.Context, ids []string) ([]To
 	tokens := make([]TokenInfo, 0, len(ids))
 
 	type asset struct {
-		ProjectMetadata VersionedProjectMetadata `json:"projectMetadata"`
+		ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
 	}
 
 	cursor, err := s.tokenCollection.Find(ctx, bson.M{"id": bson.M{"$in": ids}})
@@ -130,6 +130,9 @@ func (s *MongodbIndexerStore) GetTokens(ctx context.Context, ids []string) ([]To
 			assets[token.AssetID] = a
 		}
 
+		// FIXME: hardcoded values for backward compatibility
+		a.ProjectMetadata.Latest.FirstMintedAt = "0001-01-01T00:00:00.000Z"
+		a.ProjectMetadata.Origin.FirstMintedAt = "0001-01-01T00:00:00.000Z"
 		tokens = append(tokens, TokenInfo{
 			Token:           token,
 			ProjectMetadata: a.ProjectMetadata,
@@ -169,6 +172,10 @@ func (s *MongodbIndexerStore) GetTokensByOwner(ctx context.Context, owner string
 
 			assets[t.AssetID] = a
 		}
+
+		// FIXME: hardcoded values for backward compatibility
+		a.ProjectMetadata.Latest.FirstMintedAt = "0001-01-01T00:00:00.000Z"
+		a.ProjectMetadata.Origin.FirstMintedAt = "0001-01-01T00:00:00.000Z"
 		tokens[i].ProjectMetadata = a.ProjectMetadata
 	}
 

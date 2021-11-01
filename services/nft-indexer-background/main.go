@@ -3,15 +3,16 @@ package main
 import (
 	"context"
 
-	"github.com/bitmark-inc/config-loader"
-	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
-	"github.com/bitmark-inc/nft-indexer/cadence"
-	"github.com/bitmark-inc/nft-indexer/externals/artblocks"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.uber.org/cadence/activity"
 	"go.uber.org/cadence/workflow"
+
+	"github.com/bitmark-inc/config-loader"
+	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
+	"github.com/bitmark-inc/nft-indexer/cadence"
+	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 )
 
 var CadenceService = "cadence-frontend"
@@ -31,14 +32,13 @@ func main() {
 		log.WithError(err).Panic("fail to initiate indexer store")
 	}
 
-	worker := indexerWorker.New(network, artblocks.New(), indexerStore)
+	worker := indexerWorker.New(network, opensea.New(viper.GetString("network")), indexerStore)
 
 	// workflows
-	workflow.Register(worker.IndexArtblocksTokenWorkflow)
+	workflow.Register(worker.IndexOpenseaTokenWorkflow)
 
-	// artblocks
-	activity.Register(worker.GetOwnedERC721TokenIDByContract)
-	activity.Register(worker.IndexTokenDataFromArtblocks)
+	// opensea
+	activity.Register(worker.IndexTokenDataFromFromOpensea)
 
 	// index store
 	activity.Register(worker.IndexAsset)

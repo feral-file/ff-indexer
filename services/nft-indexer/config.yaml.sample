@@ -5,3 +5,8 @@ server:
 store:
   db_uri: mongodb://localhost:27017/
   db_name: nft_indexer
+
+cadence:
+  host_port: localhost:7933
+  domain: nft-indexer
+  log_level: 0

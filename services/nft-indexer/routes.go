@@ -1,15 +1,22 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
+	cadenceClient "go.uber.org/cadence/client"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
 )
 
 func (s *NFTIndexerServer) SetupRoute() {
 	s.route.POST("/nft/query", s.QueryNFTs)
+	s.route.POST("/nft/index", s.IndexNFTs)
+
 	s.route.GET("/nft", s.ListNFTs)
 	s.route.POST("/nft/query_price", s.QueryNFTPrices)
 
@@ -78,4 +85,37 @@ func (s *NFTIndexerServer) ListNFTs(c *gin.Context) {
 // QueryNFTPrices returns prices information for NFTs
 func (s *NFTIndexerServer) QueryNFTPrices(c *gin.Context) {
 	abortWithError(c, http.StatusInternalServerError, "not implemented", nil)
+}
+
+func (s *NFTIndexerServer) IndexNFTs(c *gin.Context) {
+	var req struct {
+		Owner string `json:"owner"`
+	}
+
+	if err := c.Bind(&req); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if req.Owner == "" {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("missing parameters"))
+		return
+	}
+
+	var w indexerWorker.NFTIndexerWorker
+
+	if workflow, err := s.cadenceWorker.StartWorkflow(c, indexerWorker.ClientName, cadenceClient.StartWorkflowOptions{
+		ID:                           fmt.Sprintf("index-opensea-nft-by-owner-%s", req.Owner),
+		TaskList:                     indexerWorker.TaskListName,
+		ExecutionStartToCloseTimeout: time.Hour,
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+	}, w.IndexOpenseaTokenWorkflow, req.Owner); err != nil {
+		log.WithError(err).WithField("owner", req.Owner).Error("fail to start bitmark opensea indexing workflow")
+	} else {
+		log.WithField("owner", req.Owner).WithField("workflow_id", workflow.ID).Info("start workflow for indexing opensea")
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok": 1,
+	})
 }

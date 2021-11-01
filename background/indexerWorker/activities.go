@@ -3,8 +3,8 @@ package indexerWorker
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
-	"strconv"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -53,66 +53,80 @@ func (w *NFTIndexerWorker) GetOwnedERC721TokenIDByContract(ctx context.Context, 
 	return tokenIDs, nil
 }
 
-// ensureStringAttribute returns the string value of a key and returns an error if
-// the key is missing or is not in type string.
-func ensureStringAttribute(m map[string]interface{}, key string) (string, error) {
-	v, ok := m[key]
-	if !ok {
-		return "", ErrMapKeyNotFound
-	}
-
-	vv, ok := v.(string)
-	if !ok {
-		return "", ErrValueNotString
-	}
-
-	return vv, nil
-}
-
-// IndexTokenDataFromArtblocks reads token data from artblocks and convert it into indexer compatible format
-func (w *NFTIndexerWorker) IndexTokenDataFromArtblocks(ctx context.Context, contractAddress, owner string, token *big.Int) (*indexer.AssetUpdates, error) {
-	tokenData, err := w.artblocks.GetTokenData(token.String())
+// IndexTokenDataFromFromOpensea indexes data from OpenSea into the format of AssetUpdates
+func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
+	assets, err := w.opensea.RetrieveAssets(owner, offset)
 	if err != nil {
 		return nil, err
 	}
 
-	tokenID, err := ensureStringAttribute(tokenData, "tokenID")
-	if err != nil {
-		return nil, err
-	}
+	tokenUpdates := make([]indexer.AssetUpdates, 0, len(assets))
 
-	projectID, err := ensureStringAttribute(tokenData, "project_id")
-	if err != nil {
-		return nil, err
-	}
+	for _, a := range assets {
+		var source string
+		var sourceURL string
+		var artistURL string
 
-	tokenHash, err := ensureStringAttribute(tokenData, "token_hash")
-	if err != nil {
-		return nil, err
-	}
+		if _, ok := artblocksContracts[strings.ToLower(a.AssetContract.Address)]; ok {
+			source = "ArtBlocks"
+			sourceURL = "https://www.artblocks.io/"
+		} else {
+			source = "OpenSea"
+			if viper.GetString("network") == "testnet" {
+				sourceURL = "https://testnets.opensea.io"
+			} else {
+				sourceURL = "https://opensea.io"
+			}
+		}
 
-	editionID, err := strconv.Atoi(
-		strings.Replace(tokenID, projectID, "", 1),
-	)
-	if err != nil {
-		return nil, ErrInvalidEditionID
-	}
+		if a.Creator.Address != "" {
+			artistURL = fmt.Sprintf("%s/%s", sourceURL, a.Creator.Address)
+		}
 
-	tokenUpdate := indexer.AssetUpdates{
-		ID:              tokenHash,
-		ProjectMetadata: tokenData,
-		Tokens: []indexer.Token{
-			{
-				ID:              tokenID,
-				Blockchain:      "ethereum",
-				Edition:         int64(editionID),
-				ContractAddress: contractAddress,
-				Owner:           owner,
+		metadata := indexer.ProjectMetadata{
+			ArtistName:          a.Creator.User.Username,
+			ArtistURL:           artistURL,
+			AssetID:             a.AssetContract.Address,
+			Title:               a.Name,
+			Description:         a.Description,
+			Medium:              "unknown",
+			Source:              source,
+			SourceURL:           sourceURL,
+			PreviewURL:          a.ImageURL,
+			ThumbnailURL:        a.ImageThumbnailURL,
+			GalleryThumbnailURL: a.ImageThumbnailURL,
+			AssetURL:            a.Permalink,
+		}
+
+		if a.AnimationURL != "" {
+			metadata.Medium = "other"
+			metadata.PreviewURL = a.AnimationURL
+		} else if a.ImageURL != "" {
+			metadata.Medium = "image"
+		}
+
+		tokenUpdate := indexer.AssetUpdates{
+			ID:              fmt.Sprintf("%d", a.ID),
+			ProjectMetadata: metadata,
+			Tokens: []indexer.Token{
+				{
+					ID:              a.TokenID,
+					Blockchain:      "ethereum",
+					Edition:         0,
+					ContractType:    strings.ToLower(a.AssetContract.SchemaName),
+					ContractAddress: a.AssetContract.Address,
+					Owner:           owner,
+					MintAt:          a.AssetContract.CreatedDate.Time,
+				},
 			},
-		},
+		}
+
+		fmt.Println(tokenUpdate)
+
+		tokenUpdates = append(tokenUpdates, tokenUpdate)
 	}
 
-	return &tokenUpdate, nil
+	return tokenUpdates, nil
 }
 
 // IndexAsset saves asset data into indexer's storage

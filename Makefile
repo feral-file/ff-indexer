@@ -47,10 +47,20 @@ endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
-	-t nft-indexer:$(dist) .
-	docker tag nft-indexer:$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:$(dist)
+	-t nft-indexer:api-$(dist) .
+	docker tag nft-indexer:api-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:api-$(dist)
 
-image: build-nft-indexer
+build-nft-indexer-background:
+ifndef dist
+	$(error dist is undefined)
+endif
+	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
+	--build-arg GITHUB_USER=$(GITHUB_USER) \
+	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
+	-t nft-indexer:background-$(dist) -f Dockerfile-background .
+	docker tag nft-indexer:background-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:background-$(dist)
+
+image: build-nft-indexer build-nft-indexer-background
 
 push:
 ifndef dist

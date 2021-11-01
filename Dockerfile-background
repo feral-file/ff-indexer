@@ -23,7 +23,7 @@ RUN go mod download
 
 ADD . .
 
-RUN go build -o /go/bin/nft-indexer ./services/nft-indexer
+RUN go build -o /go/bin/nft-indexer-background ./services/nft-indexer-background
 
 # ---
 
@@ -32,6 +32,6 @@ ARG dist=0.0
 
 RUN apk add --no-cache curl
 
-COPY --from=build /go/bin/nft-indexer /nft-indexer
+COPY --from=build /go/bin/nft-indexer-background /nft-indexer-background
 
-ADD services/nft-indexer/config.yaml.sample /.config/config.yaml
+ADD services/nft-indexer-background/config.yaml.sample /.config/config.yaml

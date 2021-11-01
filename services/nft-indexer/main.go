@@ -8,6 +8,8 @@ import (
 
 	"github.com/bitmark-inc/config-loader"
 	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
+	"github.com/bitmark-inc/nft-indexer/cadence"
 )
 
 func main() {
@@ -20,7 +22,10 @@ func main() {
 		log.WithError(err).Panic("fail to initiate indexer store")
 	}
 
-	s := NewNFTIndexerServer(indexerStore, viper.GetString("server.api_token"))
+	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
+	cadenceClient.AddService(indexerWorker.ClientName)
+
+	s := NewNFTIndexerServer(cadenceClient, indexerStore, viper.GetString("server.api_token"))
 	s.SetupRoute()
 	if err := s.Run(viper.GetString("server.port")); err != nil {
 		log.WithError(err).Panic("server interrupted")

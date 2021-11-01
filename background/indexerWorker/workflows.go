@@ -1,14 +1,21 @@
 package indexerWorker
 
 import (
-	"math/big"
 	"time"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"go.uber.org/cadence/workflow"
+	"go.uber.org/zap"
 )
 
-func (w *NFTIndexerWorker) IndexArtblocksTokenWorkflow(ctx workflow.Context, tokenOwner string) error {
+// artblocksContracts indexes the addresses which are ERC721 contracts of Artblocks
+var artblocksContracts = map[string]struct{}{
+	"0x059edd72cd353df5106d2b9cc5ab83a52287ac3a": {},
+	"0xa7d8d9ef8d8ce8992df33d8b8cf4aebabd5bd270": {},
+}
+
+// IndexOpenseaTokenWorkflow is a workflow to summarize NFT data from OpenSea and save it to the storage.
+func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, tokenOwner string) error {
 	ao := workflow.ActivityOptions{
 		TaskList:               w.TaskListName,
 		ScheduleToStartTimeout: time.Second * 60,
@@ -17,31 +24,26 @@ func (w *NFTIndexerWorker) IndexArtblocksTokenWorkflow(ctx workflow.Context, tok
 	}
 
 	ctx = workflow.WithActivityOptions(ctx, ao)
-	// log := workflow.GetLogger(ctx)
+	log := workflow.GetLogger(ctx)
 
-	artblocksContracts := []string{
-		"0x059EDD72Cd353dF5106D2B9cC5ab83a52287aC3a",
-		"0xa7d8d9ef8D8Ce8992Df33D8b8CF4Aebabd5bD270",
-	}
-
-	for _, contractAddress := range artblocksContracts {
-		var tokenIDs []*big.Int
-		if err := workflow.ExecuteActivity(ctx, w.GetOwnedERC721TokenIDByContract, contractAddress, tokenOwner).Get(ctx, &tokenIDs); err != nil {
+	var offset = 0
+	for {
+		tokenUpdates := []indexer.AssetUpdates{}
+		if err := workflow.ExecuteActivity(ctx, w.IndexTokenDataFromFromOpensea, tokenOwner, offset).Get(ctx, &tokenUpdates); err != nil {
 			return err
 		}
 
-		for _, tokenID := range tokenIDs {
-			var tokenUpdate indexer.AssetUpdates
-			if err := workflow.ExecuteActivity(ctx, w.IndexTokenDataFromArtblocks, contractAddress, tokenOwner, tokenID).Get(ctx, &tokenUpdate); err != nil {
-				return err
-			}
+		if len(tokenUpdates) == 0 {
+			log.Info("no token found from opensea", zap.String("owner", tokenOwner), zap.Int("offset", offset))
+			return nil
+		}
 
-			// save to mongodb
-			if err := workflow.ExecuteActivity(ctx, w.IndexAsset, tokenUpdate).Get(ctx, nil); err != nil {
+		for _, u := range tokenUpdates {
+			if err := workflow.ExecuteActivity(ctx, w.IndexAsset, u).Get(ctx, nil); err != nil {
 				return err
 			}
 		}
-	}
 
-	return nil
+		offset += len(tokenUpdates)
+	}
 }
