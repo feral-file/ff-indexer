@@ -83,7 +83,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 
 	for _, token := range assetUpdates.Tokens {
 		token.AssetID = id
-		r, err := s.tokenCollection.UpdateOne(ctx, bson.M{"id": token.ID}, bson.M{"$set": token}, options.Update().SetUpsert(true))
+		r, err := s.tokenCollection.UpdateOne(ctx, bson.M{"id": token.ID, "owner": token.Owner}, bson.M{"$set": token}, options.Update().SetUpsert(true))
 		if err != nil {
 			return err
 		}

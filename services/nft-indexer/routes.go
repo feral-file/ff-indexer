@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -18,6 +19,7 @@ func (s *NFTIndexerServer) SetupRoute() {
 	s.route.POST("/nft/index", s.IndexNFTs)
 
 	s.route.GET("/nft", s.ListNFTs)
+
 	s.route.POST("/nft/query_price", s.QueryNFTPrices)
 
 	s.route.Use(TokenAuthenticate("API-TOKEN", s.apiToken))
@@ -87,9 +89,30 @@ func (s *NFTIndexerServer) QueryNFTPrices(c *gin.Context) {
 	abortWithError(c, http.StatusInternalServerError, "not implemented", nil)
 }
 
+func buildIndexNFTsContext(owner, blockchain string) cadenceClient.StartWorkflowOptions {
+	return cadenceClient.StartWorkflowOptions{
+		ID:                           fmt.Sprintf("index-%s-nft-by-owner-%s", blockchain, owner),
+		TaskList:                     indexerWorker.TaskListName,
+		ExecutionStartToCloseTimeout: time.Hour,
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+	}
+}
+
+func (s *NFTIndexerServer) startIndexWorkflow(c context.Context, owner, blockchain string, workflowFunc interface{}) {
+	workflowContext := buildIndexNFTsContext(owner, blockchain)
+
+	workflow, err := s.cadenceWorker.StartWorkflow(c, indexerWorker.ClientName, workflowContext, workflowFunc, owner)
+	if err != nil {
+		log.WithError(err).WithField("owner", owner).Error("fail to start bitmark opensea indexing workflow")
+	} else {
+		log.WithField("owner", owner).WithField("workflow_id", workflow.ID).Info("start workflow for indexing opensea")
+	}
+}
+
 func (s *NFTIndexerServer) IndexNFTs(c *gin.Context) {
 	var req struct {
-		Owner string `json:"owner"`
+		Owner      string `json:"owner"`
+		Blockchain string `json:"blockchain"`
 	}
 
 	if err := c.Bind(&req); err != nil {
@@ -104,15 +127,19 @@ func (s *NFTIndexerServer) IndexNFTs(c *gin.Context) {
 
 	var w indexerWorker.NFTIndexerWorker
 
-	if workflow, err := s.cadenceWorker.StartWorkflow(c, indexerWorker.ClientName, cadenceClient.StartWorkflowOptions{
-		ID:                           fmt.Sprintf("index-opensea-nft-by-owner-%s", req.Owner),
-		TaskList:                     indexerWorker.TaskListName,
-		ExecutionStartToCloseTimeout: time.Hour,
-		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-	}, w.IndexOpenseaTokenWorkflow, req.Owner); err != nil {
-		log.WithError(err).WithField("owner", req.Owner).Error("fail to start bitmark opensea indexing workflow")
-	} else {
-		log.WithField("owner", req.Owner).WithField("workflow_id", workflow.ID).Info("start workflow for indexing opensea")
+	blockchain := "eth"
+	if req.Blockchain != "" {
+		blockchain = req.Blockchain
+	}
+
+	switch blockchain {
+	case "eth":
+		go s.startIndexWorkflow(c, req.Owner, blockchain, w.IndexOpenseaTokenWorkflow)
+	case "tezos":
+		go s.startIndexWorkflow(c, req.Owner, blockchain, w.IndexTezosTokenWorkflow)
+	default:
+		abortWithError(c, http.StatusInternalServerError, "unsupported blockchain", fmt.Errorf("unsupported blockchain"))
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{

@@ -12,6 +12,7 @@ import (
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
 	"github.com/bitmark-inc/nft-indexer/cadence"
+	"github.com/bitmark-inc/nft-indexer/externals/bettercall"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 )
 
@@ -32,14 +33,15 @@ func main() {
 		log.WithError(err).Panic("fail to initiate indexer store")
 	}
 
-	worker := indexerWorker.New(network, opensea.New(viper.GetString("network")), indexerStore)
+	worker := indexerWorker.New(network, opensea.New(viper.GetString("network")), bettercall.New(), indexerStore)
 
 	// workflows
 	workflow.Register(worker.IndexOpenseaTokenWorkflow)
+	workflow.Register(worker.IndexTezosTokenWorkflow)
 
 	// opensea
 	activity.Register(worker.IndexTokenDataFromFromOpensea)
-
+	activity.Register(worker.IndexTokenDataFromFromTezos)
 	// index store
 	activity.Register(worker.IndexAsset)
 

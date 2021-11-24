@@ -2,14 +2,18 @@ package indexerWorker
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"golang.org/x/crypto/sha3"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/contracts"
@@ -121,8 +125,74 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, ow
 			},
 		}
 
-		fmt.Println(tokenUpdate)
+		log.WithField("asset update", tokenUpdate).Debug("asset updating data prepared")
+		tokenUpdates = append(tokenUpdates, tokenUpdate)
+	}
 
+	return tokenUpdates, nil
+}
+
+// IndexTokenDataFromFromOpensea indexes data from OpenSea into the format of AssetUpdates
+func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
+	tokens, err := w.bettercall.RetrieveTokens(owner, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	tokenUpdates := make([]indexer.AssetUpdates, 0, len(tokens))
+
+	for _, t := range tokens {
+
+		assetID := sha3.Sum256([]byte(fmt.Sprintf("%s-%d", t.Contract, t.ID)))
+		assetIDString := hex.EncodeToString(assetID[:])
+
+		metadata := indexer.ProjectMetadata{
+			ArtistName:          t.Creators[0],
+			ArtistURL:           "",
+			AssetID:             assetIDString,
+			Title:               t.Name,
+			Description:         t.Description,
+			Medium:              "unknown",
+			Source:              t.Symbol,
+			SourceURL:           "",
+			PreviewURL:          t.DisplayUri,
+			ThumbnailURL:        t.ThumbnailUri,
+			GalleryThumbnailURL: t.ThumbnailUri,
+			AssetURL:            t.ArtifactUri,
+		}
+
+		for _, f := range t.Formats {
+			if f.URI == t.ArtifactUri {
+				mimeItems := strings.Split(f.MIMEType, "/")
+				fmt.Println(mimeItems)
+				if len(mimeItems) > 0 {
+					switch mimeItems[0] {
+					case "image":
+						metadata.Medium = "image"
+					case "video":
+						metadata.Medium = "other"
+					}
+				}
+			}
+		}
+
+		tokenUpdate := indexer.AssetUpdates{
+			ID:              assetIDString,
+			ProjectMetadata: metadata,
+			Tokens: []indexer.Token{
+				{
+					ID:              assetIDString,
+					Blockchain:      "tezos",
+					Edition:         0,
+					ContractType:    strings.ToLower(t.Symbol),
+					ContractAddress: t.Contract,
+					Owner:           owner,
+					MintAt:          time.Time{},
+				},
+			},
+		}
+
+		log.WithField("asset update", tokenUpdate).Debug("asset updating data prepared")
 		tokenUpdates = append(tokenUpdates, tokenUpdate)
 	}
 

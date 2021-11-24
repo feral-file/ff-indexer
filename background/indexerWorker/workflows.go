@@ -47,3 +47,36 @@ func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, token
 		offset += len(tokenUpdates)
 	}
 }
+
+func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOwner string) error {
+	ao := workflow.ActivityOptions{
+		TaskList:               w.TaskListName,
+		ScheduleToStartTimeout: time.Second * 60,
+		StartToCloseTimeout:    time.Hour * 24,
+		HeartbeatTimeout:       time.Second * 10,
+	}
+
+	ctx = workflow.WithActivityOptions(ctx, ao)
+	log := workflow.GetLogger(ctx)
+
+	var offset = 0
+	for {
+		tokenUpdates := []indexer.AssetUpdates{}
+		if err := workflow.ExecuteActivity(ctx, w.IndexTokenDataFromFromTezos, tokenOwner, offset).Get(ctx, &tokenUpdates); err != nil {
+			return err
+		}
+
+		if len(tokenUpdates) == 0 {
+			log.Info("no token found from opensea", zap.String("owner", tokenOwner), zap.Int("offset", offset))
+			return nil
+		}
+
+		for _, u := range tokenUpdates {
+			if err := workflow.ExecuteActivity(ctx, w.IndexAsset, u).Get(ctx, nil); err != nil {
+				return err
+			}
+		}
+
+		offset += len(tokenUpdates)
+	}
+}
