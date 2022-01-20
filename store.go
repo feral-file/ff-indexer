@@ -3,7 +3,10 @@ package indexer
 import (
 	"context"
 	"fmt"
+	"math/big"
+	"time"
 
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -14,15 +17,16 @@ const (
 	tokenCollectionName = "tokens"
 )
 
-const (
-	blockchainTypeBitmark = "bitmark"
-	blockchainTypeERC721  = "erc721"
-)
-
 type IndexerStore interface {
 	IndexAsset(ctx context.Context, id string, assetUpdates AssetUpdates) error
+	SwapToken(ctx context.Context, swapUpdate SwapUpdate) (string, error)
+	GetTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]Token, error)
 	GetTokens(ctx context.Context, ids []string) ([]TokenInfo, error)
+	GetOutdatedTokens(ctx context.Context) ([]Token, error)
+	GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error)
 	GetTokensByOwner(ctx context.Context, owner string) ([]TokenInfo, error)
+	UpdateTokenProvenance(ctx context.Context, indexID string, provenances []Provenance) error
+	AllTokens(ctx context.Context, limit, offset int64) ([]TokenInfo, error)
 }
 
 func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*MongodbIndexerStore, error) {
@@ -53,12 +57,17 @@ type MongodbIndexerStore struct {
 // IndexAsset creates an asset and its corresponded tokens by inputs
 func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUpdates AssetUpdates) error {
 	assetCreated := false
-	r := s.assetCollection.FindOne(ctx, bson.M{"id": id})
+
+	indexID := fmt.Sprintf("%s-%s", assetUpdates.Source, id)
+
+	r := s.assetCollection.FindOne(ctx, bson.M{"indexID": indexID})
 	if err := r.Err(); err != nil {
 		if r.Err() == mongo.ErrNoDocuments {
 			// Create a new asset if it is not added
 			if _, err := s.assetCollection.InsertOne(ctx, bson.M{
 				"id":                 id,
+				"indexID":            indexID,
+				"source":             assetUpdates.Source,
 				"blockchainMetadata": assetUpdates.BlockchainMetadata,
 				"projectMetadata": bson.M{
 					"origin": assetUpdates.ProjectMetadata,
@@ -76,25 +85,188 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 	if !assetCreated {
 		s.assetCollection.UpdateOne(
 			ctx,
-			bson.M{"id": id},
+			bson.M{"indexID": indexID},
 			bson.D{{"$set", bson.D{{"projectMetadata.latest", assetUpdates.ProjectMetadata}}}},
 		)
 	}
 
 	for _, token := range assetUpdates.Tokens {
 		token.AssetID = id
-		r, err := s.tokenCollection.UpdateOne(ctx, bson.M{"id": token.ID, "owner": token.Owner}, bson.M{"$set": token}, options.Update().SetUpsert(true))
+
+		if token.IndexID == "" {
+			token.IndexID = TokenIndexID(token.Blockchain, token.ContractAddress, token.ID)
+		}
+
+		tokenResult := s.tokenCollection.FindOne(ctx, bson.M{"indexID": token.IndexID})
+		if err := tokenResult.Err(); err != nil {
+			// inser a new token entry if it is not found
+			if err == mongo.ErrNoDocuments {
+				logrus.WithField("token_id", token.ID).Warn("token is not found")
+				_, err := s.tokenCollection.InsertOne(ctx, token)
+				if err != nil {
+					return err
+				}
+				continue
+			} else {
+				return err
+			}
+		}
+
+		var token Token
+		if err := tokenResult.Decode(&token); err != nil {
+			return err
+		}
+
+		// ignore updates for swapped and burned token
+		if token.Swapped || token.Burned {
+			continue
+		}
+
+		r, err := s.tokenCollection.UpdateOne(ctx,
+			bson.M{"indexID": token.IndexID, "swapped": bson.M{"$ne": true}, "burned": bson.M{"$ne": true}},
+			bson.M{"$set": token}, options.Update().SetUpsert(true))
 		if err != nil {
 			return err
 		}
 		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-			return fmt.Errorf("token is not added")
+			logrus.WithField("token_id", token.ID).WithField("token", token).Warn("token is not added or updated")
 		}
 	}
 	return nil
 }
 
-// GetTokens returns a list of tokens
+// SwapToken marks the original token to burned and creates a new token record which inherits
+// original blockchain information
+func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (string, error) {
+
+	originalBlockchainAlias, ok := BlockchianAlias[swap.OriginalBlockchain]
+	if !ok {
+		return "", fmt.Errorf("original blockchain is not supported")
+	}
+	originalTokenIndexID := fmt.Sprintf("%s-%s-%s", originalBlockchainAlias, swap.OriginalContractAddress, swap.OriginalTokenID)
+
+	tokenResult := s.tokenCollection.FindOne(ctx, bson.M{
+		"indexID": originalTokenIndexID,
+	})
+	if err := tokenResult.Err(); err != nil {
+		return "", err
+	}
+
+	var originalToken Token
+	if err := tokenResult.Decode(&originalToken); err != nil {
+		return "", err
+	}
+
+	if originalToken.Burned {
+		return "", fmt.Errorf("token has burned")
+	}
+	originalBaseTokenInfo := originalToken.BaseTokenInfo
+
+	newBlockchainAlias, ok := BlockchianAlias[swap.NewBlockchain]
+	if !ok {
+		return "", fmt.Errorf("blockchain is not supported")
+	}
+
+	newTokenIndexID := fmt.Sprintf("%s-%s-%s", newBlockchainAlias, swap.NewContractAddress, swap.NewTokenID)
+
+	switch swap.NewBlockchain {
+	case EthereumBlockchain:
+		tokenHexID, ok := big.NewInt(0).SetString(swap.NewTokenID, 10)
+		if !ok {
+			return "", fmt.Errorf("invalid token id for swapping")
+		}
+
+		newTokenIndexID = fmt.Sprintf("%s-%s-%s", newBlockchainAlias, swap.NewContractAddress, tokenHexID.Text(16))
+	default:
+	}
+
+	newToken := originalToken
+	newToken.ID = swap.NewTokenID
+	newToken.IndexID = newTokenIndexID
+	newToken.Blockchain = swap.NewBlockchain
+	newToken.ContractAddress = swap.NewContractAddress
+	newToken.ContractType = swap.NewContractType
+	newToken.Swapped = true
+	newToken.OriginTokenInfo = append([]BaseTokenInfo{originalBaseTokenInfo}, newToken.OriginTokenInfo...)
+
+	logrus.WithField("from", originalTokenIndexID).WithField("to", newTokenIndexID).Debug("update tokens for swapping")
+	session, err := s.mongoClient.StartSession()
+	if err != nil {
+		return "", err
+	}
+	defer session.EndSession(ctx)
+
+	result, err := session.WithTransaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
+		if _, err := s.tokenCollection.UpdateOne(ctx, bson.M{"indexID": originalTokenIndexID}, bson.M{
+			"$set": bson.M{
+				"burned": true,
+			},
+		}); err != nil {
+			return nil, err
+		}
+
+		r, err := s.tokenCollection.UpdateOne(ctx,
+			bson.M{"indexID": newTokenIndexID},
+			bson.M{"$set": newToken},
+			options.Update().SetUpsert(true))
+		if err != nil {
+			return nil, err
+		}
+
+		if r.ModifiedCount == 0 && r.UpsertedCount == 0 {
+			return nil, fmt.Errorf("fail to create / update swapped token")
+		}
+
+		return nil, nil
+	})
+
+	logrus.WithField("transaction_result", result).Debug("swap token transaction")
+
+	return newTokenIndexID, err
+}
+
+// GetTokensByIndexIDs returns a list of tokens by a given list of index id
+func (s *MongodbIndexerStore) GetTokensByIndexIDs(ctx context.Context, ids []string) ([]Token, error) {
+	var tokens []Token
+
+	c, err := s.tokenCollection.Find(ctx, bson.M{"indexID": bson.M{"$in": ids}})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := c.All(ctx, &tokens); err != nil {
+		return nil, err
+	}
+
+	return tokens, nil
+}
+
+// GetOutdatedTokens returns a list of outdated tokens
+func (s *MongodbIndexerStore) GetOutdatedTokens(ctx context.Context) ([]Token, error) {
+	var tokens []Token
+
+	cursor, err := s.tokenCollection.Find(ctx, bson.M{
+		"blockchain": "bitmark",
+
+		"$or": bson.A{
+			bson.M{"lastRefreshedTime": bson.M{"$exists": false}},
+			bson.M{"lastRefreshedTime": bson.M{"$lt": time.Now().Add(-24 * time.Hour)}},
+		},
+	}, options.Find().SetLimit(100))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	if err := cursor.All(ctx, &tokens); err != nil {
+		return nil, err
+	}
+
+	return tokens, nil
+}
+
+// FIXME: GetTokensByIndexIDs and GetTokens is confused
+// GetTokens returns a list of tokens information based on id
 func (s *MongodbIndexerStore) GetTokens(ctx context.Context, ids []string) ([]TokenInfo, error) {
 	tokens := make([]TokenInfo, 0, len(ids))
 
@@ -141,6 +313,97 @@ func (s *MongodbIndexerStore) GetTokens(ctx context.Context, ids []string) ([]To
 	return tokens, nil
 }
 
+// UpdateTokenProvenance updates provenance for a specific token
+func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID string, provenances []Provenance) error {
+	if len(provenances) == 0 {
+		logrus.WithField("indexID", indexID).Warn("ignore update empty provenance")
+		return nil
+	}
+
+	_, err := s.tokenCollection.UpdateOne(ctx, bson.M{
+		"indexID": indexID,
+	}, bson.M{
+		"$set": bson.M{
+			"owner":             provenances[0].Owner,
+			"lastUpdatedTime":   provenances[0].Timestamp,
+			"lastRefreshedTime": time.Now(),
+			"provenance":        provenances,
+		},
+	})
+
+	return err
+}
+
+// AllTokens returns all tokens from the db. This is debugging code and should be removed in the future
+func (s *MongodbIndexerStore) AllTokens(ctx context.Context, limit, offset int64) ([]TokenInfo, error) {
+	tokens := make([]TokenInfo, 0)
+
+	type asset struct {
+		ProjectMetadata VersionedProjectMetadata `json:"projectMetadata"`
+	}
+
+	skip := offset * limit
+	assets := map[string]asset{}
+	c, err := s.tokenCollection.Find(ctx, bson.M{},
+		&options.FindOptions{
+			Skip:  &skip,
+			Limit: &limit,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := c.All(ctx, &tokens); err != nil {
+		return nil, err
+	}
+	for i, t := range tokens {
+		a, assetExist := assets[t.AssetID]
+		if !assetExist {
+			assetResult := s.assetCollection.FindOne(ctx, bson.M{"id": t.AssetID})
+			if err := assetResult.Err(); err != nil {
+				return nil, err
+			}
+
+			if err := assetResult.Decode(&a); err != nil {
+				return nil, err
+			}
+
+			assets[t.AssetID] = a
+		}
+
+		// FIXME: hardcoded values for backward compatibility
+		a.ProjectMetadata.Latest.FirstMintedAt = "0001-01-01T00:00:00.000Z"
+		a.ProjectMetadata.Origin.FirstMintedAt = "0001-01-01T00:00:00.000Z"
+		tokens[i].ProjectMetadata = a.ProjectMetadata
+	}
+
+	return tokens, nil
+}
+
+// GetTokensByOwner returns a list of tokens which belongs to an owner
+func (s *MongodbIndexerStore) GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
+	tokens := make([]string, 0)
+
+	c, err := s.tokenCollection.Find(ctx, bson.M{"owner": owner, "burned": bson.M{"$ne": true}}, options.Find().SetProjection(bson.M{"indexID": 1}))
+	if err != nil {
+		return nil, err
+	}
+
+	for c.Next(ctx) {
+		var v struct {
+			IndexID string
+		}
+		if err := c.Decode(&v); err != nil {
+			return nil, err
+		}
+
+		tokens = append(tokens, v.IndexID)
+	}
+
+	return tokens, nil
+}
+
 // GetTokensByOwner returns a list of tokens which belongs to an owner
 func (s *MongodbIndexerStore) GetTokensByOwner(ctx context.Context, owner string) ([]TokenInfo, error) {
 	tokens := make([]TokenInfo, 0)
@@ -150,7 +413,7 @@ func (s *MongodbIndexerStore) GetTokensByOwner(ctx context.Context, owner string
 	}
 
 	assets := map[string]asset{}
-	c, err := s.tokenCollection.Find(ctx, bson.M{"owner": owner})
+	c, err := s.tokenCollection.Find(ctx, bson.M{"owner": owner, "burned": bson.M{"$ne": true}})
 	if err != nil {
 		return nil, err
 	}

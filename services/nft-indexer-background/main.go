@@ -38,12 +38,18 @@ func main() {
 	// workflows
 	workflow.Register(worker.IndexOpenseaTokenWorkflow)
 	workflow.Register(worker.IndexTezosTokenWorkflow)
+	workflow.Register(worker.RefreshTokenProvenanceWorkflow)
+	workflow.Register(worker.RefreshTokenProvenancePeriodicallyWorkflow)
 
 	// opensea
 	activity.Register(worker.IndexTokenDataFromFromOpensea)
 	activity.Register(worker.IndexTokenDataFromFromTezos)
+
 	// index store
 	activity.Register(worker.IndexAsset)
+	activity.Register(worker.GetOutdatedTokens)
+	activity.Register(worker.GetTokenIDsByOwner)
+	activity.Register(worker.RefreshTokenProvenance)
 
 	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)
 	workerLogger := cadence.BuildCadenceLogger(logLevel)

@@ -4,16 +4,36 @@ import (
 	"time"
 )
 
+type Provenance struct {
+	Type       string    `json:"type" bson:"type"`
+	Owner      string    `json:"owner" bson:"owner"`
+	Blockchain string    `json:"blockchain" bson:"blockchain"`
+	Timestamp  time.Time `json:"timestamp" bson:"timestamp"`
+	TxID       string    `json:"txid" bson:"txid"`
+}
+
+type BaseTokenInfo struct {
+	ID              string `json:"id" bson:"id"`
+	Blockchain      string `json:"blockchain" bson:"blockchain"`
+	ContractType    string `json:"contractType" bson:"contractType"`
+	ContractAddress string `json:"contractAddress,omitempty" bson:"contractAddress"`
+}
+
 // Token is a structure for token information
 type Token struct {
-	ID              string    `json:"id" bson:"id"`
-	Edition         int64     `json:"edition" bson:"edition"`
-	Blockchain      string    `json:"blockchain" bson:"blockchain"`
-	MintAt          time.Time `json:"mintedAt" bson:"mintedAt"`
-	ContractAddress string    `json:"contractAddress,omitempty" bson:"contractAddress"`
-	ContractType    string    `json:"contractType" bson:"contractType"`
-	Owner           string    `json:"owner" bson:"owner"`
-	AssetID         string    `json:"-" bson:"assetID"`
+	BaseTokenInfo   `bson:",inline"` // the latest token info
+	Edition         int64            `json:"edition" bson:"edition"`
+	MintAt          time.Time        `json:"mintedAt" bson:"mintedAt"`
+	Owner           string           `json:"owner" bson:"owner"`
+	AssetID         string           `json:"-" bson:"assetID"`
+	OriginTokenInfo []BaseTokenInfo  `json:"originTokenInfo" bson:"originTokenInfo"`
+
+	IndexID           string       `json:"indexID" bson:"indexID"`
+	Swapped           bool         `json:"swapped" bson:"swapped"`
+	Burned            bool         `json:"burned" bson:"burned"`
+	Provenances       []Provenance `json:"provenance" bson:"provenance"`
+	LastUpdatedTime   time.Time    `json:"lastUpdatedTime" bson:"lastUpdatedTime"`
+	LastRefreshedTime time.Time    `json:"-" bson:"lastRefreshedTime"`
 }
 
 type ProjectMetadata struct {
@@ -44,9 +64,23 @@ type ProjectMetadata struct {
 // tokens that is attached to it
 type AssetUpdates struct {
 	ID                 string          `json:"id"`
+	Source             string          `json:"source"`
 	ProjectMetadata    ProjectMetadata `json:"projectMetadata"`
 	BlockchainMetadata interface{}     `json:"blockchainMetadata"`
 	Tokens             []Token         `json:"tokens"`
+}
+
+// SwapUpdate is the inputs payload for swap a token
+type SwapUpdate struct {
+	OriginalTokenID         string          `json:"originalTokenID"`
+	OriginalBlockchain      string          `json:"originalBlockchain"`
+	OriginalContractAddress string          `json:"originalContractAddress"`
+	NewTokenID              string          `json:"newTokenID"`
+	NewBlockchain           string          `json:"newBlockchain"`
+	NewContractAddress      string          `json:"newContractAddress"`
+	NewContractType         string          `json:"newContractType"`
+	ProjectMetadata         ProjectMetadata `json:"projectMetadata"`
+	BlockchainMetadata      interface{}     `json:"blockchainMetadata"`
 }
 
 // VersionedProjectMetadata is a structure that manages different versions of project metadata.

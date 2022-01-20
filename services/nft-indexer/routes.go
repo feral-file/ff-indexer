@@ -17,10 +17,12 @@ import (
 func (s *NFTIndexerServer) SetupRoute() {
 	s.route.POST("/nft/query", s.QueryNFTs)
 	s.route.POST("/nft/index", s.IndexNFTs)
+	s.route.POST("/nft/:token_id/provenance", s.RefreshProvenance)
 
 	s.route.GET("/nft", s.ListNFTs)
+	s.route.GET("/nft/all", s.AllNFTs)
+	s.route.POST("/nft/swap", s.SwapNFT)
 
-	s.route.POST("/nft/query_price", s.QueryNFTPrices)
 
 	s.route.Use(TokenAuthenticate("API-TOKEN", s.apiToken))
 	s.route.PUT("/asset/:asset_id", s.IndexAsset)
@@ -33,6 +35,10 @@ func (s *NFTIndexerServer) IndexAsset(c *gin.Context) {
 	if err := c.Bind(&input); err != nil {
 		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
 		return
+	}
+
+	if input.Source == "" {
+		input.Source = "feralfile"
 	}
 
 	if err := s.indexerStore.IndexAsset(c, assetID, input); err != nil {
@@ -84,10 +90,77 @@ func (s *NFTIndexerServer) ListNFTs(c *gin.Context) {
 	c.JSON(http.StatusOK, tokenInfo)
 }
 
-// QueryNFTPrices returns prices information for NFTs
-func (s *NFTIndexerServer) QueryNFTPrices(c *gin.Context) {
-	abortWithError(c, http.StatusInternalServerError, "not implemented", nil)
+// ListNFTs returns information for a list of NFTs with some criterias.
+// It currently only supports listing by owners.
+func (s *NFTIndexerServer) AllNFTs(c *gin.Context) {
+	var params struct {
+		Limit  int64 `form:"limit"`
+		Offset int64 `form:"offset"`
+	}
+
+	if err := c.BindQuery(&params); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if params.Limit == 0 || params.Limit > 50 {
+		params.Limit = 50
+	}
+
+	tokenInfo, err := s.indexerStore.AllTokens(c, params.Limit, params.Offset)
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, tokenInfo)
 }
+
+// SwapNFT migrate existent nft from a blockchain to another
+func (s *NFTIndexerServer) SwapNFT(c *gin.Context) {
+	var input indexer.SwapUpdate
+	if err := c.Bind(&input); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	swappedTokenIndexID, err := s.indexerStore.SwapToken(c, input)
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, fmt.Sprintf("unable to swap token. error: %s", err.Error()), err)
+		return
+	}
+
+	// trigger refreshing provenance to merge two blockchain provenance
+	go s.startRefreshProvenanceWorkflow(context.Background(), fmt.Sprintf("swap-%s", input.NewTokenID), []string{swappedTokenIndexID}, 0)
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok": 1,
+	})
+}
+
+// QueryNFTPrices returns prices information for NFTs
+// func (s *NFTIndexerServer) QueryNFTPrices(c *gin.Context) {
+// 	abortWithError(c, http.StatusInternalServerError, "not implemented", nil)
+// }
+
+// // PushNFTPrice returns push an trade price information to a specific NFT
+// func (s *NFTIndexerServer) PushNFTPrice(c *gin.Context) {
+// 	tokenID := c.Param("token_id")
+// 	var input indexer.PriceUpdate
+// 	if err := c.Bind(&input); err != nil {
+// 		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+// 		return
+// 	}
+
+// 	if err := s.indexerStore.UpdateTokenPrice(c, tokenID, input); err != nil {
+// 		abortWithError(c, http.StatusInternalServerError, "unable to push token price", err)
+// 		return
+// 	}
+
+// 	c.JSON(http.StatusOK, gin.H{
+// 		"ok": 1,
+// 	})
+// }
 
 func buildIndexNFTsContext(owner, blockchain string) cadenceClient.StartWorkflowOptions {
 	return cadenceClient.StartWorkflowOptions{
@@ -107,6 +180,34 @@ func (s *NFTIndexerServer) startIndexWorkflow(c context.Context, owner, blockcha
 	} else {
 		log.WithField("owner", owner).WithField("workflow_id", workflow.ID).Info("start workflow for indexing opensea")
 	}
+}
+
+func (s *NFTIndexerServer) startRefreshProvenanceWorkflow(c context.Context, refreshProvenanceTaskID string, indexIDs []string, delay time.Duration) {
+	workflowContext := cadenceClient.StartWorkflowOptions{
+		ID:                           fmt.Sprintf("index-token-%s-provenance", refreshProvenanceTaskID),
+		TaskList:                     indexerWorker.TaskListName,
+		ExecutionStartToCloseTimeout: time.Hour,
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+	}
+
+	var w indexerWorker.NFTIndexerWorker
+
+	workflow, err := s.cadenceWorker.StartWorkflow(c, indexerWorker.ClientName, workflowContext, w.RefreshTokenProvenanceWorkflow, indexIDs, delay)
+	if err != nil {
+		log.WithError(err).WithField("refreshProvenanceTaskID", refreshProvenanceTaskID).Error("fail to start refreshing provenance workflow")
+	} else {
+		log.WithField("refreshProvenanceTaskID", refreshProvenanceTaskID).WithField("workflow_id", workflow.ID).Info("start workflow for refreshing provenance")
+	}
+}
+
+func (s *NFTIndexerServer) RefreshProvenance(c *gin.Context) {
+	tokenID := c.Param("token_id")
+
+	go s.startRefreshProvenanceWorkflow(context.Background(), tokenID, []string{tokenID}, 0)
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok": 1,
+	})
 }
 
 func (s *NFTIndexerServer) IndexNFTs(c *gin.Context) {

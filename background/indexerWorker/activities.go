@@ -3,12 +3,15 @@ package indexerWorker
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
+	"net/http/httputil"
 	"strings"
 	"time"
 
+	goethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	log "github.com/sirupsen/logrus"
@@ -71,7 +74,9 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, ow
 		var sourceURL string
 		var artistURL string
 
-		if _, ok := artblocksContracts[strings.ToLower(a.AssetContract.Address)]; ok {
+		contractAddress := indexer.EthereumChecksumAddress(a.AssetContract.Address)
+
+		if _, ok := artblocksContracts[contractAddress]; ok {
 			source = "ArtBlocks"
 			sourceURL = "https://www.artblocks.io/"
 		} else {
@@ -90,7 +95,7 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, ow
 		metadata := indexer.ProjectMetadata{
 			ArtistName:          a.Creator.User.Username,
 			ArtistURL:           artistURL,
-			AssetID:             a.AssetContract.Address,
+			AssetID:             contractAddress,
 			Title:               a.Name,
 			Description:         a.Description,
 			Medium:              "unknown",
@@ -109,18 +114,28 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, ow
 			metadata.Medium = "image"
 		}
 
+		// token id from opensea is a decimal integer string
+		tokenID, ok := big.NewInt(0).SetString(a.TokenID, 10)
+		if !ok {
+			return nil, fmt.Errorf("fail to read token id from opensea")
+		}
+
 		tokenUpdate := indexer.AssetUpdates{
 			ID:              fmt.Sprintf("%d", a.ID),
+			Source:          "opensea",
 			ProjectMetadata: metadata,
 			Tokens: []indexer.Token{
 				{
-					ID:              a.TokenID,
-					Blockchain:      "ethereum",
-					Edition:         0,
-					ContractType:    strings.ToLower(a.AssetContract.SchemaName),
-					ContractAddress: a.AssetContract.Address,
-					Owner:           owner,
-					MintAt:          a.AssetContract.CreatedDate.Time,
+					BaseTokenInfo: indexer.BaseTokenInfo{
+						ID:              a.TokenID,
+						Blockchain:      indexer.EthereumBlockchain,
+						ContractType:    strings.ToLower(a.AssetContract.SchemaName),
+						ContractAddress: contractAddress,
+					},
+					IndexID: fmt.Sprintf("%s-%s-%s", indexer.BlockchianAlias[indexer.EthereumBlockchain], contractAddress, tokenID.Text(16)),
+					Edition: 0,
+					Owner:   owner,
+					MintAt:  a.AssetContract.CreatedDate.Time,
 				},
 			},
 		}
@@ -132,7 +147,7 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, ow
 	return tokenUpdates, nil
 }
 
-// IndexTokenDataFromFromOpensea indexes data from OpenSea into the format of AssetUpdates
+// IndexTokenDataFromFromTezos indexes data from Tezos into the format of AssetUpdates
 func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
 	tokens, err := w.bettercall.RetrieveTokens(owner, offset)
 	if err != nil {
@@ -142,29 +157,39 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 	tokenUpdates := make([]indexer.AssetUpdates, 0, len(tokens))
 
 	for _, t := range tokens {
+		log.WithField("token", t).Debug("index tezos token")
 
 		assetID := sha3.Sum256([]byte(fmt.Sprintf("%s-%d", t.Contract, t.ID)))
 		assetIDString := hex.EncodeToString(assetID[:])
+		creator := ""
+		if len(t.Creators) > 0 {
+			creator = t.Creators[0]
+		}
+
+		// default display URI
+		displayURI := "https://ipfs.io/ipfs/QmV2cw5ytr3veNfAbJPpM5CeaST5vehT88XEmfdYY2wwiV"
+		if t.DisplayUri != "" {
+			displayURI = strings.ReplaceAll(t.DisplayUri, "ipfs://", "https://ipfs.io/ipfs/")
+		}
 
 		metadata := indexer.ProjectMetadata{
-			ArtistName:          t.Creators[0],
-			ArtistURL:           "",
+			ArtistName:          creator,
+			ArtistURL:           fmt.Sprintf("https://objkt.com/profile/%s", creator),
 			AssetID:             assetIDString,
 			Title:               t.Name,
 			Description:         t.Description,
 			Medium:              "unknown",
 			Source:              t.Symbol,
-			SourceURL:           "",
-			PreviewURL:          t.DisplayUri,
-			ThumbnailURL:        t.ThumbnailUri,
-			GalleryThumbnailURL: t.ThumbnailUri,
-			AssetURL:            t.ArtifactUri,
+			SourceURL:           "https://objkt.com",
+			PreviewURL:          displayURI,
+			ThumbnailURL:        displayURI,
+			GalleryThumbnailURL: displayURI,
+			AssetURL:            fmt.Sprintf("https://objkt.com/asset/%s/%d", t.Contract, t.ID),
 		}
 
 		for _, f := range t.Formats {
 			if f.URI == t.ArtifactUri {
 				mimeItems := strings.Split(f.MIMEType, "/")
-				fmt.Println(mimeItems)
 				if len(mimeItems) > 0 {
 					switch mimeItems[0] {
 					case "image":
@@ -178,16 +203,20 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 
 		tokenUpdate := indexer.AssetUpdates{
 			ID:              assetIDString,
+			Source:          "bcdhub",
 			ProjectMetadata: metadata,
 			Tokens: []indexer.Token{
 				{
-					ID:              assetIDString,
-					Blockchain:      "tezos",
-					Edition:         0,
-					ContractType:    strings.ToLower(t.Symbol),
-					ContractAddress: t.Contract,
-					Owner:           owner,
-					MintAt:          time.Time{},
+					BaseTokenInfo: indexer.BaseTokenInfo{
+						ID:              fmt.Sprint(t.ID),
+						Blockchain:      indexer.TezosBlockchain,
+						ContractType:    "fa2",
+						ContractAddress: t.Contract,
+					},
+					IndexID: fmt.Sprintf("%s-%s-%d", indexer.BlockchianAlias[indexer.TezosBlockchain], t.Contract, t.ID),
+					Edition: 0,
+					Owner:   owner,
+					MintAt:  time.Time{},
 				},
 			},
 		}
@@ -200,6 +229,194 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 }
 
 // IndexAsset saves asset data into indexer's storage
+func (w *NFTIndexerWorker) GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
+	return w.indexerStore.GetTokenIDsByOwner(ctx, owner)
+}
+
+// IndexAsset saves asset data into indexer's storage
 func (w *NFTIndexerWorker) IndexAsset(ctx context.Context, updates indexer.AssetUpdates) error {
 	return w.indexerStore.IndexAsset(ctx, updates.ID, updates)
+}
+
+type Provenance struct {
+	TxId      string    `json:"tx_id"`
+	Owner     string    `json:"owner"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// Bitmark is the response structure of bitmark registry
+type Bitmark struct {
+	Id         string       `json:"id"`
+	HeadId     string       `json:"head_id"`
+	Owner      string       `json:"owner"`
+	AssetId    string       `json:"asset_id"`
+	Issuer     string       `json:"issuer"`
+	Head       string       `json:"head"`
+	Status     string       `json:"status"`
+	Provenance []Provenance `json:"provenance"`
+}
+
+// fetchBitmarkProvenance reads bitmark provenances through bitmark api
+func (w *NFTIndexerWorker) fetchBitmarkProvenance(bitmarkID string) ([]indexer.Provenance, error) {
+	provenances := []indexer.Provenance{}
+
+	var data struct {
+		Bitmark Bitmark `json:"bitmark"`
+	}
+
+	resp, err := w.http.Get(fmt.Sprintf("%s/v1/bitmarks/%s?provenance=true", w.bitmarkAPIEndpoint, bitmarkID))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	dump, err := httputil.DumpResponse(resp, true)
+	if err != nil {
+		log.WithError(err).Error("fail to dump http response")
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		log.WithError(err).WithField("httpdump", dump).Error("fail to decode bitmark payload")
+		return nil, err
+	}
+
+	for i, p := range data.Bitmark.Provenance {
+		txType := "transfer"
+
+		if i == len(data.Bitmark.Provenance)-1 {
+			txType = "issue"
+		} else if p.Owner == w.bitmarkZeroAddress {
+			txType = "burn"
+		}
+
+		provenances = append(provenances, indexer.Provenance{
+			Type:       txType,
+			Owner:      p.Owner,
+			Blockchain: indexer.BitmarkBlockchain,
+			Timestamp:  p.CreatedAt,
+			TxID:       p.TxId,
+		})
+	}
+
+	return provenances, nil
+}
+
+// fetchEthereumProvenance reads ethereum provenance through filterLogs
+func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID, contractAddress string) ([]indexer.Provenance, error) {
+	transferLogs, err := w.wallet.RPCClient().FilterLogs(ctx, goethereum.FilterQuery{
+		Addresses: []common.Address{common.HexToAddress(contractAddress)},
+		Topics: [][]common.Hash{
+			{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")},
+			nil, nil,
+			{common.HexToHash(tokenID)},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	log.WithField("tokenID", tokenID).WithField("logs", transferLogs).Debug("token provenance")
+
+	totalTransferLogs := len(transferLogs)
+
+	provenances := make([]indexer.Provenance, 0, totalTransferLogs)
+
+	for i := range transferLogs {
+		l := transferLogs[totalTransferLogs-i-1]
+
+		fromAccountHash := l.Topics[1]
+		toAccountHash := l.Topics[2]
+		txType := "transfer"
+		if fromAccountHash.Big().Cmp(big.NewInt(0)) == 0 {
+			txType = "mint"
+		}
+
+		block, err := w.wallet.RPCClient().BlockByHash(ctx, l.BlockHash)
+		if err != nil {
+			return nil, err
+		}
+		txTime := time.Unix(int64(block.Time()), 0)
+
+		provenances = append(provenances, indexer.Provenance{
+			Timestamp:  txTime,
+			Type:       txType,
+			Owner:      indexer.EthereumChecksumAddress(toAccountHash.Hex()),
+			Blockchain: indexer.EthereumBlockchain,
+			TxID:       l.TxHash.Hex(),
+		})
+	}
+
+	return provenances, nil
+}
+
+func (w *NFTIndexerWorker) GetOutdatedTokens(ctx context.Context) ([]indexer.Token, error) {
+	return w.indexerStore.GetOutdatedTokens(ctx)
+}
+
+// RefreshTokenProvenance refresh provenance. This is a heavy task
+func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs []string, delay time.Duration) error {
+	tokens, err := w.indexerStore.GetTokensByIndexIDs(ctx, indexIDs)
+	if err != nil {
+		return err
+	}
+
+	for _, token := range tokens {
+
+		if token.LastRefreshedTime.Unix() > time.Now().Add(-delay).Unix() {
+			log.WithField("indexID", token.IndexID).Debug("refresh too frequently")
+			continue
+		}
+
+		log.WithField("indexID", token.IndexID).Debug("start refresh token provenance")
+
+		totalProvenances := []indexer.Provenance{}
+		switch token.Blockchain {
+		case indexer.BitmarkBlockchain:
+			provenance, err := w.fetchBitmarkProvenance(token.ID)
+			if err != nil {
+				return err
+			}
+
+			totalProvenances = append(totalProvenances, provenance...)
+		case indexer.EthereumBlockchain:
+			hexID, err := indexer.OpenseaTokenIDToHex(token.ID)
+			if err != nil {
+				return err
+			}
+			provenance, err := w.fetchEthereumProvenance(ctx, hexID, token.ContractAddress)
+			if err != nil {
+				return err
+			}
+			totalProvenances = append(totalProvenances, provenance...)
+		}
+
+		for _, tokenInfo := range token.OriginTokenInfo {
+			switch tokenInfo.Blockchain {
+			case indexer.BitmarkBlockchain:
+				provenance, err := w.fetchBitmarkProvenance(tokenInfo.ID)
+				if err != nil {
+					return err
+				}
+
+				totalProvenances = append(totalProvenances, provenance...)
+			case indexer.EthereumBlockchain:
+				hexID, err := indexer.OpenseaTokenIDToHex(tokenInfo.ID)
+				if err != nil {
+					return err
+				}
+				provenance, err := w.fetchEthereumProvenance(ctx, hexID, token.ContractAddress)
+				if err != nil {
+					return err
+				}
+				totalProvenances = append(totalProvenances, provenance...)
+			}
+		}
+
+		if err := w.indexerStore.UpdateTokenProvenance(ctx, token.IndexID, totalProvenances); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
