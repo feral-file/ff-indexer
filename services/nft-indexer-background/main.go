@@ -33,7 +33,9 @@ func main() {
 		log.WithError(err).Panic("fail to initiate indexer store")
 	}
 
-	worker := indexerWorker.New(network, opensea.New(viper.GetString("network")), bettercall.New(), indexerStore)
+	worker := indexerWorker.New(network,
+		opensea.New(viper.GetString("network"), viper.GetString("opensea.api_key")),
+		bettercall.New(), indexerStore)
 
 	// workflows
 	workflow.Register(worker.IndexOpenseaTokenWorkflow)

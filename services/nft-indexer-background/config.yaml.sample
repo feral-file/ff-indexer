@@ -11,3 +11,6 @@ ethereum:
   rpc_url: https://mainnet.infura.io/v3/<project-id>
 
 network: testnet
+
+opensea:
+  api_key:

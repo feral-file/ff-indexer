@@ -61,12 +61,14 @@ type Asset struct {
 }
 
 type OpenseaClient struct {
+	apiKey  string
 	network string
 	client  *http.Client
 }
 
-func New(network string) *OpenseaClient {
+func New(network, apiKey string) *OpenseaClient {
 	return &OpenseaClient{
+		apiKey:  apiKey,
 		network: network,
 		client: &http.Client{
 			Timeout: 15 * time.Second,
@@ -93,7 +95,16 @@ func (c *OpenseaClient) RetrieveAssets(owner string, offset int) ([]Asset, error
 		u.Host = "rinkeby-api.opensea.io"
 	}
 
-	resp, err := c.client.Get(u.String())
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if c.apiKey != "" {
+		req.Header.Add("X-API-KEY", c.apiKey)
+	}
+
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
