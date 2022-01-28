@@ -112,16 +112,17 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 			}
 		}
 
-		var token Token
-		if err := tokenResult.Decode(&token); err != nil {
+		var currentToken Token
+		if err := tokenResult.Decode(&currentToken); err != nil {
 			return err
 		}
 
 		// ignore updates for swapped and burned token
-		if token.Swapped || token.Burned {
+		if currentToken.Swapped || currentToken.Burned {
 			continue
 		}
 
+		logrus.WithField("token_id", token.ID).WithField("token", token).Debug("token data for updated")
 		r, err := s.tokenCollection.UpdateOne(ctx,
 			bson.M{"indexID": token.IndexID, "swapped": bson.M{"$ne": true}, "burned": bson.M{"$ne": true}},
 			bson.M{"$set": token}, options.Update().SetUpsert(true))
@@ -129,7 +130,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 			return err
 		}
 		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-			logrus.WithField("token_id", token.ID).WithField("token", token).Warn("token is not added or updated")
+			logrus.WithField("token_id", token.ID).Warn("token is not added or updated")
 		}
 	}
 	return nil
