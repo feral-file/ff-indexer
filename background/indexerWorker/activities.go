@@ -75,6 +75,10 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, ow
 		var artistURL string
 
 		contractAddress := indexer.EthereumChecksumAddress(a.AssetContract.Address)
+		switch contractAddress {
+		case indexer.ENSContractAddress:
+			continue
+		}
 
 		if _, ok := artblocksContracts[contractAddress]; ok {
 			source = "ArtBlocks"
@@ -162,6 +166,11 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 		tokenBlockchainMetadata, err := w.bettercall.GetTokenMetadata(t.Contract, t.ID)
 		if err != nil {
 			return nil, err
+		}
+
+		switch t.Contract {
+		case indexer.KALAMContractAddress:
+			continue
 		}
 
 		assetID := sha3.Sum256([]byte(fmt.Sprintf("%s-%d", t.Contract, t.ID)))
