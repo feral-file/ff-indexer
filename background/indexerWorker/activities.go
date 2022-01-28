@@ -159,6 +159,11 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 	for _, t := range tokens {
 		log.WithField("token", t).Debug("index tezos token")
 
+		tokenBlockchainMetadata, err := w.bettercall.GetTokenMetadata(t.Contract, t.ID)
+		if err != nil {
+			return nil, err
+		}
+
 		assetID := sha3.Sum256([]byte(fmt.Sprintf("%s-%d", t.Contract, t.ID)))
 		assetIDString := hex.EncodeToString(assetID[:])
 		creator := ""
@@ -216,7 +221,7 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 					IndexID: fmt.Sprintf("%s-%s-%d", indexer.BlockchianAlias[indexer.TezosBlockchain], t.Contract, t.ID),
 					Edition: 0,
 					Owner:   owner,
-					MintAt:  time.Time{},
+					MintAt:  tokenBlockchainMetadata.Timestamp,
 				},
 			},
 		}

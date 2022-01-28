@@ -44,6 +44,12 @@ type TokenResponse struct {
 	Total  int64   `json:"total"`
 }
 
+type TokenMetadata struct {
+	Contract  string    `json:"contract"`
+	Timestamp time.Time `json:"timestamp"`
+	TokenID   int       `json:"token_id"`
+}
+
 func (c *BetterCall) RetrieveTokens(owner string, offset int) ([]Token, error) {
 	v := url.Values{
 		"size":       []string{"50"},
@@ -70,4 +76,35 @@ func (c *BetterCall) RetrieveTokens(owner string, offset int) ([]Token, error) {
 	}
 
 	return tokenResponse.Tokens, nil
+}
+
+func (c *BetterCall) GetTokenMetadata(contract string, tokenID int) (TokenMetadata, error) {
+	v := url.Values{
+		"contract": []string{contract},
+		"token_id": []string{fmt.Sprint(tokenID)},
+	}
+
+	u := url.URL{
+		Scheme:   "https",
+		Host:     "api.better-call.dev",
+		Path:     "/v1/tokens/mainnet/metadata",
+		RawQuery: v.Encode(),
+	}
+
+	resp, err := c.client.Get(u.String())
+	if err != nil {
+		return TokenMetadata{}, err
+	}
+	defer resp.Body.Close()
+
+	var metadata []TokenMetadata
+	if err := json.NewDecoder(resp.Body).Decode(&metadata); err != nil {
+		return TokenMetadata{}, err
+	}
+
+	if len(metadata) > 1 {
+		return TokenMetadata{}, fmt.Errorf("more than one metadata a the response")
+	}
+
+	return metadata[0], nil
 }
