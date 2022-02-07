@@ -92,12 +92,16 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, ow
 			}
 		}
 
+		artistName := a.Creator.User.Username
 		if a.Creator.Address != "" {
+			if artistName == "" {
+				artistName = a.Creator.Address
+			}
 			artistURL = fmt.Sprintf("%s/%s", sourceURL, a.Creator.Address)
 		}
 
 		metadata := indexer.ProjectMetadata{
-			ArtistName:          a.Creator.User.Username,
+			ArtistName:          artistName,
 			ArtistURL:           artistURL,
 			AssetID:             contractAddress,
 			Title:               a.Name,
@@ -106,8 +110,8 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, ow
 			Source:              source,
 			SourceURL:           sourceURL,
 			PreviewURL:          a.ImageURL,
-			ThumbnailURL:        a.ImageThumbnailURL,
-			GalleryThumbnailURL: a.ImageThumbnailURL,
+			ThumbnailURL:        a.ImageURL,
+			GalleryThumbnailURL: a.ImagePreviewURL,
 			AssetURL:            a.Permalink,
 		}
 
@@ -175,44 +179,77 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 
 		assetID := sha3.Sum256([]byte(fmt.Sprintf("%s-%d", t.Contract, t.ID)))
 		assetIDString := hex.EncodeToString(assetID[:])
-		creator := ""
+
+		var artistName, artistURL string
 		if len(t.Creators) > 0 {
-			creator = t.Creators[0]
+			artistName = t.Creators[0]
+			artistURL = fmt.Sprintf("https://objkt.com/profile/%s", artistName)
 		}
 
 		// default display URI
-		displayURI := "https://ipfs.io/ipfs/QmV2cw5ytr3veNfAbJPpM5CeaST5vehT88XEmfdYY2wwiV"
+		displayURI := "ipfs://QmV2cw5ytr3veNfAbJPpM5CeaST5vehT88XEmfdYY2wwiV"
 		if t.DisplayUri != "" {
-			displayURI = strings.ReplaceAll(t.DisplayUri, "ipfs://", "https://ipfs.io/ipfs/")
+			displayURI = t.DisplayUri
 		}
 
-		metadata := indexer.ProjectMetadata{
-			ArtistName:          creator,
-			ArtistURL:           fmt.Sprintf("https://objkt.com/profile/%s", creator),
-			AssetID:             assetIDString,
-			Title:               t.Name,
-			Description:         t.Description,
-			Medium:              "unknown",
-			Source:              t.Symbol,
-			SourceURL:           "https://objkt.com",
-			PreviewURL:          displayURI,
-			ThumbnailURL:        displayURI,
-			GalleryThumbnailURL: displayURI,
-			AssetURL:            fmt.Sprintf("https://objkt.com/asset/%s/%d", t.Contract, t.ID),
+		previewURL := displayURI
+		if t.ArtifactUri != "" {
+			previewURL = t.ArtifactUri
 		}
 
-		for _, f := range t.Formats {
-			if f.URI == t.ArtifactUri {
-				mimeItems := strings.Split(f.MIMEType, "/")
-				if len(mimeItems) > 0 {
-					switch mimeItems[0] {
-					case "image":
-						metadata.Medium = "image"
-					case "video":
-						metadata.Medium = "other"
+		var source, sourceURL, assetURL string
+		medium := "unknown"
+		switch t.Symbol {
+		case "GENTK", "FXGEN":
+			source = "FXHASH"
+			sourceURL = "https://www.fxhash.xyz"
+			assetURL = fmt.Sprintf("https://www.fxhash.xyz/gentk/%d", t.ID)
+			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://gateway.fxhash.xyz/ipfs/")
+			previewURL = strings.ReplaceAll(previewURL, "ipfs://", "https://gateway.fxhash.xyz/ipfs/")
+			medium = "software"
+		case "OBJKT":
+			source = "hicetnunc"
+			sourceURL = "https://hicetnunc.art"
+			assetURL = fmt.Sprintf("https://hicetnunc.art/objkt/%d", t.ID)
+			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
+			previewURL = strings.ReplaceAll(previewURL, "ipfs://", "https://ipfs.io/ipfs/")
+		default:
+			source = "OBJKT.COM"
+			sourceURL = "https://objkt.com"
+			assetURL = fmt.Sprintf("https://objkt.com/asset/%s/%d", t.Contract, t.ID)
+			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
+			previewURL = strings.ReplaceAll(previewURL, "ipfs://", "https://ipfs.io/ipfs/")
+		}
+
+		if medium == "unknown" {
+			for _, f := range t.Formats {
+				if f.URI == t.ArtifactUri {
+					mimeItems := strings.Split(f.MIMEType, "/")
+					if len(mimeItems) > 0 {
+						switch mimeItems[0] {
+						case "image":
+							medium = "image"
+						case "video":
+							medium = "other"
+						}
 					}
 				}
 			}
+		}
+
+		metadata := indexer.ProjectMetadata{
+			ArtistName:          artistName,
+			ArtistURL:           artistURL,
+			AssetID:             assetIDString,
+			Title:               t.Name,
+			Description:         t.Description,
+			Medium:              medium,
+			Source:              source,
+			SourceURL:           sourceURL,
+			PreviewURL:          previewURL,
+			ThumbnailURL:        displayURI,
+			GalleryThumbnailURL: displayURI,
+			AssetURL:            assetURL,
 		}
 
 		tokenUpdate := indexer.AssetUpdates{
