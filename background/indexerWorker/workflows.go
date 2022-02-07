@@ -1,6 +1,7 @@
 package indexerWorker
 
 import (
+	"fmt"
 	"time"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -21,7 +22,6 @@ func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, token
 		TaskList:               w.TaskListName,
 		ScheduleToStartTimeout: time.Second * 60,
 		StartToCloseTimeout:    time.Hour * 24,
-		HeartbeatTimeout:       time.Second * 10,
 	}
 
 	ctx = workflow.WithActivityOptions(ctx, ao)
@@ -29,27 +29,31 @@ func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, token
 
 	var offset = 0
 
-	tokenOwner = indexer.EthereumChecksumAddress(tokenOwner)
+	ethTokenOwner := indexer.EthereumChecksumAddress(tokenOwner)
+
+	if ethTokenOwner == indexer.EthereumZeroAddress {
+		log.Info("invalid ethereum token owner", zap.String("owner", tokenOwner))
+		return fmt.Errorf("invalid ethereum token owner")
+	}
 
 	var tokenIndexIDs []string
-	if err := workflow.ExecuteActivity(ctx, w.GetTokenIDsByOwner, tokenOwner).Get(ctx, &tokenIndexIDs); err != nil {
+	if err := workflow.ExecuteActivity(ctx, w.GetTokenIDsByOwner, ethTokenOwner).Get(ctx, &tokenIndexIDs); err != nil {
 		return err
 	}
 
-	log.Info("tokens to check provenance", zap.Any("tokenIndexIDs", tokenIndexIDs))
-
-	if err := workflow.ExecuteActivity(ctx, w.RefreshTokenProvenance, tokenIndexIDs, time.Hour).Get(ctx, nil); err != nil {
+	log.Info("tokens to check existence token provenance", zap.Any("tokenIndexIDs", tokenIndexIDs))
+	if err := workflow.ExecuteActivity(ctx, w.RefreshTokenProvenance, tokenIndexIDs, 2*time.Hour).Get(ctx, nil); err != nil {
 		return err
 	}
 
 	for {
 		tokenUpdates := []indexer.AssetUpdates{}
-		if err := workflow.ExecuteActivity(ctx, w.IndexTokenDataFromFromOpensea, tokenOwner, offset).Get(ctx, &tokenUpdates); err != nil {
+		if err := workflow.ExecuteActivity(ctx, w.IndexTokenDataFromFromOpensea, ethTokenOwner, offset).Get(ctx, &tokenUpdates); err != nil {
 			return err
 		}
 
 		if len(tokenUpdates) == 0 {
-			log.Info("no token found from opensea", zap.String("owner", tokenOwner), zap.Int("offset", offset))
+			log.Info("no token found from opensea", zap.String("owner", ethTokenOwner), zap.Int("offset", offset))
 			return nil
 		}
 
@@ -59,7 +63,8 @@ func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, token
 			}
 
 			for _, t := range u.Tokens {
-				if err := workflow.ExecuteActivity(ctx, w.RefreshTokenProvenance, []string{t.IndexID}, 5*time.Minute).Get(ctx, nil); err != nil {
+				log.Info("tokens to check indexed token provenance", zap.Any("tokenIndexIDs", tokenIndexIDs))
+				if err := workflow.ExecuteActivity(ctx, w.RefreshTokenProvenance, []string{t.IndexID}, time.Hour).Get(ctx, nil); err != nil {
 					return err
 				}
 			}
@@ -75,7 +80,6 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 		TaskList:               w.TaskListName,
 		ScheduleToStartTimeout: time.Second * 60,
 		StartToCloseTimeout:    time.Hour * 24,
-		HeartbeatTimeout:       time.Second * 10,
 	}
 
 	ctx = workflow.WithActivityOptions(ctx, ao)
@@ -111,7 +115,6 @@ func (w *NFTIndexerWorker) RefreshTokenProvenanceWorkflow(ctx workflow.Context, 
 		TaskList:               w.TaskListName,
 		ScheduleToStartTimeout: time.Second * 60,
 		StartToCloseTimeout:    time.Hour * 24,
-		HeartbeatTimeout:       time.Second * 10,
 	}
 
 	ctx = workflow.WithActivityOptions(ctx, ao)
@@ -127,7 +130,6 @@ func (w *NFTIndexerWorker) RefreshTokenProvenancePeriodicallyWorkflow(ctx workfl
 		TaskList:               w.TaskListName,
 		ScheduleToStartTimeout: time.Second * 60,
 		StartToCloseTimeout:    time.Hour * 24,
-		HeartbeatTimeout:       time.Second * 10,
 	}
 
 	log.Debug("start RefreshTokenProvenancePeriodicallyWorkflow")
