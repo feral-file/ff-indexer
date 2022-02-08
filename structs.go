@@ -90,9 +90,9 @@ type VersionedProjectMetadata struct {
 	Latest ProjectMetadata `json:"latest" bson:"latest"`
 }
 
-// TokenInfo is the summarized information of a token. It includes asset information
+// DetailedToken is the summarized information of a token. It includes asset information
 // that this token is linked to.
-type TokenInfo struct {
+type DetailedToken struct {
 	Token           `bson:",inline"`
 	ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
 }

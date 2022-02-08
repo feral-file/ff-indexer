@@ -20,13 +20,14 @@ const (
 type IndexerStore interface {
 	IndexAsset(ctx context.Context, id string, assetUpdates AssetUpdates) error
 	SwapToken(ctx context.Context, swapUpdate SwapUpdate) (string, error)
+	UpdateTokenProvenance(ctx context.Context, indexID string, provenances []Provenance) error
+
 	GetTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]Token, error)
-	GetTokens(ctx context.Context, ids []string) ([]TokenInfo, error)
 	GetOutdatedTokens(ctx context.Context) ([]Token, error)
 	GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error)
-	GetTokensByOwner(ctx context.Context, owner string) ([]TokenInfo, error)
-	UpdateTokenProvenance(ctx context.Context, indexID string, provenances []Provenance) error
-	AllTokens(ctx context.Context, limit, offset int64) ([]TokenInfo, error)
+
+	GetDetailedTokens(ctx context.Context, ids []string) ([]DetailedToken, error)
+	GetDetailedTokensByOwner(ctx context.Context, owner string) ([]DetailedToken, error)
 }
 
 func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*MongodbIndexerStore, error) {
@@ -266,10 +267,9 @@ func (s *MongodbIndexerStore) GetOutdatedTokens(ctx context.Context) ([]Token, e
 	return tokens, nil
 }
 
-// FIXME: GetTokensByIndexIDs and GetTokens is confused
-// GetTokens returns a list of tokens information based on id
-func (s *MongodbIndexerStore) GetTokens(ctx context.Context, ids []string) ([]TokenInfo, error) {
-	tokens := make([]TokenInfo, 0, len(ids))
+// GetDetailedTokens returns a list of tokens information based on id
+func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, ids []string) ([]DetailedToken, error) {
+	tokens := make([]DetailedToken, 0, len(ids))
 
 	type asset struct {
 		ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
@@ -306,7 +306,7 @@ func (s *MongodbIndexerStore) GetTokens(ctx context.Context, ids []string) ([]To
 		// FIXME: hardcoded values for backward compatibility
 		a.ProjectMetadata.Latest.FirstMintedAt = "0001-01-01T00:00:00.000Z"
 		a.ProjectMetadata.Origin.FirstMintedAt = "0001-01-01T00:00:00.000Z"
-		tokens = append(tokens, TokenInfo{
+		tokens = append(tokens, DetailedToken{
 			Token:           token,
 			ProjectMetadata: a.ProjectMetadata,
 		})
@@ -335,54 +335,7 @@ func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID
 	return err
 }
 
-// AllTokens returns all tokens from the db. This is debugging code and should be removed in the future
-func (s *MongodbIndexerStore) AllTokens(ctx context.Context, limit, offset int64) ([]TokenInfo, error) {
-	tokens := make([]TokenInfo, 0)
-
-	type asset struct {
-		ProjectMetadata VersionedProjectMetadata `json:"projectMetadata"`
-	}
-
-	skip := offset * limit
-	assets := map[string]asset{}
-	c, err := s.tokenCollection.Find(ctx, bson.M{},
-		&options.FindOptions{
-			Skip:  &skip,
-			Limit: &limit,
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := c.All(ctx, &tokens); err != nil {
-		return nil, err
-	}
-	for i, t := range tokens {
-		a, assetExist := assets[t.AssetID]
-		if !assetExist {
-			assetResult := s.assetCollection.FindOne(ctx, bson.M{"id": t.AssetID})
-			if err := assetResult.Err(); err != nil {
-				return nil, err
-			}
-
-			if err := assetResult.Decode(&a); err != nil {
-				return nil, err
-			}
-
-			assets[t.AssetID] = a
-		}
-
-		// FIXME: hardcoded values for backward compatibility
-		a.ProjectMetadata.Latest.FirstMintedAt = "0001-01-01T00:00:00.000Z"
-		a.ProjectMetadata.Origin.FirstMintedAt = "0001-01-01T00:00:00.000Z"
-		tokens[i].ProjectMetadata = a.ProjectMetadata
-	}
-
-	return tokens, nil
-}
-
-// GetTokensByOwner returns a list of tokens which belongs to an owner
+// GetTokenIDsByOwner returns a list of tokens which belongs to an owner
 func (s *MongodbIndexerStore) GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
 	tokens := make([]string, 0)
 
@@ -405,9 +358,9 @@ func (s *MongodbIndexerStore) GetTokenIDsByOwner(ctx context.Context, owner stri
 	return tokens, nil
 }
 
-// GetTokensByOwner returns a list of tokens which belongs to an owner
-func (s *MongodbIndexerStore) GetTokensByOwner(ctx context.Context, owner string) ([]TokenInfo, error) {
-	tokens := make([]TokenInfo, 0)
+// GetTokensByOwner returns a list of DetailedTokens which belong to an owner
+func (s *MongodbIndexerStore) GetDetailedTokensByOwner(ctx context.Context, owner string) ([]DetailedToken, error) {
+	tokens := make([]DetailedToken, 0)
 
 	type asset struct {
 		ProjectMetadata VersionedProjectMetadata `json:"projectMetadata"`
