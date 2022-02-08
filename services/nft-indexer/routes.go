@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -22,7 +23,6 @@ func (s *NFTIndexerServer) SetupRoute() {
 	s.route.GET("/nft", s.ListNFTs)
 	s.route.GET("/nft/all", s.AllNFTs)
 	s.route.POST("/nft/swap", s.SwapNFT)
-
 
 	s.route.Use(TokenAuthenticate("API-TOKEN", s.apiToken))
 	s.route.PUT("/asset/:asset_id", s.IndexAsset)
@@ -228,19 +228,20 @@ func (s *NFTIndexerServer) IndexNFTs(c *gin.Context) {
 
 	var w indexerWorker.NFTIndexerWorker
 
-	blockchain := "eth"
-	if req.Blockchain != "" {
-		blockchain = req.Blockchain
-	}
-
-	switch blockchain {
+	switch req.Blockchain {
 	case "eth":
-		go s.startIndexWorkflow(c, req.Owner, blockchain, w.IndexOpenseaTokenWorkflow)
+		go s.startIndexWorkflow(c, req.Owner, req.Blockchain, w.IndexOpenseaTokenWorkflow)
 	case "tezos":
-		go s.startIndexWorkflow(c, req.Owner, blockchain, w.IndexTezosTokenWorkflow)
+		go s.startIndexWorkflow(c, req.Owner, req.Blockchain, w.IndexTezosTokenWorkflow)
 	default:
-		abortWithError(c, http.StatusInternalServerError, "unsupported blockchain", fmt.Errorf("unsupported blockchain"))
-		return
+		if strings.HasPrefix(req.Owner, "0x") {
+			go s.startIndexWorkflow(c, req.Owner, indexer.BlockchianAlias[indexer.EthereumBlockchain], w.IndexOpenseaTokenWorkflow)
+		} else if strings.HasPrefix(req.Owner, "tz") {
+			go s.startIndexWorkflow(c, req.Owner, indexer.BlockchianAlias[indexer.TezosBlockchain], w.IndexTezosTokenWorkflow)
+		} else {
+			abortWithError(c, http.StatusInternalServerError, "owner address with unsupported blockchain", fmt.Errorf("owner address with unsupported blockchain"))
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
