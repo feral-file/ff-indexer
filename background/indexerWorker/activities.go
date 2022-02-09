@@ -208,7 +208,7 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 			previewURL = strings.ReplaceAll(previewURL, "ipfs://", "https://gateway.fxhash.xyz/ipfs/")
 			medium = "software"
 		case "OBJKT":
-			source = "hicetnunc"
+			source = "hic et nunc"
 			sourceURL = "https://hicetnunc.art"
 			assetURL = fmt.Sprintf("https://hicetnunc.art/objkt/%d", t.ID)
 			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
