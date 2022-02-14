@@ -48,18 +48,35 @@ func (s *NFTIndexerServer) IndexAsset(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": 1})
 }
 
+type NFTQueryParams struct {
+	Owner  string `form:"owner"`
+	Text   string `form:"text"`
+	Offset int64  `form:"offset"`
+	Size   int64  `form:"size"`
+
+	IDs []string `json:"ids"`
+}
+
 // QueryNFTs queries NFTs based on given criteria
 func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
-	var req struct {
-		IDs []string `json:"ids" binding:"required"`
+	var reqParams = NFTQueryParams{
+		Offset: 0,
+		Size:   50,
 	}
 
-	if err := c.Bind(&req); err != nil {
+	if err := c.BindQuery(&reqParams); err != nil {
 		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
 		return
 	}
 
-	tokenInfo, err := s.indexerStore.GetDetailedTokens(c, req.IDs)
+	if err := c.Bind(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	tokenInfo, err := s.indexerStore.GetDetailedTokens(c, indexer.FilterParameter{
+		IDs: reqParams.IDs,
+	}, reqParams.Offset, reqParams.Size)
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
 		return
@@ -71,16 +88,22 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 // ListNFTs returns information for a list of NFTs with some criterias.
 // It currently only supports listing by owners.
 func (s *NFTIndexerServer) ListNFTs(c *gin.Context) {
-	var params struct {
-		Owner string `form:"owner" binding:"required"`
+	var reqParams = NFTQueryParams{
+		Offset: 0,
+		Size:   50,
 	}
 
-	if err := c.BindQuery(&params); err != nil {
+	if err := c.BindQuery(&reqParams); err != nil {
 		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
 		return
 	}
 
-	tokenInfo, err := s.indexerStore.GetDetailedTokensByOwner(c, params.Owner)
+	if reqParams.Owner == "" {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("owner is required"))
+		return
+	}
+
+	tokenInfo, err := s.indexerStore.GetDetailedTokensByOwner(c, reqParams.Owner, reqParams.Offset, reqParams.Size)
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
 		return

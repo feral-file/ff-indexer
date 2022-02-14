@@ -26,8 +26,12 @@ type IndexerStore interface {
 	GetOutdatedTokens(ctx context.Context) ([]Token, error)
 	GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error)
 
-	GetDetailedTokens(ctx context.Context, ids []string) ([]DetailedToken, error)
-	GetDetailedTokensByOwner(ctx context.Context, owner string) ([]DetailedToken, error)
+	GetDetailedTokens(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
+	GetDetailedTokensByOwner(ctx context.Context, owner string, offset, size int64) ([]DetailedToken, error)
+}
+
+type FilterParameter struct {
+	IDs []string
 }
 
 func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*MongodbIndexerStore, error) {
@@ -268,20 +272,30 @@ func (s *MongodbIndexerStore) GetOutdatedTokens(ctx context.Context) ([]Token, e
 }
 
 // GetDetailedTokens returns a list of tokens information based on id
-func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, ids []string) ([]DetailedToken, error) {
-	tokens := make([]DetailedToken, 0, len(ids))
+func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error) {
+	tokens := []DetailedToken{}
 
-	type asset struct {
-		ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
+	tokenFilter := bson.M{}
+
+	if len(filterParameter.IDs) > 0 {
+		tokenFilter["id"] = bson.M{"$in": filterParameter.IDs}
 	}
 
-	cursor, err := s.tokenCollection.Find(ctx, bson.M{"id": bson.M{"$in": ids}})
+	logrus.
+		WithField("filterParameter", filterParameter).
+		WithField("offset", offset).
+		WithField("size", size).
+		Debug("GetDetailedTokens")
+
+	cursor, err := s.tokenCollection.Find(ctx, tokenFilter, options.Find().SetLimit(size).SetSkip(size*offset))
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(ctx)
 
-	assets := map[string]asset{}
+	assets := map[string]struct {
+		ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
+	}{}
 	for cursor.Next(ctx) {
 		var token Token
 
@@ -359,7 +373,7 @@ func (s *MongodbIndexerStore) GetTokenIDsByOwner(ctx context.Context, owner stri
 }
 
 // GetTokensByOwner returns a list of DetailedTokens which belong to an owner
-func (s *MongodbIndexerStore) GetDetailedTokensByOwner(ctx context.Context, owner string) ([]DetailedToken, error) {
+func (s *MongodbIndexerStore) GetDetailedTokensByOwner(ctx context.Context, owner string, offset, size int64) ([]DetailedToken, error) {
 	tokens := make([]DetailedToken, 0)
 
 	type asset struct {
@@ -367,7 +381,9 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwner(ctx context.Context, owne
 	}
 
 	assets := map[string]asset{}
-	c, err := s.tokenCollection.Find(ctx, bson.M{"owner": owner, "burned": bson.M{"$ne": true}})
+	c, err := s.tokenCollection.Find(ctx, bson.M{"owner": owner, "burned": bson.M{"$ne": true}},
+		options.Find().SetLimit(size).SetSkip(size*offset),
+	)
 	if err != nil {
 		return nil, err
 	}
