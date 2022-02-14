@@ -430,6 +430,7 @@ func (s *MongodbIndexerStore) GetTokensByTextSearch(ctx context.Context, searchT
 			"projectMetadata.latest.source": "feralfile", // FIXME: currently, we limit the source of query to feralfile
 			"$or": bson.A{
 				bson.M{"projectMetadata.latest.artistName": bson.M{"$regex": primitive.Regex{Pattern: searchText, Options: "i"}}},
+				bson.M{"projectMetadata.latest.exhibitionTitle": bson.M{"$regex": primitive.Regex{Pattern: searchText, Options: "i"}}},
 				bson.M{"projectMetadata.latest.title": bson.M{"$regex": primitive.Regex{Pattern: searchText, Options: "i"}}},
 			},
 		}},
