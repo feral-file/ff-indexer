@@ -8,6 +8,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -28,6 +29,8 @@ type IndexerStore interface {
 
 	GetDetailedTokens(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
 	GetDetailedTokensByOwner(ctx context.Context, owner string, offset, size int64) ([]DetailedToken, error)
+
+	GetTokensByTextSearch(ctx context.Context, searchText string, offset, size int64) ([]DetailedToken, error)
 }
 
 type FilterParameter struct {
@@ -410,6 +413,72 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwner(ctx context.Context, owne
 		a.ProjectMetadata.Latest.FirstMintedAt = "0001-01-01T00:00:00.000Z"
 		a.ProjectMetadata.Origin.FirstMintedAt = "0001-01-01T00:00:00.000Z"
 		tokens[i].ProjectMetadata = a.ProjectMetadata
+	}
+
+	return tokens, nil
+}
+
+// GetTokensByTextSearch returns a list of token those assets match have attributes that match the search text.
+func (s *MongodbIndexerStore) GetTokensByTextSearch(ctx context.Context, searchText string, offset, size int64) ([]DetailedToken, error) {
+	logrus.WithField("searchText", searchText).
+		WithField("offset", offset).
+		WithField("size", size).
+		Debug("GetTokensByTextSearch")
+
+	pipeline := []bson.M{
+		{"$match": bson.M{
+			"projectMetadata.latest.source": "feralfile", // FIXME: currently, we limit the source of query to feralfile
+			"$or": bson.A{
+				bson.M{"projectMetadata.latest.artistName": bson.M{"$regex": primitive.Regex{Pattern: searchText, Options: "i"}}},
+				bson.M{"projectMetadata.latest.title": bson.M{"$regex": primitive.Regex{Pattern: searchText, Options: "i"}}},
+			},
+		}},
+
+		// group to generate the follow two items:
+		// 1. a list of ids
+		// 2. a map of asset id and the project information of an asset
+		{"$group": bson.M{
+			"_id": nil,
+			"ids": bson.M{
+				"$addToSet": "$id",
+			},
+			"assets": bson.M{"$push": bson.M{"k": "$id", "v": "$projectMetadata.latest"}},
+		}},
+
+		{"$addFields": bson.M{"assets": bson.M{"$arrayToObject": "$assets"}}},
+	}
+
+	assetCursor, err := s.assetCollection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+
+	var assetAggregation struct {
+		IDs    []string
+		Assets map[string]ProjectMetadata
+	}
+
+	for assetCursor.Next(ctx) {
+		if err := assetCursor.Decode(&assetAggregation); err != nil {
+			return nil, err
+		}
+	}
+
+	tokenCursor, err := s.tokenCollection.Find(ctx, bson.M{"assetID": bson.M{"$in": assetAggregation.IDs}}, options.Find().SetLimit(size).SetSkip(size*offset))
+	if err != nil {
+		return nil, err
+	}
+
+	tokens := make([]DetailedToken, 0)
+	for tokenCursor.Next(ctx) {
+		t := DetailedToken{}
+
+		if err := tokenCursor.Decode(&t); err != nil {
+			return nil, err
+		}
+
+		t.ProjectMetadata.Latest = assetAggregation.Assets[t.AssetID]
+		tokens = append(tokens, t)
 	}
 
 	return tokens, nil

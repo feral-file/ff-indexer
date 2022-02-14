@@ -20,6 +20,7 @@ func (s *NFTIndexerServer) SetupRoute() {
 	s.route.POST("/nft/:token_id/provenance", s.RefreshProvenance)
 
 	s.route.POST("/nft/query", s.QueryNFTs)
+	s.route.GET("/nft/search", s.SearchNFTs)
 	s.route.GET("/nft", s.ListNFTs)
 
 	s.route.Use(TokenAuthenticate("API-TOKEN", s.apiToken))
@@ -243,4 +244,30 @@ func (s *NFTIndexerServer) IndexNFTs(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"ok": 1,
 	})
+}
+
+// SearchNFTs returns a list of NFTs by searching criteria
+func (s *NFTIndexerServer) SearchNFTs(c *gin.Context) {
+	var reqParams = NFTQueryParams{
+		Offset: 0,
+		Size:   50,
+	}
+
+	if err := c.BindQuery(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if reqParams.Text == "" {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("text is required"))
+		return
+	}
+
+	tokens, err := s.indexerStore.GetTokensByTextSearch(c, reqParams.Text, reqParams.Offset, reqParams.Size)
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, tokens)
 }
