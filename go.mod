@@ -6,6 +6,7 @@ require (
 	github.com/bitmark-inc/account-vault-ethereum v0.2.2
 	github.com/bitmark-inc/config-loader v0.0.2
 	github.com/ethereum/go-ethereum v1.10.10
+	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.7.4
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/viper v1.8.1

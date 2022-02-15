@@ -1,6 +1,19 @@
 package main
 
+import (
+	"time"
+
+	"github.com/gin-contrib/cors"
+)
+
 func (s *NFTIndexerServer) SetupRoute() {
+
+	s.route.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET"},
+		AllowCredentials: true,
+		MaxAge:           24 * time.Hour,
+	}))
 
 	s.route.POST("/nft/index", s.IndexNFTs)
 	s.route.POST("/nft/:token_id/provenance", s.RefreshProvenance)
