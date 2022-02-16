@@ -3,6 +3,7 @@ package indexer
 import (
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -35,4 +36,17 @@ func TokenIndexID(blockchainType, contractAddress, id string) string {
 	}
 
 	return fmt.Sprintf("%s-%s-%s", blockchainAlias, contractAddress, id)
+}
+
+// DetectAccountBlockchain returns underlying blokchain of a given account number
+func DetectAccountBlockchain(accountNumber string) string {
+	if strings.HasPrefix(accountNumber, "0x") {
+		return EthereumBlockchain
+	} else if len(accountNumber) == 50 {
+		return BitmarkBlockchain
+	} else if strings.HasPrefix(accountNumber, "tz") {
+		return TezosBlockchain
+	}
+
+	return ""
 }

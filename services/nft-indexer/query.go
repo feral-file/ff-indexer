@@ -89,3 +89,43 @@ func (s *NFTIndexerServer) SearchNFTs(c *gin.Context) {
 
 	c.JSON(http.StatusOK, tokens)
 }
+
+// GetIdentity querys and returns the blockchain identity of a client
+func (s *NFTIndexerServer) GetIdentity(c *gin.Context) {
+	accountNumber := c.Param("account_number")
+	var identityName string
+
+	blockchain := indexer.DetectAccountBlockchain(accountNumber)
+
+	switch blockchain {
+	case indexer.EthereumBlockchain:
+		domain, err := s.ensClient.ResolveDomain(accountNumber)
+		if err != nil {
+			abortWithError(c, http.StatusInternalServerError, "fail to resolve name by account number", err)
+			return
+		}
+		identityName = domain
+	case indexer.TezosBlockchain:
+		domain, err := s.tezosDomain.ResolveDomain(c, accountNumber)
+		if err != nil {
+			abortWithError(c, http.StatusInternalServerError, "fail to resolve name by account number", err)
+			return
+		}
+		identityName = domain
+	case indexer.BitmarkBlockchain:
+		account, err := s.feralfile.GetAccountInfo(accountNumber)
+		if err != nil {
+			abortWithError(c, http.StatusInternalServerError, "fail to resolve name by account number", err)
+			return
+		}
+		identityName = account.Alias
+	default:
+		abortWithError(c, http.StatusInternalServerError, "unsupported blockchain address format", nil)
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"blockchain": blockchain,
+		"name":       identityName,
+	})
+}
