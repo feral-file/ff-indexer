@@ -23,6 +23,7 @@ func (s *NFTIndexerServer) SetupRoute() {
 	s.route.GET("/nft", s.ListNFTs)
 
 	s.route.GET("/identity/:account_number", s.GetIdentity)
+	s.route.POST("/identity/", s.GetIdentities)
 
 	s.route.Use(TokenAuthenticate("API-TOKEN", s.apiToken))
 	s.route.POST("/nft/swap", s.SwapNFT)

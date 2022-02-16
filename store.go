@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	assetCollectionName = "assets"
-	tokenCollectionName = "tokens"
+	assetCollectionName    = "assets"
+	tokenCollectionName    = "tokens"
+	identityCollectionName = "identities"
 )
 
 type IndexerStore interface {
@@ -31,6 +32,10 @@ type IndexerStore interface {
 	GetDetailedTokensByOwner(ctx context.Context, owner string, offset, size int64) ([]DetailedToken, error)
 
 	GetTokensByTextSearch(ctx context.Context, searchText string, offset, size int64) ([]DetailedToken, error)
+
+	GetIdentity(ctx context.Context, accountNumber string) (AccountIdentity, error)
+	GetIdentities(ctx context.Context, accountNumbers []string) (map[string]AccountIdentity, error)
+	IndexIdentity(ctx context.Context, identity AccountIdentity) error
 }
 
 type FilterParameter struct {
@@ -46,20 +51,23 @@ func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*Mo
 	db := mongoClient.Database(dbName)
 	tokenCollection := db.Collection(tokenCollectionName)
 	assetCollection := db.Collection(assetCollectionName)
+	identityCollection := db.Collection(identityCollectionName)
 
 	return &MongodbIndexerStore{
-		dbName:          dbName,
-		mongoClient:     mongoClient,
-		tokenCollection: tokenCollection,
-		assetCollection: assetCollection,
+		dbName:             dbName,
+		mongoClient:        mongoClient,
+		tokenCollection:    tokenCollection,
+		assetCollection:    assetCollection,
+		identityCollection: identityCollection,
 	}, nil
 }
 
 type MongodbIndexerStore struct {
-	dbName          string
-	mongoClient     *mongo.Client
-	tokenCollection *mongo.Collection
-	assetCollection *mongo.Collection
+	dbName             string
+	mongoClient        *mongo.Client
+	tokenCollection    *mongo.Collection
+	assetCollection    *mongo.Collection
+	identityCollection *mongo.Collection
 }
 
 // IndexAsset creates an asset and its corresponded tokens by inputs
@@ -483,4 +491,68 @@ func (s *MongodbIndexerStore) GetTokensByTextSearch(ctx context.Context, searchT
 	}
 
 	return tokens, nil
+}
+
+// GetIdentity returns an identity of an account
+func (s *MongodbIndexerStore) GetIdentity(ctx context.Context, accountNumber string) (AccountIdentity, error) {
+	var identity AccountIdentity
+
+	r := s.identityCollection.FindOne(ctx,
+		bson.M{"accountNumber": accountNumber},
+	)
+	if err := r.Err(); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return identity, nil
+		} else {
+			return identity, err
+		}
+	}
+
+	if err := r.Decode(&identity); err != nil {
+		return identity, err
+	}
+
+	return identity, nil
+}
+
+// GetIdentities returns a list of identities by a list of account numbers
+func (s *MongodbIndexerStore) GetIdentities(ctx context.Context, accountNumbers []string) (map[string]AccountIdentity, error) {
+	identities := map[string]AccountIdentity{}
+
+	c, err := s.identityCollection.Find(ctx,
+		bson.M{"accountNumber": bson.M{"$in": accountNumbers}},
+	)
+	if err != nil {
+		return identities, err
+	}
+
+	for c.Next(ctx) {
+		var identity AccountIdentity
+		if err := c.Decode(&identity); err != nil {
+			return identities, err
+		}
+		identities[identity.AccountNumber] = identity
+	}
+
+	return identities, nil
+}
+
+// IndexIdentity saves an identity into indexer store
+func (s *MongodbIndexerStore) IndexIdentity(ctx context.Context, identity AccountIdentity) error {
+	identity.LastUpdatedTime = time.Now()
+
+	r, err := s.identityCollection.UpdateOne(ctx,
+		bson.M{"accountNumber": identity.AccountNumber},
+		bson.M{"$set": identity},
+		options.Update().SetUpsert(true),
+	)
+	if err != nil {
+		return err
+	}
+
+	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
+		logrus.WithField("account_number", identity.AccountNumber).Warn("identity is not added or updated")
+	}
+
+	return nil
 }
