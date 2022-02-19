@@ -3,10 +3,14 @@ package main
 import (
 	"time"
 
+	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-contrib/cors"
 )
 
 func (s *NFTIndexerServer) SetupRoute() {
+	s.route.Use(sentrygin.New(sentrygin.Options{
+		Repanic: true,
+	}))
 
 	s.route.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},

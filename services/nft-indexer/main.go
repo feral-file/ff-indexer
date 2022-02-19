@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 
+	"github.com/getsentry/sentry-go"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
@@ -19,6 +21,13 @@ func main() {
 	ctx := context.Background()
 
 	config.LoadConfig("NFT_INDEXER")
+
+	if err := sentry.Init(sentry.ClientOptions{
+		Dsn:         viper.GetString("sentry.dsn"),
+		Environment: viper.GetString("network"),
+	}); err != nil {
+		logrus.WithError(err).Panic("Sentry initialization failed")
+	}
 
 	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
 	if err != nil {

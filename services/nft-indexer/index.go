@@ -13,10 +13,12 @@ import (
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
+	sentryHelper "github.com/bitmark-inc/nft-indexer/sentry"
 )
 
 // IndexAsset indexes the data of assets and tokens
 func (s *NFTIndexerServer) IndexAsset(c *gin.Context) {
+	sentryHelper.SetHandlerTag(c, "IndexAsset")
 	assetID := c.Param("asset_id")
 	var input indexer.AssetUpdates
 	if err := c.Bind(&input); err != nil {
@@ -47,6 +49,8 @@ type NFTQueryParams struct {
 
 // SwapNFT migrate existent nft from a blockchain to another
 func (s *NFTIndexerServer) SwapNFT(c *gin.Context) {
+	sentryHelper.SetHandlerTag(c, "SwapNFT")
+
 	var input indexer.SwapUpdate
 	if err := c.Bind(&input); err != nil {
 		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
@@ -106,6 +110,7 @@ func (s *NFTIndexerServer) startRefreshProvenanceWorkflow(c context.Context, ref
 }
 
 func (s *NFTIndexerServer) RefreshProvenance(c *gin.Context) {
+	sentryHelper.SetHandlerTag(c, "RefreshProvenance")
 	tokenID := c.Param("token_id")
 
 	go s.startRefreshProvenanceWorkflow(context.Background(), tokenID, []string{tokenID}, 0)
@@ -116,6 +121,7 @@ func (s *NFTIndexerServer) RefreshProvenance(c *gin.Context) {
 }
 
 func (s *NFTIndexerServer) IndexNFTs(c *gin.Context) {
+	sentryHelper.SetHandlerTag(c, "IndexNFTs")
 	var req struct {
 		Owner      string `json:"owner"`
 		Blockchain string `json:"blockchain"`
