@@ -473,12 +473,16 @@ func (s *MongodbIndexerStore) GetTokensByTextSearch(ctx context.Context, searchT
 		}
 	}
 
+	tokens := make([]DetailedToken, 0)
+	if len(assetAggregation.IDs) == 0 {
+		return tokens, nil
+	}
+
 	tokenCursor, err := s.tokenCollection.Find(ctx, bson.M{"assetID": bson.M{"$in": assetAggregation.IDs}}, options.Find().SetLimit(size).SetSkip(size*offset))
 	if err != nil {
 		return nil, err
 	}
 
-	tokens := make([]DetailedToken, 0)
 	for tokenCursor.Next(ctx) {
 		t := DetailedToken{}
 
