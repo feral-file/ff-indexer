@@ -169,7 +169,8 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 
 		tokenBlockchainMetadata, err := w.bettercall.GetTokenMetadata(t.Contract, t.ID)
 		if err != nil {
-			return nil, err
+			log.WithError(err).Error("fail to get metadata for the token")
+			continue
 		}
 
 		switch t.Contract {

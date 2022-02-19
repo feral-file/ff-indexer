@@ -102,9 +102,12 @@ func (c *BetterCall) GetTokenMetadata(contract string, tokenID int) (TokenMetada
 		return TokenMetadata{}, err
 	}
 
-	if len(metadata) > 1 {
+	switch len(metadata) {
+	case 0:
+		return TokenMetadata{}, fmt.Errorf("no metadata found")
+	case 1:
+		return metadata[0], nil
+	default:
 		return TokenMetadata{}, fmt.Errorf("more than one metadata a the response")
 	}
-
-	return metadata[0], nil
 }
