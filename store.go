@@ -298,7 +298,7 @@ func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParam
 		WithField("size", size).
 		Debug("GetDetailedTokens")
 
-	cursor, err := s.tokenCollection.Find(ctx, tokenFilter, options.Find().SetLimit(size).SetSkip(size*offset))
+	cursor, err := s.tokenCollection.Find(ctx, tokenFilter, options.Find().SetLimit(size).SetSkip(offset))
 	if err != nil {
 		return nil, err
 	}
@@ -393,7 +393,7 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwner(ctx context.Context, owne
 
 	assets := map[string]asset{}
 	c, err := s.tokenCollection.Find(ctx, bson.M{"owner": owner, "burned": bson.M{"$ne": true}},
-		options.Find().SetLimit(size).SetSkip(size*offset),
+		options.Find().SetLimit(size).SetSkip(offset),
 	)
 	if err != nil {
 		return nil, err
@@ -478,7 +478,7 @@ func (s *MongodbIndexerStore) GetTokensByTextSearch(ctx context.Context, searchT
 		return tokens, nil
 	}
 
-	tokenCursor, err := s.tokenCollection.Find(ctx, bson.M{"assetID": bson.M{"$in": assetAggregation.IDs}}, options.Find().SetLimit(size).SetSkip(size*offset))
+	tokenCursor, err := s.tokenCollection.Find(ctx, bson.M{"assetID": bson.M{"$in": assetAggregation.IDs}}, options.Find().SetLimit(size).SetSkip(offset))
 	if err != nil {
 		return nil, err
 	}
