@@ -5,6 +5,7 @@ import (
 	"time"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/getsentry/sentry-go"
 	log "github.com/sirupsen/logrus"
 	"go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
@@ -32,39 +33,46 @@ func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, token
 	ethTokenOwner := indexer.EthereumChecksumAddress(tokenOwner)
 
 	if ethTokenOwner == indexer.EthereumZeroAddress {
-		log.Info("invalid ethereum token owner", zap.String("owner", tokenOwner))
-		return fmt.Errorf("invalid ethereum token owner")
+		log.Warn("invalid ethereum token owner", zap.String("owner", tokenOwner))
+		var err = fmt.Errorf("invalid ethereum token owner")
+		sentry.CaptureException(err)
+		return err
 	}
 
 	var tokenIndexIDs []string
 	if err := workflow.ExecuteActivity(ctx, w.GetTokenIDsByOwner, ethTokenOwner).Get(ctx, &tokenIndexIDs); err != nil {
+		sentry.CaptureException(err)
 		return err
 	}
 
 	log.Info("tokens to check existence token provenance", zap.Any("tokenIndexIDs", tokenIndexIDs))
 	if err := workflow.ExecuteActivity(ctx, w.RefreshTokenProvenance, tokenIndexIDs, 2*time.Hour).Get(ctx, nil); err != nil {
+		sentry.CaptureException(err)
 		return err
 	}
 
 	for {
 		tokenUpdates := []indexer.AssetUpdates{}
 		if err := workflow.ExecuteActivity(ctx, w.IndexTokenDataFromFromOpensea, ethTokenOwner, offset).Get(ctx, &tokenUpdates); err != nil {
+			sentry.CaptureException(err)
 			return err
 		}
 
 		if len(tokenUpdates) == 0 {
-			log.Info("no token found from opensea", zap.String("owner", ethTokenOwner), zap.Int("offset", offset))
-			return nil
+			log.Debug("no token found from opensea", zap.String("owner", ethTokenOwner), zap.Int("offset", offset))
+			break
 		}
 
 		for _, u := range tokenUpdates {
 			if err := workflow.ExecuteActivity(ctx, w.IndexAsset, u).Get(ctx, nil); err != nil {
+				sentry.CaptureException(err)
 				return err
 			}
 
 			for _, t := range u.Tokens {
 				log.Info("tokens to check indexed token provenance", zap.Any("tokenIndexIDs", tokenIndexIDs))
 				if err := workflow.ExecuteActivity(ctx, w.RefreshTokenProvenance, []string{t.IndexID}, time.Hour).Get(ctx, nil); err != nil {
+					sentry.CaptureException(err)
 					return err
 				}
 			}
@@ -73,6 +81,8 @@ func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, token
 
 		offset += len(tokenUpdates)
 	}
+	log.Info("ETH tokens indexed", zap.String("owner", tokenOwner))
+	return nil
 }
 
 func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOwner string) error {
@@ -89,16 +99,18 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 	for {
 		tokenUpdates := []indexer.AssetUpdates{}
 		if err := workflow.ExecuteActivity(ctx, w.IndexTokenDataFromFromTezos, tokenOwner, offset).Get(ctx, &tokenUpdates); err != nil {
+			sentry.CaptureException(err)
 			return err
 		}
 
 		if len(tokenUpdates) == 0 {
-			log.Info("no token found from tezos", zap.String("owner", tokenOwner), zap.Int("offset", offset))
-			return nil
+			log.Debug("no token found from tezos", zap.String("owner", tokenOwner), zap.Int("offset", offset))
+			break
 		}
 
 		for _, u := range tokenUpdates {
 			if err := workflow.ExecuteActivity(ctx, w.IndexAsset, u).Get(ctx, nil); err != nil {
+				sentry.CaptureException(err)
 				return err
 			}
 		}
@@ -107,6 +119,8 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 
 		workflow.Sleep(ctx, time.Second)
 	}
+	log.Info("TEZOS tokens indexed", zap.String("owner", tokenOwner))
+	return nil
 }
 
 // RefreshTokenProvenanceWorkflow is a workflow to refresh provenance for a specific token
@@ -136,6 +150,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenancePeriodicallyWorkflow(ctx workfl
 
 	var tokens []indexer.Token
 	if err := workflow.ExecuteActivity(workflow.WithActivityOptions(ctx, ao), w.GetOutdatedTokens).Get(ctx, &tokens); err != nil {
+		sentry.CaptureException(err)
 		return err
 	}
 
@@ -148,6 +163,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenancePeriodicallyWorkflow(ctx workfl
 
 	if err := workflow.ExecuteActivity(workflow.WithActivityOptions(ctx, ao), w.RefreshTokenProvenance, indexIDs, 0).Get(ctx, nil); err != nil {
 		log.WithError(err).Error("fail to refresh token provenance")
+		sentry.CaptureException(err)
 		return err
 	}
 

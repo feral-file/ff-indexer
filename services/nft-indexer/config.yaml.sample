@@ -11,6 +11,9 @@ cadence:
   domain: nft-indexer
   log_level: 0
 
+sentry:
+  dsn:
+
 ens:
   rpc_url:
 

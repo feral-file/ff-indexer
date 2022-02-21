@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 
+	"github.com/getsentry/sentry-go"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.uber.org/cadence/activity"
@@ -25,6 +26,13 @@ func main() {
 	logLevel := viper.GetInt("cadence.log_level")
 
 	network := viper.GetString("network")
+
+	if err := sentry.Init(sentry.ClientOptions{
+		Dsn:         viper.GetString("sentry.dsn"),
+		Environment: network,
+	}); err != nil {
+		log.WithError(err).Panic("Sentry initialization failed")
+	}
 
 	ctx := context.Background()
 
