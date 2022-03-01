@@ -32,7 +32,7 @@ type Token struct {
 	Swapped           bool         `json:"swapped" bson:"swapped"`
 	Burned            bool         `json:"burned" bson:"burned"`
 	Provenances       []Provenance `json:"provenance" bson:"provenance"`
-	LastUpdatedTime   time.Time    `json:"lastUpdatedTime" bson:"lastUpdatedTime"`
+	LastActivityTime  time.Time    `json:"lastActivityTime" bson:"lastActivityTime"`
 	LastRefreshedTime time.Time    `json:"-" bson:"lastRefreshedTime"`
 }
 

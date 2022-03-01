@@ -116,6 +116,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		tokenResult := s.tokenCollection.FindOne(ctx, bson.M{"indexID": token.IndexID})
 		if err := tokenResult.Err(); err != nil {
 			// inser a new token entry if it is not found
+			token.LastActivityTime = token.MintAt
 			if err == mongo.ErrNoDocuments {
 				logrus.WithField("token_id", token.ID).Warn("token is not found")
 				_, err := s.tokenCollection.InsertOne(ctx, token)
@@ -351,7 +352,7 @@ func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID
 	}, bson.M{
 		"$set": bson.M{
 			"owner":             provenances[0].Owner,
-			"lastUpdatedTime":   provenances[0].Timestamp,
+			"lastActivityTime":  provenances[0].Timestamp,
 			"lastRefreshedTime": time.Now(),
 			"provenance":        provenances,
 		},
