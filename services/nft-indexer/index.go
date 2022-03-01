@@ -13,12 +13,12 @@ import (
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
-	sentryHelper "github.com/bitmark-inc/nft-indexer/sentry"
+	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
 
 // IndexAsset indexes the data of assets and tokens
 func (s *NFTIndexerServer) IndexAsset(c *gin.Context) {
-	sentryHelper.SetHandlerTag(c, "IndexAsset")
+	traceutils.SetHandlerTag(c, "IndexAsset")
 	assetID := c.Param("asset_id")
 	var input indexer.AssetUpdates
 	if err := c.Bind(&input); err != nil {
@@ -49,7 +49,7 @@ type NFTQueryParams struct {
 
 // SwapNFT migrate existent nft from a blockchain to another
 func (s *NFTIndexerServer) SwapNFT(c *gin.Context) {
-	sentryHelper.SetHandlerTag(c, "SwapNFT")
+	traceutils.SetHandlerTag(c, "SwapNFT")
 
 	var input indexer.SwapUpdate
 	if err := c.Bind(&input); err != nil {
@@ -85,7 +85,7 @@ func (s *NFTIndexerServer) startIndexWorkflow(c context.Context, owner, blockcha
 
 	workflow, err := s.cadenceWorker.StartWorkflow(c, indexerWorker.ClientName, workflowContext, workflowFunc, owner)
 	if err != nil {
-		log.WithError(err).WithField("owner", owner).Error("fail to start bitmark opensea indexing workflow")
+		log.WithError(err).WithField("owner", owner).WithField("blockchain", blockchain).Error("fail to start indexing workflow")
 	} else {
 		log.WithField("owner", owner).WithField("workflow_id", workflow.ID).Info("start workflow for indexing opensea")
 	}
@@ -110,7 +110,7 @@ func (s *NFTIndexerServer) startRefreshProvenanceWorkflow(c context.Context, ref
 }
 
 func (s *NFTIndexerServer) RefreshProvenance(c *gin.Context) {
-	sentryHelper.SetHandlerTag(c, "RefreshProvenance")
+	traceutils.SetHandlerTag(c, "RefreshProvenance")
 	tokenID := c.Param("token_id")
 
 	go s.startRefreshProvenanceWorkflow(context.Background(), tokenID, []string{tokenID}, 0)
@@ -121,7 +121,7 @@ func (s *NFTIndexerServer) RefreshProvenance(c *gin.Context) {
 }
 
 func (s *NFTIndexerServer) IndexNFTs(c *gin.Context) {
-	sentryHelper.SetHandlerTag(c, "IndexNFTs")
+	traceutils.SetHandlerTag(c, "IndexNFTs")
 	var req struct {
 		Owner      string `json:"owner"`
 		Blockchain string `json:"blockchain"`

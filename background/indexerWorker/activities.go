@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"net/http/httputil"
 	"strings"
 	"time"
 
@@ -20,6 +19,7 @@ import (
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/contracts"
+	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
 
 var (
@@ -323,13 +323,8 @@ func (w *NFTIndexerWorker) fetchBitmarkProvenance(bitmarkID string) ([]indexer.P
 	}
 	defer resp.Body.Close()
 
-	dump, err := httputil.DumpResponse(resp, true)
-	if err != nil {
-		log.WithError(err).Error("fail to dump http response")
-	}
-
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		log.WithError(err).WithField("httpdump", dump).Error("fail to decode bitmark payload")
+		log.WithError(err).WithField("respData", traceutils.DumpResponse(resp)).Error("fail to decode bitmark payload")
 		return nil, err
 	}
 

@@ -3,10 +3,11 @@ package feralfile
 import (
 	"encoding/json"
 	"net/http"
-	"net/http/httputil"
 	"time"
 
 	"github.com/sirupsen/logrus"
+
+	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
 
 type Feralfile struct {
@@ -39,14 +40,13 @@ func (c *Feralfile) GetAccountInfo(owner string) (Account, error) {
 		return a, err
 	}
 	defer resp.Body.Close()
-	b, _ := httputil.DumpResponse(resp, true)
 
 	var respBody struct {
 		Result Account `json:"result"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&respBody); err != nil {
-		logrus.WithField("response", string(b)).Error("fail to decode response")
+		logrus.WithField("response", traceutils.DumpResponse(resp)).Error("fail to decode response")
 		return a, err
 	}
 

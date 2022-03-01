@@ -1,4 +1,4 @@
-package sentryHelper
+package traceutils
 
 import (
 	sentrygin "github.com/getsentry/sentry-go/gin"

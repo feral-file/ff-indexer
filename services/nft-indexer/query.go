@@ -10,12 +10,12 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
-	sentryHelper "github.com/bitmark-inc/nft-indexer/sentry"
+	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
 
 // QueryNFTs queries NFTs based on given criteria
 func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
-	sentryHelper.SetHandlerTag(c, "QueryNFTs")
+	traceutils.SetHandlerTag(c, "QueryNFTs")
 
 	var reqParams = NFTQueryParams{
 		Offset: 0,
@@ -46,7 +46,7 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 // ListNFTs returns information for a list of NFTs with some criterias.
 // It currently only supports listing by owners.
 func (s *NFTIndexerServer) ListNFTs(c *gin.Context) {
-	sentryHelper.SetHandlerTag(c, "ListNFTs")
+	traceutils.SetHandlerTag(c, "ListNFTs")
 
 	var reqParams = NFTQueryParams{
 		Offset: 0,
@@ -74,7 +74,7 @@ func (s *NFTIndexerServer) ListNFTs(c *gin.Context) {
 
 // SearchNFTs returns a list of NFTs by searching criteria
 func (s *NFTIndexerServer) SearchNFTs(c *gin.Context) {
-	sentryHelper.SetHandlerTag(c, "SearchNFTs")
+	traceutils.SetHandlerTag(c, "SearchNFTs")
 
 	var reqParams = NFTQueryParams{
 		Offset: 0,
@@ -153,7 +153,7 @@ func (s *NFTIndexerServer) refreshIdentity(accountNumber string) {
 // GetIdentity returns the identity of an given account by querying indexer store. If an identity is not existent,
 // it will read it from blockchain and set to indexer store before return.
 func (s *NFTIndexerServer) GetIdentity(c *gin.Context) {
-	sentryHelper.SetHandlerTag(c, "GetIdentity")
+	traceutils.SetHandlerTag(c, "GetIdentity")
 
 	accountNumber := c.Param("account_number")
 
@@ -186,7 +186,7 @@ func (s *NFTIndexerServer) GetIdentity(c *gin.Context) {
 
 // GetIdentities a map of identities which has already updated from the store.
 func (s *NFTIndexerServer) GetIdentities(c *gin.Context) {
-	sentryHelper.SetHandlerTag(c, "GetIdentities")
+	traceutils.SetHandlerTag(c, "GetIdentities")
 
 	var reqParams struct {
 		AccountNumbers []string `json:"account_numbers" binding:"required"`
