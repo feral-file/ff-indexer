@@ -402,8 +402,8 @@ func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID,
 	return provenances, nil
 }
 
-func (w *NFTIndexerWorker) GetOutdatedTokens(ctx context.Context) ([]indexer.Token, error) {
-	return w.indexerStore.GetOutdatedTokens(ctx)
+func (w *NFTIndexerWorker) GetOutdatedTokens(ctx context.Context, size int64) ([]indexer.Token, error) {
+	return w.indexerStore.GetOutdatedTokens(ctx, size)
 }
 
 // RefreshTokenProvenance refresh provenance. This is a heavy task

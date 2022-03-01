@@ -25,7 +25,7 @@ type IndexerStore interface {
 	UpdateTokenProvenance(ctx context.Context, indexID string, provenances []Provenance) error
 
 	GetTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]Token, error)
-	GetOutdatedTokens(ctx context.Context) ([]Token, error)
+	GetOutdatedTokens(ctx context.Context, size int64) ([]Token, error)
 	GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error)
 
 	GetDetailedTokens(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
@@ -259,17 +259,17 @@ func (s *MongodbIndexerStore) GetTokensByIndexIDs(ctx context.Context, ids []str
 }
 
 // GetOutdatedTokens returns a list of outdated tokens
-func (s *MongodbIndexerStore) GetOutdatedTokens(ctx context.Context) ([]Token, error) {
+func (s *MongodbIndexerStore) GetOutdatedTokens(ctx context.Context, size int64) ([]Token, error) {
 	var tokens []Token
 
 	cursor, err := s.tokenCollection.Find(ctx, bson.M{
 		"blockchain": "bitmark",
-
+		"burned":     bson.M{"$ne": true},
 		"$or": bson.A{
 			bson.M{"lastRefreshedTime": bson.M{"$exists": false}},
 			bson.M{"lastRefreshedTime": bson.M{"$lt": time.Now().Add(-24 * time.Hour)}},
 		},
-	}, options.Find().SetLimit(100))
+	}, options.Find().SetSort(bson.M{"lastRefreshedTime": 1}).SetLimit(size))
 	if err != nil {
 		return nil, err
 	}

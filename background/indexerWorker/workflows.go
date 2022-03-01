@@ -139,7 +139,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenanceWorkflow(ctx workflow.Context, 
 }
 
 // RefreshTokenProvenanceWorkflow is a workflow to refresh provenance for a specific token
-func (w *NFTIndexerWorker) RefreshTokenProvenancePeriodicallyWorkflow(ctx workflow.Context) error {
+func (w *NFTIndexerWorker) RefreshTokenProvenancePeriodicallyWorkflow(ctx workflow.Context, size int64) error {
 	ao := workflow.ActivityOptions{
 		TaskList:               w.TaskListName,
 		ScheduleToStartTimeout: time.Second * 60,
@@ -149,7 +149,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenancePeriodicallyWorkflow(ctx workfl
 	log.Debug("start RefreshTokenProvenancePeriodicallyWorkflow")
 
 	var tokens []indexer.Token
-	if err := workflow.ExecuteActivity(workflow.WithActivityOptions(ctx, ao), w.GetOutdatedTokens).Get(ctx, &tokens); err != nil {
+	if err := workflow.ExecuteActivity(workflow.WithActivityOptions(ctx, ao), w.GetOutdatedTokens, size).Get(ctx, &tokens); err != nil {
 		sentry.CaptureException(err)
 		return err
 	}
