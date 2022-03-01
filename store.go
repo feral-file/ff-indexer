@@ -268,7 +268,7 @@ func (s *MongodbIndexerStore) GetOutdatedTokens(ctx context.Context, size int64)
 		"burned":     bson.M{"$ne": true},
 		"$or": bson.A{
 			bson.M{"lastRefreshedTime": bson.M{"$exists": false}},
-			bson.M{"lastRefreshedTime": bson.M{"$lt": time.Now().Add(-24 * time.Hour)}},
+			bson.M{"lastRefreshedTime": bson.M{"$lt": time.Now().Add(-time.Hour)}},
 		},
 	}, options.Find().SetSort(bson.M{"lastRefreshedTime": 1}).SetLimit(size))
 	if err != nil {
