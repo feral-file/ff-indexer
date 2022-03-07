@@ -81,7 +81,7 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, ow
 		}
 
 		if _, ok := artblocksContracts[contractAddress]; ok {
-			source = "ArtBlocks"
+			source = "Art Blocks"
 			sourceURL = "https://www.artblocks.io/"
 		} else {
 			source = "OpenSea"
@@ -116,7 +116,11 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, ow
 		}
 
 		if a.AnimationURL != "" {
-			metadata.Medium = "other"
+			if source == "Art Blocks" {
+				metadata.Medium = "software"
+			} else {
+				metadata.Medium = "other"
+			}
 			metadata.PreviewURL = a.AnimationURL
 		} else if a.ImageURL != "" {
 			metadata.Medium = "image"
@@ -130,7 +134,7 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, ow
 
 		tokenUpdate := indexer.AssetUpdates{
 			ID:              fmt.Sprintf("%d", a.ID),
-			Source:          "opensea",
+			Source:          "OpenSea",
 			ProjectMetadata: metadata,
 			Tokens: []indexer.Token{
 				{
@@ -202,7 +206,7 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 		medium := "unknown"
 		switch t.Symbol {
 		case "GENTK", "FXGEN":
-			source = "FXHASH"
+			source = "fxhash"
 			sourceURL = "https://www.fxhash.xyz"
 			assetURL = fmt.Sprintf("https://www.fxhash.xyz/gentk/%d", t.ID)
 			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://gateway.fxhash.xyz/ipfs/")
@@ -215,7 +219,7 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
 			previewURL = strings.ReplaceAll(previewURL, "ipfs://", "https://ipfs.io/ipfs/")
 		default:
-			source = "OBJKT.COM"
+			source = "objkt.com"
 			sourceURL = "https://objkt.com"
 			assetURL = fmt.Sprintf("https://objkt.com/asset/%s/%d", t.Contract, t.ID)
 			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
