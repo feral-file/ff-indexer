@@ -3,6 +3,7 @@ package bettercall
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"net/http"
 	"net/url"
 	"time"
@@ -25,10 +26,33 @@ type FileFormat struct {
 	URI      string `json:"uri"`
 }
 
+type TokenID struct {
+	big.Int
+}
+
+func (b TokenID) MarshalJSON() ([]byte, error) {
+	return []byte(b.String()), nil
+}
+
+func (b *TokenID) UnmarshalJSON(p []byte) error {
+	s := string(p)
+	if s == "null" {
+		return fmt.Errorf("invalid token id: %s", p)
+	}
+
+	z, ok := big.NewInt(0).SetString(s, 0)
+	if !ok {
+		return fmt.Errorf("invalid token id: %s", p)
+	}
+
+	b.Int = *z
+	return nil
+}
+
 type Token struct {
 	Contract     string       `json:"contract"`
 	Network      string       `json:"network"`
-	ID           int          `json:"token_id"`
+	ID           TokenID      `json:"token_id"`
 	Name         string       `json:"name"`
 	Description  string       `json:"description"`
 	Symbol       string       `json:"symbol"`
@@ -47,7 +71,7 @@ type TokenResponse struct {
 type TokenMetadata struct {
 	Contract  string    `json:"contract"`
 	Timestamp time.Time `json:"timestamp"`
-	TokenID   int       `json:"token_id"`
+	TokenID   TokenID   `json:"token_id"`
 }
 
 func (c *BetterCall) RetrieveTokens(owner string, offset int) ([]Token, error) {
@@ -78,10 +102,10 @@ func (c *BetterCall) RetrieveTokens(owner string, offset int) ([]Token, error) {
 	return tokenResponse.Tokens, nil
 }
 
-func (c *BetterCall) GetTokenMetadata(contract string, tokenID int) (TokenMetadata, error) {
+func (c *BetterCall) GetTokenMetadata(contract string, tokenID string) (TokenMetadata, error) {
 	v := url.Values{
 		"contract": []string{contract},
-		"token_id": []string{fmt.Sprint(tokenID)},
+		"token_id": []string{tokenID},
 	}
 
 	u := url.URL{

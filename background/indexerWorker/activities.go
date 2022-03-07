@@ -171,10 +171,9 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 	for _, t := range tokens {
 		log.WithField("token", t).Debug("index tezos token")
 
-		tokenBlockchainMetadata, err := w.bettercall.GetTokenMetadata(t.Contract, t.ID)
+		tokenBlockchainMetadata, err := w.bettercall.GetTokenMetadata(t.Contract, t.ID.String())
 		if err != nil {
 			log.WithError(err).Error("fail to get metadata for the token")
-			continue
 		}
 
 		switch t.Contract {
@@ -182,7 +181,7 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 			continue
 		}
 
-		assetID := sha3.Sum256([]byte(fmt.Sprintf("%s-%d", t.Contract, t.ID)))
+		assetID := sha3.Sum256([]byte(fmt.Sprintf("%s-%s", t.Contract, t.ID.String())))
 		assetIDString := hex.EncodeToString(assetID[:])
 
 		var artistName, artistURL string
@@ -208,20 +207,20 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 		case "GENTK", "FXGEN":
 			source = "fxhash"
 			sourceURL = "https://www.fxhash.xyz"
-			assetURL = fmt.Sprintf("https://www.fxhash.xyz/gentk/%d", t.ID)
+			assetURL = fmt.Sprintf("https://www.fxhash.xyz/gentk/%s", t.ID.String())
 			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://gateway.fxhash.xyz/ipfs/")
 			previewURL = strings.ReplaceAll(previewURL, "ipfs://", "https://gateway.fxhash.xyz/ipfs/")
 			medium = "software"
 		case "OBJKT":
 			source = "hic et nunc"
 			sourceURL = "https://hicetnunc.art"
-			assetURL = fmt.Sprintf("https://hicetnunc.art/objkt/%d", t.ID)
+			assetURL = fmt.Sprintf("https://hicetnunc.art/objkt/%s", t.ID.String())
 			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
 			previewURL = strings.ReplaceAll(previewURL, "ipfs://", "https://ipfs.io/ipfs/")
 		default:
 			source = "objkt.com"
 			sourceURL = "https://objkt.com"
-			assetURL = fmt.Sprintf("https://objkt.com/asset/%s/%d", t.Contract, t.ID)
+			assetURL = fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract, t.ID.String())
 			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
 			previewURL = strings.ReplaceAll(previewURL, "ipfs://", "https://ipfs.io/ipfs/")
 		}
@@ -264,12 +263,12 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 			Tokens: []indexer.Token{
 				{
 					BaseTokenInfo: indexer.BaseTokenInfo{
-						ID:              fmt.Sprint(t.ID),
+						ID:              t.ID.String(),
 						Blockchain:      indexer.TezosBlockchain,
 						ContractType:    "fa2",
 						ContractAddress: t.Contract,
 					},
-					IndexID: fmt.Sprintf("%s-%s-%d", indexer.BlockchianAlias[indexer.TezosBlockchain], t.Contract, t.ID),
+					IndexID: fmt.Sprintf("%s-%s-%s", indexer.BlockchianAlias[indexer.TezosBlockchain], t.Contract, t.ID.String()),
 					Edition: 0,
 					Owner:   owner,
 					MintAt:  tokenBlockchainMetadata.Timestamp,
