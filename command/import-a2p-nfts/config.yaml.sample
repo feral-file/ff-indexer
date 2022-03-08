@@ -1,0 +1,6 @@
+bitmarksdk:
+  network: livenet
+  apikey: key
+
+mongodb:
+  uri: mongodb://user:pass@localhost:27017
