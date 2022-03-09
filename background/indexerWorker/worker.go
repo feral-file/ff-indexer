@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/bitmark-inc/nft-indexer/externals/bettercall"
+	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
+	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	"github.com/spf13/viper"
 
@@ -19,6 +21,8 @@ type NFTIndexerWorker struct {
 	http         *http.Client
 	opensea      *opensea.OpenseaClient
 	bettercall   *bettercall.BetterCall
+	fxhash       *fxhash.FxHashAPI
+	objkt        *objkt.ObjktAPI
 	indexerStore indexer.IndexerStore
 	wallet       *ethereum.Wallet
 
@@ -32,6 +36,8 @@ type NFTIndexerWorker struct {
 func New(network string,
 	openseaClient *opensea.OpenseaClient,
 	bettercall *bettercall.BetterCall,
+	fxhash *fxhash.FxHashAPI,
+	objkt *objkt.ObjktAPI,
 	store indexer.IndexerStore) *NFTIndexerWorker {
 
 	w, err := ethereum.NewWalletFromMnemonic(
@@ -55,6 +61,8 @@ func New(network string,
 		wallet:       w,
 		opensea:      openseaClient,
 		bettercall:   bettercall,
+		fxhash:       fxhash,
+		objkt:        objkt,
 		indexerStore: store,
 
 		bitmarkZeroAddress: bitmarkZeroAddress,

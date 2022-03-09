@@ -50,3 +50,14 @@ func DetectAccountBlockchain(accountNumber string) string {
 
 	return ""
 }
+
+// DetectContractBlockchain returns underlying blokchain of a given contract address
+func DetectContractBlockchain(contractAddress string) string {
+	if strings.HasPrefix(contractAddress, "0x") {
+		return EthereumBlockchain
+	} else if strings.HasPrefix(contractAddress, "KT1") {
+		return TezosBlockchain
+	}
+
+	return ""
+}

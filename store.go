@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -74,7 +75,7 @@ type MongodbIndexerStore struct {
 func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUpdates AssetUpdates) error {
 	assetCreated := false
 
-	indexID := fmt.Sprintf("%s-%s", assetUpdates.Source, id)
+	indexID := fmt.Sprintf("%s-%s", strings.ToLower(assetUpdates.Source), id)
 
 	r := s.assetCollection.FindOne(ctx, bson.M{"indexID": indexID})
 	if err := r.Err(); err != nil {

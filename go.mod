@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/bitmark-inc/account-vault-ethereum v0.2.2
+	github.com/bitmark-inc/bitmark-sdk-go v0.3.0
 	github.com/bitmark-inc/config-loader v0.0.2
 	github.com/ethereum/go-ethereum v1.10.15
 	github.com/getsentry/sentry-go v0.12.0
@@ -28,9 +29,12 @@ require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/apache/thrift v0.0.0-20161221203622-b2a4d4ae21c7 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/bitmark-inc/bitmarkd v0.13.2 // indirect
+	github.com/bitmark-inc/logger v0.3.5 // indirect
 	github.com/btcsuite/btcd v0.22.0-beta // indirect
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
+	github.com/cihub/seelog v0.0.0-20170130134532-f561c5e57575 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deckarep/golang-set v1.8.0 // indirect
 	github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a // indirect

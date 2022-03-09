@@ -28,6 +28,25 @@ var (
 	ErrInvalidEditionID = errors.New("invalid edition id")
 )
 
+func getTokenSourceByContract(contractAddress string) string {
+	switch indexer.DetectContractBlockchain(contractAddress) {
+	case indexer.EthereumBlockchain:
+		if _, ok := artblocksContracts[contractAddress]; ok {
+			return "Art Blocks"
+
+		} else if contractAddress == "0x70e6b3f9d99432fCF35274d6b24D83Ef5Ba3dE2D" {
+			return "Crayon Codes"
+		}
+
+		return "OpenSea"
+	case indexer.TezosBlockchain:
+		// WIP
+		return ""
+	default:
+		return ""
+	}
+}
+
 // GetOwnedERC721TokenIDByContract returns a list of token id belongs to an owner for a specific contract
 func (w *NFTIndexerWorker) GetOwnedERC721TokenIDByContract(ctx context.Context, contractAddress, ownerAddress string) ([]*big.Int, error) {
 	rpcClient, err := ethclient.Dial(viper.GetString("ethereum.rpc_url"))
@@ -62,6 +81,9 @@ func (w *NFTIndexerWorker) GetOwnedERC721TokenIDByContract(ctx context.Context, 
 
 // IndexTokenDataFromFromOpensea indexes data from OpenSea into the format of AssetUpdates
 func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
+	// The data source of the asset data. This field is not related to displaying
+	dataSource := "opensea"
+
 	assets, err := w.opensea.RetrieveAssets(owner, offset)
 	if err != nil {
 		return nil, err
@@ -70,7 +92,6 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, ow
 	tokenUpdates := make([]indexer.AssetUpdates, 0, len(assets))
 
 	for _, a := range assets {
-		var source string
 		var sourceURL string
 		var artistURL string
 
@@ -80,17 +101,20 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, ow
 			continue
 		}
 
-		if _, ok := artblocksContracts[contractAddress]; ok {
-			source = "Art Blocks"
+		source := getTokenSourceByContract(contractAddress)
+
+		switch source {
+		case "Art Blocks":
 			sourceURL = "https://www.artblocks.io/"
-		} else {
-			source = "OpenSea"
+		default:
 			if viper.GetString("network") == "testnet" {
 				sourceURL = "https://testnets.opensea.io"
 			} else {
 				sourceURL = "https://opensea.io"
 			}
 		}
+
+		log.WithField("source", source).WithField("assetID", a.ID).Debug("source debug")
 
 		artistName := a.Creator.User.Username
 		if a.Creator.Address != "" {
@@ -134,7 +158,7 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, ow
 
 		tokenUpdate := indexer.AssetUpdates{
 			ID:              fmt.Sprintf("%d", a.ID),
-			Source:          "OpenSea",
+			Source:          dataSource,
 			ProjectMetadata: metadata,
 			Tokens: []indexer.Token{
 				{
@@ -161,6 +185,9 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, ow
 
 // IndexTokenDataFromFromTezos indexes data from Tezos into the format of AssetUpdates
 func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
+	// The data source of the asset data. This field is not related to displaying
+	dataSource := "bcdhub"
+
 	tokens, err := w.bettercall.RetrieveTokens(owner, offset)
 	if err != nil {
 		return nil, err
@@ -175,6 +202,8 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 		if err != nil {
 			log.WithError(err).Error("fail to get metadata for the token")
 		}
+
+		mintedAt := tokenBlockchainMetadata.Timestamp
 
 		switch t.Contract {
 		case indexer.KALAMContractAddress:
@@ -202,6 +231,7 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 		}
 
 		var source, sourceURL, assetURL string
+		var edition, maxEdition int64
 		medium := "unknown"
 		switch t.Symbol {
 		case "GENTK", "FXGEN":
@@ -211,6 +241,17 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://gateway.fxhash.xyz/ipfs/")
 			previewURL = strings.ReplaceAll(previewURL, "ipfs://", "https://gateway.fxhash.xyz/ipfs/")
 			medium = "software"
+
+			detail, err := w.fxhash.GetObjectDetail(ctx, t.ID.Int)
+			if err != nil {
+				log.WithError(err).Error("fail to get token detail from fxhash")
+			} else {
+				artistName = detail.Issuer.Author.ID
+				mintedAt = detail.CreatedAt
+				edition = detail.Iteration
+				maxEdition = detail.Issuer.Supply
+				artistURL = fmt.Sprintf("https://www.fxhash.xyz/u/%s", detail.Issuer.Author.Name)
+			}
 		case "OBJKT":
 			source = "hic et nunc"
 			sourceURL = "https://hicetnunc.art"
@@ -223,6 +264,16 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 			assetURL = fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract, t.ID.String())
 			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
 			previewURL = strings.ReplaceAll(previewURL, "ipfs://", "https://ipfs.io/ipfs/")
+
+			detail, err := w.objkt.GetObjktDetailed(ctx, t.ID.Text(10), t.Contract)
+			if err != nil {
+				log.WithError(err).Error("fail to get token detail from objkt")
+			} else {
+				mintedAt = detail.MintedAt
+				maxEdition = detail.Supply
+				artistName = detail.Contract.CreatorAddress
+				artistURL = fmt.Sprintf("https://objkt.com/profile/%s", detail.Contract.CreatorAddress)
+			}
 		}
 
 		if medium == "unknown" {
@@ -248,6 +299,7 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 			Title:               t.Name,
 			Description:         t.Description,
 			Medium:              medium,
+			MaxEdition:          maxEdition,
 			Source:              source,
 			SourceURL:           sourceURL,
 			PreviewURL:          previewURL,
@@ -258,7 +310,7 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 
 		tokenUpdate := indexer.AssetUpdates{
 			ID:              assetIDString,
-			Source:          "bcdhub",
+			Source:          dataSource,
 			ProjectMetadata: metadata,
 			Tokens: []indexer.Token{
 				{
@@ -269,9 +321,9 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 						ContractAddress: t.Contract,
 					},
 					IndexID: fmt.Sprintf("%s-%s-%s", indexer.BlockchianAlias[indexer.TezosBlockchain], t.Contract, t.ID.String()),
-					Edition: 0,
+					Edition: edition,
 					Owner:   owner,
-					MintAt:  tokenBlockchainMetadata.Timestamp,
+					MintAt:  mintedAt,
 				},
 			},
 		}
