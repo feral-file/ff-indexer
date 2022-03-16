@@ -5,6 +5,7 @@ import (
 
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
 
 func (s *NFTIndexerServer) SetupRoute() {
@@ -29,10 +30,14 @@ func (s *NFTIndexerServer) SetupRoute() {
 	s.route.GET("/identity/:account_number", s.GetIdentity)
 	s.route.POST("/identity/", s.GetIdentities)
 
-	s.route.Use(TokenAuthenticate("API-TOKEN", s.apiToken))
-	s.route.POST("/nft/swap", s.SwapNFT)
-	s.route.PUT("/asset/:asset_id", s.IndexAsset)
+	s.route.POST("/nft/swap", TokenAuthenticate("API-TOKEN", s.apiToken), s.SwapNFT)
+	s.route.PUT("/asset/:asset_id", TokenAuthenticate("API-TOKEN", s.apiToken), s.IndexAsset)
 
+	s.route.NoRoute(func(c *gin.Context) {
+		c.JSON(404, gin.H{
+			"message": "this is not what you are looking for",
+		})
+	})
 }
 
 // QueryNFTPrices returns prices information for NFTs
