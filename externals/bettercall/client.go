@@ -72,6 +72,7 @@ type TokenMetadata struct {
 	Contract  string    `json:"contract"`
 	Timestamp time.Time `json:"timestamp"`
 	TokenID   TokenID   `json:"token_id"`
+	Supply    int64     `json:"supply,string"`
 }
 
 func (c *BetterCall) RetrieveTokens(owner string, offset int) ([]Token, error) {

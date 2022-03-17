@@ -196,6 +196,11 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 	tokenUpdates := make([]indexer.AssetUpdates, 0, len(tokens))
 
 	for _, t := range tokens {
+		switch t.Contract {
+		case indexer.KALAMContractAddress:
+			continue
+		}
+
 		log.WithField("token", t).Debug("index tezos token")
 
 		tokenBlockchainMetadata, err := w.bettercall.GetTokenMetadata(t.Contract, t.ID.String())
@@ -204,11 +209,7 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 		}
 
 		mintedAt := tokenBlockchainMetadata.Timestamp
-
-		switch t.Contract {
-		case indexer.KALAMContractAddress:
-			continue
-		}
+		maxEdition := tokenBlockchainMetadata.Supply
 
 		assetID := sha3.Sum256([]byte(fmt.Sprintf("%s-%s", t.Contract, t.ID.String())))
 		assetIDString := hex.EncodeToString(assetID[:])
@@ -231,7 +232,7 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 		}
 
 		var source, sourceURL, assetURL string
-		var edition, maxEdition int64
+		var edition int64
 		medium := "unknown"
 		switch t.Symbol {
 		case "GENTK", "FXGEN":
@@ -252,9 +253,15 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 				maxEdition = detail.Issuer.Supply
 				artistURL = fmt.Sprintf("https://www.fxhash.xyz/u/%s", detail.Issuer.Author.Name)
 			}
+		case "ITEM":
+			source = "versum"
+			sourceURL = "https://versum.xyz"
+			assetURL = fmt.Sprintf("https://versum.xyz/token/versum/%s", t.ID.String())
+			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
+			previewURL = strings.ReplaceAll(previewURL, "ipfs://", "https://ipfs.io/ipfs/")
 		case "OBJKT":
 			source = "hic et nunc"
-			sourceURL = "https://hicetnunc.art"
+			sourceURL = "https://www.hicetnunc.xyz"
 			assetURL = fmt.Sprintf("https://hicetnunc.art/objkt/%s", t.ID.String())
 			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
 			previewURL = strings.ReplaceAll(previewURL, "ipfs://", "https://ipfs.io/ipfs/")
