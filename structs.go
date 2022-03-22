@@ -94,5 +94,6 @@ type VersionedProjectMetadata struct {
 // that this token is linked to.
 type DetailedToken struct {
 	Token           `bson:",inline"`
+	ThumbnailID     string                   `json:"thumbnailID"`
 	ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
 }

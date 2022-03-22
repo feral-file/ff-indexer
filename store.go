@@ -311,6 +311,7 @@ func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParam
 	defer cursor.Close(ctx)
 
 	assets := map[string]struct {
+		ThumbnailID     string                   `bson:"thumbnailID"`
 		ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
 	}{}
 	for cursor.Next(ctx) {
@@ -339,6 +340,7 @@ func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParam
 		a.ProjectMetadata.Origin.FirstMintedAt = "0001-01-01T00:00:00.000Z"
 		tokens = append(tokens, DetailedToken{
 			Token:           token,
+			ThumbnailID:     a.ThumbnailID,
 			ProjectMetadata: a.ProjectMetadata,
 		})
 	}
@@ -394,7 +396,8 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 	tokens := make([]DetailedToken, 0)
 
 	type asset struct {
-		ProjectMetadata VersionedProjectMetadata `json:"projectMetadata"`
+		ThumbnailID     string                   `bson:"thumbnailID"`
+		ProjectMetadata VersionedProjectMetadata `bson:"projectMetadata"`
 	}
 
 	assets := map[string]asset{}
@@ -426,6 +429,7 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 		// FIXME: hardcoded values for backward compatibility
 		a.ProjectMetadata.Latest.FirstMintedAt = "0001-01-01T00:00:00.000Z"
 		a.ProjectMetadata.Origin.FirstMintedAt = "0001-01-01T00:00:00.000Z"
+		tokens[i].ThumbnailID = a.ThumbnailID
 		tokens[i].ProjectMetadata = a.ProjectMetadata
 	}
 
