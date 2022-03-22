@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -63,7 +64,9 @@ func (s *NFTIndexerServer) ListNFTs(c *gin.Context) {
 		return
 	}
 
-	tokenInfo, err := s.indexerStore.GetDetailedTokensByOwner(c, reqParams.Owner, reqParams.Offset, reqParams.Size)
+	owners := strings.Split(reqParams.Owner, ",")
+
+	tokenInfo, err := s.indexerStore.GetDetailedTokensByOwners(c, owners, reqParams.Offset, reqParams.Size)
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
 		return

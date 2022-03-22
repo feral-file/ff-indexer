@@ -39,11 +39,16 @@ func (s *NFTIndexerServer) IndexAsset(c *gin.Context) {
 }
 
 type NFTQueryParams struct {
-	Owner  string `form:"owner"`
-	Text   string `form:"text"`
-	Offset int64  `form:"offset"`
-	Size   int64  `form:"size"`
+	// global
+	Offset int64 `form:"offset"`
+	Size   int64 `form:"size"`
 
+	// list by owner
+	Owner string `form:"owner"`
+	// text search
+	Text string `form:"text"`
+
+	// query tokens
 	IDs []string `json:"ids"`
 }
 

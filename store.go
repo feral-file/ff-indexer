@@ -30,7 +30,7 @@ type IndexerStore interface {
 	GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error)
 
 	GetDetailedTokens(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
-	GetDetailedTokensByOwner(ctx context.Context, owner string, offset, size int64) ([]DetailedToken, error)
+	GetDetailedTokensByOwners(ctx context.Context, owner []string, offset, size int64) ([]DetailedToken, error)
 
 	GetTokensByTextSearch(ctx context.Context, searchText string, offset, size int64) ([]DetailedToken, error)
 
@@ -116,9 +116,9 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 
 		tokenResult := s.tokenCollection.FindOne(ctx, bson.M{"indexID": token.IndexID})
 		if err := tokenResult.Err(); err != nil {
-			// inser a new token entry if it is not found
-			token.LastActivityTime = token.MintAt
 			if err == mongo.ErrNoDocuments {
+				// inser a new token entry if it is not found
+				token.LastActivityTime = token.MintAt
 				logrus.WithField("token_id", token.ID).Warn("token is not found")
 				_, err := s.tokenCollection.InsertOne(ctx, token)
 				if err != nil {
@@ -133,6 +133,10 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		var currentToken Token
 		if err := tokenResult.Decode(&currentToken); err != nil {
 			return err
+		}
+
+		if token.MintAt.Sub(token.LastActivityTime) > 0 {
+			token.LastActivityTime = token.MintAt
 		}
 
 		// ignore updates for swapped and burned token
@@ -386,7 +390,7 @@ func (s *MongodbIndexerStore) GetTokenIDsByOwner(ctx context.Context, owner stri
 }
 
 // GetTokensByOwner returns a list of DetailedTokens which belong to an owner
-func (s *MongodbIndexerStore) GetDetailedTokensByOwner(ctx context.Context, owner string, offset, size int64) ([]DetailedToken, error) {
+func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, owners []string, offset, size int64) ([]DetailedToken, error) {
 	tokens := make([]DetailedToken, 0)
 
 	type asset struct {
@@ -394,8 +398,8 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwner(ctx context.Context, owne
 	}
 
 	assets := map[string]asset{}
-	c, err := s.tokenCollection.Find(ctx, bson.M{"owner": owner, "burned": bson.M{"$ne": true}},
-		options.Find().SetLimit(size).SetSkip(offset),
+	c, err := s.tokenCollection.Find(ctx, bson.M{"owner": bson.M{"$in": owners}, "burned": bson.M{"$ne": true}},
+		options.Find().SetSort(bson.M{"lastActivityTime": -1}).SetLimit(size).SetSkip(offset),
 	)
 	if err != nil {
 		return nil, err
