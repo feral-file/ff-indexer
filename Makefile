@@ -30,11 +30,17 @@ nft-indexer:
 nft-indexer-background:
 	go build -o bin/nft-indexer-background ./services/nft-indexer-background
 
+nft-image-indexer:
+	go build -o bin/nft-image-indexer ./services/nft-image-indexer
+
 run-nft-indexer: nft-indexer
 	./bin/nft-indexer -c config.yaml
 
 run-nft-indexer-background: nft-indexer-background
 	./bin/nft-indexer-background -c config.yaml
+
+run-nft-image-indexer: nft-image-indexer
+	./bin/nft-image-indexer -c config.yaml
 
 build: nft-indexer
 

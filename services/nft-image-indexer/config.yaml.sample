@@ -1,0 +1,14 @@
+cloudflare:
+    account_id:
+    api_token:
+
+image_db:
+  dsn:
+  log_level: 2 # error
+
+store:
+  db_uri:
+  db_name: nft_indexer
+
+log:
+  level: info
