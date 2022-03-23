@@ -28,6 +28,7 @@ type IndexerStore interface {
 	GetTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]Token, error)
 	GetOutdatedTokens(ctx context.Context, size int64) ([]Token, error)
 	GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error)
+	GetTokenIDsByOwners(ctx context.Context, owners []string) ([]string, error)
 
 	GetDetailedTokens(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
 	GetDetailedTokensByOwners(ctx context.Context, owner []string, offset, size int64) ([]DetailedToken, error)
@@ -117,7 +118,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		tokenResult := s.tokenCollection.FindOne(ctx, bson.M{"indexID": token.IndexID})
 		if err := tokenResult.Err(); err != nil {
 			if err == mongo.ErrNoDocuments {
-				// inser a new token entry if it is not found
+				// insert a new token entry if it is not found
 				token.LastActivityTime = token.MintAt
 				logrus.WithField("token_id", token.ID).Warn("token is not found")
 				_, err := s.tokenCollection.InsertOne(ctx, token)
@@ -370,9 +371,18 @@ func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID
 
 // GetTokenIDsByOwner returns a list of tokens which belongs to an owner
 func (s *MongodbIndexerStore) GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
+	return s.GetTokenIDsByOwners(ctx, []string{owner})
+}
+
+// GetTokenIDsByOwners returns a list of tokens which belongs to a list of owner
+func (s *MongodbIndexerStore) GetTokenIDsByOwners(ctx context.Context, owners []string) ([]string, error) {
 	tokens := make([]string, 0)
 
-	c, err := s.tokenCollection.Find(ctx, bson.M{"owner": owner, "burned": bson.M{"$ne": true}}, options.Find().SetProjection(bson.M{"indexID": 1}))
+	c, err := s.tokenCollection.Find(ctx,
+		bson.M{
+			"owner": bson.M{"$in": owners}, "burned": bson.M{"$ne": true},
+		},
+		options.Find().SetProjection(bson.M{"indexID": 1, "_id": 0}))
 	if err != nil {
 		return nil, err
 	}

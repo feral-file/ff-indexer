@@ -75,6 +75,33 @@ func (s *NFTIndexerServer) ListNFTs(c *gin.Context) {
 	c.JSON(http.StatusOK, tokenInfo)
 }
 
+// OwnedNFTIDs returns a list of token ids for a given list of owners
+func (s *NFTIndexerServer) OwnedNFTIDs(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "OwnedNFTIDs")
+
+	var reqParams = NFTQueryParams{}
+
+	if err := c.BindQuery(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if reqParams.Owner == "" {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("owner is required"))
+		return
+	}
+
+	owners := strings.Split(reqParams.Owner, ",")
+
+	tokens, err := s.indexerStore.GetTokenIDsByOwners(c, owners)
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, tokens)
+}
+
 // SearchNFTs returns a list of NFTs by searching criteria
 func (s *NFTIndexerServer) SearchNFTs(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "SearchNFTs")
