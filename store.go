@@ -412,7 +412,7 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 
 	assets := map[string]asset{}
 	c, err := s.tokenCollection.Find(ctx, bson.M{"owner": bson.M{"$in": owners}, "burned": bson.M{"$ne": true}},
-		options.Find().SetSort(bson.M{"lastActivityTime": -1}).SetLimit(size).SetSkip(offset),
+		options.Find().SetSort(bson.D{{"lastActivityTime", -1}, {"_id", -1}}).SetLimit(size).SetSkip(offset),
 	)
 	if err != nil {
 		return nil, err
