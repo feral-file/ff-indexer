@@ -6,6 +6,7 @@ import (
 
 type Provenance struct {
 	Type       string    `json:"type" bson:"type"`
+	FromOwner  string    `json:"from" bson:"from"`
 	Owner      string    `json:"owner" bson:"owner"`
 	Blockchain string    `json:"blockchain" bson:"blockchain"`
 	Timestamp  time.Time `json:"timestamp" bson:"timestamp"`
@@ -30,6 +31,8 @@ type Token struct {
 
 	IndexID           string       `json:"indexID" bson:"indexID"`
 	Swapped           bool         `json:"swapped" bson:"swapped"`
+	SwappedFrom       *string      `bson:"swappedFrom,omitempty"`
+	SwappedTo         *string      `bson:"swappedTo,omitempty"`
 	Burned            bool         `json:"burned" bson:"burned"`
 	Provenances       []Provenance `json:"provenance" bson:"provenance"`
 	LastActivityTime  time.Time    `json:"lastActivityTime" bson:"lastActivityTime"`

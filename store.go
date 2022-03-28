@@ -184,7 +184,7 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 		return "", err
 	}
 
-	if originalToken.Burned {
+	if originalToken.Burned && originalToken.SwappedTo != nil {
 		return "", fmt.Errorf("token has burned")
 	}
 	originalBaseTokenInfo := originalToken.BaseTokenInfo
@@ -214,6 +214,9 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 	newToken.ContractAddress = swap.NewContractAddress
 	newToken.ContractType = swap.NewContractType
 	newToken.Swapped = true
+	newToken.Burned = false
+	newToken.SwappedTo = nil
+	newToken.SwappedFrom = &originalTokenIndexID
 	newToken.OriginTokenInfo = append([]BaseTokenInfo{originalBaseTokenInfo}, newToken.OriginTokenInfo...)
 
 	logrus.WithField("from", originalTokenIndexID).WithField("to", newTokenIndexID).Debug("update tokens for swapping")
@@ -226,7 +229,8 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 	result, err := session.WithTransaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
 		if _, err := s.tokenCollection.UpdateOne(ctx, bson.M{"indexID": originalTokenIndexID}, bson.M{
 			"$set": bson.M{
-				"burned": true,
+				"burned":    true,
+				"swappedTo": newTokenIndexID,
 			},
 		}); err != nil {
 			return nil, err
