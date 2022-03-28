@@ -66,7 +66,11 @@ func (s *NFTIndexerServer) ListNFTs(c *gin.Context) {
 
 	owners := strings.Split(reqParams.Owner, ",")
 
-	tokenInfo, err := s.indexerStore.GetDetailedTokensByOwners(c, owners, reqParams.Offset, reqParams.Size)
+	tokenInfo, err := s.indexerStore.GetDetailedTokensByOwners(c, owners,
+		indexer.FilterParameter{
+			Source: reqParams.Source,
+		},
+		reqParams.Offset, reqParams.Size)
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
 		return

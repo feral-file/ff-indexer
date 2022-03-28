@@ -34,7 +34,7 @@ type IndexerStore interface {
 	GetTokenIDsByOwners(ctx context.Context, owners []string) ([]string, error)
 
 	GetDetailedTokens(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
-	GetDetailedTokensByOwners(ctx context.Context, owner []string, offset, size int64) ([]DetailedToken, error)
+	GetDetailedTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
 
 	GetTokensByTextSearch(ctx context.Context, searchText string, offset, size int64) ([]DetailedToken, error)
 
@@ -44,7 +44,8 @@ type IndexerStore interface {
 }
 
 type FilterParameter struct {
-	IDs []string
+	Source string
+	IDs    []string
 }
 
 func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*MongodbIndexerStore, error) {
@@ -296,14 +297,18 @@ func (s *MongodbIndexerStore) GetOutdatedTokens(ctx context.Context, size int64)
 	return tokens, nil
 }
 
-// GetDetailedTokens returns a list of tokens information based on id
+// GetDetailedTokens returns a list of tokens information based on ids
 func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error) {
 	tokens := []DetailedToken{}
 
 	tokenFilter := bson.M{}
+	findOptions := options.Find().SetSort(bson.M{"_id": 1})
 
 	if len(filterParameter.IDs) > 0 {
-		tokenFilter["id"] = bson.M{"$in": filterParameter.IDs}
+		tokenFilter["indexID"] = bson.M{"$in": filterParameter.IDs}
+	} else {
+		// set query limit and skip if it is about to query all tokens
+		findOptions.SetLimit(size).SetSkip(offset)
 	}
 
 	logrus.
@@ -312,7 +317,7 @@ func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParam
 		WithField("size", size).
 		Debug("GetDetailedTokens")
 
-	cursor, err := s.tokenCollection.Find(ctx, tokenFilter, options.Find().SetLimit(size).SetSkip(offset))
+	cursor, err := s.tokenCollection.Find(ctx, tokenFilter, findOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -438,8 +443,8 @@ func (s *MongodbIndexerStore) GetTokenIDsByOwners(ctx context.Context, owners []
 }
 
 // GetTokensByOwner returns a list of DetailedTokens which belong to an owner
-func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, owners []string, offset, size int64) ([]DetailedToken, error) {
-	tokens := make([]DetailedToken, 0)
+func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, owners []string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error) {
+	tokens := make([]DetailedToken, 0, 10)
 
 	type asset struct {
 		ThumbnailID     string                   `bson:"thumbnailID"`
@@ -447,20 +452,26 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 	}
 
 	assets := map[string]asset{}
-	c, err := s.tokenCollection.Find(ctx, bson.M{"owner": bson.M{"$in": owners}, "burned": bson.M{"$ne": true}},
-		options.Find().SetSort(bson.D{{"lastActivityTime", -1}, {"_id", -1}}).SetLimit(size).SetSkip(offset),
-	)
+
+	// FIXME: clean up obsoleted query code
+	// c, err := s.tokenCollection.Find(ctx, bson.M{"owner": bson.M{"$in": owners}, "burned": bson.M{"$ne": true}},
+	// 	options.Find().SetSort(bson.D{{"lastActivityTime", -1}, {"_id", -1}}).SetLimit(size).SetSkip(offset),
+	// )
+
+	c, err := s.getTokensByAggregation(ctx, owners, filterParameter, offset, size)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := c.All(ctx, &tokens); err != nil {
-		return nil, err
-	}
-	for i, t := range tokens {
-		a, assetExist := assets[t.AssetID]
+	for c.Next(ctx) {
+		var token DetailedToken
+		if err := c.Decode(&token); err != nil {
+			return nil, err
+		}
+
+		a, assetExist := assets[token.AssetID]
 		if !assetExist {
-			assetResult := s.assetCollection.FindOne(ctx, bson.M{"id": t.AssetID})
+			assetResult := s.assetCollection.FindOne(ctx, bson.M{"id": token.AssetID})
 			if err := assetResult.Err(); err != nil {
 				return nil, err
 			}
@@ -469,17 +480,73 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 				return nil, err
 			}
 
-			assets[t.AssetID] = a
+			assets[token.AssetID] = a
 		}
 
 		// FIXME: hardcoded values for backward compatibility
 		a.ProjectMetadata.Latest.FirstMintedAt = "0001-01-01T00:00:00.000Z"
 		a.ProjectMetadata.Origin.FirstMintedAt = "0001-01-01T00:00:00.000Z"
-		tokens[i].ThumbnailID = a.ThumbnailID
-		tokens[i].ProjectMetadata = a.ProjectMetadata
+		token.ThumbnailID = a.ThumbnailID
+		token.ProjectMetadata = a.ProjectMetadata
+
+		tokens = append(tokens, token)
 	}
 
 	return tokens, nil
+}
+
+// getTokensByAggregation queries tokens by aggregation which provides a more flexible query option by mongodb
+func (s *MongodbIndexerStore) getTokensByAggregation(ctx context.Context, owners []string, filterParameter FilterParameter, offset, size int64) (*mongo.Cursor, error) {
+	pipelines := []bson.M{
+		{
+			"$match": bson.M{
+				"owner":  bson.M{"$in": owners},
+				"burned": bson.M{"$ne": true},
+			},
+		},
+		{"$sort": bson.D{{"lastActivityTime", -1}, {"_id", -1}}},
+		// lookup performs a cross blockchain join between tokens and assets collections
+		{
+			"$lookup": bson.M{
+				"from": "assets",
+				"let": bson.M{
+					"assetID": "$assetID",
+				},
+				"pipeline": bson.A{
+					bson.M{
+						"$match": bson.M{
+							"$expr": bson.M{
+								"$eq": bson.A{
+									"$id",
+									"$$assetID",
+								},
+							},
+						},
+					},
+					bson.M{
+						"$project": bson.M{
+							"source": 1,
+							"_id":    0,
+						},
+					},
+				},
+				"as": "asset",
+			},
+		},
+		// unwind turns the
+		{"$unwind": "$asset"},
+	}
+
+	if filterParameter.Source != "" {
+		pipelines = append(pipelines, bson.M{"$match": bson.M{"asset.source": filterParameter.Source}})
+	}
+
+	pipelines = append(pipelines,
+		bson.M{"$skip": offset},
+		bson.M{"$limit": size},
+	)
+
+	return s.tokenCollection.Aggregate(ctx, pipelines)
 }
 
 // GetTokensByTextSearch returns a list of token those assets match have attributes that match the search text.
