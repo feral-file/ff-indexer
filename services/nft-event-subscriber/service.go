@@ -71,6 +71,12 @@ func (s *NFTEventSubscriber) Subscribe(ctx context.Context) error {
 
 	s.ethSubscription = &subscription
 
+	go func() {
+		err := <-subscription.Err()
+		logrus.WithError(err).Error("subscription failed")
+		close(s.ethLogChan)
+	}()
+
 	logrus.Info("start watching blockchain events")
 	for log := range s.ethLogChan {
 		timestamp, err := getBlockTime(ctx, s.wallet.RPCClient(), log.BlockHash)
