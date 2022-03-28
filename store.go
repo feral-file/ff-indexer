@@ -20,10 +20,13 @@ const (
 	identityCollectionName = "identities"
 )
 
+var ErrNoRecordUpdated = fmt.Errorf("no record updated")
+
 type IndexerStore interface {
 	IndexAsset(ctx context.Context, id string, assetUpdates AssetUpdates) error
 	SwapToken(ctx context.Context, swapUpdate SwapUpdate) (string, error)
 	UpdateTokenProvenance(ctx context.Context, indexID string, provenances []Provenance) error
+	PushProvenance(ctx context.Context, indexID string, lockedTime time.Time, provenance Provenance) error
 
 	GetTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]Token, error)
 	GetOutdatedTokens(ctx context.Context, size int64) ([]Token, error)
@@ -238,7 +241,7 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 		}
 
 		if r.ModifiedCount == 0 && r.UpsertedCount == 0 {
-			return nil, fmt.Errorf("fail to create / update swapped token")
+			return nil, ErrNoRecordUpdated
 		}
 
 		return nil, nil
@@ -365,6 +368,35 @@ func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID
 			"provenance":        provenances,
 		},
 	})
+
+	return err
+}
+
+// PushProvenance push the latest provenance record for a token
+func (s *MongodbIndexerStore) PushProvenance(ctx context.Context, indexID string, lockedTime time.Time, provenance Provenance) error {
+	u, err := s.tokenCollection.UpdateOne(ctx, bson.M{
+		"indexID":                indexID,
+		"lastRefreshedTime":      lockedTime,
+		"provenance.0.timestamp": bson.M{"$lt": provenance.Timestamp},
+		"provenance.0.owner":     provenance.FromOwner,
+	}, bson.M{
+		"$set": bson.M{
+			"owner":             provenance.Owner,
+			"lastActivityTime":  provenance.Timestamp,
+			"lastRefreshedTime": time.Now(),
+		},
+
+		"$push": bson.M{
+			"provenance": bson.M{
+				"$each":     bson.A{provenance},
+				"$position": 0,
+			},
+		},
+	})
+
+	if u.ModifiedCount == 0 {
+		return ErrNoRecordUpdated
+	}
 
 	return err
 }

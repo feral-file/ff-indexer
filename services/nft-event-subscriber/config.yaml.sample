@@ -1,0 +1,17 @@
+ethereum:
+  worker_account_mnemonic:
+  network: testnet
+  rpc_url: https://rinkeby.infura.io/v3/<project_id>
+  ws_url: wss://rinkeby.infura.io/ws/v3/<project_id>
+
+store:
+  db_uri: "mongodb://nft_indexer:password@localhost:27017/"
+  db_name: nft_indexer
+
+log:
+  level: info
+
+cadence:
+  host_port: localhost:7933
+  domain: nft-indexer
+  log_level: 0

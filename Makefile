@@ -33,6 +33,9 @@ nft-indexer-background:
 nft-image-indexer:
 	go build -o bin/nft-image-indexer ./services/nft-image-indexer
 
+nft-event-subscriber:
+	go build -o bin/nft-event-subscriber ./services/nft-event-subscriber
+
 run-nft-indexer: nft-indexer
 	./bin/nft-indexer -c config.yaml
 
@@ -41,6 +44,9 @@ run-nft-indexer-background: nft-indexer-background
 
 run-nft-image-indexer: nft-image-indexer
 	./bin/nft-image-indexer -c config.yaml
+
+run-nft-event-subscriber: nft-event-subscriber
+	./bin/nft-event-subscriber -c config.yaml
 
 build: nft-indexer
 
@@ -65,6 +71,16 @@ endif
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t nft-indexer:background-$(dist) -f Dockerfile-background .
 	docker tag nft-indexer:background-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:background-$(dist)
+
+build-nft-event-subscriber:
+ifndef dist
+	$(error dist is undefined)
+endif
+	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
+	--build-arg GITHUB_USER=$(GITHUB_USER) \
+	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
+	-t nft-indexer:event-subscriber-$(dist) -f Dockerfile-event-subscriber .
+	docker tag nft-indexer:event-subscriber-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:event-subscriber-$(dist)
 
 image: build-nft-indexer build-nft-indexer-background
 

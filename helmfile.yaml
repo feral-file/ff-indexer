@@ -1,0 +1,15 @@
+helmDefaults:
+  kubeContext: arn:aws:eks:ap-northeast-1:083397868157:cluster/{{ if eq .Environment.Name "production" }}ProductionEksStack01{{ else }}DevelopmentEksStack01{{ end }}
+
+releases:
+- name: nft-event-subscriber # name of this release
+  namespace: autonomy
+  chart: charts/nft-event-subscriber  # the chart being installed to create this release, referenced by relative path to local helmfile
+  values:
+  - charts/nft-event-subscriber/environments/{{ .Environment.Name }}/values.yaml
+  secrets:
+  - charts/nft-event-subscriber/environments/{{ .Environment.Name }}/secrets.yaml
+
+environments:
+  development:
+  production:
