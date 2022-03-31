@@ -20,6 +20,8 @@ import (
 )
 
 type NFTEventSubscriber struct {
+	network string
+
 	wallet        *ethereum.Wallet
 	wsClient      *ethclient.Client
 	store         indexer.IndexerStore
@@ -30,10 +32,12 @@ type NFTEventSubscriber struct {
 }
 
 func New(wallet *ethereum.Wallet,
+	network string,
 	wsClient *ethclient.Client,
 	store indexer.IndexerStore,
 	cadenceWorker cadence.CadenceWorkerClient) *NFTEventSubscriber {
 	return &NFTEventSubscriber{
+		network:       network,
 		wallet:        wallet,
 		wsClient:      wsClient,
 		store:         store,
@@ -117,6 +121,7 @@ func (s *NFTEventSubscriber) Subscribe(ctx context.Context) error {
 				Blockchain:  indexer.EthereumBlockchain,
 				Timestamp:   timestamp,
 				TxID:        txID,
+				TxURL:       indexer.TxURL(indexer.EthereumBlockchain, s.network, txID),
 			}); err != nil {
 				logrus.WithError(err).Warn("unable to push provenance, will trigger a full provenance refresh")
 				go s.startRefreshProvenanceWorkflow(ctx, fmt.Sprintf("subscriber-%s", indexID), []string{indexID}, 0)

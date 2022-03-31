@@ -39,9 +39,11 @@ func main() {
 
 	ctx := context.Background()
 
+	network := viper.GetString("network")
+
 	w, err := ethereum.NewWalletFromMnemonic(
 		viper.GetString("ethereum.worker_account_mnemonic"),
-		viper.GetString("network"),
+		network,
 		viper.GetString("ethereum.rpc_url"),
 	)
 	if err != nil {
@@ -61,7 +63,7 @@ func main() {
 		logrus.WithError(err).Panic("fail to initiate indexer store")
 	}
 
-	service := New(w, wsClient, indexerStore, *cadenceClient)
+	service := New(w, network, wsClient, indexerStore, *cadenceClient)
 	if err := service.Subscribe(ctx); err != nil {
 		panic(err)
 	}
