@@ -29,6 +29,8 @@ type NFTIndexerWorker struct {
 	bitmarkZeroAddress string
 	bitmarkAPIEndpoint string
 
+	txEndpoints map[string]string
+
 	Network      string
 	TaskListName string
 }
@@ -49,9 +51,18 @@ func New(network string,
 
 	bitmarkZeroAddress := indexer.LivenetZeroAddress
 	bitmarkAPIEndpoint := "https://api.bitmark.com"
+
+	txEndpoints := map[string]string{
+		indexer.BitmarkBlockchain:  "https://registry.bitmark.com/transaction",
+		indexer.EthereumBlockchain: "https://etherscan.io/tx",
+		indexer.TezosBlockchain:    "https://tzkt.io",
+	}
+
 	if network != "livenet" {
 		bitmarkZeroAddress = indexer.TestnetZeroAddress
 		bitmarkAPIEndpoint = "https://api.test.bitmark.com"
+		txEndpoints[indexer.BitmarkBlockchain] = "https://registry.test.bitmark.com/transaction"
+		txEndpoints[indexer.EthereumBlockchain] = "https://rinkeby.etherscan.io"
 	}
 
 	return &NFTIndexerWorker{
@@ -67,6 +78,8 @@ func New(network string,
 
 		bitmarkZeroAddress: bitmarkZeroAddress,
 		bitmarkAPIEndpoint: bitmarkAPIEndpoint,
+
+		txEndpoints: txEndpoints,
 
 		Network:      network,
 		TaskListName: TaskListName,

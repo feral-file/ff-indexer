@@ -11,6 +11,7 @@ type Provenance struct {
 	Blockchain string    `json:"blockchain" bson:"blockchain"`
 	Timestamp  time.Time `json:"timestamp" bson:"timestamp"`
 	TxID       string    `json:"txid" bson:"txid"`
+	TxURL      string    `json:"txURL" bson:"txURL"`
 }
 
 type BaseTokenInfo struct {

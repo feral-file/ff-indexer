@@ -405,6 +405,7 @@ func (w *NFTIndexerWorker) fetchBitmarkProvenance(bitmarkID string) ([]indexer.P
 			Blockchain: indexer.BitmarkBlockchain,
 			Timestamp:  p.CreatedAt,
 			TxID:       p.TxId,
+			TxURL:      fmt.Sprintf("%s/%s", w.txEndpoints[indexer.BitmarkBlockchain], p.TxId),
 		})
 	}
 
