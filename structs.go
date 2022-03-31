@@ -5,8 +5,10 @@ import (
 )
 
 type Provenance struct {
+	// this field is only for ownership validating
+	FormerOwner *string `json:"formerOwner,omitempty" bson:"-"`
+
 	Type       string    `json:"type" bson:"type"`
-	FromOwner  string    `json:"from" bson:"from"`
 	Owner      string    `json:"owner" bson:"owner"`
 	Blockchain string    `json:"blockchain" bson:"blockchain"`
 	Timestamp  time.Time `json:"timestamp" bson:"timestamp"`

@@ -383,11 +383,16 @@ func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID
 
 // PushProvenance push the latest provenance record for a token
 func (s *MongodbIndexerStore) PushProvenance(ctx context.Context, indexID string, lockedTime time.Time, provenance Provenance) error {
+	if provenance.FormerOwner == nil {
+		return fmt.Errorf("invalid former owner")
+	}
+	formerOwner := *provenance.FormerOwner
+
 	u, err := s.tokenCollection.UpdateOne(ctx, bson.M{
 		"indexID":                indexID,
 		"lastRefreshedTime":      lockedTime,
 		"provenance.0.timestamp": bson.M{"$lt": provenance.Timestamp},
-		"provenance.0.owner":     provenance.FromOwner,
+		"provenance.0.owner":     formerOwner,
 	}, bson.M{
 		"$set": bson.M{
 			"owner":             provenance.Owner,
