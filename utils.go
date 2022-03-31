@@ -67,14 +67,14 @@ func TxURL(blockchain, network, txID string) string {
 	switch blockchain {
 	case BitmarkBlockchain:
 		if network == "testnet" {
-			return fmt.Sprintf("https://rinkeby.etherscan.io/tx/%s", txID)
-		}
-		return fmt.Sprintf("https://etherscan.io/tx/%s", txID)
-	case EthereumBlockchain:
-		if network == "testnet" {
 			return fmt.Sprintf("https://registry.test.bitmark.com/transaction/%s", txID)
 		}
 		return fmt.Sprintf("https://registry.bitmark.com/transaction/%s", txID)
+	case EthereumBlockchain:
+		if network == "testnet" {
+			return fmt.Sprintf("https://rinkeby.etherscan.io/tx/%s", txID)
+		}
+		return fmt.Sprintf("https://etherscan.io/tx/%s", txID)
 	default:
 		return ""
 	}
