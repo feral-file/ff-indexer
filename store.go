@@ -280,6 +280,7 @@ func (s *MongodbIndexerStore) GetOutdatedTokens(ctx context.Context, size int64)
 	cursor, err := s.tokenCollection.Find(ctx, bson.M{
 		"blockchain": "bitmark",
 		"burned":     bson.M{"$ne": true},
+		"is_demo":    bson.M{"$ne": true},
 		"$or": bson.A{
 			bson.M{"lastRefreshedTime": bson.M{"$exists": false}},
 			bson.M{"lastRefreshedTime": bson.M{"$lt": time.Now().Add(-time.Hour)}},
