@@ -94,7 +94,7 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, ow
 	for _, a := range assets {
 		var sourceURL string
 		var artistURL string
-
+		artistName := a.Creator.User.Username
 		contractAddress := indexer.EthereumChecksumAddress(a.AssetContract.Address)
 		switch contractAddress {
 		case indexer.ENSContractAddress:
@@ -106,22 +106,26 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, ow
 		switch source {
 		case "Art Blocks":
 			sourceURL = "https://www.artblocks.io/"
+			artistURL = fmt.Sprintf("%s/%s", sourceURL, a.Creator.Address)
+		case "Crayon Codes":
+			sourceURL = "https://openprocessing.org/crayon/"
+			artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator.Address)
 		default:
 			if viper.GetString("network") == "testnet" {
 				sourceURL = "https://testnets.opensea.io"
 			} else {
 				sourceURL = "https://opensea.io"
 			}
+			artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator.Address)
 		}
 
 		log.WithField("source", source).WithField("assetID", a.ID).Debug("source debug")
 
-		artistName := a.Creator.User.Username
 		if a.Creator.Address != "" {
 			if artistName == "" {
 				artistName = a.Creator.Address
 			}
-			artistURL = fmt.Sprintf("%s/%s", sourceURL, a.Creator.Address)
+
 		}
 
 		metadata := indexer.ProjectMetadata{
@@ -259,6 +263,7 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 			assetURL = fmt.Sprintf("https://versum.xyz/token/versum/%s", t.ID.String())
 			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
 			previewURL = strings.ReplaceAll(previewURL, "ipfs://", "https://ipfs.io/ipfs/")
+			artistURL = fmt.Sprintf("https://versum.xyz/user/%s", artistName)
 		case "OBJKT":
 			source = "hic et nunc"
 			sourceURL = "https://www.hicetnunc.xyz"
