@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -27,6 +28,19 @@ var (
 	ErrValueNotString   = errors.New("value is not of string type")
 	ErrInvalidEditionID = errors.New("invalid edition id")
 )
+
+func mediumByPreviewFileExtension(url string) string {
+	ext := filepath.Ext(url)
+
+	switch ext {
+	case ".jpg", ".jpeg", ".png", ".svg":
+		return "image"
+	case ".mp4", ".mov":
+		return "video"
+	default:
+		return "other"
+	}
+}
 
 func getTokenSourceByContract(contractAddress string) string {
 	switch indexer.DetectContractBlockchain(contractAddress) {
@@ -144,12 +158,15 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, ow
 		}
 
 		if a.AnimationURL != "" {
+			metadata.PreviewURL = a.AnimationURL
+
 			if source == "Art Blocks" {
 				metadata.Medium = "software"
 			} else {
-				metadata.Medium = "other"
+				medium := mediumByPreviewFileExtension(metadata.PreviewURL)
+				log.WithField("previewURL", metadata.PreviewURL).WithField("medium", medium).Debug("fallback medium check")
+				metadata.Medium = medium
 			}
-			metadata.PreviewURL = a.AnimationURL
 		} else if a.ImageURL != "" {
 			metadata.Medium = "image"
 		}
