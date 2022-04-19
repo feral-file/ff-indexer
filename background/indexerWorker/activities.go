@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
@@ -204,6 +205,21 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, ow
 	return tokenUpdates, nil
 }
 
+// fxhashLink converts an IPFS link to a HTTP link by using fxhash ipfs gateway.
+// If a link is failed to parse, it returns the original link
+func fxhashLink(ipfsLink string) string {
+	u, err := url.Parse(ipfsLink)
+	if err != nil {
+		return ipfsLink
+	}
+
+	u.Path = fmt.Sprintf("ipfs/%s/", u.Host)
+	u.Host = "gateway.fxhash.xyz"
+	u.Scheme = "https"
+
+	return u.String()
+}
+
 // IndexTokenDataFromFromTezos indexes data from Tezos into the format of AssetUpdates
 func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
 	// The data source of the asset data. This field is not related to displaying
@@ -260,8 +276,9 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 			source = "fxhash"
 			sourceURL = "https://www.fxhash.xyz"
 			assetURL = fmt.Sprintf("https://www.fxhash.xyz/gentk/%s", t.ID.String())
-			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://gateway.fxhash.xyz/ipfs/")
-			previewURL = strings.ReplaceAll(previewURL, "ipfs://", "https://gateway.fxhash.xyz/ipfs/")
+
+			displayURI = fxhashLink(displayURI)
+			previewURL = fxhashLink(previewURL)
 			medium = "software"
 
 			detail, err := w.fxhash.GetObjectDetail(ctx, t.ID.Int)
