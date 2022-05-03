@@ -271,16 +271,8 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 		var source, sourceURL, assetURL string
 		var edition int64
 		medium := "unknown"
-		switch t.Symbol {
-		case "GENTK", "FXGEN":
-			source = "fxhash"
-			sourceURL = "https://www.fxhash.xyz"
-			assetURL = fmt.Sprintf("https://www.fxhash.xyz/gentk/%s", t.ID.String())
-
-			displayURI = fxhashLink(displayURI)
-			previewURL = fxhashLink(previewURL)
-			medium = "software"
-
+		switch t.Contract {
+		case indexer.FXHASHV2ContractAddress, indexer.FXHASHContractAddress, indexer.FXHASHOldContractAddress:
 			detail, err := w.fxhash.GetObjectDetail(ctx, t.ID.Int)
 			if err != nil {
 				log.WithError(err).Error("fail to get token detail from fxhash")
@@ -290,15 +282,26 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 				edition = detail.Iteration
 				maxEdition = detail.Issuer.Supply
 				artistURL = fmt.Sprintf("https://www.fxhash.xyz/u/%s", detail.Issuer.Author.Name)
+				displayURI = detail.Metadata.DisplayUri
+				previewURL = detail.Metadata.ArtifactUri
 			}
-		case "ITEM":
+
+			source = "fxhash"
+			sourceURL = "https://www.fxhash.xyz"
+			assetURL = fmt.Sprintf("https://www.fxhash.xyz/gentk/%s", t.ID.String())
+
+			displayURI = fxhashLink(displayURI)
+			previewURL = fxhashLink(previewURL)
+			medium = "software"
+
+		case indexer.VersumContractAddress:
 			source = "versum"
 			sourceURL = "https://versum.xyz"
 			assetURL = fmt.Sprintf("https://versum.xyz/token/versum/%s", t.ID.String())
 			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
 			previewURL = strings.ReplaceAll(previewURL, "ipfs://", "https://ipfs.io/ipfs/")
 			artistURL = fmt.Sprintf("https://versum.xyz/user/%s", artistName)
-		case "OBJKT":
+		case indexer.HicEtNuncContractAddress:
 			source = "hic et nunc"
 			sourceURL = "https://objkt.com" // hicetnunc is down. We not fallback to objkt.com
 			assetURL = fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract, t.ID.String())

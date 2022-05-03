@@ -16,6 +16,12 @@ type FxHashAPI struct {
 	endpoint string
 }
 
+type URLMetadata struct {
+	ArtifactUri  string `json:"artifactUri"`
+	DisplayUri   string `json:"displayUri"`
+	ThumbnailUri string `json:"thumbnailUri"`
+}
+
 func New(graphQLEndpoint string) *FxHashAPI {
 	var c = &http.Client{
 		Timeout: 10 * time.Second,
@@ -47,6 +53,7 @@ type FxHashObjectDetail struct {
 	Name      string
 	CreatedAt time.Time
 	Iteration int64
+	Metadata  URLMetadata `scalar:"true"`
 	Issuer    struct {
 		Supply int64
 		Author struct {
