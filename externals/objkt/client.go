@@ -396,6 +396,12 @@ type ObjktTokenDetails struct {
 	MintedAt time.Time `json:"timestamp"`
 	Supply   int64     `json:"supply"`
 
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	MIMEType    string `json:"mime"`
+	ArtifactURI string `json:"artifact_uri"`
+	DisplayURI  string `json:"display_uri"`
+
 	Contract ObjktContractDetails `json:"fa"`
 }
 

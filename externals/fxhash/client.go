@@ -17,9 +17,10 @@ type FxHashAPI struct {
 }
 
 type URLMetadata struct {
-	ArtifactUri  string `json:"artifactUri"`
-	DisplayUri   string `json:"displayUri"`
-	ThumbnailUri string `json:"thumbnailUri"`
+	Description  string `json:"description"`
+	ArtifactURI  string `json:"artifactUri"`
+	DisplayURI   string `json:"displayUri"`
+	ThumbnailURI string `json:"thumbnailUri"`
 }
 
 func New(graphQLEndpoint string) *FxHashAPI {

@@ -9,6 +9,8 @@ const EthereumZeroAddress = "0x0000000000000000000000000000000000000000"
 const ENSContractAddress = "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85"
 
 // Tezos contract addresses
+// ignored contracts
+const TezosDNSContractAddress = "KT1GBZmSxmnKJXGMdMLbugPfLyUPmuLSMwKS"
 const KALAMContractAddress = "KT1A5P4ejnLix13jtadsfV9GCnXLMNnab8UT"
 const FXHASHContractAddress = "KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE"
 const FXHASHV2ContractAddress = "KT1U6EHmNxJTkvaWJ4ThczG4FSDaHC21ssvi"

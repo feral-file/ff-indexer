@@ -56,9 +56,9 @@ type Token struct {
 	Name         string       `json:"name"`
 	Description  string       `json:"description"`
 	Symbol       string       `json:"symbol"`
-	ArtifactUri  string       `json:"artifact_uri"`
-	DisplayUri   string       `json:"display_uri"`
-	ThumbnailUri string       `json:"thumbnail_uri"`
+	ArtifactURI  string       `json:"artifact_uri"`
+	DisplayURI   string       `json:"display_uri"`
+	ThumbnailURI string       `json:"thumbnail_uri"`
 	Creators     []string     `json:"creators"`
 	Formats      []FileFormat `json:"formats"`
 }

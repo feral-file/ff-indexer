@@ -234,7 +234,7 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 
 	for _, t := range tokens {
 		switch t.Contract {
-		case indexer.KALAMContractAddress:
+		case indexer.KALAMContractAddress, indexer.TezosDNSContractAddress:
 			continue
 		}
 
@@ -245,6 +245,8 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 			log.WithError(err).Error("fail to get metadata for the token")
 		}
 
+		name := t.Name
+		description := t.Description
 		mintedAt := tokenBlockchainMetadata.Timestamp
 		maxEdition := tokenBlockchainMetadata.Supply
 
@@ -259,13 +261,13 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 
 		// default display URI
 		displayURI := "ipfs://QmV2cw5ytr3veNfAbJPpM5CeaST5vehT88XEmfdYY2wwiV"
-		if t.DisplayUri != "" {
-			displayURI = t.DisplayUri
+		if t.DisplayURI != "" {
+			displayURI = t.DisplayURI
 		}
 
-		previewURL := displayURI
-		if t.ArtifactUri != "" {
-			previewURL = t.ArtifactUri
+		previewURI := displayURI
+		if t.ArtifactURI != "" {
+			previewURI = t.ArtifactURI
 		}
 
 		var source, sourceURL, assetURL string
@@ -277,13 +279,15 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 			if err != nil {
 				log.WithError(err).Error("fail to get token detail from fxhash")
 			} else {
+				name = detail.Name
+				description = detail.Metadata.Description
 				artistName = detail.Issuer.Author.ID
 				mintedAt = detail.CreatedAt
 				edition = detail.Iteration
 				maxEdition = detail.Issuer.Supply
 				artistURL = fmt.Sprintf("https://www.fxhash.xyz/u/%s", detail.Issuer.Author.Name)
-				displayURI = detail.Metadata.DisplayUri
-				previewURL = detail.Metadata.ArtifactUri
+				displayURI = detail.Metadata.DisplayURI
+				previewURI = detail.Metadata.ArtifactURI
 			}
 
 			source = "fxhash"
@@ -291,7 +295,7 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 			assetURL = fmt.Sprintf("https://www.fxhash.xyz/gentk/%s", t.ID.String())
 
 			displayURI = fxhashLink(displayURI)
-			previewURL = fxhashLink(previewURL)
+			previewURI = fxhashLink(previewURI)
 			medium = "software"
 
 		case indexer.VersumContractAddress:
@@ -299,35 +303,50 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 			sourceURL = "https://versum.xyz"
 			assetURL = fmt.Sprintf("https://versum.xyz/token/versum/%s", t.ID.String())
 			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
-			previewURL = strings.ReplaceAll(previewURL, "ipfs://", "https://ipfs.io/ipfs/")
+			previewURI = strings.ReplaceAll(previewURI, "ipfs://", "https://ipfs.io/ipfs/")
 			artistURL = fmt.Sprintf("https://versum.xyz/user/%s", artistName)
 		case indexer.HicEtNuncContractAddress:
 			source = "hic et nunc"
 			sourceURL = "https://objkt.com" // hicetnunc is down. We not fallback to objkt.com
 			assetURL = fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract, t.ID.String())
 			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
-			previewURL = strings.ReplaceAll(previewURL, "ipfs://", "https://ipfs.io/ipfs/")
+			previewURI = strings.ReplaceAll(previewURI, "ipfs://", "https://ipfs.io/ipfs/")
 		default:
-			source = "objkt.com"
-			sourceURL = "https://objkt.com"
-			assetURL = fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract, t.ID.String())
-			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
-			previewURL = strings.ReplaceAll(previewURL, "ipfs://", "https://ipfs.io/ipfs/")
-
 			detail, err := w.objkt.GetObjktDetailed(ctx, t.ID.Text(10), t.Contract)
 			if err != nil {
 				log.WithError(err).Error("fail to get token detail from objkt")
 			} else {
+				name = detail.Name
+				description = detail.Description
 				mintedAt = detail.MintedAt
 				maxEdition = detail.Supply
 				artistName = detail.Contract.CreatorAddress
 				artistURL = fmt.Sprintf("https://objkt.com/profile/%s", detail.Contract.CreatorAddress)
+
+				displayURI = detail.DisplayURI
+				previewURI = detail.ArtifactURI
+
+				mimeItems := strings.Split(detail.MIMEType, "/")
+				if len(mimeItems) > 0 {
+					switch mimeItems[0] {
+					case "image":
+						medium = "image"
+					case "video":
+						medium = "other"
+					}
+				}
 			}
+
+			source = "objkt.com"
+			sourceURL = "https://objkt.com"
+			assetURL = fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract, t.ID.String())
+			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
+			previewURI = strings.ReplaceAll(previewURI, "ipfs://", "https://ipfs.io/ipfs/")
 		}
 
 		if medium == "unknown" {
 			for _, f := range t.Formats {
-				if f.URI == t.ArtifactUri {
+				if f.URI == t.ArtifactURI {
 					mimeItems := strings.Split(f.MIMEType, "/")
 					if len(mimeItems) > 0 {
 						switch mimeItems[0] {
@@ -345,13 +364,13 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 			ArtistName:          artistName,
 			ArtistURL:           artistURL,
 			AssetID:             assetIDString,
-			Title:               t.Name,
-			Description:         t.Description,
+			Title:               name,
+			Description:         description,
 			Medium:              medium,
 			MaxEdition:          maxEdition,
 			Source:              source,
 			SourceURL:           sourceURL,
-			PreviewURL:          previewURL,
+			PreviewURL:          previewURI,
 			ThumbnailURL:        displayURI,
 			GalleryThumbnailURL: displayURI,
 			AssetURL:            assetURL,
@@ -377,7 +396,11 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 			},
 		}
 
-		log.WithField("asset update", tokenUpdate).Debug("asset updating data prepared")
+		log.WithField("blockchain", indexer.TezosBlockchain).
+			WithField("owner", owner).
+			WithField("id", fmt.Sprintf("%s-%s-%s", indexer.BlockchianAlias[indexer.TezosBlockchain], t.Contract, t.ID.String())).
+			WithField("metadata", metadata).
+			Debug("asset updating data prepared")
 		tokenUpdates = append(tokenUpdates, tokenUpdate)
 	}
 
@@ -521,7 +544,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 			continue
 		}
 
-		log.WithField("indexID", token.IndexID).Debug("start refresh token provenance")
+		log.WithField("indexID", token.IndexID).Trace("start refresh token provenance")
 
 		totalProvenances := []indexer.Provenance{}
 		switch token.Blockchain {
