@@ -300,8 +300,8 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 			artistURL = fmt.Sprintf("https://versum.xyz/user/%s", artistName)
 		case "OBJKT":
 			source = "hic et nunc"
-			sourceURL = "https://www.hicetnunc.xyz"
-			assetURL = fmt.Sprintf("https://hicetnunc.art/objkt/%s", t.ID.String())
+			sourceURL = "https://objkt.com" // hicetnunc is down. We not fallback to objkt.com
+			assetURL = fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract, t.ID.String())
 			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
 			previewURL = strings.ReplaceAll(previewURL, "ipfs://", "https://ipfs.io/ipfs/")
 		default:
