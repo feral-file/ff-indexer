@@ -315,6 +315,7 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 			detail, err := w.objkt.GetObjktDetailed(ctx, t.ID.Text(10), t.Contract)
 			if err != nil {
 				log.WithError(err).Error("fail to get token detail from objkt")
+				source = "unknown"
 			} else {
 				name = detail.Name
 				description = detail.Description
@@ -335,13 +336,12 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owne
 						medium = "other"
 					}
 				}
+				source = "objkt.com"
+				sourceURL = "https://objkt.com"
+				assetURL = fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract, t.ID.String())
+				displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
+				previewURI = strings.ReplaceAll(previewURI, "ipfs://", "https://ipfs.io/ipfs/")
 			}
-
-			source = "objkt.com"
-			sourceURL = "https://objkt.com"
-			assetURL = fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract, t.ID.String())
-			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
-			previewURI = strings.ReplaceAll(previewURI, "ipfs://", "https://ipfs.io/ipfs/")
 		}
 
 		if medium == "unknown" {
