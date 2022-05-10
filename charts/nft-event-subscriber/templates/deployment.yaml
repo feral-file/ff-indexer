@@ -40,6 +40,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-event-subscriber.fullname" . }}
                   key: store_db_uri
+            - name: NFT_INDEXER_ACCOUNT_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-subscriber.fullname" . }}
+                  key: account_db_uri
             - name: NFT_INDEXER_ETHEREUM_WORKER_ACCOUNT_MNEMONIC
               valueFrom:
                 secretKeyRef:
@@ -55,6 +60,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-event-subscriber.fullname" . }}
                   key: ethereum_ws_url
+            - name: NFT_INDEXER_OPENSEA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-subscriber.fullname" . }}
+                  key: opensea_api_key
           volumeMounts:
           - name: config
             mountPath: "/.config"

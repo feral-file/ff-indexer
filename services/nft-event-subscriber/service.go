@@ -14,9 +14,12 @@ import (
 	cadenceClient "go.uber.org/cadence/client"
 
 	ethereum "github.com/bitmark-inc/account-vault-ethereum"
+	"github.com/bitmark-inc/autonomy-account/storage"
+	notification "github.com/bitmark-inc/autonomy-notification/sdk"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
 	"github.com/bitmark-inc/nft-indexer/cadence"
+	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 )
 
 type NFTEventSubscriber struct {
@@ -25,6 +28,9 @@ type NFTEventSubscriber struct {
 	wallet        *ethereum.Wallet
 	wsClient      *ethclient.Client
 	store         indexer.IndexerStore
+	opensea       *opensea.OpenseaClient
+	accountStore  *storage.AccountInformationStorage
+	notification  *notification.NotificationClient
 	cadenceWorker cadence.CadenceWorkerClient
 
 	ethLogChan      chan types.Log
@@ -35,12 +41,18 @@ func New(wallet *ethereum.Wallet,
 	network string,
 	wsClient *ethclient.Client,
 	store indexer.IndexerStore,
+	accountStore *storage.AccountInformationStorage,
+	opensea *opensea.OpenseaClient,
+	notification *notification.NotificationClient,
 	cadenceWorker cadence.CadenceWorkerClient) *NFTEventSubscriber {
 	return &NFTEventSubscriber{
 		network:       network,
 		wallet:        wallet,
 		wsClient:      wsClient,
 		store:         store,
+		opensea:       opensea,
+		accountStore:  accountStore,
+		notification:  notification,
 		cadenceWorker: cadenceWorker,
 	}
 }
@@ -98,8 +110,27 @@ func (s *NFTEventSubscriber) Subscribe(ctx context.Context) error {
 			fromAddress := indexer.EthereumChecksumAddress(log.Topics[1].Hex())
 			toAddress := indexer.EthereumChecksumAddress(log.Topics[2].Hex())
 			contractAddress := indexer.EthereumChecksumAddress(log.Address.String())
+			tokenIDHash := log.Topics[3]
 
-			indexID := fmt.Sprintf("%s-%s-%s", indexer.BlockchianAlias[indexer.EthereumBlockchain], contractAddress, log.Topics[3].Big().Text(16))
+			indexID := fmt.Sprintf("%s-%s-%s", indexer.BlockchianAlias[indexer.EthereumBlockchain], contractAddress, tokenIDHash.Big().Text(16))
+
+			// Flow:
+			// 1. Check if the destination address is followed
+			// 2. Check if the token is indexed
+			//   - if indexed:
+			//	   - update provenance
+			//     - send notification if there is any follower
+			//   - if not indexed:
+			//     - if there is any follower:
+			// 		 - index the token
+			//       - update provenance
+			//       - send notificiation
+
+			// TODO: do we need to move this account specific function out of this service
+			accounts, err := s.accountStore.GetAccountIDByAddress(toAddress)
+			if err != nil {
+				return err
+			}
 
 			tokens, err := s.store.GetTokensByIndexIDs(ctx, []string{indexID})
 			if err != nil {
@@ -108,7 +139,33 @@ func (s *NFTEventSubscriber) Subscribe(ctx context.Context) error {
 			if len(tokens) != 0 {
 				logrus.WithField("indexID", indexID).Info("a token found for a corresponded event")
 			} else {
-				continue
+				// index the new token since it is a new token for our indexer and watched by our user
+				if len(accounts) > 0 {
+					a, err := s.opensea.RetrieveAsset(contractAddress, tokenIDHash.Big().Text(10))
+					if err != nil {
+						logrus.WithError(err).Error("fail to get the token data from opensea")
+						continue
+					}
+
+					update, err := indexer.IndexETHToken(a)
+					if err != nil {
+						logrus.WithError(err).Error("fail to generate index data")
+						continue
+					}
+
+					if err := s.store.IndexAsset(ctx, update.ID, *update); err != nil {
+						logrus.WithError(err).Error("fail to index token in to db")
+						continue
+					}
+
+					tokens, err = s.store.GetTokensByIndexIDs(ctx, []string{indexID})
+					if err != nil || len(tokens) == 0 {
+						logrus.WithError(err).Error("token is not successfully indexed")
+						continue
+					}
+				} else {
+					continue
+				}
 			}
 
 			txID := log.TxHash.Hex()
@@ -125,6 +182,15 @@ func (s *NFTEventSubscriber) Subscribe(ctx context.Context) error {
 			}); err != nil {
 				logrus.WithError(err).Warn("unable to push provenance, will trigger a full provenance refresh")
 				go s.startRefreshProvenanceWorkflow(ctx, fmt.Sprintf("subscriber-%s", indexID), []string{indexID}, 0)
+			}
+
+			// send notification in the end
+			for _, accountID := range accounts {
+				if err := s.notifyNewNFT(accountID, toAddress, indexID); err != nil {
+					logrus.WithError(err).
+						WithField("accountID", accountID).WithField("indexID", indexID).
+						Error("fail to send notification for the new token")
+				}
 			}
 
 		} else {

@@ -16,5 +16,8 @@ data:
       domain: nft-indexer
       log_level: 0
 
+    notification:
+      endpoint: http://autonomy-notification.autonomy.svc.cluster.local:80
+
     store:
       db_name: nft_indexer

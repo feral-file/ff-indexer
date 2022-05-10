@@ -1,3 +1,5 @@
+network: testnet
+
 ethereum:
   worker_account_mnemonic:
   network: testnet
@@ -8,8 +10,17 @@ store:
   db_uri: "mongodb://nft_indexer:password@localhost:27017/"
   db_name: nft_indexer
 
+account:
+  db_uri: host=localhost user=test password=test dbname=autonomy_account port=5432
+
+opensea:
+  api_key:
+
 log:
   level: info
+
+notification:
+  endpoint:  http://localhost:8809
 
 cadence:
   host_port: localhost:7933

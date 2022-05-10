@@ -8,12 +8,17 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 
 	ethereum "github.com/bitmark-inc/account-vault-ethereum"
+	"github.com/bitmark-inc/autonomy-account/storage"
+	notification "github.com/bitmark-inc/autonomy-notification/sdk"
 	"github.com/bitmark-inc/config-loader"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
 	"github.com/bitmark-inc/nft-indexer/cadence"
+	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 )
 
 // FIXME: prevent the map from increasing infinitely
@@ -58,12 +63,23 @@ func main() {
 	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
 	cadenceClient.AddService(indexerWorker.ClientName)
 
+	db, err := gorm.Open(postgres.Open(viper.GetString("account.db_uri")))
+	if err != nil {
+		logrus.WithError(err).Fatal("fail to connect database")
+	}
+
+	accountStore := storage.NewAccountInformationStorage(db)
+
 	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
 	if err != nil {
 		logrus.WithError(err).Panic("fail to initiate indexer store")
 	}
 
-	service := New(w, network, wsClient, indexerStore, *cadenceClient)
+	nc := notification.New(viper.GetString("notification.endpoint"), nil)
+
+	service := New(w, network, wsClient, indexerStore, accountStore,
+		opensea.New(viper.GetString("network"), viper.GetString("opensea.api_key")),
+		nc, *cadenceClient)
 	if err := service.Subscribe(ctx); err != nil {
 		panic(err)
 	}

@@ -11,12 +11,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// artblocksContracts indexes the addresses which are ERC721 contracts of Artblocks
-var artblocksContracts = map[string]struct{}{
-	"0x059EDD72Cd353dF5106D2B9cC5ab83a52287aC3a": {},
-	"0xa7d8d9ef8D8Ce8992Df33D8b8CF4Aebabd5bD270": {},
-}
-
 // IndexOpenseaTokenWorkflow is a workflow to summarize NFT data from OpenSea and save it to the storage.
 func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, tokenOwner string) error {
 	ao := workflow.ActivityOptions{
@@ -53,7 +47,7 @@ func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, token
 
 	for {
 		tokenUpdates := []indexer.AssetUpdates{}
-		if err := workflow.ExecuteActivity(ctx, w.IndexTokenDataFromFromOpensea, ethTokenOwner, offset).Get(ctx, &tokenUpdates); err != nil {
+		if err := workflow.ExecuteActivity(ctx, w.IndexOwnerTokenDataFromOpensea, ethTokenOwner, offset).Get(ctx, &tokenUpdates); err != nil {
 			sentry.CaptureException(err)
 			return err
 		}
@@ -98,7 +92,7 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 	var offset = 0
 	for {
 		tokenUpdates := []indexer.AssetUpdates{}
-		if err := workflow.ExecuteActivity(ctx, w.IndexTokenDataFromFromTezos, tokenOwner, offset).Get(ctx, &tokenUpdates); err != nil {
+		if err := workflow.ExecuteActivity(ctx, w.IndexOwnerTokenDataFromTezos, tokenOwner, offset).Get(ctx, &tokenUpdates); err != nil {
 			sentry.CaptureException(err)
 			return err
 		}

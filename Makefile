@@ -48,7 +48,7 @@ run-nft-image-indexer: nft-image-indexer
 run-nft-event-subscriber: nft-event-subscriber
 	./bin/nft-event-subscriber -c config.yaml
 
-build: nft-indexer
+build: nft-indexer nft-indexer-background nft-event-subscriber
 
 run: config run-nft-indexer
 

@@ -3,10 +3,14 @@ package opensea
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/bitmark-inc/nft-indexer/traceutils"
+	"github.com/sirupsen/logrus"
 )
 
 type OpenSeaTime struct {
@@ -34,7 +38,7 @@ type AssetContract struct {
 	CreatedDate OpenSeaTime `json:"created_date"`
 }
 
-type AssetCreator struct {
+type User struct {
 	Address string `json:"address"`
 	User    struct {
 		Username string `json:"username"`
@@ -56,7 +60,8 @@ type Asset struct {
 	Permalink          string `json:"permalink"`
 	TokenMetadata      string `json:"token_metadata"`
 
-	Creator       AssetCreator  `json:"creator"`
+	Owner         User          `json:"owner"`
+	Creator       User          `json:"creator"`
 	AssetContract AssetContract `json:"asset_contract"`
 }
 
@@ -74,6 +79,63 @@ func New(network, apiKey string) *OpenseaClient {
 			Timeout: 15 * time.Second,
 		},
 	}
+}
+
+// RetrieveAsset returns the token information for a contract and a token id
+func (c *OpenseaClient) RetrieveAsset(contract, tokenID string) (*Asset, error) {
+	v := url.Values{
+		"asset_contract_addresses": []string{contract},
+		"token_ids":                []string{tokenID},
+	}
+
+	u := url.URL{
+		Scheme:   "https",
+		Host:     "api.opensea.io",
+		Path:     "/api/v1/assets",
+		RawQuery: v.Encode(),
+	}
+
+	if c.network == "testnet" {
+		u.Host = "rinkeby-api.opensea.io"
+	}
+
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if c.apiKey != "" {
+		req.Header.Add("X-API-KEY", c.apiKey)
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		errResp, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		return nil, fmt.Errorf("opensea api error: %s", errResp)
+	}
+
+	var assetResp struct {
+		Assets []Asset `json:"assets"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&assetResp); err != nil {
+		logrus.WithError(err).WithField("resp_dump", traceutils.DumpResponse(resp)).Error("fail to read opensea response")
+		return nil, err
+	}
+
+	if len(assetResp.Assets) > 0 {
+		return &assetResp.Assets[0], nil
+	}
+
+	return nil, fmt.Errorf("asset not found")
 }
 
 func (c *OpenseaClient) RetrieveAssets(owner string, offset int) ([]Asset, error) {
@@ -110,10 +172,19 @@ func (c *OpenseaClient) RetrieveAssets(owner string, offset int) ([]Asset, error
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != 200 {
+		errResp, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		return nil, fmt.Errorf(string(errResp))
+	}
+
 	var assetResp struct {
 		Assets []Asset `json:"assets"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&assetResp); err != nil {
+		logrus.WithError(err).WithField("resp_dump", traceutils.DumpResponse(resp)).Error("fail to read opensea response")
 		return nil, err
 	}
 

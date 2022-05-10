@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"math/big"
 	"net/url"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -29,38 +28,6 @@ var (
 	ErrValueNotString   = errors.New("value is not of string type")
 	ErrInvalidEditionID = errors.New("invalid edition id")
 )
-
-func mediumByPreviewFileExtension(url string) string {
-	ext := filepath.Ext(url)
-
-	switch ext {
-	case ".jpg", ".jpeg", ".png", ".svg":
-		return "image"
-	case ".mp4", ".mov":
-		return "video"
-	default:
-		return "other"
-	}
-}
-
-func getTokenSourceByContract(contractAddress string) string {
-	switch indexer.DetectContractBlockchain(contractAddress) {
-	case indexer.EthereumBlockchain:
-		if _, ok := artblocksContracts[contractAddress]; ok {
-			return "Art Blocks"
-
-		} else if contractAddress == "0x70e6b3f9d99432fCF35274d6b24D83Ef5Ba3dE2D" {
-			return "Crayon Codes"
-		}
-
-		return "OpenSea"
-	case indexer.TezosBlockchain:
-		// WIP
-		return ""
-	default:
-		return ""
-	}
-}
 
 // GetOwnedERC721TokenIDByContract returns a list of token id belongs to an owner for a specific contract
 func (w *NFTIndexerWorker) GetOwnedERC721TokenIDByContract(ctx context.Context, contractAddress, ownerAddress string) ([]*big.Int, error) {
@@ -94,10 +61,9 @@ func (w *NFTIndexerWorker) GetOwnedERC721TokenIDByContract(ctx context.Context, 
 	return tokenIDs, nil
 }
 
-// IndexTokenDataFromFromOpensea indexes data from OpenSea into the format of AssetUpdates
-func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
+// IndexOwnerTokenDataFromOpensea indexes token data of an owner from OpenSea into the format of AssetUpdates
+func (w *NFTIndexerWorker) IndexOwnerTokenDataFromOpensea(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
 	// The data source of the asset data. This field is not related to displaying
-	dataSource := "opensea"
 
 	assets, err := w.opensea.RetrieveAssets(owner, offset)
 	if err != nil {
@@ -107,99 +73,15 @@ func (w *NFTIndexerWorker) IndexTokenDataFromFromOpensea(ctx context.Context, ow
 	tokenUpdates := make([]indexer.AssetUpdates, 0, len(assets))
 
 	for _, a := range assets {
-		var sourceURL string
-		var artistURL string
-		artistName := a.Creator.User.Username
-		contractAddress := indexer.EthereumChecksumAddress(a.AssetContract.Address)
-		switch contractAddress {
-		case indexer.ENSContractAddress:
-			continue
+		tokenUpdate, err := indexer.IndexETHToken(&a)
+		if err != nil {
+			log.WithError(err).Error("fail to index token data")
 		}
 
-		source := getTokenSourceByContract(contractAddress)
-
-		switch source {
-		case "Art Blocks":
-			sourceURL = "https://www.artblocks.io/"
-			artistURL = fmt.Sprintf("%s/%s", sourceURL, a.Creator.Address)
-		case "Crayon Codes":
-			sourceURL = "https://openprocessing.org/crayon/"
-			artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator.Address)
-		default:
-			if viper.GetString("network") == "testnet" {
-				sourceURL = "https://testnets.opensea.io"
-			} else {
-				sourceURL = "https://opensea.io"
-			}
-			artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator.Address)
+		if tokenUpdate != nil {
+			log.WithField("asset update", tokenUpdate).Debug("asset updating data prepared")
+			tokenUpdates = append(tokenUpdates, *tokenUpdate)
 		}
-
-		log.WithField("source", source).WithField("assetID", a.ID).Debug("source debug")
-
-		if a.Creator.Address != "" {
-			if artistName == "" {
-				artistName = a.Creator.Address
-			}
-
-		}
-
-		metadata := indexer.ProjectMetadata{
-			ArtistName:          artistName,
-			ArtistURL:           artistURL,
-			AssetID:             contractAddress,
-			Title:               a.Name,
-			Description:         a.Description,
-			Medium:              "unknown",
-			Source:              source,
-			SourceURL:           sourceURL,
-			PreviewURL:          a.ImageURL,
-			ThumbnailURL:        a.ImageURL,
-			GalleryThumbnailURL: a.ImagePreviewURL,
-			AssetURL:            a.Permalink,
-		}
-
-		if a.AnimationURL != "" {
-			metadata.PreviewURL = a.AnimationURL
-
-			if source == "Art Blocks" {
-				metadata.Medium = "software"
-			} else {
-				medium := mediumByPreviewFileExtension(metadata.PreviewURL)
-				log.WithField("previewURL", metadata.PreviewURL).WithField("medium", medium).Debug("fallback medium check")
-				metadata.Medium = medium
-			}
-		} else if a.ImageURL != "" {
-			metadata.Medium = "image"
-		}
-
-		// token id from opensea is a decimal integer string
-		tokenID, ok := big.NewInt(0).SetString(a.TokenID, 10)
-		if !ok {
-			return nil, fmt.Errorf("fail to read token id from opensea")
-		}
-
-		tokenUpdate := indexer.AssetUpdates{
-			ID:              fmt.Sprintf("%d", a.ID),
-			Source:          dataSource,
-			ProjectMetadata: metadata,
-			Tokens: []indexer.Token{
-				{
-					BaseTokenInfo: indexer.BaseTokenInfo{
-						ID:              a.TokenID,
-						Blockchain:      indexer.EthereumBlockchain,
-						ContractType:    strings.ToLower(a.AssetContract.SchemaName),
-						ContractAddress: contractAddress,
-					},
-					IndexID: fmt.Sprintf("%s-%s-%s", indexer.BlockchianAlias[indexer.EthereumBlockchain], contractAddress, tokenID.Text(16)),
-					Edition: 0,
-					Owner:   owner,
-					MintAt:  a.AssetContract.CreatedDate.Time,
-				},
-			},
-		}
-
-		log.WithField("asset update", tokenUpdate).Debug("asset updating data prepared")
-		tokenUpdates = append(tokenUpdates, tokenUpdate)
 	}
 
 	return tokenUpdates, nil
@@ -220,8 +102,8 @@ func fxhashLink(ipfsLink string) string {
 	return u.String()
 }
 
-// IndexTokenDataFromFromTezos indexes data from Tezos into the format of AssetUpdates
-func (w *NFTIndexerWorker) IndexTokenDataFromFromTezos(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
+// IndexOwnerTokenDataFromTezos indexes data from Tezos into the format of AssetUpdates
+func (w *NFTIndexerWorker) IndexOwnerTokenDataFromTezos(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
 	// The data source of the asset data. This field is not related to displaying
 	dataSource := "bcdhub"
 

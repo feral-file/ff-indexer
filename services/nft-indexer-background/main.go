@@ -57,8 +57,8 @@ func main() {
 	workflow.Register(worker.RefreshTokenProvenancePeriodicallyWorkflow)
 
 	// opensea
-	activity.Register(worker.IndexTokenDataFromFromOpensea)
-	activity.Register(worker.IndexTokenDataFromFromTezos)
+	activity.Register(worker.IndexOwnerTokenDataFromOpensea)
+	activity.Register(worker.IndexOwnerTokenDataFromTezos)
 
 	// index store
 	activity.Register(worker.IndexAsset)
