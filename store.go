@@ -104,11 +104,30 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		}
 	}
 
+	// update an existent asset
 	if !assetCreated {
+		var a struct {
+			ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
+		}
+
+		if err := r.Decode(&a); err != nil {
+			return err
+		}
+
+		// TODO: check whether to remove the thumbnail cache when the thumbnail data is updated.
+		updates := bson.D{{"$set", bson.D{{"projectMetadata.latest", assetUpdates.ProjectMetadata}}}}
+		if a.ProjectMetadata.Latest.ThumbnailURL != assetUpdates.ProjectMetadata.ThumbnailURL {
+			logrus.
+				WithField("old", a.ProjectMetadata.Latest.ThumbnailURL).
+				WithField("new", assetUpdates.ProjectMetadata.ThumbnailURL).
+				Debug("image cache need to be reset")
+			updates = append(updates, bson.E{"$unset", bson.M{"thumbnailID": "", "thumbnailLastCheck": ""}})
+		}
+
 		s.assetCollection.UpdateOne(
 			ctx,
 			bson.M{"indexID": indexID},
-			bson.D{{"$set", bson.D{{"projectMetadata.latest", assetUpdates.ProjectMetadata}}}},
+			updates,
 		)
 	}
 
