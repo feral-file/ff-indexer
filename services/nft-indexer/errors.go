@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -8,6 +9,8 @@ import (
 
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
+
+var ErrUnsupportedBlockchain = fmt.Errorf("unsupported blockchain")
 
 func abortWithError(c *gin.Context, code int, message string, traceErr error) {
 	log.WithError(traceErr).Error(message)

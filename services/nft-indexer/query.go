@@ -163,7 +163,7 @@ func (s *NFTIndexerServer) fetchIdentity(c context.Context, accountNumber string
 		}
 		id.Name = account.Alias
 	default:
-		return nil, fmt.Errorf("unable to detech blockchain for the given account number")
+		return nil, ErrUnsupportedBlockchain
 	}
 
 	return &id, nil
@@ -207,6 +207,9 @@ func (s *NFTIndexerServer) GetIdentity(c *gin.Context) {
 
 	id, err := s.fetchIdentity(c, accountNumber)
 	if err != nil {
+		if err == ErrUnsupportedBlockchain {
+			abortWithError(c, http.StatusBadRequest, "fail to query account identity from blockchain", err)
+		}
 		abortWithError(c, http.StatusInternalServerError, "fail to query account identity from blockchain", err)
 		return
 	}
