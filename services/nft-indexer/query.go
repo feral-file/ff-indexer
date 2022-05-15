@@ -209,8 +209,9 @@ func (s *NFTIndexerServer) GetIdentity(c *gin.Context) {
 	if err != nil {
 		if err == ErrUnsupportedBlockchain {
 			abortWithError(c, http.StatusBadRequest, "fail to query account identity from blockchain", err)
+		} else {
+			abortWithError(c, http.StatusInternalServerError, "fail to query account identity from blockchain", err)
 		}
-		abortWithError(c, http.StatusInternalServerError, "fail to query account identity from blockchain", err)
 		return
 	}
 
