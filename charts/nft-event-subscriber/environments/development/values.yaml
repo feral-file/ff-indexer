@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  tag: "event-subscriber-0.0.7"
+  tag: "event-subscriber-0.0.7-2"
 
 serviceConfig:
   network: testnet
