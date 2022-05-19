@@ -29,6 +29,10 @@ var (
 	ErrInvalidEditionID = errors.New("invalid edition id")
 )
 
+const (
+	DEFAULT_DISPLAY_URI = "ipfs://QmV2cw5ytr3veNfAbJPpM5CeaST5vehT88XEmfdYY2wwiV"
+)
+
 // GetOwnedERC721TokenIDByContract returns a list of token id belongs to an owner for a specific contract
 func (w *NFTIndexerWorker) GetOwnedERC721TokenIDByContract(ctx context.Context, contractAddress, ownerAddress string) ([]*big.Int, error) {
 	rpcClient, err := ethclient.Dial(viper.GetString("ethereum.rpc_url"))
@@ -142,9 +146,11 @@ func (w *NFTIndexerWorker) IndexOwnerTokenDataFromTezos(ctx context.Context, own
 		}
 
 		// default display URI
-		displayURI := "ipfs://QmV2cw5ytr3veNfAbJPpM5CeaST5vehT88XEmfdYY2wwiV"
+		displayURI := DEFAULT_DISPLAY_URI
 		if t.DisplayURI != "" {
 			displayURI = t.DisplayURI
+		} else if t.ThumbnailURI != "" {
+			displayURI = t.ThumbnailURI
 		}
 
 		previewURI := displayURI
