@@ -141,9 +141,10 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		tokenResult := s.tokenCollection.FindOne(ctx, bson.M{"indexID": token.IndexID})
 		if err := tokenResult.Err(); err != nil {
 			if err == mongo.ErrNoDocuments {
-				// insert a new token entry if it is not found
-				token.LastActivityTime = token.MintAt
+				// If a token is not found, insert a new token
 				logrus.WithField("token_id", token.ID).Warn("token is not found")
+
+				token.LastActivityTime = token.MintAt // set LastActivityTime to default token minted time
 				_, err := s.tokenCollection.InsertOne(ctx, token)
 				if err != nil {
 					return err
@@ -159,7 +160,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 			return err
 		}
 
-		if token.MintAt.Sub(token.LastActivityTime) > 0 {
+		if token.LastActivityTime.IsZero() {
 			token.LastActivityTime = token.MintAt
 		}
 
