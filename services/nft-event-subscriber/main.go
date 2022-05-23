@@ -80,7 +80,9 @@ func main() {
 	service := New(w, network, wsClient, indexerStore, accountStore,
 		opensea.New(viper.GetString("network"), viper.GetString("opensea.api_key")),
 		nc, *cadenceClient)
-	if err := service.Subscribe(ctx); err != nil {
+
+	// Start watching ethereum events
+	if err := service.WatchEthereumEvent(ctx); err != nil {
 		panic(err)
 	}
 }
