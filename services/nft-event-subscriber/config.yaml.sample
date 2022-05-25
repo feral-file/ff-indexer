@@ -13,6 +13,9 @@ store:
 account:
   db_uri: host=localhost user=test password=test dbname=autonomy_account port=5432
 
+bitmarksdk:
+  apikey:
+
 opensea:
   api_key:
 
@@ -26,3 +29,6 @@ cadence:
   host_port: localhost:7933
   domain: nft-indexer
   log_level: 0
+
+bitmark:
+  db_uri:

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -14,6 +15,7 @@ import (
 	ethereum "github.com/bitmark-inc/account-vault-ethereum"
 	"github.com/bitmark-inc/autonomy-account/storage"
 	notification "github.com/bitmark-inc/autonomy-notification/sdk"
+	bitmarksdk "github.com/bitmark-inc/bitmark-sdk-go"
 	"github.com/bitmark-inc/config-loader"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
@@ -46,6 +48,14 @@ func main() {
 
 	network := viper.GetString("network")
 
+	bitmarksdk.Init(&bitmarksdk.Config{
+		Network: bitmarksdk.Network(network),
+		HTTPClient: &http.Client{
+			Timeout: 15 * time.Second,
+		},
+		APIToken: viper.GetString("bitmarksdk.apikey"),
+	})
+
 	w, err := ethereum.NewWalletFromMnemonic(
 		viper.GetString("ethereum.worker_account_mnemonic"),
 		network,
@@ -77,9 +87,20 @@ func main() {
 
 	nc := notification.New(viper.GetString("notification.endpoint"), nil)
 
+	bitmarkListener, err := NewListener(viper.GetString("bitmark.db_uri"))
+	if err != nil {
+		logrus.WithError(err).Panic("fail to initiate bitmark listener")
+	}
+
 	service := New(w, network, wsClient, indexerStore, accountStore,
 		opensea.New(viper.GetString("network"), viper.GetString("opensea.api_key")),
+		bitmarkListener,
 		nc, *cadenceClient)
+
+	// Start watching bitmark events
+	if err := service.WatchBitmarkEvent(ctx); err != nil {
+		panic(err)
+	}
 
 	// Start watching ethereum events
 	if err := service.WatchEthereumEvent(ctx); err != nil {

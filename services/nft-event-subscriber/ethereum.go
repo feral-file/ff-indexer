@@ -53,8 +53,7 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 			contractAddress := indexer.EthereumChecksumAddress(log.Address.String())
 			tokenIDHash := log.Topics[3]
 
-			indexID := fmt.Sprintf("%s-%s-%s", indexer.BlockchianAlias[indexer.EthereumBlockchain], contractAddress, tokenIDHash.Big().Text(16))
-
+			indexID := indexer.TokenIndexID(indexer.EthereumBlockchain, contractAddress, tokenIDHash.Big().Text(16))
 			// Flow:
 			// 1. Check if the destination address is followed
 			// 2. Check if the token is indexed
@@ -137,7 +136,7 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 		} else {
 			logrus.WithField("topicLen", topicLen).
 				WithField("log", log).
-				Debug("not a valid nft transfer event, expect topic length to be 4")
+				Trace("not a valid nft transfer event, expect topic length to be 4")
 		}
 	}
 
