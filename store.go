@@ -384,8 +384,10 @@ func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID
 		return nil
 	}
 
+	// update provenance only for non-burned tokens
 	_, err := s.tokenCollection.UpdateOne(ctx, bson.M{
 		"indexID": indexID,
+		"burned":  bson.M{"$ne": true},
 	}, bson.M{
 		"$set": bson.M{
 			"owner":             provenances[0].Owner,
