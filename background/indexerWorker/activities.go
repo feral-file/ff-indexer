@@ -276,7 +276,7 @@ func (w *NFTIndexerWorker) IndexOwnerTokenDataFromTezos(ctx context.Context, own
 						ContractType:    "fa2",
 						ContractAddress: t.Contract,
 					},
-					IndexID: fmt.Sprintf("%s-%s-%s", indexer.BlockchianAlias[indexer.TezosBlockchain], t.Contract, t.ID.String()),
+					IndexID: indexer.TokenIndexID(indexer.TezosBlockchain, t.Contract, t.ID.String()),
 					Edition: edition,
 					Owner:   owner,
 					MintAt:  mintedAt,
@@ -286,7 +286,7 @@ func (w *NFTIndexerWorker) IndexOwnerTokenDataFromTezos(ctx context.Context, own
 
 		log.WithField("blockchain", indexer.TezosBlockchain).
 			WithField("owner", owner).
-			WithField("id", fmt.Sprintf("%s-%s-%s", indexer.BlockchianAlias[indexer.TezosBlockchain], t.Contract, t.ID.String())).
+			WithField("id", indexer.TokenIndexID(indexer.TezosBlockchain, t.Contract, t.ID.String())).
 			WithField("metadata", metadata).
 			Debug("asset updating data prepared")
 		tokenUpdates = append(tokenUpdates, tokenUpdate)

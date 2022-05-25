@@ -182,12 +182,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 // SwapToken marks the original token to burned and creates a new token record which inherits
 // original blockchain information
 func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (string, error) {
-
-	originalBlockchainAlias, ok := BlockchianAlias[swap.OriginalBlockchain]
-	if !ok {
-		return "", fmt.Errorf("original blockchain is not supported")
-	}
-	originalTokenIndexID := fmt.Sprintf("%s-%s-%s", originalBlockchainAlias, swap.OriginalContractAddress, swap.OriginalTokenID)
+	originalTokenIndexID := TokenIndexID(swap.OriginalBlockchain, swap.OriginalContractAddress, swap.OriginalTokenID)
 
 	tokenResult := s.tokenCollection.FindOne(ctx, bson.M{
 		"indexID": originalTokenIndexID,
@@ -206,12 +201,7 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 	}
 	originalBaseTokenInfo := originalToken.BaseTokenInfo
 
-	newBlockchainAlias, ok := BlockchianAlias[swap.NewBlockchain]
-	if !ok {
-		return "", fmt.Errorf("blockchain is not supported")
-	}
-
-	newTokenIndexID := fmt.Sprintf("%s-%s-%s", newBlockchainAlias, swap.NewContractAddress, swap.NewTokenID)
+	var newTokenIndexID string
 
 	switch swap.NewBlockchain {
 	case EthereumBlockchain:
@@ -220,8 +210,9 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 			return "", fmt.Errorf("invalid token id for swapping")
 		}
 
-		newTokenIndexID = fmt.Sprintf("%s-%s-%s", newBlockchainAlias, swap.NewContractAddress, tokenHexID.Text(16))
+		newTokenIndexID = TokenIndexID(EthereumBlockchain, swap.NewContractAddress, tokenHexID.Text(16))
 	default:
+		return "", fmt.Errorf("blockchain is not supported")
 	}
 
 	newToken := originalToken

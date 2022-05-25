@@ -137,7 +137,7 @@ func IndexETHToken(a *opensea.Asset) (*AssetUpdates, error) {
 					ContractType:    strings.ToLower(a.AssetContract.SchemaName),
 					ContractAddress: contractAddress,
 				},
-				IndexID: fmt.Sprintf("%s-%s-%s", BlockchianAlias[EthereumBlockchain], contractAddress, tokenID.Text(16)),
+				IndexID: TokenIndexID(EthereumBlockchain, contractAddress, tokenID.Text(16)),
 				Edition: 0,
 				Owner:   EthereumChecksumAddress(a.Owner.Address),
 				MintAt:  a.AssetContract.CreatedDate.Time, // set minted_at to the contract creation time
