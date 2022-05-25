@@ -65,6 +65,16 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-event-subscriber.fullname" . }}
                   key: opensea_api_key
+            - name: NFT_INDEXER_BITMARKSDK_APIKEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-subscriber.fullname" . }}
+                  key: bitmarksdk_apikey
+            - name: NFT_INDEXER_BITMARK_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-subscriber.fullname" . }}
+                  key: bitmark_db_uri
           volumeMounts:
           - name: config
             mountPath: "/.config"
