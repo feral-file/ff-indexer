@@ -22,3 +22,12 @@ tezos:
 
 feralfile:
   api_url: https://feralfile.com
+
+opensea:
+  api_key:
+
+fxhash:
+  api_endpoint: https://api.fxhash.xyz/graphql
+
+objkt:
+  api_endpoint: https://api2.objkt.com/v1/graphql
