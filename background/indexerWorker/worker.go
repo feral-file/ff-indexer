@@ -4,10 +4,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/bitmark-inc/nft-indexer/externals/bettercall"
-	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
-	"github.com/bitmark-inc/nft-indexer/externals/objkt"
-	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	"github.com/spf13/viper"
 
 	ethereum "github.com/bitmark-inc/account-vault-ethereum"
@@ -18,13 +14,11 @@ var ClientName = "nft-indexer-worker"
 var TaskListName = "nft-indexer"
 
 type NFTIndexerWorker struct {
-	http         *http.Client
-	opensea      *opensea.OpenseaClient
-	bettercall   *bettercall.BetterCall
-	fxhash       *fxhash.FxHashAPI
-	objkt        *objkt.ObjktAPI
-	indexerStore indexer.IndexerStore
-	wallet       *ethereum.Wallet
+	http *http.Client
+
+	indexerEngine *indexer.IndexEngine
+	indexerStore  indexer.IndexerStore
+	wallet        *ethereum.Wallet
 
 	bitmarkZeroAddress string
 	bitmarkAPIEndpoint string
@@ -34,10 +28,7 @@ type NFTIndexerWorker struct {
 }
 
 func New(network string,
-	openseaClient *opensea.OpenseaClient,
-	bettercall *bettercall.BetterCall,
-	fxhash *fxhash.FxHashAPI,
-	objkt *objkt.ObjktAPI,
+	indexerEngine *indexer.IndexEngine,
 	store indexer.IndexerStore) *NFTIndexerWorker {
 
 	w, err := ethereum.NewWalletFromMnemonic(
@@ -59,12 +50,10 @@ func New(network string,
 		http: &http.Client{
 			Timeout: 15 * time.Second,
 		},
-		wallet:       w,
-		opensea:      openseaClient,
-		bettercall:   bettercall,
-		fxhash:       fxhash,
-		objkt:        objkt,
-		indexerStore: store,
+		wallet: w,
+
+		indexerEngine: indexerEngine,
+		indexerStore:  store,
 
 		bitmarkZeroAddress: bitmarkZeroAddress,
 		bitmarkAPIEndpoint: bitmarkAPIEndpoint,

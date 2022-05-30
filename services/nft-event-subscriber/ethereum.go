@@ -81,13 +81,7 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 			} else {
 				// index the new token since it is a new token for our indexer and watched by our user
 				if len(accounts) > 0 {
-					a, err := s.opensea.RetrieveAsset(contractAddress, tokenIDHash.Big().Text(10))
-					if err != nil {
-						logrus.WithError(err).Error("fail to get the token data from opensea")
-						continue
-					}
-
-					update, err := indexer.IndexETHToken(a)
+					update, err := s.engine.IndexETHToken(ctx, toAddress, contractAddress, tokenIDHash.Big().Text(10))
 					if err != nil {
 						logrus.WithError(err).Error("fail to generate index data")
 						continue

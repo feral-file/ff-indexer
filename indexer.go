@@ -2,13 +2,17 @@ package indexer
 
 import (
 	"fmt"
-	"math/big"
 	"path/filepath"
 	"strings"
+	"time"
 
-	"github.com/bitmark-inc/nft-indexer/externals/opensea"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
+	"github.com/bitmark-inc/nft-indexer/externals/bettercall"
+	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
+	"github.com/bitmark-inc/nft-indexer/externals/objkt"
+)
+
+const (
+	DEFAULT_DISPLAY_URI = "ipfs://QmV2cw5ytr3veNfAbJPpM5CeaST5vehT88XEmfdYY2wwiV"
 )
 
 // artblocksContracts indexes the addresses which are ERC721 contracts of Artblocks
@@ -38,110 +42,163 @@ func getTokenSourceByContract(contractAddress string) string {
 }
 
 // mediumByPreviewFileExtension returns token medium by detecting file extension
-func mediumByPreviewFileExtension(url string) string {
+// this only work for opensea since files over IPFS normally does not have extensions
+func mediumByPreviewFileExtension(url string) Medium {
 	ext := filepath.Ext(url)
 
 	switch ext {
 	case ".jpg", ".jpeg", ".png", ".svg":
-		return "image"
+		return MediumImage
 	case ".mp4", ".mov":
-		return "video"
+		return MediumVideo
+	case "":
+		return MediumUnknown
 	default:
-		return "other"
+		return MediumOther
 	}
 }
 
-// IndexETHToken prepares indexing data for a specific asset read from opensea
-func IndexETHToken(a *opensea.Asset) (*AssetUpdates, error) {
-	dataSource := "opensea"
-
-	var sourceURL string
-	var artistURL string
-	artistName := a.Creator.User.Username
-	contractAddress := EthereumChecksumAddress(a.AssetContract.Address)
-	switch contractAddress {
-	case ENSContractAddress:
-		return nil, nil
-	}
-
-	source := getTokenSourceByContract(contractAddress)
-
-	switch source {
-	case "Art Blocks":
-		sourceURL = "https://www.artblocks.io/"
-		artistURL = fmt.Sprintf("%s/%s", sourceURL, a.Creator.Address)
-	case "Crayon Codes":
-		sourceURL = "https://openprocessing.org/crayon/"
-		artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator.Address)
-	default:
-		if viper.GetString("network") == "testnet" {
-			sourceURL = "https://testnets.opensea.io"
-		} else {
-			sourceURL = "https://opensea.io"
-		}
-		artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator.Address)
-	}
-
-	log.WithField("source", source).WithField("assetID", a.ID).Debug("source debug")
-
-	if a.Creator.Address != "" {
-		if artistName == "" {
-			artistName = EthereumChecksumAddress(a.Creator.Address)
+// mediumByMIMEType returns medium by detecting mime-type
+func mediumByMIMEType(mimeType string) Medium {
+	if mimeItems := strings.Split(mimeType, "/"); len(mimeItems) > 0 {
+		switch mimeItems[0] {
+		case "image":
+			return MediumImage
+		case "video":
+			return MediumVideo
+		case "":
+			return MediumUnknown
+		default:
+			return MediumOther
 		}
 	}
+	return MediumUnknown
+}
 
-	metadata := ProjectMetadata{
-		ArtistName:          artistName,
-		ArtistURL:           artistURL,
-		AssetID:             contractAddress,
-		Title:               a.Name,
-		Description:         a.Description,
-		Medium:              "unknown",
-		Source:              source,
-		SourceURL:           sourceURL,
-		PreviewURL:          a.ImageURL,
-		ThumbnailURL:        a.ImageURL,
-		GalleryThumbnailURL: a.ImagePreviewURL,
-		AssetURL:            a.Permalink,
+// defaultIPFSLink converts an IPFS link to a HTTP link by using ipfs.io gateway.
+func defaultIPFSLink(ipfsLink string) string {
+	return strings.ReplaceAll(ipfsLink, "ipfs://", "https://ipfs.io/ipfs/")
+}
+
+type MarketplaceProfile struct {
+	Source    string
+	SourceURL string
+	AssetURL  string
+}
+
+// AssetMetadataDetail is a structure what contains the basic source
+// information of the underlying asset
+type AssetMetadataDetail struct {
+	AssetID string
+
+	// marketplace information
+	Source    string
+	SourceURL string
+	AssetURL  string
+
+	Name        string
+	Description string
+	MIMEType    string
+	Medium      Medium
+
+	ArtistName string
+	ArtistURL  string
+	MaxEdition int64
+
+	DisplayURI string
+	PreviewURI string
+}
+
+func NewAssetMetadataDetail(assetID string) *AssetMetadataDetail {
+	return &AssetMetadataDetail{
+		AssetID: assetID,
+		Medium:  MediumUnknown,
 	}
+}
 
-	if a.AnimationURL != "" {
-		metadata.PreviewURL = a.AnimationURL
+// SetMarketplace sets marketplace property
+func (detail *AssetMetadataDetail) SetMarketplace(profile MarketplaceProfile) {
+	detail.Source = profile.Source
+	detail.SourceURL = profile.SourceURL
+	detail.AssetURL = profile.AssetURL
+}
 
-		if source == "Art Blocks" {
-			metadata.Medium = "software"
-		} else {
-			medium := mediumByPreviewFileExtension(metadata.PreviewURL)
-			log.WithField("previewURL", metadata.PreviewURL).WithField("medium", medium).Debug("fallback medium check")
-			metadata.Medium = medium
+func (detail *AssetMetadataDetail) SetMedium(m Medium) {
+	detail.Medium = m
+}
+
+// FromBetterCallDev reads asset detail from an better call dev API object
+func (detail *AssetMetadataDetail) FromBetterCallDev(t bettercall.Token, m bettercall.TokenMetadata) {
+	var mimeType string
+	for _, f := range t.Formats {
+		if f.URI == t.ArtifactURI {
+			mimeType = f.MIMEType
+			break
 		}
-	} else if a.ImageURL != "" {
-		metadata.Medium = "image"
+	}
+	if m.TokenInfo.MimeType != "" {
+		mimeType = m.TokenInfo.MimeType
 	}
 
-	// token id from opensea is a decimal integer string
-	tokenID, ok := big.NewInt(0).SetString(a.TokenID, 10)
-	if !ok {
-		return nil, fmt.Errorf("fail to parse token id from opensea")
+	detail.Name = t.Name
+	detail.Description = t.Description
+	detail.MIMEType = mimeType
+	detail.Medium = mediumByMIMEType(mimeType)
+
+	if len(t.Creators) > 0 {
+		detail.ArtistName = t.Creators[0] // creator tezos address
+		detail.ArtistURL = fmt.Sprintf("https://objkt.com/profile/%s", t.Creators[0])
 	}
 
-	return &AssetUpdates{
-		ID:              fmt.Sprintf("%d", a.ID),
-		Source:          dataSource,
-		ProjectMetadata: metadata,
-		Tokens: []Token{
-			{
-				BaseTokenInfo: BaseTokenInfo{
-					ID:              a.TokenID,
-					Blockchain:      EthereumBlockchain,
-					ContractType:    strings.ToLower(a.AssetContract.SchemaName),
-					ContractAddress: contractAddress,
-				},
-				IndexID: TokenIndexID(EthereumBlockchain, contractAddress, tokenID.Text(16)),
-				Edition: 0,
-				Owner:   EthereumChecksumAddress(a.Owner.Address),
-				MintAt:  a.AssetContract.CreatedDate.Time, // set minted_at to the contract creation time
-			},
-		},
-	}, nil
+	detail.MaxEdition = m.Supply
+
+	var displayURI, previewURI string
+	if t.DisplayURI != "" {
+		displayURI = t.DisplayURI
+	} else if t.ThumbnailURI != "" {
+		displayURI = t.ThumbnailURI
+	} else {
+		displayURI = DEFAULT_DISPLAY_URI
+	}
+
+	if t.ArtifactURI != "" {
+		previewURI = t.ArtifactURI
+	} else {
+		previewURI = displayURI
+	}
+	detail.DisplayURI = defaultIPFSLink(displayURI)
+	detail.PreviewURI = defaultIPFSLink(previewURI)
+}
+
+// FromFxhashObject reads asset detail from an fxhash API object
+func (detail *AssetMetadataDetail) FromFxhashObject(o fxhash.FxHashObjectDetail) {
+	detail.Name = o.Name
+	detail.Description = o.Metadata.Description
+	detail.ArtistName = o.Issuer.Author.ID
+	detail.ArtistURL = fmt.Sprintf("https://www.fxhash.xyz/u/%s", o.Issuer.Author.Name)
+	detail.MaxEdition = o.Issuer.Supply
+	detail.DisplayURI = fxhashLink(o.Metadata.DisplayURI)
+	detail.PreviewURI = fxhashLink(o.Metadata.ArtifactURI)
+}
+
+// FromObjktObject reads asset detail from an objkt API object
+func (detail *AssetMetadataDetail) FromObjktObject(o objkt.ObjktTokenDetails) {
+	detail.Name = o.Name
+	detail.Description = o.Description
+	if o.Contract.CreatorAddress != "" {
+		detail.ArtistName = o.Contract.CreatorAddress
+		detail.ArtistURL = fmt.Sprintf("https://objkt.com/profile/%s", o.Contract.CreatorAddress)
+	}
+	detail.MaxEdition = o.Supply
+
+	detail.MIMEType = o.MIMEType
+	detail.Medium = mediumByMIMEType(o.MIMEType)
+	detail.DisplayURI = defaultIPFSLink(o.DisplayURI)
+	detail.PreviewURI = defaultIPFSLink(o.ArtifactURI)
+}
+
+// TokenDetail saves token specific detail from different sources
+type TokenDetail struct {
+	Edition  int64
+	MintedAt time.Time
 }

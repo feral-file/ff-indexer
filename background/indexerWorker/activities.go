@@ -2,13 +2,10 @@ package indexerWorker
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
-	"net/url"
-	"strings"
 	"time"
 
 	goethereum "github.com/ethereum/go-ethereum"
@@ -16,7 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"golang.org/x/crypto/sha3"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/contracts"
@@ -27,10 +23,6 @@ var (
 	ErrMapKeyNotFound   = errors.New("key is not found")
 	ErrValueNotString   = errors.New("value is not of string type")
 	ErrInvalidEditionID = errors.New("invalid edition id")
-)
-
-const (
-	DEFAULT_DISPLAY_URI = "ipfs://QmV2cw5ytr3veNfAbJPpM5CeaST5vehT88XEmfdYY2wwiV"
 )
 
 // GetOwnedERC721TokenIDByContract returns a list of token id belongs to an owner for a specific contract
@@ -67,232 +59,12 @@ func (w *NFTIndexerWorker) GetOwnedERC721TokenIDByContract(ctx context.Context, 
 
 // IndexOwnerTokenDataFromOpensea indexes token data of an owner from OpenSea into the format of AssetUpdates
 func (w *NFTIndexerWorker) IndexOwnerTokenDataFromOpensea(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
-	// The data source of the asset data. This field is not related to displaying
-
-	assets, err := w.opensea.RetrieveAssets(owner, offset)
-	if err != nil {
-		return nil, err
-	}
-
-	tokenUpdates := make([]indexer.AssetUpdates, 0, len(assets))
-
-	for _, a := range assets {
-		tokenUpdate, err := indexer.IndexETHToken(&a)
-		if err != nil {
-			log.WithError(err).Error("fail to index token data")
-		}
-
-		if tokenUpdate != nil {
-			log.WithField("asset update", tokenUpdate).Debug("asset updating data prepared")
-			tokenUpdates = append(tokenUpdates, *tokenUpdate)
-		}
-	}
-
-	return tokenUpdates, nil
-}
-
-// fxhashLink converts an IPFS link to a HTTP link by using fxhash ipfs gateway.
-// If a link is failed to parse, it returns the original link
-func fxhashLink(ipfsLink string) string {
-	u, err := url.Parse(ipfsLink)
-	if err != nil {
-		return ipfsLink
-	}
-
-	u.Path = fmt.Sprintf("ipfs/%s/", u.Host)
-	u.Host = "gateway.fxhash.xyz"
-	u.Scheme = "https"
-
-	return u.String()
+	return w.indexerEngine.IndexETHTokenByOwner(ctx, owner, offset)
 }
 
 // IndexOwnerTokenDataFromTezos indexes data from Tezos into the format of AssetUpdates
 func (w *NFTIndexerWorker) IndexOwnerTokenDataFromTezos(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
-	// The data source of the asset data. This field is not related to displaying
-	dataSource := "bcdhub"
-
-	tokens, err := w.bettercall.RetrieveTokens(owner, offset)
-	if err != nil {
-		return nil, err
-	}
-
-	tokenUpdates := make([]indexer.AssetUpdates, 0, len(tokens))
-
-	for _, t := range tokens {
-		switch t.Contract {
-		case indexer.KALAMContractAddress, indexer.TezosDNSContractAddress:
-			continue
-		}
-
-		log.WithField("token", t).Debug("index tezos token")
-
-		tokenBlockchainMetadata, err := w.bettercall.GetTokenMetadata(t.Contract, t.ID.String())
-		if err != nil {
-			log.WithError(err).Error("fail to get metadata for the token")
-		}
-
-		name := t.Name
-		description := t.Description
-		mintedAt := tokenBlockchainMetadata.Timestamp
-		maxEdition := tokenBlockchainMetadata.Supply
-
-		assetID := sha3.Sum256([]byte(fmt.Sprintf("%s-%s", t.Contract, t.ID.String())))
-		assetIDString := hex.EncodeToString(assetID[:])
-
-		var artistName, artistURL string
-		if len(t.Creators) > 0 {
-			artistName = t.Creators[0]
-			artistURL = fmt.Sprintf("https://objkt.com/profile/%s", artistName)
-		}
-
-		// default display URI
-		displayURI := DEFAULT_DISPLAY_URI
-		if t.DisplayURI != "" {
-			displayURI = t.DisplayURI
-		} else if t.ThumbnailURI != "" {
-			displayURI = t.ThumbnailURI
-		}
-
-		previewURI := displayURI
-		if t.ArtifactURI != "" {
-			previewURI = t.ArtifactURI
-		}
-
-		var source, sourceURL, assetURL string
-		var edition int64
-		medium := "unknown"
-		switch t.Contract {
-		case indexer.FXHASHV2ContractAddress, indexer.FXHASHContractAddress, indexer.FXHASHOldContractAddress:
-			detail, err := w.fxhash.GetObjectDetail(ctx, t.ID.Int)
-			if err != nil {
-				log.WithError(err).Error("fail to get token detail from fxhash")
-			} else {
-				name = detail.Name
-				description = detail.Metadata.Description
-				artistName = detail.Issuer.Author.ID
-				mintedAt = detail.CreatedAt
-				edition = detail.Iteration
-				maxEdition = detail.Issuer.Supply
-				artistURL = fmt.Sprintf("https://www.fxhash.xyz/u/%s", detail.Issuer.Author.Name)
-				displayURI = detail.Metadata.DisplayURI
-				previewURI = detail.Metadata.ArtifactURI
-			}
-
-			source = "fxhash"
-			sourceURL = "https://www.fxhash.xyz"
-			assetURL = fmt.Sprintf("https://www.fxhash.xyz/gentk/%s", t.ID.String())
-
-			displayURI = fxhashLink(displayURI)
-			previewURI = fxhashLink(previewURI)
-			medium = "software"
-
-		case indexer.VersumContractAddress:
-			source = "versum"
-			sourceURL = "https://versum.xyz"
-			assetURL = fmt.Sprintf("https://versum.xyz/token/versum/%s", t.ID.String())
-			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
-			previewURI = strings.ReplaceAll(previewURI, "ipfs://", "https://ipfs.io/ipfs/")
-			artistURL = fmt.Sprintf("https://versum.xyz/user/%s", artistName)
-		case indexer.HicEtNuncContractAddress:
-			source = "hic et nunc"
-			sourceURL = "https://objkt.com" // hicetnunc is down. We not fallback to objkt.com
-			assetURL = fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract, t.ID.String())
-			displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
-			previewURI = strings.ReplaceAll(previewURI, "ipfs://", "https://ipfs.io/ipfs/")
-		default:
-			detail, err := w.objkt.GetObjktDetailed(ctx, t.ID.Text(10), t.Contract)
-			if err != nil {
-				log.WithError(err).Error("fail to get token detail from objkt")
-				source = "unknown"
-			} else {
-				name = detail.Name
-				description = detail.Description
-				mintedAt = detail.MintedAt
-				maxEdition = detail.Supply
-				artistName = detail.Contract.CreatorAddress
-				artistURL = fmt.Sprintf("https://objkt.com/profile/%s", detail.Contract.CreatorAddress)
-
-				displayURI = detail.DisplayURI
-				previewURI = detail.ArtifactURI
-
-				mimeItems := strings.Split(detail.MIMEType, "/")
-				if len(mimeItems) > 0 {
-					switch mimeItems[0] {
-					case "image":
-						medium = "image"
-					case "video":
-						medium = "other"
-					}
-				}
-				source = "objkt.com"
-				sourceURL = "https://objkt.com"
-				assetURL = fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract, t.ID.String())
-				displayURI = strings.ReplaceAll(displayURI, "ipfs://", "https://ipfs.io/ipfs/")
-				previewURI = strings.ReplaceAll(previewURI, "ipfs://", "https://ipfs.io/ipfs/")
-			}
-		}
-
-		if medium == "unknown" {
-			for _, f := range t.Formats {
-				if f.URI == t.ArtifactURI {
-					mimeItems := strings.Split(f.MIMEType, "/")
-					if len(mimeItems) > 0 {
-						switch mimeItems[0] {
-						case "image":
-							medium = "image"
-						case "video":
-							medium = "other"
-						}
-					}
-				}
-			}
-		}
-
-		metadata := indexer.ProjectMetadata{
-			ArtistName:          artistName,
-			ArtistURL:           artistURL,
-			AssetID:             assetIDString,
-			Title:               name,
-			Description:         description,
-			Medium:              medium,
-			MaxEdition:          maxEdition,
-			Source:              source,
-			SourceURL:           sourceURL,
-			PreviewURL:          previewURI,
-			ThumbnailURL:        displayURI,
-			GalleryThumbnailURL: displayURI,
-			AssetURL:            assetURL,
-		}
-
-		tokenUpdate := indexer.AssetUpdates{
-			ID:              assetIDString,
-			Source:          dataSource,
-			ProjectMetadata: metadata,
-			Tokens: []indexer.Token{
-				{
-					BaseTokenInfo: indexer.BaseTokenInfo{
-						ID:              t.ID.String(),
-						Blockchain:      indexer.TezosBlockchain,
-						ContractType:    "fa2",
-						ContractAddress: t.Contract,
-					},
-					IndexID: indexer.TokenIndexID(indexer.TezosBlockchain, t.Contract, t.ID.String()),
-					Edition: edition,
-					Owner:   owner,
-					MintAt:  mintedAt,
-				},
-			},
-		}
-
-		log.WithField("blockchain", indexer.TezosBlockchain).
-			WithField("owner", owner).
-			WithField("id", indexer.TokenIndexID(indexer.TezosBlockchain, t.Contract, t.ID.String())).
-			WithField("metadata", metadata).
-			Debug("asset updating data prepared")
-		tokenUpdates = append(tokenUpdates, tokenUpdate)
-	}
-
-	return tokenUpdates, nil
+	return w.indexerEngine.IndexTezosTokenByOwner(ctx, owner, offset)
 }
 
 // IndexAsset saves asset data into indexer's storage

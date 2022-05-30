@@ -19,6 +19,7 @@ type NFTEventSubscriber struct {
 	wallet        *ethereum.Wallet
 	wsClient      *ethclient.Client
 	store         indexer.IndexerStore
+	engine        *indexer.IndexEngine
 	opensea       *opensea.OpenseaClient
 	accountStore  *storage.AccountInformationStorage
 	notification  *notification.NotificationClient
@@ -34,8 +35,8 @@ func New(wallet *ethereum.Wallet,
 	network string,
 	wsClient *ethclient.Client,
 	store indexer.IndexerStore,
+	engine *indexer.IndexEngine,
 	accountStore *storage.AccountInformationStorage,
-	opensea *opensea.OpenseaClient,
 	bitmarkListener *Listener,
 	notification *notification.NotificationClient,
 	cadenceWorker cadence.CadenceWorkerClient) *NFTEventSubscriber {
@@ -44,7 +45,7 @@ func New(wallet *ethereum.Wallet,
 		wallet:          wallet,
 		wsClient:        wsClient,
 		store:           store,
-		opensea:         opensea,
+		engine:          engine,
 		accountStore:    accountStore,
 		bitmarkListener: bitmarkListener,
 		notification:    notification,

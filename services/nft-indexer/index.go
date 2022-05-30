@@ -165,3 +165,90 @@ func (s *NFTIndexerServer) IndexNFTs(c *gin.Context) {
 		"ok": 1,
 	})
 }
+
+func (s *NFTIndexerServer) IndexNFTByOwner(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "IndexNFTByOwner")
+	var req struct {
+		Owner string `json:"owner" binding:"required"`
+	}
+
+	if err := c.Bind(&req); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	var ownerIndexFunc func(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error)
+	switch indexer.DetectAccountBlockchain(req.Owner) {
+	case indexer.EthereumBlockchain:
+		ownerIndexFunc = func(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
+			return s.indexerEngine.IndexETHTokenByOwner(c, owner, offset)
+		}
+	case indexer.TezosBlockchain:
+		ownerIndexFunc = func(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
+			return s.indexerEngine.IndexTezosTokenByOwner(c, owner, offset)
+		}
+	default:
+		abortWithError(c, http.StatusBadRequest, "unsupported blockchain", nil)
+		return
+	}
+
+	var updates []indexer.AssetUpdates
+	offset := 0
+	for {
+		u, err := ownerIndexFunc(c, req.Owner, offset)
+		if err != nil {
+			abortWithError(c, http.StatusInternalServerError, "fail to index token", err)
+			return
+		}
+
+		if len(u) == 0 {
+			break
+		} else {
+			offset += len(u)
+		}
+
+		updates = append(updates, u...)
+	}
+
+	c.JSON(200, gin.H{
+		"updates": updates,
+	})
+}
+
+func (s *NFTIndexerServer) IndexOneNFT(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "IndexOneNFT")
+	var req struct {
+		Contract string `json:"contract" binding:"required"`
+		TokenID  string `json:"tokenID" binding:"required"`
+	}
+
+	if err := c.Bind(&req); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	var singleIndexFunc func(ctx context.Context, contract, tokenID string) (*indexer.AssetUpdates, error)
+	switch indexer.DetectContractBlockchain(req.Contract) {
+	case indexer.EthereumBlockchain:
+		singleIndexFunc = func(ctx context.Context, contract, tokenID string) (*indexer.AssetUpdates, error) {
+			return s.indexerEngine.IndexETHToken(c, "", contract, tokenID)
+		}
+	case indexer.TezosBlockchain:
+		singleIndexFunc = func(ctx context.Context, contract, tokenID string) (*indexer.AssetUpdates, error) {
+			return s.indexerEngine.IndexTezosToken(c, "", contract, tokenID)
+		}
+	default:
+		abortWithError(c, http.StatusBadRequest, "unsupported blockchain", nil)
+		return
+	}
+
+	u, err := singleIndexFunc(c, req.Contract, req.TokenID)
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to index token", err)
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"update": u,
+	})
+}

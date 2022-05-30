@@ -19,6 +19,7 @@ type NFTIndexerServer struct {
 	feralfile     *feralfile.Feralfile
 	cadenceWorker *cadence.CadenceWorkerClient
 	indexerStore  indexer.IndexerStore
+	indexerEngine *indexer.IndexEngine
 }
 
 func NewNFTIndexerServer(cadenceWorker *cadence.CadenceWorkerClient,
@@ -26,6 +27,7 @@ func NewNFTIndexerServer(cadenceWorker *cadence.CadenceWorkerClient,
 	tezosDomain *tezosDomain.TezosDomainAPI,
 	feralfileClient *feralfile.Feralfile,
 	indexerStore indexer.IndexerStore,
+	indexerEngine *indexer.IndexEngine,
 	apiToken string) *NFTIndexerServer {
 	r := gin.New()
 
@@ -38,6 +40,7 @@ func NewNFTIndexerServer(cadenceWorker *cadence.CadenceWorkerClient,
 		feralfile:     feralfileClient,
 		cadenceWorker: cadenceWorker,
 		indexerStore:  indexerStore,
+		indexerEngine: indexerEngine,
 	}
 }
 

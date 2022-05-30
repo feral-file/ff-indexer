@@ -4,6 +4,16 @@ import (
 	"time"
 )
 
+type Medium string
+
+const (
+	MediumUnknown  = "unknown"
+	MediumVideo    = "video"
+	MediumImage    = "image"
+	MediumSoftware = "software"
+	MediumOther    = "other"
+)
+
 type Provenance struct {
 	// this field is only for ownership validating
 	FormerOwner *string `json:"formerOwner,omitempty" bson:"-"`
@@ -34,8 +44,8 @@ type Token struct {
 
 	IndexID           string       `json:"indexID" bson:"indexID"`
 	Swapped           bool         `json:"swapped" bson:"swapped"`
-	SwappedFrom       *string      `bson:"swappedFrom,omitempty"`
-	SwappedTo         *string      `bson:"swappedTo,omitempty"`
+	SwappedFrom       *string      `json:"-" bson:"swappedFrom,omitempty"`
+	SwappedTo         *string      `json:"-" bson:"swappedTo,omitempty"`
 	Burned            bool         `json:"burned" bson:"burned"`
 	Provenances       []Provenance `json:"provenance" bson:"provenance"`
 	LastActivityTime  time.Time    `json:"lastActivityTime" bson:"lastActivityTime"`
@@ -48,7 +58,8 @@ type ProjectMetadata struct {
 	AssetID             string `json:"assetID" bson:"assetID"`                         // <asset_contract.address>,
 	Title               string `json:"title" bson:"title"`                             // <name>,
 	Description         string `json:"description" bson:"description"`                 // <description>,
-	Medium              string `json:"medium" bson:"medium"`                           // <"image" if image_url is present; "other" if animation_url is present> ,
+	MIMEType            string `json:"mimeType" bson:"mimeType"`                       // <mime_type from file extension or metadata>,
+	Medium              Medium `json:"medium" bson:"medium"`                           // <"image" if image_url is present; "other" if animation_url is present> ,
 	MaxEdition          int64  `json:"maxEdition" bson:"maxEdition"`                   // 0,
 	BaseCurrency        string `json:"baseCurrency,omitempty" bson:"baseCurrency"`     // null,
 	BasePrice           int64  `json:"basePrice,omitempty" bson:"basePrice"`           // null,

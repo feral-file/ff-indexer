@@ -49,6 +49,10 @@ func (b *TokenID) UnmarshalJSON(p []byte) error {
 	return nil
 }
 
+type TokenInfo struct {
+	MimeType string `json:"mimeType"`
+}
+
 type Token struct {
 	Contract     string       `json:"contract"`
 	Network      string       `json:"network"`
@@ -63,7 +67,7 @@ type Token struct {
 	Formats      []FileFormat `json:"formats"`
 }
 
-type TokenResponse struct {
+type TokenBalanceResponse struct {
 	Tokens []Token `json:"balances"`
 	Total  int64   `json:"total"`
 }
@@ -73,6 +77,38 @@ type TokenMetadata struct {
 	Timestamp time.Time `json:"timestamp"`
 	TokenID   TokenID   `json:"token_id"`
 	Supply    int64     `json:"supply,string"`
+	TokenInfo TokenInfo `json:"token_info"`
+}
+
+func (c *BetterCall) GetContractToken(contract, tokenID string) (Token, error) {
+	var t Token
+	v := url.Values{
+		"token_id": []string{tokenID},
+	}
+
+	u := url.URL{
+		Scheme:   "https",
+		Host:     "api.better-call.dev",
+		Path:     fmt.Sprintf("/v1/contract/mainnet/%s/tokens", contract),
+		RawQuery: v.Encode(),
+	}
+
+	resp, err := c.client.Get(u.String())
+	if err != nil {
+		return t, err
+	}
+	defer resp.Body.Close()
+
+	var tokenResponse []Token
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
+		return t, err
+	}
+
+	if len(tokenResponse) == 0 {
+		return t, fmt.Errorf("token not found")
+	}
+
+	return tokenResponse[0], nil
 }
 
 func (c *BetterCall) RetrieveTokens(owner string, offset int) ([]Token, error) {
@@ -95,7 +131,7 @@ func (c *BetterCall) RetrieveTokens(owner string, offset int) ([]Token, error) {
 	}
 	defer resp.Body.Close()
 
-	var tokenResponse TokenResponse
+	var tokenResponse TokenBalanceResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
 		return nil, err
 	}

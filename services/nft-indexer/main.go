@@ -11,8 +11,12 @@ import (
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
 	"github.com/bitmark-inc/nft-indexer/cadence"
+	"github.com/bitmark-inc/nft-indexer/externals/bettercall"
 	"github.com/bitmark-inc/nft-indexer/externals/ens"
 	"github.com/bitmark-inc/nft-indexer/externals/feralfile"
+	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
+	"github.com/bitmark-inc/nft-indexer/externals/objkt"
+	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	tezosDomain "github.com/bitmark-inc/nft-indexer/externals/tezos-domain"
 )
 
@@ -40,7 +44,14 @@ func main() {
 	tezosDomain := tezosDomain.New(viper.GetString("tezos.domain_api_url"))
 	feralfileClient := feralfile.New(viper.GetString("feralfile.api_url"))
 
-	s := NewNFTIndexerServer(cadenceClient, ensClient, tezosDomain, feralfileClient, indexerStore, viper.GetString("server.api_token"))
+	engine := indexer.New(
+		opensea.New(viper.GetString("network"), viper.GetString("opensea.api_key")),
+		bettercall.New(),
+		fxhash.New(viper.GetString("fxhash.api_endpoint")),
+		objkt.New(viper.GetString("objkt.api_endpoint")),
+	)
+
+	s := NewNFTIndexerServer(cadenceClient, ensClient, tezosDomain, feralfileClient, indexerStore, engine, viper.GetString("server.api_token"))
 	s.SetupRoute()
 	if err := s.Run(viper.GetString("server.port")); err != nil {
 		log.WithError(err).Panic("server interrupted")
