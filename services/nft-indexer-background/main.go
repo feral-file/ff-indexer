@@ -55,12 +55,14 @@ func main() {
 	// workflows
 	workflow.Register(worker.IndexOpenseaTokenWorkflow)
 	workflow.Register(worker.IndexTezosTokenWorkflow)
+	workflow.Register(worker.IndexTokenWorkflow)
 	workflow.Register(worker.RefreshTokenProvenanceWorkflow)
 	workflow.Register(worker.RefreshTokenProvenancePeriodicallyWorkflow)
 
 	// opensea
 	activity.Register(worker.IndexOwnerTokenDataFromOpensea)
 	activity.Register(worker.IndexOwnerTokenDataFromTezos)
+	activity.Register(worker.IndexToken)
 
 	// index store
 	activity.Register(worker.IndexAsset)

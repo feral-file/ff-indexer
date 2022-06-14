@@ -22,6 +22,7 @@ const (
 	BitmarkBlockchain  = "bitmark"
 	EthereumBlockchain = "ethereum"
 	TezosBlockchain    = "tezos"
+	UnknownBlockchain  = ""
 )
 
 var BlockchianAlias = map[string]string{

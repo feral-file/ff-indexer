@@ -117,6 +117,33 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 	return nil
 }
 
+// IndexTokenWorkflow is a worlflow to index a single token
+func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contract, tokenID string) error {
+	ao := workflow.ActivityOptions{
+		TaskList:               w.TaskListName,
+		ScheduleToStartTimeout: time.Second * 60,
+		StartToCloseTimeout:    time.Hour * 24,
+	}
+
+	ctx = workflow.WithActivityOptions(ctx, ao)
+	log := workflow.GetLogger(ctx)
+
+	var update indexer.AssetUpdates
+	if err := workflow.ExecuteActivity(ctx, w.IndexToken, owner, contract, tokenID).Get(ctx, &update); err != nil {
+		sentry.CaptureException(err)
+		return err
+	}
+
+	if err := workflow.ExecuteActivity(ctx, w.IndexAsset, update).Get(ctx, nil); err != nil {
+		sentry.CaptureException(err)
+		return err
+	}
+
+	log.Info("token indexed", zap.String("owner", owner),
+		zap.String("contract", contract), zap.String("tokenID", tokenID))
+	return nil
+}
+
 // RefreshTokenProvenanceWorkflow is a workflow to refresh provenance for a specific token
 func (w *NFTIndexerWorker) RefreshTokenProvenanceWorkflow(ctx workflow.Context, indexIDs []string, delay time.Duration) error {
 	ao := workflow.ActivityOptions{

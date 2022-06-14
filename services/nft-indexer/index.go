@@ -86,17 +86,6 @@ func buildIndexNFTsContext(owner, blockchain string) cadenceClient.StartWorkflow
 	}
 }
 
-func (s *NFTIndexerServer) startIndexWorkflow(c context.Context, owner, blockchain string, workflowFunc interface{}) {
-	workflowContext := buildIndexNFTsContext(owner, blockchain)
-
-	workflow, err := s.cadenceWorker.StartWorkflow(c, indexerWorker.ClientName, workflowContext, workflowFunc, owner)
-	if err != nil {
-		log.WithError(err).WithField("owner", owner).WithField("blockchain", blockchain).Error("fail to start indexing workflow")
-	} else {
-		log.WithField("owner", owner).WithField("workflow_id", workflow.ID).Info("start workflow for indexing opensea")
-	}
-}
-
 func (s *NFTIndexerServer) startRefreshProvenanceWorkflow(c context.Context, refreshProvenanceTaskID string, indexIDs []string, delay time.Duration) {
 	workflowContext := cadenceClient.StartWorkflowOptions{
 		ID:                           fmt.Sprintf("index-token-%s-provenance", refreshProvenanceTaskID),
@@ -218,37 +207,27 @@ func (s *NFTIndexerServer) IndexNFTByOwner(c *gin.Context) {
 func (s *NFTIndexerServer) IndexOneNFT(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "IndexOneNFT")
 	var req struct {
+		Owner    string `json:"owner"`
 		Contract string `json:"contract" binding:"required"`
 		TokenID  string `json:"tokenID" binding:"required"`
+		DryRun   bool   `json:"dryrun"`
 	}
 
 	if err := c.Bind(&req); err != nil {
 		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
 		return
 	}
-
-	var singleIndexFunc func(ctx context.Context, contract, tokenID string) (*indexer.AssetUpdates, error)
-	switch indexer.DetectContractBlockchain(req.Contract) {
-	case indexer.EthereumBlockchain:
-		singleIndexFunc = func(ctx context.Context, contract, tokenID string) (*indexer.AssetUpdates, error) {
-			return s.indexerEngine.IndexETHToken(c, "", contract, tokenID)
+	if req.DryRun {
+		u, err := s.indexerEngine.IndexToken(c, req.Owner, req.Contract, req.TokenID)
+		if err != nil {
+			abortWithError(c, http.StatusInternalServerError, "fail to index token", err)
+			return
 		}
-	case indexer.TezosBlockchain:
-		singleIndexFunc = func(ctx context.Context, contract, tokenID string) (*indexer.AssetUpdates, error) {
-			return s.indexerEngine.IndexTezosToken(c, "", contract, tokenID)
-		}
-	default:
-		abortWithError(c, http.StatusBadRequest, "unsupported blockchain", nil)
-		return
-	}
 
-	u, err := singleIndexFunc(c, req.Contract, req.TokenID)
-	if err != nil {
-		abortWithError(c, http.StatusInternalServerError, "fail to index token", err)
-		return
+		c.JSON(200, gin.H{
+			"update": u,
+		})
+	} else {
+		indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, req.Owner, req.Contract, req.TokenID)
 	}
-
-	c.JSON(200, gin.H{
-		"update": u,
-	})
 }

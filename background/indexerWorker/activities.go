@@ -67,6 +67,11 @@ func (w *NFTIndexerWorker) IndexOwnerTokenDataFromTezos(ctx context.Context, own
 	return w.indexerEngine.IndexTezosTokenByOwner(ctx, owner, offset)
 }
 
+// IndexToken indexes a token by the given contract and token id
+func (w *NFTIndexerWorker) IndexToken(ctx context.Context, owner, contract, tokenID string) (*indexer.AssetUpdates, error) {
+	return w.indexerEngine.IndexToken(ctx, owner, contract, tokenID)
+}
+
 // IndexAsset saves asset data into indexer's storage
 func (w *NFTIndexerWorker) GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
 	return w.indexerStore.GetTokenIDsByOwner(ctx, owner)

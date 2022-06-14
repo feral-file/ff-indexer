@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -20,6 +21,8 @@ var artblocksContracts = map[string]struct{}{
 	"0x059EDD72Cd353dF5106D2B9cC5ab83a52287aC3a": {},
 	"0xa7d8d9ef8D8Ce8992Df33D8b8CF4Aebabd5bD270": {},
 }
+
+var ErrUnsupportedBlockchain = fmt.Errorf("unsupported blockchain")
 
 // getTokenSourceByContract token source name by inspecting a contract address
 func getTokenSourceByContract(contractAddress string) string {
@@ -201,4 +204,15 @@ func (detail *AssetMetadataDetail) FromObjktObject(o objkt.ObjktTokenDetails) {
 type TokenDetail struct {
 	Edition  int64
 	MintedAt time.Time
+}
+
+func (e *IndexEngine) IndexToken(c context.Context, owner, contract, tokenID string) (*AssetUpdates, error) {
+	switch DetectContractBlockchain(contract) {
+	case EthereumBlockchain:
+		return e.IndexETHToken(c, owner, contract, tokenID)
+	case TezosBlockchain:
+		return e.IndexTezosToken(c, owner, contract, tokenID)
+	default:
+		return nil, ErrUnsupportedBlockchain
+	}
 }

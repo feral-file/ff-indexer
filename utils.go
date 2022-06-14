@@ -48,7 +48,7 @@ func DetectAccountBlockchain(accountNumber string) string {
 		return TezosBlockchain
 	}
 
-	return ""
+	return UnknownBlockchain
 }
 
 // DetectContractBlockchain returns underlying blokchain of a given contract address
