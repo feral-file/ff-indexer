@@ -117,4 +117,8 @@ func main() {
 	if err := service.WatchEthereumEvent(ctx); err != nil {
 		panic(err)
 	}
+
+	if err := NewEventSubscriberAPI(service).Run(ctx); err != nil {
+		panic(err)
+	}
 }

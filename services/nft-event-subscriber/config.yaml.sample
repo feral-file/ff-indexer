@@ -1,3 +1,6 @@
+server:
+  port: :8089
+
 network: testnet
 
 ethereum:

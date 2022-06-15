@@ -16,14 +16,14 @@ import (
 type NFTEventSubscriber struct {
 	network string
 
-	wallet        *ethereum.Wallet
-	wsClient      *ethclient.Client
-	store         indexer.IndexerStore
-	engine        *indexer.IndexEngine
-	opensea       *opensea.OpenseaClient
-	accountStore  *storage.AccountInformationStorage
-	notification  *notification.NotificationClient
-	cadenceWorker cadence.CadenceWorkerClient
+	wallet       *ethereum.Wallet
+	wsClient     *ethclient.Client
+	store        indexer.IndexerStore
+	Engine       *indexer.IndexEngine
+	opensea      *opensea.OpenseaClient
+	accountStore *storage.AccountInformationStorage
+	notification *notification.NotificationClient
+	Worker       cadence.CadenceWorkerClient
 
 	bitmarkListener *Listener
 
@@ -45,11 +45,11 @@ func New(wallet *ethereum.Wallet,
 		wallet:          wallet,
 		wsClient:        wsClient,
 		store:           store,
-		engine:          engine,
+		Engine:          engine,
 		accountStore:    accountStore,
 		bitmarkListener: bitmarkListener,
 		notification:    notification,
-		cadenceWorker:   cadenceWorker,
+		Worker:          cadenceWorker,
 	}
 }
 

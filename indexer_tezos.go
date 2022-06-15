@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/url"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
@@ -58,7 +59,7 @@ func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, toke
 		return nil, err
 	}
 
-	return e.indexTezosToken(ctx, "", t)
+	return e.indexTezosToken(ctx, owner, t)
 }
 
 // indexTezosToken prepares indexing data for a tezos token using the
@@ -165,10 +166,11 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, owner string, t bette
 					ContractType:    "fa2",
 					ContractAddress: t.Contract,
 				},
-				IndexID: TokenIndexID(TezosBlockchain, t.Contract, t.ID.String()),
-				Owner:   owner,
-				Edition: tokenDetail.Edition,
-				MintAt:  tokenDetail.MintedAt,
+				IndexID:           TokenIndexID(TezosBlockchain, t.Contract, t.ID.String()),
+				Owner:             owner,
+				Edition:           tokenDetail.Edition,
+				MintAt:            tokenDetail.MintedAt,
+				LastRefreshedTime: time.Now(),
 			},
 		},
 	}

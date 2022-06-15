@@ -25,6 +25,8 @@ var ErrNoRecordUpdated = fmt.Errorf("no record updated")
 type IndexerStore interface {
 	IndexAsset(ctx context.Context, id string, assetUpdates AssetUpdates) error
 	SwapToken(ctx context.Context, swapUpdate SwapUpdate) (string, error)
+
+	UpdateOwner(ctx context.Context, indexID, owner string, updatedAt time.Time) error
 	UpdateTokenProvenance(ctx context.Context, indexID string, provenances []Provenance) error
 	PushProvenance(ctx context.Context, indexID string, lockedTime time.Time, provenance Provenance) error
 
@@ -366,6 +368,29 @@ func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParam
 		})
 	}
 	return tokens, nil
+}
+
+// UpdateOwner updates owner for a specific token
+func (s *MongodbIndexerStore) UpdateOwner(ctx context.Context, indexID string, owner string, updatedAt time.Time) error {
+	if owner == "" {
+		logrus.WithField("indexID", indexID).Warn("ignore update empty owner")
+		return nil
+	}
+
+	// update provenance only for non-burned tokens
+	_, err := s.tokenCollection.UpdateOne(ctx, bson.M{
+		"indexID":          indexID,
+		"burned":           bson.M{"$ne": true},
+		"lastActivityTime": bson.M{"$lte": updatedAt},
+	}, bson.M{
+		"$set": bson.M{
+			"owner":             owner,
+			"lastActivityTime":  updatedAt,
+			"lastRefreshedTime": time.Now(),
+		},
+	})
+
+	return err
 }
 
 // UpdateTokenProvenance updates provenance for a specific token

@@ -8,7 +8,9 @@ image:
   repository: 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "event-subscriber-0.0.6-32"
+  tags:
+    eventSubscriber: "event-subscriber-0.0.9-1"
+    tezosIndexer: tezos-event-indexer-0.0.1-3
 
 
 serviceConfig:

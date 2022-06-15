@@ -6,6 +6,8 @@ metadata:
     {{- include "nft-event-subscriber.labels" . | nindent 4 }}
 data:
   config.yaml: |
+    server:
+      port: :8089
     log:
       level: {{ .Values.serviceConfig.log_level | default "info" }}
 

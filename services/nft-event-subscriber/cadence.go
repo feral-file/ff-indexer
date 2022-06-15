@@ -21,7 +21,7 @@ func (s *NFTEventSubscriber) startRefreshProvenanceWorkflow(c context.Context, r
 
 	var w indexerWorker.NFTIndexerWorker
 
-	workflow, err := s.cadenceWorker.StartWorkflow(c, indexerWorker.ClientName, workflowContext, w.RefreshTokenProvenanceWorkflow, indexIDs, delay)
+	workflow, err := s.Worker.StartWorkflow(c, indexerWorker.ClientName, workflowContext, w.RefreshTokenProvenanceWorkflow, indexIDs, delay)
 	if err != nil {
 		logrus.WithError(err).WithField("refreshProvenanceTaskID", refreshProvenanceTaskID).Error("fail to start refreshing provenance workflow")
 	} else {
