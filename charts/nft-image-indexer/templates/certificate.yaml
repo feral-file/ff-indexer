@@ -1,0 +1,22 @@
+{{- if .Values.certificate.enabled -}}
+{{- if empty .Values.ingress.hosts }}
+{{ fail ".Values.ingress.hosts should not be empty for requesting certificate" }}
+{{- end }}
+{{- range .Values.ingress.hosts }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "nft-image-indexer.fullname" $ }}-{{ .issuerRef.name }}
+  labels:
+    {{- include "nft-image-indexer.labels" $ | nindent 4 }}
+spec:
+  secretName: {{ include "nft-image-indexer.tlsSecretName" $ }}-{{ .issuerRef.name }}
+  issuerRef:
+    name: {{ .issuerRef.name }}
+    kind: {{ .issuerRef.kind }}
+  commonName: {{ .host | quote }}
+  dnsNames:
+    - {{ .host | quote }}
+---
+{{- end }}
+{{- end -}}

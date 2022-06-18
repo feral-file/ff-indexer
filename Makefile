@@ -82,6 +82,17 @@ endif
 	-t nft-indexer:event-subscriber-$(dist) -f Dockerfile-event-subscriber .
 	docker tag nft-indexer:event-subscriber-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:event-subscriber-$(dist)
 
+build-nft-image-indexer:
+ifndef dist
+	$(error dist is undefined)
+endif
+	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
+	--build-arg GITHUB_USER=$(GITHUB_USER) \
+	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
+	-t nft-indexer:image-indexer-$(dist) -f Dockerfile-image-indexer .
+	docker tag nft-indexer:image-indexer-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:image-indexer-$(dist)
+
+
 image: build-nft-indexer build-nft-indexer-background
 
 push:

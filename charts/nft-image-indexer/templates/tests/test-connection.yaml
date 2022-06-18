@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "nft-image-indexer.fullname" . }}-test-connection"
+  labels:
+    {{- include "nft-image-indexer.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test-success
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['{{ include "nft-image-indexer.fullname" . }}:{{ .Values.service.port }}']
+  restartPolicy: Never

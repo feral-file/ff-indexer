@@ -5,10 +5,23 @@ releases:
 - name: nft-event-subscriber # name of this release
   namespace: autonomy
   chart: charts/nft-event-subscriber  # the chart being installed to create this release, referenced by relative path to local helmfile
+  labels:
+    app: event-subscriber
   values:
   - charts/nft-event-subscriber/environments/{{ .Environment.Name }}/values.yaml
   secrets:
   - charts/nft-event-subscriber/environments/{{ .Environment.Name }}/secrets.yaml
+
+
+- name: nft-image-indexer # name of this release
+  namespace: autonomy
+  chart: charts/nft-image-indexer  # the chart being installed to create this release, referenced by relative path to local helmfile
+  labels:
+    app: image-indexer
+  values:
+  - charts/nft-image-indexer/environments/{{ .Environment.Name }}/values.yaml
+  secrets:
+  - charts/nft-image-indexer/environments/{{ .Environment.Name }}/secrets.yaml
 
 environments:
   development:
