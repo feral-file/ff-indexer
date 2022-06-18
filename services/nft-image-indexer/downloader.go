@@ -46,5 +46,6 @@ func NewURLImageDownloader(url string) *URLImageDownloader {
 }
 
 func (d *URLImageDownloader) Download() (io.Reader, string, error) {
+	logrus.WithField("sourceURL", d.url).Debug("download image from source")
 	return DownloadFile(d.url)
 }

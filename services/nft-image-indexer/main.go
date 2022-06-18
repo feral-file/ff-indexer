@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"time"
 
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -16,7 +17,14 @@ func main() {
 
 	config.LoadConfig("NFT_INDEXER")
 
-	store := imageStore.New(viper.GetString("image_db.dsn"), viper.GetString("cloudflare.account_id"), viper.GetString("cloudflare.api_token"))
+	cacheExpiry, err := time.ParseDuration(viper.GetString("image_db.cache_expiry"))
+	if err != nil {
+		panic(err)
+	}
+
+	store := imageStore.New(
+		viper.GetString("image_db.dsn"), cacheExpiry,
+		viper.GetString("cloudflare.account_id"), viper.GetString("cloudflare.api_token"))
 	if err := store.AutoMigrate(); err != nil {
 		panic(err)
 	}

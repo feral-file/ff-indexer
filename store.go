@@ -123,7 +123,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 				WithField("old", a.ProjectMetadata.Latest.ThumbnailURL).
 				WithField("new", assetUpdates.ProjectMetadata.ThumbnailURL).
 				Debug("image cache need to be reset")
-			updates = append(updates, bson.E{"$unset", bson.M{"thumbnailID": "", "thumbnailLastCheck": ""}})
+			updates = append(updates, bson.E{"$unset", bson.M{"thumbnailID": ""}})
 		}
 
 		s.assetCollection.UpdateOne(

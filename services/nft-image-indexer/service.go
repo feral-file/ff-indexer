@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -18,7 +17,7 @@ import (
 
 type NFTAsset struct {
 	IndexID         string                           `bson:"indexID"`
-	ProjectMetadata indexer.VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
+	ProjectMetadata indexer.VersionedProjectMetadata `bson:"projectMetadata"`
 }
 
 type NFTImageIndexer struct {
@@ -44,29 +43,23 @@ func (s *NFTImageIndexer) spawnWorker(ctx context.Context, assets <-chan NFTAsse
 			for asset := range assets {
 				logrus.WithField("indexID", asset.IndexID).Debug("start generating thumbnail cache for an asset")
 
-				img, err := s.db.CreateOrGetImage(ctx, asset.IndexID)
-				if err != nil {
+				if _, err := s.db.CreateOrGetImage(ctx, asset.IndexID); err != nil {
 					logrus.WithError(err).Error("fail to get or create image record")
 					continue
 				}
 
-				// upload a new image to cloudflare if it is not existed
-				if img.ImageID == "" {
-					logrus.WithField("sourceURL", asset.ProjectMetadata.Latest.ThumbnailURL).Debug("download thumbnail from source")
-
-					img, err = s.db.UploadImage(ctx, asset.IndexID, NewURLImageDownloader(asset.ProjectMetadata.Latest.ThumbnailURL),
-						gin.H{
-							"source":   asset.ProjectMetadata.Latest.Source,
-							"file_url": asset.ProjectMetadata.Latest.ThumbnailURL,
-						},
-					)
-					if err != nil {
-						if errors.Is(err, imageStore.ErrUnsupportImageType) {
-							logrus.WithField("indexID", asset.IndexID).Warn("unsupported image type")
-							// let the image id remain empty string
-						} else {
-							logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
-						}
+				img, err := s.db.UploadImage(ctx, asset.IndexID, NewURLImageDownloader(asset.ProjectMetadata.Latest.ThumbnailURL),
+					map[string]interface{}{
+						"source":   asset.ProjectMetadata.Latest.Source,
+						"file_url": asset.ProjectMetadata.Latest.ThumbnailURL,
+					},
+				)
+				if err != nil {
+					if errors.Is(err, imageStore.ErrUnsupportImageType) {
+						logrus.WithField("indexID", asset.IndexID).Warn("unsupported image type")
+						// let the image id remain empty string
+					} else {
+						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
 					}
 				}
 

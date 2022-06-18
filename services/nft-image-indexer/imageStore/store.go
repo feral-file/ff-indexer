@@ -32,14 +32,15 @@ func isSupportedImageType(mimeType string) bool {
 }
 
 type ImageStore struct {
-	db *gorm.DB
+	db          *gorm.DB
+	cacheExpiry time.Duration
 
 	// cloudflare
 	cloudflareAccountID string
 	cloudflareAPI       *cloudflare.API
 }
 
-func New(dsn, cloudflareAccountID, cloudflareAPIToken string) *ImageStore {
+func New(dsn string, cacheExpiry time.Duration, cloudflareAccountID, cloudflareAPIToken string) *ImageStore {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.LogLevel(viper.GetInt("image_db.log_level"))),
 	})
@@ -62,6 +63,7 @@ func New(dsn, cloudflareAccountID, cloudflareAPIToken string) *ImageStore {
 
 	return &ImageStore{
 		db:                  db,
+		cacheExpiry:         cacheExpiry,
 		cloudflareAccountID: cloudflareAccountID,
 		cloudflareAPI:       cloudflareAPI,
 	}
@@ -110,7 +112,8 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 			return err
 		}
 
-		if image.ImageID != "" {
+		// ignore image fetching if the last updated time is less than 24 hours.
+		if image.ImageID != "" && time.Since(image.UpdatedAt) < s.cacheExpiry {
 			return nil
 		}
 
