@@ -23,3 +23,6 @@ data:
 
     store:
       db_name: nft_indexer
+
+    feed:
+      endpoint: http://autonomy-event-feed.autonomy.svc.cluster.local:80

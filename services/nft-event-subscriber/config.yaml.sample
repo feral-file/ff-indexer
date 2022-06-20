@@ -35,3 +35,7 @@ cadence:
 
 bitmark:
   db_uri:
+
+feed:
+  endpoint: localhost:8888
+  api_key:

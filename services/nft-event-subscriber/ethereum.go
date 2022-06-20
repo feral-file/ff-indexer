@@ -67,6 +67,10 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 				//       - update provenance
 				//       - send notificiation
 
+				if err := s.feedServer.SendEvent(indexer.EthereumBlockchain, contractAddress, tokenIDHash.Big().Text(10), toAddress, "transfer"); err != nil {
+					logrus.WithError(err).Error("fail to push event to feed server")
+				}
+
 				// TODO: do we need to move this account specific function out of this service
 				accounts, err := s.accountStore.GetAccountIDByAddress(toAddress)
 				if err != nil {

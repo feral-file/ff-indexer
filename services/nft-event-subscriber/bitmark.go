@@ -38,6 +38,15 @@ func (s *NFTEventSubscriber) WatchBitmarkEvent(ctx context.Context) error {
 
 			for _, txID := range strings.Split(txIDs, ",") {
 				if t, err := tx.Get(txID); err == nil {
+					action := "transfer"
+					if t.BitmarkID == t.ID {
+						action = "mint"
+					}
+
+					if err := s.feedServer.SendEvent(indexer.BitmarkBlockchain, "", t.BitmarkID, t.Owner, action); err != nil {
+						logrus.WithError(err).Error("fail to push event to feed server")
+					}
+
 					indexID := indexer.TokenIndexID(indexer.BitmarkBlockchain, "", t.BitmarkID)
 
 					logrus.WithField("id", indexID).Debug("refresh provenance from subscriber")

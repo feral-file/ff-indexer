@@ -64,6 +64,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-event-subscriber.fullname" . }}
                   key: ethereum_ws_url
+            - name: NFT_INDEXER_FEED_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-subscriber.fullname" . }}
+                  key: feed_api_token
             - name: NFT_INDEXER_OPENSEA_API_KEY
               valueFrom:
                 secretKeyRef:

@@ -102,11 +102,14 @@ func main() {
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 	)
 
+	feed := NewFeedClient(viper.GetString("feed.endpoint"), viper.GetString("feed.api_token"))
+
 	service := New(w, network, wsClient,
 		indexerStore, engine,
 		accountStore,
 		bitmarkListener,
-		nc, *cadenceClient)
+		nc, feed,
+		*cadenceClient)
 
 	// Start watching bitmark events
 	if err := service.WatchBitmarkEvent(ctx); err != nil {
