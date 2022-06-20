@@ -53,6 +53,7 @@ type Token struct {
 }
 
 type ProjectMetadata struct {
+	ArtistID            string `json:"artistID" bson:"artistID"`                       // Artist blockchain address
 	ArtistName          string `json:"artistName" bson:"artistName"`                   // <creator.user.username>,
 	ArtistURL           string `json:"artistURL" bson:"artistURL"`                     // <OpenseaAPI/creator.address>,
 	AssetID             string `json:"assetID" bson:"assetID"`                         // <asset_contract.address>,
@@ -72,7 +73,6 @@ type ProjectMetadata struct {
 	AssetURL            string `json:"assetURL" bson:"assetURL"`                       // <permalink>
 
 	// Deprecated attributes
-	ArtistID        string `json:"artistID" bson:"-"`
 	OriginalFileURL string `json:"originalFileURL" bson:"-"`
 	FirstMintedAt   string `json:"firstMintedAt" bson:"-"`
 }

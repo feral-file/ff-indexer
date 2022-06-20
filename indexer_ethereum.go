@@ -51,6 +51,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset) (*AssetUpdates, error) {
 
 	var sourceURL string
 	var artistURL string
+	artistID := EthereumChecksumAddress(a.Creator.Address)
 	artistName := a.Creator.User.Username
 	contractAddress := EthereumChecksumAddress(a.AssetContract.Address)
 	switch contractAddress {
@@ -80,11 +81,12 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset) (*AssetUpdates, error) {
 
 	if a.Creator.Address != "" {
 		if artistName == "" {
-			artistName = EthereumChecksumAddress(a.Creator.Address)
+			artistName = artistID
 		}
 	}
 
 	metadata := ProjectMetadata{
+		ArtistID:            artistID,
 		ArtistName:          artistName,
 		ArtistURL:           artistURL,
 		AssetID:             contractAddress,

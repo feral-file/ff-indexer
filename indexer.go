@@ -104,6 +104,7 @@ type AssetMetadataDetail struct {
 	MIMEType    string
 	Medium      Medium
 
+	ArtistID   string
 	ArtistName string
 	ArtistURL  string
 	MaxEdition int64
@@ -149,6 +150,7 @@ func (detail *AssetMetadataDetail) FromBetterCallDev(t bettercall.Token, m bette
 	detail.Medium = mediumByMIMEType(mimeType)
 
 	if len(t.Creators) > 0 {
+		detail.ArtistID = t.Creators[0]
 		detail.ArtistName = t.Creators[0] // creator tezos address
 		detail.ArtistURL = fmt.Sprintf("https://objkt.com/profile/%s", t.Creators[0])
 	}
@@ -177,6 +179,7 @@ func (detail *AssetMetadataDetail) FromBetterCallDev(t bettercall.Token, m bette
 func (detail *AssetMetadataDetail) FromFxhashObject(o fxhash.FxHashObjectDetail) {
 	detail.Name = o.Name
 	detail.Description = o.Metadata.Description
+	detail.ArtistID = o.Issuer.Author.ID
 	detail.ArtistName = o.Issuer.Author.ID
 	detail.ArtistURL = fmt.Sprintf("https://www.fxhash.xyz/u/%s", o.Issuer.Author.Name)
 	detail.MaxEdition = o.Issuer.Supply
@@ -189,6 +192,7 @@ func (detail *AssetMetadataDetail) FromObjktObject(o objkt.ObjktTokenDetails) {
 	detail.Name = o.Name
 	detail.Description = o.Description
 	if o.Contract.CreatorAddress != "" {
+		detail.ArtistID = o.Contract.CreatorAddress
 		detail.ArtistName = o.Contract.CreatorAddress
 		detail.ArtistURL = fmt.Sprintf("https://objkt.com/profile/%s", o.Contract.CreatorAddress)
 	}

@@ -145,6 +145,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, owner string, t bette
 		MIMEType:    metadataDetail.MIMEType,
 		Medium:      metadataDetail.Medium,
 
+		ArtistID:   metadataDetail.ArtistID,
 		ArtistName: metadataDetail.ArtistName,
 		ArtistURL:  metadataDetail.ArtistURL,
 		MaxEdition: metadataDetail.MaxEdition,
