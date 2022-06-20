@@ -4,7 +4,6 @@ cloudflare:
 
 image_db:
   dsn:
-  cache_expiry: 24h
   log_level: 2 # error
 
 store:
