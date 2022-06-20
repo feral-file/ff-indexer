@@ -72,6 +72,8 @@ type ProjectMetadata struct {
 	AssetData           string `json:"assetData" bson:"assetData"`                     // null,
 	AssetURL            string `json:"assetURL" bson:"assetURL"`                       // <permalink>
 
+	LastUpdatedAt time.Time `json:"lastUpdatedAt" bson:"lastUpdatedAt"`
+
 	// Deprecated attributes
 	OriginalFileURL string `json:"originalFileURL" bson:"-"`
 	FirstMintedAt   string `json:"firstMintedAt" bson:"-"`

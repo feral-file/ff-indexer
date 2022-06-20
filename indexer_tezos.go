@@ -153,6 +153,8 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, owner string, t bette
 		PreviewURL:          metadataDetail.PreviewURI,
 		ThumbnailURL:        metadataDetail.DisplayURI,
 		GalleryThumbnailURL: metadataDetail.DisplayURI,
+
+		LastUpdatedAt: time.Now(),
 	}
 
 	tokenUpdate := AssetUpdates{

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -99,6 +100,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset) (*AssetUpdates, error) {
 		ThumbnailURL:        a.ImageURL,
 		GalleryThumbnailURL: a.ImagePreviewURL,
 		AssetURL:            a.Permalink,
+		LastUpdatedAt:       time.Now(),
 	}
 
 	if a.AnimationURL != "" {
