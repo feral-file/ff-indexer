@@ -89,6 +89,18 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 	ctx = workflow.WithActivityOptions(ctx, ao)
 	log := workflow.GetLogger(ctx)
 
+	var tokenIndexIDs []string
+	if err := workflow.ExecuteActivity(ctx, w.GetTokenIDsByOwner, tokenOwner).Get(ctx, &tokenIndexIDs); err != nil {
+		sentry.CaptureException(err)
+		return err
+	}
+
+	log.Info("tokens to check existence token provenance", zap.Any("tokenIndexIDs", tokenIndexIDs))
+	if err := workflow.ExecuteActivity(ctx, w.RefreshTokenProvenance, tokenIndexIDs, 120*time.Minute).Get(ctx, nil); err != nil {
+		sentry.CaptureException(err)
+		return err
+	}
+
 	var offset = 0
 	for {
 		tokenUpdates := []indexer.AssetUpdates{}
@@ -106,6 +118,13 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 			if err := workflow.ExecuteActivity(ctx, w.IndexAsset, u).Get(ctx, nil); err != nil {
 				sentry.CaptureException(err)
 				return err
+			}
+
+			for _, t := range u.Tokens {
+				if err := workflow.ExecuteActivity(ctx, w.RefreshTokenProvenance, []string{t.IndexID}, 120*time.Minute).Get(ctx, nil); err != nil {
+					sentry.CaptureException(err)
+					return err
+				}
 			}
 		}
 

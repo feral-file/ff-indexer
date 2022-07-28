@@ -191,6 +191,11 @@ func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID,
 	return provenances, nil
 }
 
+// fetchTezosProvenance reads ethereum provenance through filterLogs
+func (w *NFTIndexerWorker) fetchTezosProvenance(ctx context.Context, tokenID, contractAddress string) ([]indexer.Provenance, error) {
+	return w.indexerEngine.IndexTezosTokenProvenance(ctx, contractAddress, tokenID)
+}
+
 func (w *NFTIndexerWorker) GetOutdatedTokens(ctx context.Context, size int64) ([]indexer.Token, error) {
 	return w.indexerStore.GetOutdatedTokens(ctx, size)
 }
@@ -230,8 +235,15 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 				return err
 			}
 			totalProvenances = append(totalProvenances, provenance...)
+		case indexer.TezosBlockchain:
+			provenance, err := w.fetchTezosProvenance(ctx, token.ID, token.ContractAddress)
+			if err != nil {
+				return err
+			}
+			totalProvenances = append(totalProvenances, provenance...)
 		}
 
+		// recursively fetch provenance records from migrated blockchains
 		for _, tokenInfo := range token.OriginTokenInfo {
 			switch tokenInfo.Blockchain {
 			case indexer.BitmarkBlockchain:
@@ -247,6 +259,12 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 					return err
 				}
 				provenance, err := w.fetchEthereumProvenance(ctx, hexID, token.ContractAddress)
+				if err != nil {
+					return err
+				}
+				totalProvenances = append(totalProvenances, provenance...)
+			case indexer.TezosBlockchain:
+				provenance, err := w.fetchTezosProvenance(ctx, token.ID, token.ContractAddress)
 				if err != nil {
 					return err
 				}

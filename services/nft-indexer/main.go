@@ -18,6 +18,7 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	tezosDomain "github.com/bitmark-inc/nft-indexer/externals/tezos-domain"
+	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 )
 
 func main() {
@@ -47,6 +48,7 @@ func main() {
 	engine := indexer.New(
 		opensea.New(viper.GetString("network"), viper.GetString("opensea.api_key")),
 		bettercall.New(),
+		tzkt.New("api.mainnet.tzkt.io"),
 		fxhash.New(viper.GetString("fxhash.api_endpoint")),
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 	)

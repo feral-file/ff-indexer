@@ -185,3 +185,45 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, owner string, t bette
 
 	return &tokenUpdate, nil
 }
+
+// IndexTezosTokenProvenance indexes provenance of a specific token
+func (e *IndexEngine) IndexTezosTokenProvenance(ctx context.Context, contract, tokenID string) ([]Provenance, error) {
+	log.WithField("blockchain", TezosBlockchain).
+		WithField("contract", contract).WithField("tokenID", tokenID).
+		Trace("index tezos token provenance")
+
+	transfers, err := e.tzkt.GetTokenTransfers(contract, tokenID)
+	if err != nil {
+		return nil, err
+	}
+
+	provenances := make([]Provenance, 0, len(transfers))
+	for i := len(transfers) - 1; i >= 0; i-- {
+		t := transfers[i]
+
+		tx, err := e.tzkt.GetTransaction(t.TransactionID)
+		if err != nil {
+			log.WithField("blockchain", TezosBlockchain).
+				WithField("txID", t.TransactionID).
+				WithField("transfer", t).
+				Error("fail to get transaction")
+			return nil, err
+		}
+
+		txType := "transfer"
+		if t.From == nil {
+			txType = "mint"
+		}
+
+		provenances = append(provenances, Provenance{
+			Type:       txType,
+			Owner:      t.To.Address,
+			Blockchain: TezosBlockchain,
+			Timestamp:  t.Timestamp,
+			TxID:       tx.Hash,
+			TxURL:      fmt.Sprintf("https://tzkt.io/%s", tx.Hash),
+		})
+	}
+
+	return provenances, nil
+}

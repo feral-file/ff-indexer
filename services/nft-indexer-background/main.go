@@ -17,6 +17,7 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
+	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 )
 
 var CadenceService = "cadence-frontend"
@@ -46,6 +47,7 @@ func main() {
 	indexerEngine := indexer.New(
 		opensea.New(viper.GetString("network"), viper.GetString("opensea.api_key")),
 		bettercall.New(),
+		tzkt.New("api.mainnet.tzkt.io"),
 		fxhash.New(viper.GetString("fxhash.api_endpoint")),
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 	)
