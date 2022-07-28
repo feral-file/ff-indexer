@@ -53,6 +53,18 @@ type NFTQueryParams struct {
 	IDs []string `json:"ids"`
 }
 
+// FIXME: remove this and merge with background / helpers
+func (s *NFTIndexerServer) startIndexWorkflow(c context.Context, owner, blockchain string, workflowFunc interface{}) {
+	workflowContext := buildIndexNFTsContext(owner, blockchain)
+
+	workflow, err := s.cadenceWorker.StartWorkflow(c, indexerWorker.ClientName, workflowContext, workflowFunc, owner)
+	if err != nil {
+		log.WithError(err).WithField("owner", owner).WithField("blockchain", blockchain).Error("fail to start indexing workflow")
+	} else {
+		log.WithField("owner", owner).WithField("blockchain", blockchain).WithField("workflow_id", workflow.ID).Info("start workflow for indexing tokens")
+	}
+}
+
 // SwapNFT migrate existent nft from a blockchain to another
 func (s *NFTIndexerServer) SwapNFT(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "SwapNFT")
@@ -211,5 +223,8 @@ func (s *NFTIndexerServer) IndexOneNFT(c *gin.Context) {
 		})
 	} else {
 		indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, req.Owner, req.Contract, req.TokenID)
+		c.JSON(200, gin.H{
+			"ok": 1,
+		})
 	}
 }
