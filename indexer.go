@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	DEFAULT_DISPLAY_URI = "ipfs://QmV2cw5ytr3veNfAbJPpM5CeaST5vehT88XEmfdYY2wwiV"
+	// broken-image.svg
+	DEFAULT_DISPLAY_URI = "ipfs://QmX5rRzkZQfvEyaYc1Q78YZ83pFj3AgpFVSK8SmxUmZ85M"
 )
 
 // artblocksContracts indexes the addresses which are ERC721 contracts of Artblocks
