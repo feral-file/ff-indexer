@@ -11,6 +11,7 @@ image:
   tags:
     eventSubscriber: "event-subscriber-0.0.9-1"
     tezosIndexer: tezos-event-indexer-0.0.1-3
+    feralfileIndexer: tezos-feralfile-indexer-0.0.1
 
 
 serviceConfig:

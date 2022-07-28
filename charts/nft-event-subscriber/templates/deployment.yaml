@@ -91,7 +91,12 @@ spec:
         - name: {{ .Chart.Name }}-tezos-indexer
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tags.tezosIndexer | default .Chart.AppVersion }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tags.tezosMarketplaceIndexer | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+        - name: {{ .Chart.Name }}-feralfile-indexer
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tags.tezosFeralfileIndexer | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
       volumes:
       # You set volumes at the Pod level, then mount them into containers inside that Pod
