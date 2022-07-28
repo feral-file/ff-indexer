@@ -12,7 +12,7 @@ import (
 )
 
 func TestIndexTezosTokenProvenance(t *testing.T) {
-	engine := New(nil, nil, tzkt.New("api.mainnet.tzkt.io"), nil, nil)
+	engine := New(nil, tzkt.New("api.mainnet.tzkt.io"), nil, nil)
 	provenances, err := engine.IndexTezosTokenProvenance(context.Background(), "KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE", "178227")
 	assert.NoError(t, err)
 

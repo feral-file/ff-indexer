@@ -10,6 +10,7 @@ const ENSContractAddress = "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85"
 
 // Tezos contract addresses
 // ignored contracts
+const TezDaoContractAddress = "KT1C9X9s5rpVJGxwVuHEVBLYEdAQ1Qw8QDjH"
 const TezosDNSContractAddress = "KT1GBZmSxmnKJXGMdMLbugPfLyUPmuLSMwKS"
 const KALAMContractAddress = "KT1A5P4ejnLix13jtadsfV9GCnXLMNnab8UT"
 const FXHASHContractAddress = "KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE"
@@ -17,6 +18,12 @@ const FXHASHV2ContractAddress = "KT1U6EHmNxJTkvaWJ4ThczG4FSDaHC21ssvi"
 const FXHASHOldContractAddress = "KT1AEVuykWeuuFX7QkEAMNtffzwhe1Z98hJS"
 const VersumContractAddress = "KT1LjmAdYQCLBjwv4S2oFkEzyHVkomAf5MrW"
 const HicEtNuncContractAddress = "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton"
+
+const (
+	SourceFeralFile = "feralfile"
+	SourceOpensea   = "opensea"
+	SourceTZKT      = "tzkt"
+)
 
 const (
 	BitmarkBlockchain  = "bitmark"

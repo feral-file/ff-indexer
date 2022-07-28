@@ -214,6 +214,11 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 			continue
 		}
 
+		if token.Fungible {
+			log.WithField("indexID", token.IndexID).Debug("ignore fungible token")
+			continue
+		}
+
 		log.WithField("indexID", token.IndexID).Trace("start refresh token provenance")
 
 		totalProvenances := []indexer.Provenance{}

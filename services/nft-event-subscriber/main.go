@@ -20,7 +20,6 @@ import (
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
 	"github.com/bitmark-inc/nft-indexer/cadence"
-	"github.com/bitmark-inc/nft-indexer/externals/bettercall"
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
@@ -98,7 +97,6 @@ func main() {
 
 	engine := indexer.New(
 		opensea.New(viper.GetString("network"), viper.GetString("opensea.api_key")),
-		bettercall.New(),
 		tzkt.New("api.mainnet.tzkt.io"),
 		fxhash.New(viper.GetString("fxhash.api_endpoint")),
 		objkt.New(viper.GetString("objkt.api_endpoint")),

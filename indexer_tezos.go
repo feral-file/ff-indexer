@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
 
-	"github.com/bitmark-inc/nft-indexer/externals/bettercall"
+	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 )
 
 // fxhashLink converts an IPFS link to a HTTP link by using fxhash ipfs gateway.
@@ -30,10 +30,12 @@ func fxhashLink(ipfsLink string) string {
 
 // IndexTezosTokenByOwner indexes all tokens owned by a specific tezos address
 func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, offset int) ([]AssetUpdates, error) {
-	tokens, err := e.bettercall.RetrieveTokens(owner, offset)
+	tokens, err := e.tzkt.RetrieveTokens(owner, offset)
 	if err != nil {
 		return nil, err
 	}
+
+	log.WithField("tokens", tokens).WithField("owner", owner).Debug("retrive tokens for owner")
 
 	tokenUpdates := make([]AssetUpdates, 0, len(tokens))
 
@@ -54,7 +56,7 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 
 // IndexTezosToken indexes a Tezos token with a specific contract and ID
 func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, tokenID string) (*AssetUpdates, error) {
-	t, err := e.bettercall.GetContractToken(contract, tokenID)
+	t, err := e.tzkt.GetContractToken(contract, tokenID)
 	if err != nil {
 		return nil, err
 	}
@@ -63,29 +65,28 @@ func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, toke
 }
 
 // indexTezosToken prepares indexing data for a tezos token using the
-// source API token object. It currently uses token objects from better-call.dev
-func (e *IndexEngine) indexTezosToken(ctx context.Context, owner string, t bettercall.Token) (*AssetUpdates, error) {
+// source API token object. It currently uses token objects from tzkt api
+func (e *IndexEngine) indexTezosToken(ctx context.Context, owner string, t tzkt.Token) (*AssetUpdates, error) {
 	log.WithField("token", t).Debug("index tezos token")
 
-	// FIXME: can be merged by tzkt api
-	m, err := e.bettercall.GetTokenMetadata(t.Contract, t.ID.String())
+	t, err := e.tzkt.GetContractToken(t.Contract.Address, t.ID.String())
 	if err != nil {
 		log.WithError(err).Error("can not index token: fail to get metadata for the token")
 		return nil, err
 	}
 
-	assetIDBytes := sha3.Sum256([]byte(fmt.Sprintf("%s-%s", t.Contract, t.ID.String())))
+	assetIDBytes := sha3.Sum256([]byte(fmt.Sprintf("%s-%s", t.Contract.Address, t.ID.String())))
 	assetID := hex.EncodeToString(assetIDBytes[:])
 
 	metadataDetail := NewAssetMetadataDetail(assetID)
-	metadataDetail.FromBetterCallDev(t, m)
+	metadataDetail.FromTZKT(t)
 
 	tokenDetail := TokenDetail{
-		MintedAt: m.Timestamp,
+		MintedAt: t.Timestamp,
 	}
 
-	switch t.Contract {
-	case KALAMContractAddress, TezosDNSContractAddress:
+	switch t.Contract.Address {
+	case KALAMContractAddress, TezDaoContractAddress, TezosDNSContractAddress:
 		return nil, nil
 
 	case FXHASHV2ContractAddress, FXHASHContractAddress, FXHASHOldContractAddress:
@@ -106,6 +107,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, owner string, t bette
 			tokenDetail.Edition = detail.Iteration
 		}
 	case VersumContractAddress:
+		tokenDetail.Fungible = true
 		metadataDetail.SetMarketplace(MarketplaceProfile{"versum", "https://versum.xyz",
 			fmt.Sprintf("https://versum.xyz/token/versum/%s", t.ID.String())},
 		)
@@ -113,21 +115,23 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, owner string, t bette
 		metadataDetail.ArtistURL = fmt.Sprintf("https://versum.xyz/user/%s", metadataDetail.ArtistName)
 
 	case HicEtNuncContractAddress:
+		tokenDetail.Fungible = true
 		// hicetnunc is down. We now fallback the source url and asset url to objkt.com
 		metadataDetail.SetMarketplace(MarketplaceProfile{"hic et nunc", "https://objkt.com",
-			fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract, t.ID.String())},
+			fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract.Address, t.ID.String())},
 		)
 	default:
 		// fallback marketplace
 		metadataDetail.SetMarketplace(MarketplaceProfile{"unknown", "https://objkt.com",
-			fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract, t.ID.String())},
+			fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract.Address, t.ID.String())},
 		)
 
-		if detail, err := e.objkt.GetObjktDetailed(ctx, t.ID.Text(10), t.Contract); err != nil {
+		if detail, err := e.objkt.GetObjktDetailed(ctx, t.ID.Text(10), t.Contract.Address); err != nil {
 			log.WithError(err).Error("fail to get token detail from objkt")
 		} else {
+			tokenDetail.Fungible = true
 			metadataDetail.SetMarketplace(MarketplaceProfile{"objkt", "https://objkt.com",
-				fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract, t.ID.String())},
+				fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract.Address, t.ID.String())},
 			)
 			metadataDetail.FromObjktObject(detail)
 			tokenDetail.MintedAt = detail.MintedAt
@@ -159,17 +163,18 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, owner string, t bette
 
 	tokenUpdate := AssetUpdates{
 		ID:              assetID,
-		Source:          "bcdhub", // asset data source which is different than project source
+		Source:          SourceTZKT, // asset data source which is different than project source
 		ProjectMetadata: pm,
 		Tokens: []Token{
 			{
 				BaseTokenInfo: BaseTokenInfo{
 					ID:              t.ID.String(),
 					Blockchain:      TezosBlockchain,
-					ContractType:    "fa2",
-					ContractAddress: t.Contract,
+					Fungible:        tokenDetail.Fungible,
+					ContractType:    t.Standard,
+					ContractAddress: t.Contract.Address,
 				},
-				IndexID:           TokenIndexID(TezosBlockchain, t.Contract, t.ID.String()),
+				IndexID:           TokenIndexID(TezosBlockchain, t.Contract.Address, t.ID.String()),
 				Owner:             owner,
 				Edition:           tokenDetail.Edition,
 				MintAt:            tokenDetail.MintedAt,
@@ -179,7 +184,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, owner string, t bette
 	}
 
 	log.WithField("blockchain", TezosBlockchain).
-		WithField("id", TokenIndexID(TezosBlockchain, t.Contract, t.ID.String())).
+		WithField("id", TokenIndexID(TezosBlockchain, t.Contract.Address, t.ID.String())).
 		WithField("tokenUpdate", tokenUpdate).
 		Trace("asset updating data prepared")
 

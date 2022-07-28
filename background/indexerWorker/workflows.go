@@ -64,7 +64,6 @@ func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, token
 			}
 
 			for _, t := range u.Tokens {
-				log.Info("tokens to check indexed token provenance", zap.Any("tokenIndexIDs", tokenIndexIDs))
 				if err := workflow.ExecuteActivity(ctx, w.RefreshTokenProvenance, []string{t.IndexID}, time.Hour).Get(ctx, nil); err != nil {
 					sentry.CaptureException(err)
 					return err
@@ -121,9 +120,11 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 			}
 
 			for _, t := range u.Tokens {
-				if err := workflow.ExecuteActivity(ctx, w.RefreshTokenProvenance, []string{t.IndexID}, 120*time.Minute).Get(ctx, nil); err != nil {
-					sentry.CaptureException(err)
-					return err
+				if !t.Fungible {
+					if err := workflow.ExecuteActivity(ctx, w.RefreshTokenProvenance, []string{t.IndexID}, 120*time.Minute).Get(ctx, nil); err != nil {
+						sentry.CaptureException(err)
+						return err
+					}
 				}
 			}
 		}

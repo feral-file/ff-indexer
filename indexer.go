@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bitmark-inc/nft-indexer/externals/bettercall"
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
+	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 )
 
 const (
@@ -132,43 +132,43 @@ func (detail *AssetMetadataDetail) SetMedium(m Medium) {
 	detail.Medium = m
 }
 
-// FromBetterCallDev reads asset detail from an better call dev API object
-func (detail *AssetMetadataDetail) FromBetterCallDev(t bettercall.Token, m bettercall.TokenMetadata) {
+// FromTZKT reads asset detail from tzkt API object
+func (detail *AssetMetadataDetail) FromTZKT(t tzkt.Token) {
 	var mimeType string
-	for _, f := range t.Formats {
-		if f.URI == t.ArtifactURI {
+	for _, f := range t.Metadata.Formats {
+		if f.URI == t.Metadata.ArtifactURI {
 			mimeType = f.MIMEType
 			break
 		}
 	}
-	if m.TokenInfo.MimeType != "" {
-		mimeType = m.TokenInfo.MimeType
+	if t.Metadata.MIMEType != "" {
+		mimeType = t.Metadata.MIMEType
 	}
 
-	detail.Name = t.Name
-	detail.Description = t.Description
+	detail.Name = t.Metadata.Name
+	detail.Description = t.Metadata.Description
 	detail.MIMEType = mimeType
 	detail.Medium = mediumByMIMEType(mimeType)
 
-	if len(t.Creators) > 0 {
-		detail.ArtistID = t.Creators[0]
-		detail.ArtistName = t.Creators[0] // creator tezos address
-		detail.ArtistURL = fmt.Sprintf("https://objkt.com/profile/%s", t.Creators[0])
+	if len(t.Metadata.Creators) > 0 {
+		detail.ArtistID = t.Metadata.Creators[0]
+		detail.ArtistName = t.Metadata.Creators[0] // creator tezos address
+		detail.ArtistURL = fmt.Sprintf("https://objkt.com/profile/%s", t.Metadata.Creators[0])
 	}
 
-	detail.MaxEdition = m.Supply
+	detail.MaxEdition = t.TotalSupply
 
 	var displayURI, previewURI string
-	if t.DisplayURI != "" {
-		displayURI = t.DisplayURI
-	} else if t.ThumbnailURI != "" {
-		displayURI = t.ThumbnailURI
+	if t.Metadata.DisplayURI != "" {
+		displayURI = t.Metadata.DisplayURI
+	} else if t.Metadata.ThumbnailURI != "" {
+		displayURI = t.Metadata.ThumbnailURI
 	} else {
 		displayURI = DEFAULT_DISPLAY_URI
 	}
 
-	if t.ArtifactURI != "" {
-		previewURI = t.ArtifactURI
+	if t.Metadata.ArtifactURI != "" {
+		previewURI = t.Metadata.ArtifactURI
 	} else {
 		previewURI = displayURI
 	}
@@ -208,6 +208,7 @@ func (detail *AssetMetadataDetail) FromObjktObject(o objkt.ObjktTokenDetails) {
 // TokenDetail saves token specific detail from different sources
 type TokenDetail struct {
 	Edition  int64
+	Fungible bool
 	MintedAt time.Time
 }
 

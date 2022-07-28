@@ -174,7 +174,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		logrus.WithField("token_id", token.ID).WithField("token", token).Debug("token data for updated")
 		r, err := s.tokenCollection.UpdateOne(ctx,
 			bson.M{"indexID": token.IndexID, "swapped": bson.M{"$ne": true}, "burned": bson.M{"$ne": true}},
-			bson.M{"$set": bson.M{"owner": token.Owner}}, options.Update().SetUpsert(true))
+			bson.M{"$set": bson.M{"owner": token.Owner, "fungible": token.Fungible}}, options.Update().SetUpsert(true))
 		if err != nil {
 			return err
 		}

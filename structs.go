@@ -29,6 +29,7 @@ type Provenance struct {
 type BaseTokenInfo struct {
 	ID              string `json:"id" bson:"id"`
 	Blockchain      string `json:"blockchain" bson:"blockchain"`
+	Fungible        bool   `json:"fungible" bson:"fungible"`
 	ContractType    string `json:"contractType" bson:"contractType"`
 	ContractAddress string `json:"contractAddress,omitempty" bson:"contractAddress"`
 }
