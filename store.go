@@ -400,17 +400,23 @@ func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID
 		return nil
 	}
 
+	tokenUpdates := bson.M{
+		"owner":             provenances[0].Owner,
+		"lastActivityTime":  provenances[0].Timestamp,
+		"lastRefreshedTime": time.Now(),
+		"provenance":        provenances,
+	}
+
+	if provenances[len(provenances)-1].Type == "mint" {
+		tokenUpdates["mintedAt"] = provenances[len(provenances)-1].Timestamp
+	}
+
 	// update provenance only for non-burned tokens
 	_, err := s.tokenCollection.UpdateOne(ctx, bson.M{
 		"indexID": indexID,
 		"burned":  bson.M{"$ne": true},
 	}, bson.M{
-		"$set": bson.M{
-			"owner":             provenances[0].Owner,
-			"lastActivityTime":  provenances[0].Timestamp,
-			"lastRefreshedTime": time.Now(),
-			"provenance":        provenances,
-		},
+		"$set": tokenUpdates,
 	})
 
 	return err
