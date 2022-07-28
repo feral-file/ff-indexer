@@ -28,6 +28,25 @@ func StartIndexTokenWorkflow(c context.Context, client *cadence.CadenceWorkerCli
 			Error("fail to start indexing workflow")
 	} else {
 		log.WithField("owner", owner).WithField("contract", contract).WithField("token_id", tokenID).WithField("workflow_id", workflow.ID).
-			Info("start workflow for indexing a token")
+			Debug("start workflow to index a token")
+	}
+}
+
+func StartRefreshTokenProvenanceWorkflow(c context.Context, client *cadence.CadenceWorkerClient,
+	refreshProvenanceTaskID string, indexID string, delay time.Duration) {
+	workflowContext := cadenceClient.StartWorkflowOptions{
+		ID:                           fmt.Sprintf("index-token-%s-provenance", refreshProvenanceTaskID),
+		TaskList:                     TaskListName,
+		ExecutionStartToCloseTimeout: time.Hour,
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+	}
+
+	var w NFTIndexerWorker
+
+	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.RefreshTokenProvenanceWorkflow, []string{indexID}, delay)
+	if err != nil {
+		log.WithError(err).WithField("refreshProvenanceTaskID", refreshProvenanceTaskID).Error("fail to start refreshing provenance workflow")
+	} else {
+		log.WithField("refreshProvenanceTaskID", refreshProvenanceTaskID).WithField("workflow_id", workflow.ID).Debug("start workflow for refreshing provenance")
 	}
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -82,12 +83,9 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 	// if not, index it by blockchain
 	if token != nil {
 		// ignore the indexing process since an indexed token found
-		logrus.WithField("indexID", indexID).Info("an indexed token found for a corresponded event")
-		if err := api.subscriber.UpdateOwner(c, indexID, req.To, req.Timestamp); err != nil {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-				"error": "fail to update owner for the token",
-			})
-		}
+		logrus.WithField("indexID", indexID).Debug("an indexed token found for a corresponded event")
+		indexerWorker.StartRefreshTokenProvenanceWorkflow(c, &api.subscriber.Worker,
+			fmt.Sprintf("subscriber-%s", indexID), indexID, 0)
 	} else {
 		// index the new token since it is a new token for our indexer and watched by our user
 		if len(accounts) > 0 {

@@ -9,6 +9,7 @@ import (
 
 	tx "github.com/bitmark-inc/bitmark-sdk-go/tx"
 	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
 )
 
 // WatchBitmarkEvent listens events from bitmark blockchain db for new transfer events.
@@ -50,7 +51,8 @@ func (s *NFTEventSubscriber) WatchBitmarkEvent(ctx context.Context) error {
 					indexID := indexer.TokenIndexID(indexer.BitmarkBlockchain, "", t.BitmarkID)
 
 					logrus.WithField("id", indexID).Debug("refresh provenance from subscriber")
-					go s.startRefreshProvenanceWorkflow(ctx, fmt.Sprintf("subscriber-%s", indexID), []string{indexID}, 0)
+					go indexerWorker.StartRefreshTokenProvenanceWorkflow(ctx, &s.Worker,
+						fmt.Sprintf("subscriber-%s", indexID), indexID, 0)
 
 					// TODO: do something for the feed
 					toAddress := t.Owner
@@ -68,6 +70,10 @@ func (s *NFTEventSubscriber) WatchBitmarkEvent(ctx context.Context) error {
 								Error("fail to send notification for the new token")
 						}
 					}
+				} else {
+					logrus.WithError(err).
+						WithField("txID", txID).
+						Error("fail to get transaction detail")
 				}
 			}
 		}

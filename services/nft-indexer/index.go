@@ -70,7 +70,7 @@ func (s *NFTIndexerServer) SwapNFT(c *gin.Context) {
 	}
 
 	// trigger refreshing provenance to merge two blockchain provenance
-	go s.startRefreshProvenanceWorkflow(context.Background(), fmt.Sprintf("swap-%s", input.NewTokenID), []string{swappedTokenIndexID}, 0)
+	go indexerWorker.StartRefreshTokenProvenanceWorkflow(c, s.cadenceWorker, fmt.Sprintf("swap-%s", input.NewTokenID), swappedTokenIndexID, 0)
 
 	c.JSON(http.StatusOK, gin.H{
 		"ok": 1,
@@ -86,29 +86,11 @@ func buildIndexNFTsContext(owner, blockchain string) cadenceClient.StartWorkflow
 	}
 }
 
-func (s *NFTIndexerServer) startRefreshProvenanceWorkflow(c context.Context, refreshProvenanceTaskID string, indexIDs []string, delay time.Duration) {
-	workflowContext := cadenceClient.StartWorkflowOptions{
-		ID:                           fmt.Sprintf("index-token-%s-provenance", refreshProvenanceTaskID),
-		TaskList:                     indexerWorker.TaskListName,
-		ExecutionStartToCloseTimeout: time.Hour,
-		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-	}
-
-	var w indexerWorker.NFTIndexerWorker
-
-	workflow, err := s.cadenceWorker.StartWorkflow(c, indexerWorker.ClientName, workflowContext, w.RefreshTokenProvenanceWorkflow, indexIDs, delay)
-	if err != nil {
-		log.WithError(err).WithField("refreshProvenanceTaskID", refreshProvenanceTaskID).Error("fail to start refreshing provenance workflow")
-	} else {
-		log.WithField("refreshProvenanceTaskID", refreshProvenanceTaskID).WithField("workflow_id", workflow.ID).Info("start workflow for refreshing provenance")
-	}
-}
-
 func (s *NFTIndexerServer) RefreshProvenance(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "RefreshProvenance")
 	tokenID := c.Param("token_id")
 
-	go s.startRefreshProvenanceWorkflow(context.Background(), tokenID, []string{tokenID}, 0)
+	go indexerWorker.StartRefreshTokenProvenanceWorkflow(c, s.cadenceWorker, fmt.Sprintf("api-%s", tokenID), tokenID, 0)
 
 	c.JSON(http.StatusOK, gin.H{
 		"ok": 1,
