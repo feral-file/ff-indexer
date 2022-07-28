@@ -36,7 +36,7 @@ func getTokenSourceByContract(contractAddress string) string {
 			return "Crayon Codes"
 		}
 
-		return "OpenSea"
+		return SourceOpensea
 	case TezosBlockchain:
 		// WIP
 		return ""

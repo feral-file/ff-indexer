@@ -48,7 +48,7 @@ func (e *IndexEngine) IndexETHToken(ctx context.Context, owner, contract, tokenI
 
 // indexETHToken prepares indexing data for a specific asset read from opensea
 func (e *IndexEngine) indexETHToken(a *opensea.Asset) (*AssetUpdates, error) {
-	dataSource := "opensea"
+	dataSource := SourceOpensea
 
 	var sourceURL string
 	var artistURL string

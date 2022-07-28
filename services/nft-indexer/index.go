@@ -27,7 +27,7 @@ func (s *NFTIndexerServer) IndexAsset(c *gin.Context) {
 	}
 
 	if input.Source == "" {
-		input.Source = "feralfile"
+		input.Source = indexer.SourceFeralFile
 	}
 
 	if err := s.indexerStore.IndexAsset(c, assetID, input); err != nil {

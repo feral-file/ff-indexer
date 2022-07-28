@@ -109,6 +109,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 	// update an existent asset
 	if !assetCreated {
 		var a struct {
+			Source          string                   `json:"source" bson:"source"`
 			ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
 		}
 
@@ -116,21 +117,24 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 			return err
 		}
 
-		// TODO: check whether to remove the thumbnail cache when the thumbnail data is updated.
-		updates := bson.D{{"$set", bson.D{{"projectMetadata.latest", assetUpdates.ProjectMetadata}}}}
-		if a.ProjectMetadata.Latest.ThumbnailURL != assetUpdates.ProjectMetadata.ThumbnailURL {
-			logrus.
-				WithField("old", a.ProjectMetadata.Latest.ThumbnailURL).
-				WithField("new", assetUpdates.ProjectMetadata.ThumbnailURL).
-				Debug("image cache need to be reset")
-			updates = append(updates, bson.E{"$unset", bson.M{"thumbnailID": ""}})
-		}
+		// igonre update when the original source is feralfile but the incoming source is not
+		if !(a.Source == SourceFeralFile && assetUpdates.Source != SourceFeralFile) {
+			// TODO: check whether to remove the thumbnail cache when the thumbnail data is updated.
+			updates := bson.D{{"$set", bson.D{{"projectMetadata.latest", assetUpdates.ProjectMetadata}}}}
+			if a.ProjectMetadata.Latest.ThumbnailURL != assetUpdates.ProjectMetadata.ThumbnailURL {
+				logrus.
+					WithField("old", a.ProjectMetadata.Latest.ThumbnailURL).
+					WithField("new", assetUpdates.ProjectMetadata.ThumbnailURL).
+					Debug("image cache need to be reset")
+				updates = append(updates, bson.E{"$unset", bson.M{"thumbnailID": ""}})
+			}
 
-		s.assetCollection.UpdateOne(
-			ctx,
-			bson.M{"indexID": indexID},
-			updates,
-		)
+			s.assetCollection.UpdateOne(
+				ctx,
+				bson.M{"indexID": indexID},
+				updates,
+			)
+		}
 	}
 
 	for _, token := range assetUpdates.Tokens {
@@ -604,7 +608,7 @@ func (s *MongodbIndexerStore) GetTokensByTextSearch(ctx context.Context, searchT
 
 	pipeline := []bson.M{
 		{"$match": bson.M{
-			"projectMetadata.latest.source": "feralfile", // FIXME: currently, we limit the source of query to feralfile
+			"projectMetadata.latest.source": SourceFeralFile, // FIXME: currently, we limit the source of query to feralfile
 			"$or": bson.A{
 				bson.M{"projectMetadata.latest.artistName": bson.M{"$regex": primitive.Regex{Pattern: searchText, Options: "i"}}},
 				bson.M{"projectMetadata.latest.exhibitionTitle": bson.M{"$regex": primitive.Regex{Pattern: searchText, Options: "i"}}},
