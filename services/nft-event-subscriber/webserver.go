@@ -14,11 +14,13 @@ import (
 )
 
 type EventSubscriberAPI struct {
+	feedServer *FeedClient
 	subscriber *NFTEventSubscriber
 }
 
-func NewEventSubscriberAPI(s *NFTEventSubscriber) *EventSubscriberAPI {
+func NewEventSubscriberAPI(s *NFTEventSubscriber, feed *FeedClient) *EventSubscriberAPI {
 	return &EventSubscriberAPI{
+		feedServer: feed,
 		subscriber: s,
 	}
 }
@@ -61,6 +63,13 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 	// 		 - index the token
 	//       - update provenance
 	//       - send notificiation
+
+	mintType := "transfer"
+	// FIXME: we do not have mint event as this moment.
+
+	if err := api.feedServer.SendEvent(tokenBlockchain, req.Contract, req.TokenID, req.To, mintType); err != nil {
+		logrus.WithError(err).Error("fail to push event to feed server")
+	}
 
 	// TODO: do we need to move this account specific function out of this service
 	accounts, err := api.subscriber.GetAccountIDByAddress(req.To)

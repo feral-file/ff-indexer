@@ -68,7 +68,12 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 				//       - update provenance
 				//       - send notificiation
 
-				if err := s.feedServer.SendEvent(indexer.EthereumBlockchain, contractAddress, tokenIDHash.Big().Text(10), toAddress, "transfer"); err != nil {
+				mintType := "transfer"
+				if fromAddress == indexer.EthereumZeroAddress {
+					mintType = "mint"
+				}
+
+				if err := s.feedServer.SendEvent(indexer.EthereumBlockchain, contractAddress, tokenIDHash.Big().Text(10), toAddress, mintType); err != nil {
 					logrus.WithError(err).Error("fail to push event to feed server")
 				}
 

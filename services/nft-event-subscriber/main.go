@@ -121,7 +121,7 @@ func main() {
 		panic(err)
 	}
 
-	if err := NewEventSubscriberAPI(service).Run(ctx); err != nil {
+	if err := NewEventSubscriberAPI(service, feed).Run(ctx); err != nil {
 		panic(err)
 	}
 }
