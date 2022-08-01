@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/getsentry/sentry-go"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -50,7 +52,11 @@ func main() {
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 	)
 
-	worker := indexerWorker.New(network, indexerEngine, indexerStore)
+	awsSession := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String(viper.GetString("aws.region")),
+	}))
+
+	worker := indexerWorker.New(network, indexerEngine, awsSession, indexerStore)
 
 	// workflows
 	workflow.Register(worker.IndexOpenseaTokenWorkflow)
@@ -58,6 +64,9 @@ func main() {
 	workflow.Register(worker.IndexTokenWorkflow)
 	workflow.Register(worker.RefreshTokenProvenanceWorkflow)
 	workflow.Register(worker.RefreshTokenProvenancePeriodicallyWorkflow)
+
+	// cache
+	activity.Register(worker.CacheIPFSArtifactInS3)
 
 	// opensea
 	activity.Register(worker.IndexOwnerTokenDataFromOpensea)

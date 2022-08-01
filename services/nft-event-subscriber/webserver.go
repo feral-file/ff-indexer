@@ -102,7 +102,7 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 				WithField("from", req.From).WithField("to", req.To).
 				Info("start indexing a new token")
 
-			indexerWorker.StartIndexTokenWorkflow(c, &api.subscriber.Worker, req.To, req.Contract, req.TokenID)
+			indexerWorker.StartIndexTokenWorkflow(c, &api.subscriber.Worker, req.To, req.Contract, req.TokenID, false)
 
 			// ensure the token successfully indexed in the end
 			// if token, err = api.subscriber.GetTokensByIndexID(c, indexID); err != nil || token == nil {

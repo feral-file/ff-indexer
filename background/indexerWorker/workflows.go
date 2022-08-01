@@ -138,7 +138,7 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 }
 
 // IndexTokenWorkflow is a worlflow to index a single token
-func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contract, tokenID string) error {
+func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contract, tokenID string, indexPreview bool) error {
 	ao := workflow.ActivityOptions{
 		TaskList:               w.TaskListName,
 		ScheduleToStartTimeout: time.Second * 60,
@@ -157,6 +157,12 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 	if err := workflow.ExecuteActivity(ctx, w.IndexAsset, update).Get(ctx, nil); err != nil {
 		sentry.CaptureException(err)
 		return err
+	}
+
+	if indexPreview {
+		if err := workflow.ExecuteActivity(ctx, w.CacheIPFSArtifactInS3, update.ProjectMetadata.PreviewURL).Get(ctx, nil); err != nil {
+			sentry.CaptureException(err)
+		}
 	}
 
 	log.Info("token indexed", zap.String("owner", owner),

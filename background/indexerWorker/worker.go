@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/spf13/viper"
 
 	ethereum "github.com/bitmark-inc/account-vault-ethereum"
@@ -14,7 +15,10 @@ var ClientName = "nft-indexer-worker"
 var TaskListName = "nft-indexer"
 
 type NFTIndexerWorker struct {
-	http *http.Client
+	http          *http.Client
+	awsSession    *session.Session
+
+	ipfsCacheBucketName string
 
 	indexerEngine *indexer.IndexEngine
 	indexerStore  indexer.IndexerStore
@@ -29,6 +33,7 @@ type NFTIndexerWorker struct {
 
 func New(network string,
 	indexerEngine *indexer.IndexEngine,
+	awsSession *session.Session,
 	store indexer.IndexerStore) *NFTIndexerWorker {
 
 	w, err := ethereum.NewWalletFromMnemonic(
@@ -50,7 +55,10 @@ func New(network string,
 		http: &http.Client{
 			Timeout: 15 * time.Second,
 		},
-		wallet: w,
+		wallet:     w,
+		awsSession: awsSession,
+
+		ipfsCacheBucketName: viper.GetString("cache.bucket_name"),
 
 		indexerEngine: indexerEngine,
 		indexerStore:  store,

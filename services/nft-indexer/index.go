@@ -205,6 +205,7 @@ func (s *NFTIndexerServer) IndexOneNFT(c *gin.Context) {
 		Contract string `json:"contract" binding:"required"`
 		TokenID  string `json:"tokenID" binding:"required"`
 		DryRun   bool   `json:"dryrun"`
+		Preview  bool   `json:"preview"`
 	}
 
 	if err := c.Bind(&req); err != nil {
@@ -222,7 +223,7 @@ func (s *NFTIndexerServer) IndexOneNFT(c *gin.Context) {
 			"update": u,
 		})
 	} else {
-		indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, req.Owner, req.Contract, req.TokenID)
+		indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, req.Owner, req.Contract, req.TokenID, req.Preview)
 		c.JSON(200, gin.H{
 			"ok": 1,
 		})

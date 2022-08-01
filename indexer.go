@@ -14,7 +14,8 @@ import (
 
 const (
 	// broken-image.svg
-	DEFAULT_DISPLAY_URI = "ipfs://QmX5rRzkZQfvEyaYc1Q78YZ83pFj3AgpFVSK8SmxUmZ85M"
+	DEFAULT_DISPLAY_URI  = "ipfs://QmX5rRzkZQfvEyaYc1Q78YZ83pFj3AgpFVSK8SmxUmZ85M"
+	DEFAULT_IPFS_GATEWAY = "https://ipfs.io/ipfs/"
 )
 
 // artblocksContracts indexes the addresses which are ERC721 contracts of Artblocks
@@ -81,7 +82,7 @@ func mediumByMIMEType(mimeType string) Medium {
 
 // defaultIPFSLink converts an IPFS link to a HTTP link by using ipfs.io gateway.
 func defaultIPFSLink(ipfsLink string) string {
-	return strings.ReplaceAll(ipfsLink, "ipfs://", "https://ipfs.io/ipfs/")
+	return strings.ReplaceAll(ipfsLink, "ipfs://", DEFAULT_IPFS_GATEWAY)
 }
 
 type MarketplaceProfile struct {
