@@ -61,7 +61,9 @@ func main() {
 	// workflows
 	workflow.Register(worker.IndexOpenseaTokenWorkflow)
 	workflow.Register(worker.IndexTezosTokenWorkflow)
-	workflow.Register(worker.IndexTokenWorkflow)
+	workflow.RegisterWithOptions(worker.IndexTokenWorkflow, workflow.RegisterOptions{
+		Name: "IndexTokenWorkflow",
+	})
 	workflow.Register(worker.RefreshTokenProvenanceWorkflow)
 	workflow.Register(worker.RefreshTokenProvenancePeriodicallyWorkflow)
 
