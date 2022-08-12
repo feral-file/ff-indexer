@@ -23,7 +23,19 @@ func (e *IndexEngine) IndexETHTokenByOwner(ctx context.Context, owner string, of
 	tokenUpdates := make([]AssetUpdates, 0, len(assets))
 
 	for _, a := range assets {
-		update, err := e.indexETHToken(&a)
+		balance, err := e.opensea.GetTokenBalanceForOwner(a.AssetContract.Address, a.TokenID, owner)
+		if err != nil {
+			log.WithError(err).Error("fail to get token balance from owner")
+		}
+
+		log.WithFields(log.Fields{
+			"contract": a.AssetContract.Address,
+			"tokenID":  a.TokenID,
+			"owner":    owner,
+			"balance":  balance,
+		}).Trace("get token balance")
+
+		update, err := e.indexETHToken(&a, owner, balance)
 		if err != nil {
 			log.WithError(err).Error("fail to index token data")
 		}
@@ -43,11 +55,17 @@ func (e *IndexEngine) IndexETHToken(ctx context.Context, owner, contract, tokenI
 		return nil, err
 	}
 
-	return e.indexETHToken(a)
+	balance, err := e.opensea.GetTokenBalanceForOwner(contract, tokenID, owner)
+	if err != nil {
+		return nil, err
+	}
+
+	return e.indexETHToken(a, owner, balance)
 }
 
 // indexETHToken prepares indexing data for a specific asset read from opensea
-func (e *IndexEngine) indexETHToken(a *opensea.Asset) (*AssetUpdates, error) {
+// The reason to use owner as a parameter is that opensea sometimes returns zero address for it owners. Why?
+func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int64) (*AssetUpdates, error) {
 	dataSource := SourceOpensea
 
 	var sourceURL string
@@ -122,6 +140,8 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset) (*AssetUpdates, error) {
 	if !ok {
 		return nil, fmt.Errorf("fail to parse token id from opensea")
 	}
+	contractType := strings.ToLower(a.AssetContract.SchemaName)
+	fungible := contractType != "erc721"
 
 	tokenUpdate := &AssetUpdates{
 		ID:              fmt.Sprintf("%d", a.ID),
@@ -132,12 +152,15 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset) (*AssetUpdates, error) {
 				BaseTokenInfo: BaseTokenInfo{
 					ID:              a.TokenID,
 					Blockchain:      EthereumBlockchain,
-					ContractType:    strings.ToLower(a.AssetContract.SchemaName),
+					Fungible:        fungible,
+					ContractType:    contractType,
 					ContractAddress: contractAddress,
 				},
 				IndexID: TokenIndexID(EthereumBlockchain, contractAddress, tokenID.Text(16)),
 				Edition: 0,
-				Owner:   EthereumChecksumAddress(a.Owner.Address),
+				Balance: balance,
+				Owner:   owner,
+				Owners:  map[string]int64{owner: balance},
 				MintAt:  a.AssetContract.CreatedDate.Time, // set minted_at to the contract creation time
 			},
 		},
@@ -149,4 +172,31 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset) (*AssetUpdates, error) {
 		Trace("asset updating data prepared")
 
 	return tokenUpdate, nil
+}
+
+// IndexTezosTokenOwners indexes owners of a given token
+func (e *IndexEngine) IndexETHTokenOwners(ctx context.Context, contract, tokenID string) (map[string]int64, error) {
+	log.WithField("blockchain", EthereumBlockchain).
+		WithField("contract", contract).WithField("tokenID", tokenID).
+		Trace("index tezos token owners")
+
+	var next *string
+	ownersMap := map[string]int64{}
+	for {
+		owners, n, err := e.opensea.RetrieveTokenOwners(contract, tokenID, next)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, o := range owners {
+			ownersMap[o.Owner.Address] = o.Quantity
+		}
+
+		if len(owners) < 50 {
+			break
+		}
+		next = n
+	}
+
+	return ownersMap, nil
 }

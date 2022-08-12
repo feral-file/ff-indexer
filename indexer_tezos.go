@@ -28,19 +28,32 @@ func fxhashLink(ipfsLink string) string {
 	return u.String()
 }
 
-// IndexTezosTokenByOwner indexes all tokens owned by a specific tezos address
-func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, offset int) ([]AssetUpdates, error) {
+func (e *IndexEngine) GetTezosTokenByOwner(ctx context.Context, owner string, offset int) ([]tzkt.OwnedToken, error) {
 	tokens, err := e.tzkt.RetrieveTokens(owner, offset)
 	if err != nil {
 		return nil, err
 	}
 
-	log.WithField("tokens", tokens).WithField("owner", owner).Debug("retrive tokens for owner")
+	return tokens, nil
+}
 
-	tokenUpdates := make([]AssetUpdates, 0, len(tokens))
+func (e *IndexEngine) PrepareTezosTokenFullData(ctx context.Context, token tzkt.Token, owner string, balance int64) (*AssetUpdates, error) {
+	return e.indexTezosToken(ctx, token, owner, balance)
+}
 
-	for _, t := range tokens {
-		update, err := e.indexTezosToken(ctx, owner, t)
+// IndexTezosTokenByOwner indexes all tokens owned by a specific tezos address
+func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, offset int) ([]AssetUpdates, error) {
+	ownedTokens, err := e.GetTezosTokenByOwner(ctx, owner, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	log.WithField("tokens", ownedTokens).WithField("owner", owner).Debug("retrive tokens for owner")
+
+	tokenUpdates := make([]AssetUpdates, 0, len(ownedTokens))
+
+	for _, t := range ownedTokens {
+		update, err := e.indexTezosToken(ctx, t.Token, owner, t.Balance)
 		if err != nil {
 			log.WithError(err).Error("fail to index a tezos token")
 			continue
@@ -61,12 +74,17 @@ func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, toke
 		return nil, err
 	}
 
-	return e.indexTezosToken(ctx, owner, t)
+	balance, err := e.tzkt.GetTokenBalanceForOwner(contract, tokenID, owner)
+	if err != nil {
+		return nil, err
+	}
+
+	return e.indexTezosToken(ctx, t, owner, balance)
 }
 
 // indexTezosToken prepares indexing data for a tezos token using the
 // source API token object. It currently uses token objects from tzkt api
-func (e *IndexEngine) indexTezosToken(ctx context.Context, owner string, t tzkt.Token) (*AssetUpdates, error) {
+func (e *IndexEngine) indexTezosToken(ctx context.Context, t tzkt.Token, owner string, balance int64) (*AssetUpdates, error) {
 	log.WithField("token", t).Debug("index tezos token")
 
 	t, err := e.tzkt.GetContractToken(t.Contract.Address, t.ID.String())
@@ -176,6 +194,8 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, owner string, t tzkt.
 				},
 				IndexID:           TokenIndexID(TezosBlockchain, t.Contract.Address, t.ID.String()),
 				Owner:             owner,
+				Balance:           balance,
+				Owners:            map[string]int64{owner: balance},
 				Edition:           tokenDetail.Edition,
 				MintAt:            tokenDetail.MintedAt,
 				LastRefreshedTime: time.Now(),
@@ -231,4 +251,29 @@ func (e *IndexEngine) IndexTezosTokenProvenance(ctx context.Context, contract, t
 	}
 
 	return provenances, nil
+}
+
+// IndexTezosTokenLastActivityTime indexes the last activity timestamp of a given token
+func (e *IndexEngine) IndexTezosTokenLastActivityTime(ctx context.Context, contract, tokenID string) (time.Time, error) {
+	return e.tzkt.GetTokenLastActivityTime(contract, tokenID)
+}
+
+// IndexTezosTokenOwners indexes owners of a given token
+func (e *IndexEngine) IndexTezosTokenOwners(ctx context.Context, contract, tokenID string) (map[string]int64, error) {
+	log.WithField("blockchain", TezosBlockchain).
+		WithField("contract", contract).WithField("tokenID", tokenID).
+		Trace("index tezos token owners")
+
+	owners, err := e.tzkt.GetTokenOwners(contract, tokenID)
+	if err != nil {
+		return nil, err
+	}
+
+	ownersMap := map[string]int64{}
+
+	for _, o := range owners {
+		ownersMap[o.Address] = o.Balance
+	}
+
+	return ownersMap, nil
 }

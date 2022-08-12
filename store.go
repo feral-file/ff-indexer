@@ -28,10 +28,11 @@ type IndexerStore interface {
 
 	UpdateOwner(ctx context.Context, indexID, owner string, updatedAt time.Time) error
 	UpdateTokenProvenance(ctx context.Context, indexID string, provenances []Provenance) error
+	UpdateTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error
 	PushProvenance(ctx context.Context, indexID string, lockedTime time.Time, provenance Provenance) error
 
 	GetTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]Token, error)
-	GetOutdatedTokens(ctx context.Context, size int64) ([]Token, error)
+	GetOutdatedTokensByOwner(ctx context.Context, owner string) ([]Token, error)
 	GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error)
 	GetTokenIDsByOwners(ctx context.Context, owners []string) ([]string, error)
 
@@ -174,7 +175,10 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		logrus.WithField("token_id", token.ID).WithField("token", token).Debug("token data for updated")
 		r, err := s.tokenCollection.UpdateOne(ctx,
 			bson.M{"indexID": token.IndexID, "swapped": bson.M{"$ne": true}, "burned": bson.M{"$ne": true}},
-			bson.M{"$set": bson.M{"owner": token.Owner, "fungible": token.Fungible}}, options.Update().SetUpsert(true))
+			bson.M{
+				"$set": bson.M{"owner": token.Owner, "fungible": token.Fungible,
+					fmt.Sprintf("owners.%s", token.Owner): token.Balance,
+				}}, options.Update().SetUpsert(true))
 		if err != nil {
 			return err
 		}
@@ -286,19 +290,20 @@ func (s *MongodbIndexerStore) GetTokensByIndexIDs(ctx context.Context, ids []str
 	return tokens, nil
 }
 
-// GetOutdatedTokens returns a list of outdated tokens
-func (s *MongodbIndexerStore) GetOutdatedTokens(ctx context.Context, size int64) ([]Token, error) {
+// GetOutdatedTokensByOwner returns a list of outdated tokens for a specific owner
+func (s *MongodbIndexerStore) GetOutdatedTokensByOwner(ctx context.Context, owner string) ([]Token, error) {
 	var tokens []Token
 
 	cursor, err := s.tokenCollection.Find(ctx, bson.M{
-		"blockchain": "bitmark",
-		"burned":     bson.M{"$ne": true},
-		"is_demo":    bson.M{"$ne": true},
+		fmt.Sprintf("owners.%s", owner): bson.M{"$gte": 1},
+
+		"burned":  bson.M{"$ne": true},
+		"is_demo": bson.M{"$ne": true},
 		"$or": bson.A{
 			bson.M{"lastRefreshedTime": bson.M{"$exists": false}},
 			bson.M{"lastRefreshedTime": bson.M{"$lt": time.Now().Add(-time.Hour)}},
 		},
-	}, options.Find().SetSort(bson.M{"lastRefreshedTime": 1}).SetLimit(size))
+	}, options.Find().SetProjection(bson.M{"indexID": 1, "fungible": 1, "_id": 0}).SetSort(bson.M{"lastRefreshedTime": 1}))
 	if err != nil {
 		return nil, err
 	}
@@ -374,7 +379,8 @@ func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParam
 	return tokens, nil
 }
 
-// UpdateOwner updates owner for a specific token
+// FIXME: update using multiple owner pattern
+// UpdateOwner updates owner for a specific token (single owner)
 func (s *MongodbIndexerStore) UpdateOwner(ctx context.Context, indexID string, owner string, updatedAt time.Time) error {
 	if owner == "" {
 		logrus.WithField("indexID", indexID).Warn("ignore update empty owner")
@@ -404,8 +410,10 @@ func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID
 		return nil
 	}
 
+	currentOwners := provenances[0].Owner
 	tokenUpdates := bson.M{
-		"owner":             provenances[0].Owner,
+		"owner":             currentOwners,
+		"owners":            map[string]int64{currentOwners: 1},
 		"lastActivityTime":  provenances[0].Timestamp,
 		"lastRefreshedTime": time.Now(),
 		"provenance":        provenances,
@@ -413,6 +421,33 @@ func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID
 
 	if provenances[len(provenances)-1].Type == "mint" {
 		tokenUpdates["mintedAt"] = provenances[len(provenances)-1].Timestamp
+	}
+
+	// update provenance only for non-burned tokens
+	_, err := s.tokenCollection.UpdateOne(ctx, bson.M{
+		"indexID": indexID,
+		"burned":  bson.M{"$ne": true},
+	}, bson.M{
+		"$set": tokenUpdates,
+	})
+
+	return err
+}
+
+// UpdateTokenProvenance updates owners for a specific token
+func (s *MongodbIndexerStore) UpdateTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error {
+	if len(owners) == 0 {
+		logrus.WithField("indexID", indexID).Warn("ignore update empty provenance")
+		return nil
+	}
+
+	tokenUpdates := bson.M{
+		"owners":            owners,
+		"lastRefreshedTime": time.Now(),
+	}
+
+	if !lastActivityTime.IsZero() {
+		tokenUpdates["lastActivityTime"] = lastActivityTime
 	}
 
 	// update provenance only for non-burned tokens
@@ -503,14 +538,19 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 
 	assets := map[string]asset{}
 
-	// FIXME: clean up obsoleted query code
-	// c, err := s.tokenCollection.Find(ctx, bson.M{"owner": bson.M{"$in": owners}, "burned": bson.M{"$ne": true}},
-	// 	options.Find().SetSort(bson.D{{"lastActivityTime", -1}, {"_id", -1}}).SetLimit(size).SetSkip(offset),
-	// )
+	var c *mongo.Cursor
+	var err error
 
-	c, err := s.getTokensByAggregation(ctx, owners, filterParameter, offset, size)
-	if err != nil {
-		return nil, err
+	if len(owners) == 1 {
+		c, err = s.getTokensByAggregationForOwner(ctx, owners[0], filterParameter, offset, size)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		c, err = s.getTokensByAggregation(ctx, owners, filterParameter, offset, size)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	for c.Next(ctx) {
@@ -543,6 +583,62 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 	}
 
 	return tokens, nil
+}
+
+// getTokensByAggregation queries tokens by aggregation which provides a more flexible query option by mongodb
+func (s *MongodbIndexerStore) getTokensByAggregationForOwner(ctx context.Context, owner string, filterParameter FilterParameter, offset, size int64) (*mongo.Cursor, error) {
+	matchQuery := bson.M{
+		"owner":                         owner,
+		fmt.Sprintf("owners.%s", owner): bson.M{"$exists": 1},
+		"burned":                        bson.M{"$ne": true},
+	}
+
+	pipelines := []bson.M{
+		{
+			"$match": matchQuery,
+		},
+		{"$sort": bson.D{{"lastActivityTime", -1}, {"_id", -1}}},
+		{"$addFields": bson.M{"balance": fmt.Sprintf("$owners.%s", owner)}},
+		// lookup performs a cross blockchain join between tokens and assets collections
+		{
+			"$lookup": bson.M{
+				"from": "assets",
+				"let": bson.M{
+					"assetID": "$assetID",
+				},
+				"pipeline": bson.A{
+					bson.M{
+						"$match": bson.M{
+							"$expr": bson.M{
+								"$eq": bson.A{
+									"$id",
+									"$$assetID",
+								},
+							},
+						},
+					},
+					bson.M{
+						"$project": bson.M{
+							"source": 1,
+							"_id":    0,
+						},
+					},
+				},
+				"as": "asset",
+			},
+		},
+	}
+
+	if filterParameter.Source != "" {
+		pipelines = append(pipelines, bson.M{"$match": bson.M{"asset.source": filterParameter.Source}})
+	}
+
+	pipelines = append(pipelines,
+		bson.M{"$skip": offset},
+		bson.M{"$limit": size},
+	)
+
+	return s.tokenCollection.Aggregate(ctx, pipelines)
 }
 
 // getTokensByAggregation queries tokens by aggregation which provides a more flexible query option by mongodb

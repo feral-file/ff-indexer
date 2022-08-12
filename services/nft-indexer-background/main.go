@@ -65,7 +65,7 @@ func main() {
 		Name: "IndexTokenWorkflow",
 	})
 	workflow.Register(worker.RefreshTokenProvenanceWorkflow)
-	workflow.Register(worker.RefreshTokenProvenancePeriodicallyWorkflow)
+	workflow.Register(worker.RefreshTokenOwnershipWorkflow)
 
 	// cache
 	activity.Register(worker.CacheIPFSArtifactInS3)
@@ -75,10 +75,14 @@ func main() {
 	activity.Register(worker.IndexOwnerTokenDataFromTezos)
 	activity.Register(worker.IndexToken)
 
+	// tezos
+	activity.Register(worker.GetTezosTokenByOwner)
+	activity.Register(worker.PrepareTezosTokenFullData)
+	activity.Register(worker.RefreshTezosTokenOwnership)
 	// index store
 	activity.Register(worker.IndexAsset)
-	activity.Register(worker.GetOutdatedTokens)
 	activity.Register(worker.GetTokenIDsByOwner)
+	activity.Register(worker.GetOutdatedTokensByOwner)
 	activity.Register(worker.RefreshTokenProvenance)
 
 	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)

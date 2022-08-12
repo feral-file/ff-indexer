@@ -71,6 +71,11 @@ type Token struct {
 	Metadata    TokenMetadata `json:"metadata"`
 }
 
+type OwnedToken struct {
+	Token   Token `json:"token"`
+	Balance int64 `json:"balance,string"`
+}
+
 type TokenMetadata struct {
 	Name         string       `json:"name"`
 	Description  string       `json:"description"`
@@ -115,7 +120,9 @@ func (c *TZKT) GetContractToken(contract, tokenID string) (Token, error) {
 	return tokenResponse[0], nil
 }
 
-func (c *TZKT) RetrieveTokens(owner string, offset int) ([]Token, error) {
+// RetrieveTokens returns OwnedToken for a specific token. The OwnedToken object includes
+// both balance and token information
+func (c *TZKT) RetrieveTokens(owner string, offset int) ([]OwnedToken, error) {
 	v := url.Values{
 		"account":        []string{owner},
 		"limit":          []string{"50"},
@@ -137,19 +144,12 @@ func (c *TZKT) RetrieveTokens(owner string, offset int) ([]Token, error) {
 	}
 	defer resp.Body.Close()
 
-	var tokenResponse []struct {
-		Token Token `json:"token"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
+	var ownedTokens []OwnedToken
+	if err := json.NewDecoder(resp.Body).Decode(&ownedTokens); err != nil {
 		return nil, err
 	}
 
-	tokens := make([]Token, 0, len(tokenResponse))
-	for _, resp := range tokenResponse {
-		tokens = append(tokens, resp.Token)
-	}
-
-	return tokens, nil
+	return ownedTokens, nil
 }
 
 type TokenTransfer struct {
@@ -163,6 +163,7 @@ func (c *TZKT) GetTokenTransfers(contract, tokenID string) ([]TokenTransfer, err
 	v := url.Values{
 		"token.contract": []string{contract},
 		"token.tokenId":  []string{tokenID},
+		"token.standard": []string{"fa2"},
 		"select":         []string{"timestamp,from,to,transactionId"},
 	}
 
@@ -186,6 +187,43 @@ func (c *TZKT) GetTokenTransfers(contract, tokenID string) ([]TokenTransfer, err
 	}
 
 	return transfers, nil
+}
+
+// GetTokenLastActivityTime returns the timestamp of the last activity for a token
+func (c *TZKT) GetTokenLastActivityTime(contract, tokenID string) (time.Time, error) {
+	v := url.Values{
+		"token.contract": []string{contract},
+		"token.tokenId":  []string{tokenID},
+		"token.standard": []string{"fa2"},
+		"sort.desc":      []string{"timestamp"},
+		"limit":          []string{"1"},
+		"select":         []string{"timestamp"},
+	}
+
+	u := url.URL{
+		Scheme:   "https",
+		Host:     c.endpoint,
+		Path:     "/v1/tokens/transfers",
+		RawQuery: v.Encode(),
+	}
+
+	resp, err := c.client.Get(u.String())
+	if err != nil {
+		return time.Time{}, err
+	}
+	defer resp.Body.Close()
+
+	var activityTime []time.Time
+
+	if err := json.NewDecoder(resp.Body).Decode(&activityTime); err != nil {
+		return time.Time{}, err
+	}
+
+	if len(activityTime) == 0 {
+		return time.Time{}, fmt.Errorf("no activities for this token")
+	}
+
+	return activityTime[0], nil
 }
 
 type Transaction struct {
@@ -222,4 +260,82 @@ func (c *TZKT) GetTransaction(id uint64) (Transaction, error) {
 		return t, fmt.Errorf("transaction not found")
 	}
 	return txs[0], nil
+}
+
+type TokenOwner struct {
+	Address string `json:"address"`
+	Balance int64  `json:"balance,string"`
+}
+
+// GetTokenOwners returns a list of TokenOwner for a specific token
+func (c *TZKT) GetTokenOwners(contract, tokenID string) ([]TokenOwner, error) {
+	v := url.Values{
+		"token.contract": []string{contract},
+		"token.tokenId":  []string{tokenID},
+		"balance.gt":     []string{"0"},
+		"token.standard": []string{"fa2"},
+		"select":         []string{"account.address as address,balance"},
+	}
+
+	u := url.URL{
+		Scheme:   "https",
+		Host:     c.endpoint,
+		Path:     "/v1/tokens/balances",
+		RawQuery: v.Encode(),
+	}
+
+	resp, err := c.client.Get(u.String())
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var owners []TokenOwner
+
+	if err := json.NewDecoder(resp.Body).Decode(&owners); err != nil {
+		return nil, err
+	}
+
+	return owners, nil
+}
+
+// GetTokenOwners returns a list of TokenOwner for a specific token
+func (c *TZKT) GetTokenBalanceForOwner(contract, tokenID, owner string) (int64, error) {
+	v := url.Values{
+		"token.contract": []string{contract},
+		"token.tokenId":  []string{tokenID},
+		"balance.gt":     []string{"0"},
+		"account":        []string{owner},
+		"token.standard": []string{"fa2"},
+		"select":         []string{"account.address as address,balance"},
+	}
+
+	u := url.URL{
+		Scheme:   "https",
+		Host:     c.endpoint,
+		Path:     "/v1/tokens/balances",
+		RawQuery: v.Encode(),
+	}
+
+	resp, err := c.client.Get(u.String())
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	var owners []TokenOwner
+
+	if err := json.NewDecoder(resp.Body).Decode(&owners); err != nil {
+		return 0, err
+	}
+
+	if len(owners) == 0 {
+		return 0, fmt.Errorf("token not found")
+	}
+
+	if len(owners) > 1 {
+		return 0, fmt.Errorf("multiple token owners returned")
+	}
+
+	return owners[0].Balance, nil
 }

@@ -16,6 +16,7 @@ import (
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/contracts"
+	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
 
@@ -63,6 +64,15 @@ func (w *NFTIndexerWorker) IndexOwnerTokenDataFromOpensea(ctx context.Context, o
 }
 
 // IndexOwnerTokenDataFromTezos indexes data from Tezos into the format of AssetUpdates
+func (w *NFTIndexerWorker) GetTezosTokenByOwner(ctx context.Context, owner string, offset int) ([]tzkt.OwnedToken, error) {
+	return w.indexerEngine.GetTezosTokenByOwner(ctx, owner, offset)
+}
+
+func (w *NFTIndexerWorker) PrepareTezosTokenFullData(ctx context.Context, token tzkt.Token, owner string, balance int64) (*indexer.AssetUpdates, error) {
+	return w.indexerEngine.PrepareTezosTokenFullData(ctx, token, owner, balance)
+}
+
+// IndexOwnerTokenDataFromTezos indexes data from Tezos into the format of AssetUpdates
 func (w *NFTIndexerWorker) IndexOwnerTokenDataFromTezos(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
 	return w.indexerEngine.IndexTezosTokenByOwner(ctx, owner, offset)
 }
@@ -75,6 +85,11 @@ func (w *NFTIndexerWorker) IndexToken(ctx context.Context, owner, contract, toke
 // IndexAsset saves asset data into indexer's storage
 func (w *NFTIndexerWorker) GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
 	return w.indexerStore.GetTokenIDsByOwner(ctx, owner)
+}
+
+// IndexAsset saves asset data into indexer's storage
+func (w *NFTIndexerWorker) GetOutdatedTokensByOwner(ctx context.Context, owner string) ([]indexer.Token, error) {
+	return w.indexerStore.GetOutdatedTokensByOwner(ctx, owner)
 }
 
 // IndexAsset saves asset data into indexer's storage
@@ -196,10 +211,6 @@ func (w *NFTIndexerWorker) fetchTezosProvenance(ctx context.Context, tokenID, co
 	return w.indexerEngine.IndexTezosTokenProvenance(ctx, contractAddress, tokenID)
 }
 
-func (w *NFTIndexerWorker) GetOutdatedTokens(ctx context.Context, size int64) ([]indexer.Token, error) {
-	return w.indexerStore.GetOutdatedTokens(ctx, size)
-}
-
 // RefreshTokenProvenance refresh provenance. This is a heavy task
 func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs []string, delay time.Duration) error {
 	tokens, err := w.indexerStore.GetTokensByIndexIDs(ctx, indexIDs)
@@ -208,9 +219,8 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 	}
 
 	for _, token := range tokens {
-
 		if token.LastRefreshedTime.Unix() > time.Now().Add(-delay).Unix() {
-			log.WithField("indexID", token.IndexID).Debug("refresh too frequently")
+			log.WithField("indexID", token.IndexID).Debug("provenance refresh too frequently")
 			continue
 		}
 
@@ -282,5 +292,48 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 		}
 	}
 
+	return nil
+}
+
+// RefreshTezosTokenOwnership refreshes ownership for each tokens
+func (w *NFTIndexerWorker) RefreshTezosTokenOwnership(ctx context.Context, indexIDs []string, delay time.Duration) error {
+	tokens, err := w.indexerStore.GetTokensByIndexIDs(ctx, indexIDs)
+	if err != nil {
+		return err
+	}
+
+	for _, token := range tokens {
+		if token.LastRefreshedTime.Unix() > time.Now().Add(-delay).Unix() {
+			log.WithField("indexID", token.IndexID).Debug("ownership refresh too frequently")
+			continue
+		}
+
+		var (
+			owners           map[string]int64
+			lastActivityTime time.Time
+			err              error
+		)
+		switch token.Blockchain {
+		case indexer.EthereumBlockchain:
+			owners, err = w.indexerEngine.IndexETHTokenOwners(ctx, token.ContractAddress, token.ID)
+			if err != nil {
+				return err
+			}
+		case indexer.TezosBlockchain:
+			owners, err = w.indexerEngine.IndexTezosTokenOwners(ctx, token.ContractAddress, token.ID)
+			if err != nil {
+				return err
+			}
+
+			lastActivityTime, err = w.indexerEngine.IndexTezosTokenLastActivityTime(ctx, token.ContractAddress, token.ID)
+			if err != nil {
+				return err
+			}
+		}
+
+		if err := w.indexerStore.UpdateTokenOwners(ctx, token.IndexID, lastActivityTime, owners); err != nil {
+			return err
+		}
+	}
 	return nil
 }

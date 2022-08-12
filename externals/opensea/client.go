@@ -45,6 +45,11 @@ type User struct {
 	} `json:"user"`
 }
 
+type Ownership struct {
+	Owner    User  `json:"owner"`
+	Quantity int64 `json:"quantity,string"`
+}
+
 type Asset struct {
 	ID                 int64  `json:"id"`
 	TokenID            string `json:"token_id"`
@@ -63,6 +68,7 @@ type Asset struct {
 	Owner         User          `json:"owner"`
 	Creator       User          `json:"creator"`
 	AssetContract AssetContract `json:"asset_contract"`
+	Ownership     *Ownership    `json:"ownership"`
 }
 
 type OpenseaClient struct {
@@ -189,4 +195,114 @@ func (c *OpenseaClient) RetrieveAssets(owner string, offset int) ([]Asset, error
 	}
 
 	return assetResp.Assets, nil
+}
+
+type TokenOwner struct {
+	Owner    User  `json:"owner"`
+	Quantity int64 `json:"quantity,string"`
+}
+
+type AssetOwners struct {
+	Next   *string      `json:"next"`
+	Owners []TokenOwner `json:"owners"`
+}
+
+func (c *OpenseaClient) GetTokenBalanceForOwner(contract, tokenID, owner string) (int64, error) {
+	v := url.Values{
+		"account_address": []string{owner},
+	}
+
+	u := url.URL{
+		Scheme:   "https",
+		Host:     "api.opensea.io",
+		Path:     fmt.Sprintf("/api/v1/asset/%s/%s", contract, tokenID),
+		RawQuery: v.Encode(),
+	}
+
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return 0, err
+	}
+
+	if c.apiKey != "" {
+		req.Header.Add("X-API-KEY", c.apiKey)
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		errResp, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return 0, err
+		}
+		return 0, fmt.Errorf(string(errResp))
+	}
+
+	var asset Asset
+	if err := json.NewDecoder(resp.Body).Decode(&asset); err != nil {
+		return 0, err
+	}
+
+	ownership := asset.Ownership
+	if ownership == nil {
+		return 0, fmt.Errorf("not the owner of this token")
+	}
+
+	if ownership.Quantity == 0 {
+		return 0, fmt.Errorf("not the owner of this token")
+	}
+
+	return ownership.Quantity, nil
+}
+
+func (c *OpenseaClient) RetrieveTokenOwners(contract, tokenID string, cursor *string) ([]TokenOwner, *string, error) {
+	v := url.Values{
+		"limit":           []string{"50"},
+		"order_direction": []string{"desc"},
+	}
+
+	if cursor != nil {
+		v["cursor"] = []string{*cursor}
+	}
+
+	u := url.URL{
+		Scheme:   "https",
+		Host:     "api.opensea.io",
+		Path:     fmt.Sprintf("/api/v1/asset/%s/%s/owners", contract, tokenID),
+		RawQuery: v.Encode(),
+	}
+
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if c.apiKey != "" {
+		req.Header.Add("X-API-KEY", c.apiKey)
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		errResp, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, nil, err
+		}
+		return nil, nil, fmt.Errorf(string(errResp))
+	}
+
+	var ownersResp AssetOwners
+	if err := json.NewDecoder(resp.Body).Decode(&ownersResp); err != nil {
+		return nil, nil, err
+	}
+
+	return ownersResp.Owners, ownersResp.Next, nil
 }
