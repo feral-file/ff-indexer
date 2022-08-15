@@ -45,7 +45,7 @@ func main() {
 	feralfileClient := feralfile.New(viper.GetString("feralfile.api_url"))
 
 	engine := indexer.New(
-		opensea.New(viper.GetString("network"), viper.GetString("opensea.api_key")),
+		opensea.New(viper.GetString("network"), viper.GetString("opensea.api_key"), viper.GetInt("opensea.ratelimit")),
 		tzkt.New("api.mainnet.tzkt.io"),
 		fxhash.New(viper.GetString("fxhash.api_endpoint")),
 		objkt.New(viper.GetString("objkt.api_endpoint")),

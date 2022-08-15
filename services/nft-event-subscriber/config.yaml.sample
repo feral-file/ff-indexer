@@ -21,6 +21,7 @@ bitmarksdk:
 
 opensea:
   api_key:
+  ratelimit:
 
 log:
   level: info

@@ -77,9 +77,11 @@ type OpenseaClient struct {
 	apiEndpoint string
 	network     string
 	client      *http.Client
+
+	limiter RateLimiter
 }
 
-func New(network, apiKey string) *OpenseaClient {
+func New(network, apiKey string, rps int) *OpenseaClient {
 	apiEndpoint := "api.opensea.io"
 	if network == "testnet" {
 		apiEndpoint = "testnets-api.opensea.io"
@@ -92,7 +94,47 @@ func New(network, apiKey string) *OpenseaClient {
 		client: &http.Client{
 			Timeout: 15 * time.Second,
 		},
+
+		limiter: *NewRateLimiter(rps),
 	}
+}
+
+type RateLimiter struct {
+	rps     int // Request per second
+	reqChan chan struct{}
+}
+
+func (r *RateLimiter) Start() {
+	if r.rps > 0 {
+		go func() {
+			for range time.Tick(time.Second) {
+				for i := 0; i < r.rps; i++ {
+					if len(r.reqChan) < r.rps {
+						logrus.Trace("increase the request count")
+						r.reqChan <- struct{}{}
+					}
+				}
+			}
+		}()
+	}
+}
+
+func (r *RateLimiter) Request() struct{} {
+	if r.rps > 0 {
+		return <-r.reqChan
+	}
+
+	return struct{}{}
+}
+
+func NewRateLimiter(rps int) *RateLimiter {
+	r := &RateLimiter{
+		rps:     rps,
+		reqChan: make(chan struct{}, rps),
+	}
+
+	r.Start()
+	return r
 }
 
 func (c *OpenseaClient) makeRequest(method, url string, body io.Reader) (*http.Response, error) {
@@ -104,6 +146,9 @@ func (c *OpenseaClient) makeRequest(method, url string, body io.Reader) (*http.R
 	if c.network != "testnet" {
 		req.Header.Add("X-API-KEY", c.apiKey)
 	}
+
+	c.limiter.Request()
+	logrus.Trace("get a request from limiter")
 
 	return c.client.Do(req)
 }

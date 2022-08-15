@@ -25,6 +25,7 @@ feralfile:
 
 opensea:
   api_key:
+  ratelimit:
 
 fxhash:
   api_endpoint: https://api.fxhash.xyz/graphql
