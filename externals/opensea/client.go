@@ -3,6 +3,7 @@ package opensea
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -72,19 +73,39 @@ type Asset struct {
 }
 
 type OpenseaClient struct {
-	apiKey  string
-	network string
-	client  *http.Client
+	apiKey      string
+	apiEndpoint string
+	network     string
+	client      *http.Client
 }
 
 func New(network, apiKey string) *OpenseaClient {
+	apiEndpoint := "api.opensea.io"
+	if network == "testnet" {
+		apiEndpoint = "testnets-api.opensea.io"
+	}
+
 	return &OpenseaClient{
-		apiKey:  apiKey,
-		network: network,
+		apiKey:      apiKey,
+		apiEndpoint: apiEndpoint,
+		network:     network,
 		client: &http.Client{
 			Timeout: 15 * time.Second,
 		},
 	}
+}
+
+func (c *OpenseaClient) makeRequest(method, url string, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return nil, err
+	}
+
+	if c.network != "testnet" {
+		req.Header.Add("X-API-KEY", c.apiKey)
+	}
+
+	return c.client.Do(req)
 }
 
 // RetrieveAsset returns the token information for a contract and a token id
@@ -96,25 +117,12 @@ func (c *OpenseaClient) RetrieveAsset(contract, tokenID string) (*Asset, error) 
 
 	u := url.URL{
 		Scheme:   "https",
-		Host:     "api.opensea.io",
+		Host:     c.apiEndpoint,
 		Path:     "/api/v1/assets",
 		RawQuery: v.Encode(),
 	}
 
-	if c.network == "testnet" {
-		u.Host = "rinkeby-api.opensea.io"
-	}
-
-	req, err := http.NewRequest("GET", u.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	if c.apiKey != "" {
-		req.Header.Add("X-API-KEY", c.apiKey)
-	}
-
-	resp, err := c.client.Do(req)
+	resp, err := c.makeRequest("GET", u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -154,25 +162,12 @@ func (c *OpenseaClient) RetrieveAssets(owner string, offset int) ([]Asset, error
 
 	u := url.URL{
 		Scheme:   "https",
-		Host:     "api.opensea.io",
+		Host:     c.apiEndpoint,
 		Path:     "/api/v1/assets",
 		RawQuery: v.Encode(),
 	}
 
-	if c.network == "testnet" {
-		u.Host = "rinkeby-api.opensea.io"
-	}
-
-	req, err := http.NewRequest("GET", u.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	if c.apiKey != "" {
-		req.Header.Add("X-API-KEY", c.apiKey)
-	}
-
-	resp, err := c.client.Do(req)
+	resp, err := c.makeRequest("GET", u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -214,21 +209,12 @@ func (c *OpenseaClient) GetTokenBalanceForOwner(contract, tokenID, owner string)
 
 	u := url.URL{
 		Scheme:   "https",
-		Host:     "api.opensea.io",
+		Host:     c.apiEndpoint,
 		Path:     fmt.Sprintf("/api/v1/asset/%s/%s", contract, tokenID),
 		RawQuery: v.Encode(),
 	}
 
-	req, err := http.NewRequest("GET", u.String(), nil)
-	if err != nil {
-		return 0, err
-	}
-
-	if c.apiKey != "" {
-		req.Header.Add("X-API-KEY", c.apiKey)
-	}
-
-	resp, err := c.client.Do(req)
+	resp, err := c.makeRequest("GET", u.String(), nil)
 	if err != nil {
 		return 0, err
 	}
@@ -271,21 +257,12 @@ func (c *OpenseaClient) RetrieveTokenOwners(contract, tokenID string, cursor *st
 
 	u := url.URL{
 		Scheme:   "https",
-		Host:     "api.opensea.io",
+		Host:     c.apiEndpoint,
 		Path:     fmt.Sprintf("/api/v1/asset/%s/%s/owners", contract, tokenID),
 		RawQuery: v.Encode(),
 	}
 
-	req, err := http.NewRequest("GET", u.String(), nil)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if c.apiKey != "" {
-		req.Header.Add("X-API-KEY", c.apiKey)
-	}
-
-	resp, err := c.client.Do(req)
+	resp, err := c.makeRequest("GET", u.String(), nil)
 	if err != nil {
 		return nil, nil, err
 	}
