@@ -303,7 +303,7 @@ func (s *MongodbIndexerStore) GetOutdatedTokensByOwner(ctx context.Context, owne
 			bson.M{"lastRefreshedTime": bson.M{"$exists": false}},
 			bson.M{"lastRefreshedTime": bson.M{"$lt": time.Now().Add(-time.Hour)}},
 		},
-	}, options.Find().SetProjection(bson.M{"indexID": 1, "fungible": 1, "_id": 0}).SetSort(bson.M{"lastRefreshedTime": 1}))
+	}, options.Find().SetProjection(bson.M{"indexID": 1, "_id": 0}).SetSort(bson.M{"lastRefreshedTime": 1}))
 	if err != nil {
 		return nil, err
 	}
@@ -443,6 +443,7 @@ func (s *MongodbIndexerStore) UpdateTokenOwners(ctx context.Context, indexID str
 
 	tokenUpdates := bson.M{
 		"owners":            owners,
+		"provenance":        nil,
 		"lastRefreshedTime": time.Now(),
 	}
 

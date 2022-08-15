@@ -138,7 +138,7 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 
 	for _, t := range outdatedTokens {
 		if t.Fungible {
-			log.Info("task to check existence token ownership", zap.String("tokenIndexID", t.IndexID))
+			log.Info("task to check existence token ownership", zap.String("owner", tokenOwner), zap.String("tokenIndexID", t.IndexID))
 			cwo := workflow.ChildWorkflowOptions{
 				WorkflowID:                   fmt.Sprintf("index-token-ownership-%s", t.IndexID),
 				WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
@@ -148,7 +148,7 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 			_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwo),
 				w.RefreshTokenOwnershipWorkflow, []string{t.IndexID}, TokenRefreshingDelay)
 		} else {
-			log.Info("task to check existence token provenance", zap.String("tokenIndexID", t.IndexID))
+			log.Info("task to check existence token provenance", zap.String("owner", tokenOwner), zap.String("tokenIndexID", t.IndexID))
 			cwo := workflow.ChildWorkflowOptions{
 				WorkflowID:                   fmt.Sprintf("index-token-provenance-%s", t.IndexID),
 				WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
@@ -191,7 +191,7 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 
 			for _, t := range u.Tokens {
 				if t.Fungible {
-					log.Info("refresh ownership for indexed token", zap.String("tokenIndexID", t.IndexID))
+					log.Info("refresh ownership for indexed token", zap.String("owner", tokenOwner), zap.String("tokenIndexID", t.IndexID))
 					cwo := workflow.ChildWorkflowOptions{
 						WorkflowID:                   fmt.Sprintf("index-token-ownership-%s", t.IndexID),
 						WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
@@ -201,7 +201,7 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 					_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwo),
 						w.RefreshTokenOwnershipWorkflow, []string{t.IndexID}, TokenRefreshingDelay)
 				} else {
-					log.Info("refresh provenance for indexed token", zap.String("tokenIndexID", t.IndexID))
+					log.Info("refresh provenance for indexed token", zap.String("owner", tokenOwner), zap.String("tokenIndexID", t.IndexID))
 					cwo := workflow.ChildWorkflowOptions{
 						WorkflowID:                   fmt.Sprintf("index-token-provenance-%s", t.IndexID),
 						WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,

@@ -139,6 +139,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, t tzkt.Token, owner s
 			fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract.Address, t.ID.String())},
 		)
 	default:
+		tokenDetail.Fungible = true
 		// fallback marketplace
 		metadataDetail.SetMarketplace(MarketplaceProfile{"unknown", "https://objkt.com",
 			fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract.Address, t.ID.String())},
@@ -147,7 +148,6 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, t tzkt.Token, owner s
 		if detail, err := e.objkt.GetObjktDetailed(ctx, t.ID.Text(10), t.Contract.Address); err != nil {
 			log.WithError(err).Error("fail to get token detail from objkt")
 		} else {
-			tokenDetail.Fungible = true
 			metadataDetail.SetMarketplace(MarketplaceProfile{"objkt", "https://objkt.com",
 				fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract.Address, t.ID.String())},
 			)
