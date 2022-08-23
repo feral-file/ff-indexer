@@ -32,10 +32,29 @@ func StartIndexTokenWorkflow(c context.Context, client *cadence.CadenceWorkerCli
 	}
 }
 
+func StartRefreshTokenOwnershipWorkflow(c context.Context, client *cadence.CadenceWorkerClient,
+	refreshOwnershipTaskID string, indexID string, delay time.Duration) {
+	workflowContext := cadenceClient.StartWorkflowOptions{
+		ID:                           fmt.Sprintf("index-token-ownership-helper-%s", refreshOwnershipTaskID),
+		TaskList:                     TaskListName,
+		ExecutionStartToCloseTimeout: time.Hour,
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+	}
+
+	var w NFTIndexerWorker
+
+	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.RefreshTokenOwnershipWorkflow, []string{indexID}, delay)
+	if err != nil {
+		log.WithError(err).WithField("refreshOwnershipTaskID", refreshOwnershipTaskID).Error("fail to start refreshing ownership workflow")
+	} else {
+		log.WithField("refreshOwnershipTaskID", refreshOwnershipTaskID).WithField("workflow_id", workflow.ID).Debug("start workflow for refreshing ownership")
+	}
+}
+
 func StartRefreshTokenProvenanceWorkflow(c context.Context, client *cadence.CadenceWorkerClient,
 	refreshProvenanceTaskID string, indexID string, delay time.Duration) {
 	workflowContext := cadenceClient.StartWorkflowOptions{
-		ID:                           fmt.Sprintf("index-token-%s-provenance", refreshProvenanceTaskID),
+		ID:                           fmt.Sprintf("index-token-provenance-helper-%s", refreshProvenanceTaskID),
 		TaskList:                     TaskListName,
 		ExecutionStartToCloseTimeout: time.Hour,
 		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,

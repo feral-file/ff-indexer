@@ -93,8 +93,13 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 	if token != nil {
 		// ignore the indexing process since an indexed token found
 		logrus.WithField("indexID", indexID).Debug("an indexed token found for a corresponded event")
-		indexerWorker.StartRefreshTokenProvenanceWorkflow(c, &api.subscriber.Worker,
-			fmt.Sprintf("subscriber-%s", indexID), indexID, 0)
+		if token.Fungible {
+			indexerWorker.StartRefreshTokenOwnershipWorkflow(c, &api.subscriber.Worker,
+				fmt.Sprintf("subscriber-%s", indexID), indexID, 0)
+		} else {
+			indexerWorker.StartRefreshTokenProvenanceWorkflow(c, &api.subscriber.Worker,
+				fmt.Sprintf("subscriber-%s", indexID), indexID, 0)
+		}
 	} else {
 		// index the new token since it is a new token for our indexer and watched by our user
 		if len(accounts) > 0 {
