@@ -251,6 +251,16 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 			}
 			totalProvenances = append(totalProvenances, provenance...)
 		case indexer.TezosBlockchain:
+			lastActivityTime, err := w.indexerEngine.IndexTezosTokenLastActivityTime(ctx, token.ContractAddress, token.ID)
+			if err != nil {
+				return err
+			}
+
+			if lastActivityTime.Sub(token.LastActivityTime) <= 0 {
+				log.WithField("indexID", token.IndexID).Trace("no new updates since last check")
+				continue
+			}
+
 			provenance, err := w.fetchTezosProvenance(ctx, token.ID, token.ContractAddress)
 			if err != nil {
 				return err
@@ -304,10 +314,16 @@ func (w *NFTIndexerWorker) RefreshTezosTokenOwnership(ctx context.Context, index
 
 	for _, token := range tokens {
 		if token.LastRefreshedTime.Unix() > time.Now().Add(-delay).Unix() {
-			log.WithField("indexID", token.IndexID).Debug("ownership refresh too frequently")
+			log.WithField("indexID", token.IndexID).Trace("ownership refresh too frequently")
 			continue
 		}
 
+		if !token.Fungible {
+			log.WithField("indexID", token.IndexID).Trace("ignore non-fungible token")
+			continue
+		}
+
+		log.WithField("indexID", token.IndexID).Debug("start refresh token ownership updating flow")
 		var (
 			owners           map[string]int64
 			lastActivityTime time.Time
@@ -320,12 +336,18 @@ func (w *NFTIndexerWorker) RefreshTezosTokenOwnership(ctx context.Context, index
 				return err
 			}
 		case indexer.TezosBlockchain:
-			owners, err = w.indexerEngine.IndexTezosTokenOwners(ctx, token.ContractAddress, token.ID)
+			lastActivityTime, err = w.indexerEngine.IndexTezosTokenLastActivityTime(ctx, token.ContractAddress, token.ID)
 			if err != nil {
 				return err
 			}
 
-			lastActivityTime, err = w.indexerEngine.IndexTezosTokenLastActivityTime(ctx, token.ContractAddress, token.ID)
+			if lastActivityTime.Sub(token.LastActivityTime) <= 0 {
+				log.WithField("indexID", token.IndexID).Trace("no new updates since last check")
+				continue
+			}
+
+			log.WithField("indexID", token.IndexID).Debug("fetch tezos ownership for the token")
+			owners, err = w.indexerEngine.IndexTezosTokenOwners(ctx, token.ContractAddress, token.ID)
 			if err != nil {
 				return err
 			}
