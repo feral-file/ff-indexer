@@ -589,8 +589,7 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 // getTokensByAggregation queries tokens by aggregation which provides a more flexible query option by mongodb
 func (s *MongodbIndexerStore) getTokensByAggregationForOwner(ctx context.Context, owner string, filterParameter FilterParameter, offset, size int64) (*mongo.Cursor, error) {
 	matchQuery := bson.M{
-		"owner":                         owner,
-		fmt.Sprintf("owners.%s", owner): bson.M{"$exists": 1},
+		fmt.Sprintf("owners.%s", owner): bson.M{"$gte": 1},
 		"burned":                        bson.M{"$ne": true},
 	}
 
