@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sirupsen/logrus"
-
 	tx "github.com/bitmark-inc/bitmark-sdk-go/tx"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
+	"github.com/sirupsen/logrus"
 )
 
 // WatchBitmarkEvent listens events from bitmark blockchain db for new transfer events.
@@ -43,9 +42,14 @@ func (s *NFTEventSubscriber) WatchBitmarkEvent(ctx context.Context) error {
 					if t.BitmarkID == t.ID {
 						action = "mint"
 					}
-
-					if err := s.feedServer.SendEvent(indexer.BitmarkBlockchain, "", t.BitmarkID, t.Owner, action); err != nil {
-						logrus.WithError(err).Error("fail to push event to feed server")
+					if t.Owner == indexer.LivenetZeroAddress || t.Owner == indexer.TestnetZeroAddress {
+						if err := s.feedServer.SendBurn(indexer.BitmarkBlockchain, "", t.BitmarkID); err != nil {
+							logrus.WithError(err).Error("fail to push event to feed server")
+						}
+					} else {
+						if err := s.feedServer.SendEvent(indexer.BitmarkBlockchain, "", t.BitmarkID, t.Owner, action); err != nil {
+							logrus.WithError(err).Error("fail to push event to feed server")
+						}
 					}
 
 					indexID := indexer.TokenIndexID(indexer.BitmarkBlockchain, "", t.BitmarkID)

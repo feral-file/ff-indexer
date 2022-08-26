@@ -4,3 +4,5 @@ config.yaml
 *.db
 
 *.dec
+
+TAGS

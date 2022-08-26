@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/sirupsen/logrus"
-
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
 	goethereum "github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/sirupsen/logrus"
 )
 
 // FIXME: the process is not thread-safe ensure it run only once.
@@ -73,8 +72,14 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 					mintType = "mint"
 				}
 
-				if err := s.feedServer.SendEvent(indexer.EthereumBlockchain, contractAddress, tokenIDHash.Big().Text(10), toAddress, mintType); err != nil {
-					logrus.WithError(err).Error("fail to push event to feed server")
+				if toAddress == indexer.EthereumZeroAddress {
+					if err := s.feedServer.SendBurn(indexer.EthereumBlockchain, contractAddress, tokenIDHash.Big().Text(10)); err != nil {
+						logrus.WithError(err).Error("fail to push event to feed server")
+					}
+				} else {
+					if err := s.feedServer.SendEvent(indexer.EthereumBlockchain, contractAddress, tokenIDHash.Big().Text(10), toAddress, mintType); err != nil {
+						logrus.WithError(err).Error("fail to push event to feed server")
+					}
 				}
 
 				// TODO: do we need to move this account specific function out of this service
