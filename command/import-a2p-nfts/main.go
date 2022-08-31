@@ -312,7 +312,7 @@ func importV1(ctx context.Context, db indexer.IndexerStore, assetIDs []string) e
 
 		}
 
-		medium := strings.ToLower(asset.Metadata["medium"])
+		medium := indexer.Medium(strings.ToLower(asset.Metadata["medium"]))
 
 		assetUpdates := indexer.AssetUpdates{
 			ID:     assetID,
@@ -382,7 +382,7 @@ func importV2(ctx context.Context, db indexer.IndexerStore, assetIDs []string) e
 
 		}
 
-		medium := strings.ToLower(asset.Metadata["medium"])
+		medium := indexer.Medium(strings.ToLower(asset.Metadata["medium"]))
 
 		assetUpdates := indexer.AssetUpdates{
 			ID:     assetID,
