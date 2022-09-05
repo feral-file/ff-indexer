@@ -172,13 +172,22 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 			continue
 		}
 
+		if token.Balance == 0 {
+			logrus.WithField("token_id", token.ID).Warn("ignore zero balance update")
+			continue
+		}
+
+		updateSet := bson.M{"owner": token.Owner, "fungible": token.Fungible}
+		if token.Fungible {
+			updateSet[fmt.Sprintf("owners.%s", token.Owner)] = token.Balance
+		} else {
+			updateSet["owners"] = map[string]int64{token.Owner: token.Balance}
+		}
+
 		logrus.WithField("token_id", token.ID).WithField("token", token).Debug("token data for updated")
 		r, err := s.tokenCollection.UpdateOne(ctx,
 			bson.M{"indexID": token.IndexID, "swapped": bson.M{"$ne": true}, "burned": bson.M{"$ne": true}},
-			bson.M{
-				"$set": bson.M{"owner": token.Owner, "fungible": token.Fungible,
-					fmt.Sprintf("owners.%s", token.Owner): token.Balance,
-				}}, options.Update().SetUpsert(true))
+			bson.M{"$set": updateSet}, options.Update().SetUpsert(true))
 		if err != nil {
 			return err
 		}
@@ -477,6 +486,7 @@ func (s *MongodbIndexerStore) PushProvenance(ctx context.Context, indexID string
 	}, bson.M{
 		"$set": bson.M{
 			"owner":             provenance.Owner,
+			"owners":            map[string]int64{provenance.Owner: 1},
 			"lastActivityTime":  provenance.Timestamp,
 			"lastRefreshedTime": time.Now(),
 		},

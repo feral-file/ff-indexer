@@ -26,6 +26,7 @@ func (e *IndexEngine) IndexETHTokenByOwner(ctx context.Context, owner string, of
 		balance, err := e.opensea.GetTokenBalanceForOwner(a.AssetContract.Address, a.TokenID, owner)
 		if err != nil {
 			log.WithError(err).Error("fail to get token balance from owner")
+			continue
 		}
 
 		log.WithFields(log.Fields{
