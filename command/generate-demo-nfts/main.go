@@ -40,7 +40,7 @@ func main() {
 
 	for _, owner := range SELECTED_OWNERS {
 		var tokens []map[string]interface{}
-		cursor, err := tokenCollection.Find(ctx, bson.M{"owner": owner})
+		cursor, err := tokenCollection.Find(ctx, bson.M{fmt.Sprintf("owners.%s", owner): bson.M{"$gt": 0}})
 		if err != nil {
 			panic(err)
 		}
@@ -51,11 +51,13 @@ func main() {
 		fmt.Printf("Create %d demo tokens from address: %s\n", len(tokens), owner)
 
 		demoTokens := []interface{}{}
-		for _, token := range tokens {
+		for i, token := range tokens {
 			delete(token, "_id")
 			indexID := token["indexID"].(string)
-			token["indexID"] = "demo-" + indexID
-			token["owner"] = "demo"
+			token["indexID"] = fmt.Sprintf("demo-%d-%s", i, indexID)
+			token["owners"] = map[string]int{
+				"demo": 1,
+			}
 			token["is_demo"] = true
 
 			demoTokens = append(demoTokens, token)
