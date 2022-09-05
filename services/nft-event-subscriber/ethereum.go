@@ -126,18 +126,20 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 				txID := log.TxHash.Hex()
 
 				token := tokens[0]
-				if err := s.store.PushProvenance(ctx, indexID, token.LastRefreshedTime, indexer.Provenance{
-					Type:        "transfer",
-					FormerOwner: &fromAddress,
-					Owner:       toAddress,
-					Blockchain:  indexer.EthereumBlockchain,
-					Timestamp:   timestamp,
-					TxID:        txID,
-					TxURL:       indexer.TxURL(indexer.EthereumBlockchain, s.network, txID),
-				}); err != nil {
-					logrus.WithError(err).Warn("unable to push provenance, will trigger a full provenance refresh")
-					go indexerWorker.StartRefreshTokenProvenanceWorkflow(ctx, &s.Worker,
-						fmt.Sprintf("subscriber-%s", indexID), indexID, 0)
+				if !token.Fungible {
+					if err := s.store.PushProvenance(ctx, indexID, token.LastRefreshedTime, indexer.Provenance{
+						Type:        "transfer",
+						FormerOwner: &fromAddress,
+						Owner:       toAddress,
+						Blockchain:  indexer.EthereumBlockchain,
+						Timestamp:   timestamp,
+						TxID:        txID,
+						TxURL:       indexer.TxURL(indexer.EthereumBlockchain, s.network, txID),
+					}); err != nil {
+						logrus.WithError(err).Warn("unable to push provenance, will trigger a full provenance refresh")
+						go indexerWorker.StartRefreshTokenProvenanceWorkflow(ctx, &s.Worker,
+							fmt.Sprintf("subscriber-%s", indexID), indexID, 0)
+					}
 				}
 
 				// send notification in the end
