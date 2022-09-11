@@ -3,6 +3,7 @@ package tzkt
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/big"
 	"net/http"
 	"net/url"
@@ -29,6 +30,8 @@ type FileFormat struct {
 	MIMEType string `json:"mimeType"`
 	URI      string `json:"uri"`
 }
+
+type FileCreators []interface{}
 
 type TokenID struct {
 	big.Int
@@ -77,16 +80,18 @@ type OwnedToken struct {
 }
 
 type TokenMetadata struct {
-	Name         string       `json:"name"`
-	Description  string       `json:"description"`
-	Symbol       string       `json:"symbol"`
-	MIMEType     string       `json:"type"`
-	RightURI     string       `json:"rightUri"`
-	ArtifactURI  string       `json:"artifactUri"`
-	DisplayURI   string       `json:"displayUri"`
-	ThumbnailURI string       `json:"thumbnailUri"`
-	Creators     []string     `json:"creators"`
-	Formats      []FileFormat `json:"formats"`
+	Name         string `json:"name"`
+	Description  string `json:"description"`
+	Symbol       string `json:"symbol"`
+	MIMEType     string `json:"type"`
+	RightURI     string `json:"rightUri"`
+	ArtifactURI  string `json:"artifactUri"`
+	DisplayURI   string `json:"displayUri"`
+	ThumbnailURI string `json:"thumbnailUri"`
+	CreatorsRaw  string `json:"creators"`
+	Creators     FileCreators
+	FormatsRaw   string `json:"formats"`
+	Formats      []FileFormat
 }
 
 func (c *TZKT) GetContractToken(contract, tokenID string) (Token, error) {
@@ -110,7 +115,25 @@ func (c *TZKT) GetContractToken(contract, tokenID string) (Token, error) {
 
 	var tokenResponse []Token
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
-		return t, err
+		token, _ := io.ReadAll(resp.Body)
+		if err := json.Unmarshal(token, &tokenResponse); err != nil {
+			fmt.Println(err)
+		}
+
+		var metadataRes []FileFormat
+		if err := json.Unmarshal([]byte(tokenResponse[0].Metadata.FormatsRaw), &metadataRes); err != nil {
+			fmt.Println(err)
+		}
+		var creatorsRes FileCreators
+		if len(tokenResponse[0].Metadata.CreatorsRaw) > 0 {
+			if err := json.Unmarshal([]byte(tokenResponse[0].Metadata.CreatorsRaw), &creatorsRes); err != nil {
+				fmt.Println(err)
+			}
+
+			tokenResponse[0].Metadata.Creators = creatorsRes
+		}
+
+		tokenResponse[0].Metadata.Formats = metadataRes
 	}
 
 	if len(tokenResponse) == 0 {
@@ -146,9 +169,25 @@ func (c *TZKT) RetrieveTokens(owner string, offset int) ([]OwnedToken, error) {
 
 	var ownedTokens []OwnedToken
 	if err := json.NewDecoder(resp.Body).Decode(&ownedTokens); err != nil {
-		return nil, err
-	}
+		token, _ := io.ReadAll(resp.Body)
+		if err := json.Unmarshal(token, &ownedTokens); err != nil {
+			fmt.Println(err)
+		}
+		var metadataRes []FileFormat
+		if err := json.Unmarshal([]byte(ownedTokens[0].Token.Metadata.FormatsRaw), &metadataRes); err != nil {
+			fmt.Println(err)
+		}
+		var creatorsRes FileCreators
+		if len(ownedTokens[0].Token.Metadata.CreatorsRaw) > 0 {
+			if err := json.Unmarshal([]byte(ownedTokens[0].Token.Metadata.CreatorsRaw), &creatorsRes); err != nil {
+				fmt.Println(err)
+			}
 
+			ownedTokens[0].Token.Metadata.Creators = creatorsRes
+		}
+
+		ownedTokens[0].Token.Metadata.Formats = metadataRes
+	}
 	return ownedTokens, nil
 }
 

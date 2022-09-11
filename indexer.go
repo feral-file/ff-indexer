@@ -139,6 +139,7 @@ func (detail *AssetMetadataDetail) FromTZKT(t tzkt.Token) {
 	for _, f := range t.Metadata.Formats {
 		if f.URI == t.Metadata.ArtifactURI {
 			mimeType = f.MIMEType
+			fmt.Printf("Minh_2: %v\n", mimeType)
 			break
 		}
 	}
@@ -151,9 +152,10 @@ func (detail *AssetMetadataDetail) FromTZKT(t tzkt.Token) {
 	detail.MIMEType = mimeType
 	detail.Medium = mediumByMIMEType(mimeType)
 
+	fmt.Printf("Minh - 3. Creators: %v\n", t.Metadata.Creators)
 	if len(t.Metadata.Creators) > 0 {
-		detail.ArtistID = t.Metadata.Creators[0]
-		detail.ArtistName = t.Metadata.Creators[0] // creator tezos address
+		detail.ArtistID = t.Metadata.Creators[0].(string)
+		detail.ArtistName = t.Metadata.Creators[0].(string) // creator tezos address
 		detail.ArtistURL = fmt.Sprintf("https://objkt.com/profile/%s", t.Metadata.Creators[0])
 	}
 
