@@ -26,12 +26,49 @@ func New(endpoint string) *TZKT {
 	}
 }
 
-type FileFormat struct {
-	MIMEType string `json:"mimeType"`
-	URI      string `json:"uri"`
+type FormatDimensions struct {
+	Unit  string `json:"unit"`
+	Value string `json:"value"`
 }
 
-type FileCreators []interface{}
+func (d *FormatDimensions) UnmarshalJSON(data []byte) error {
+	var v string
+
+	return json.Unmarshal(data, &v)
+}
+
+type FileFormat struct {
+	URI        string           `json:"uri"`
+	FileName   string           `json:"fileName,omitempty"`
+	FileSize   string           `json:"fileSize,omitempty"`
+	MIMEType   string           `json:"mimeType"`
+	Dimensions FormatDimensions `json:"dimensions,omitempty"`
+}
+
+type FileFormats []FileFormat
+
+func (f *FileFormats) UnmarshalJSON(data []byte) error {
+	fmt.Println("===== FileFormats UnmarshalJSON: ", string(data))
+	var v string
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
+	}
+	fmt.Println("\t==> v: ", v)
+	return json.Unmarshal([]byte(v), (*[]FileFormat)(f))
+}
+
+type FileCreators []string
+
+func (c *FileCreators) UnmarshalJSON(data []byte) error {
+	fmt.Println("===== FileCreators UnmarshalJSON")
+	var v string
+	if err := json.Unmarshal(data, &v); err != nil {
+		fmt.Println("\t ERROR: ", err)
+	}
+
+	fmt.Println("\t==> v: ", v)
+	return json.Unmarshal([]byte(v), (*[]string)(c))
+}
 
 type TokenID struct {
 	big.Int
@@ -80,18 +117,16 @@ type OwnedToken struct {
 }
 
 type TokenMetadata struct {
-	Name         string `json:"name"`
-	Description  string `json:"description"`
-	Symbol       string `json:"symbol"`
-	MIMEType     string `json:"type"`
-	RightURI     string `json:"rightUri"`
-	ArtifactURI  string `json:"artifactUri"`
-	DisplayURI   string `json:"displayUri"`
-	ThumbnailURI string `json:"thumbnailUri"`
-	CreatorsRaw  string `json:"creators"`
-	Creators     FileCreators
-	FormatsRaw   string `json:"formats"`
-	Formats      []FileFormat
+	Name         string       `json:"name"`
+	Description  string       `json:"description"`
+	Symbol       string       `json:"symbol"`
+	MIMEType     string       `json:"type"`
+	RightURI     string       `json:"rightUri"`
+	ArtifactURI  string       `json:"artifactUri"`
+	DisplayURI   string       `json:"displayUri"`
+	ThumbnailURI string       `json:"thumbnailUri"`
+	Creators     FileCreators `json:"creators"`
+	Formats      FileFormats  `json:"formats"`
 }
 
 func (c *TZKT) GetContractToken(contract, tokenID string) (Token, error) {
@@ -114,26 +149,15 @@ func (c *TZKT) GetContractToken(contract, tokenID string) (Token, error) {
 	defer resp.Body.Close()
 
 	var tokenResponse []Token
-	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
-		token, _ := io.ReadAll(resp.Body)
+	token, err_ := io.ReadAll(resp.Body)
+	fmt.Println(" ===== Minh-20 token =====", string(token))
+	if err_ != io.EOF {
 		if err := json.Unmarshal(token, &tokenResponse); err != nil {
-			fmt.Println(err)
+			fmt.Println(" ===== Minh-20 Contract =====", err)
+			return t, err
 		}
-
-		var metadataRes []FileFormat
-		if err := json.Unmarshal([]byte(tokenResponse[0].Metadata.FormatsRaw), &metadataRes); err != nil {
-			fmt.Println(err)
-		}
-		var creatorsRes FileCreators
-		if len(tokenResponse[0].Metadata.CreatorsRaw) > 0 {
-			if err := json.Unmarshal([]byte(tokenResponse[0].Metadata.CreatorsRaw), &creatorsRes); err != nil {
-				fmt.Println(err)
-			}
-
-			tokenResponse[0].Metadata.Creators = creatorsRes
-		}
-
-		tokenResponse[0].Metadata.Formats = metadataRes
+	} else {
+		fmt.Println(" ===== Minh-20 EOF =====", err_)
 	}
 
 	if len(tokenResponse) == 0 {
@@ -168,26 +192,17 @@ func (c *TZKT) RetrieveTokens(owner string, offset int) ([]OwnedToken, error) {
 	defer resp.Body.Close()
 
 	var ownedTokens []OwnedToken
-	if err := json.NewDecoder(resp.Body).Decode(&ownedTokens); err != nil {
-		token, _ := io.ReadAll(resp.Body)
-		if err := json.Unmarshal(token, &ownedTokens); err != nil {
-			fmt.Println(err)
+	body, err_ := io.ReadAll(resp.Body)
+	fmt.Println(" ===== Minh-2 body =====", string(body))
+	if err_ != io.EOF {
+		if err := json.Unmarshal(body, &ownedTokens); err != nil {
+			fmt.Println(" ===== Minh-20 =====", err)
+			return nil, err
 		}
-		var metadataRes []FileFormat
-		if err := json.Unmarshal([]byte(ownedTokens[0].Token.Metadata.FormatsRaw), &metadataRes); err != nil {
-			fmt.Println(err)
-		}
-		var creatorsRes FileCreators
-		if len(ownedTokens[0].Token.Metadata.CreatorsRaw) > 0 {
-			if err := json.Unmarshal([]byte(ownedTokens[0].Token.Metadata.CreatorsRaw), &creatorsRes); err != nil {
-				fmt.Println(err)
-			}
-
-			ownedTokens[0].Token.Metadata.Creators = creatorsRes
-		}
-
-		ownedTokens[0].Token.Metadata.Formats = metadataRes
+	} else {
+		fmt.Println(" ===== Minh-2 EOF =====", err_)
 	}
+
 	return ownedTokens, nil
 }
 
