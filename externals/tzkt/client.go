@@ -31,12 +31,6 @@ type FormatDimensions struct {
 	Value string `json:"value"`
 }
 
-func (d *FormatDimensions) UnmarshalJSON(data []byte) error {
-	var v string
-
-	return json.Unmarshal(data, &v)
-}
-
 type FileFormat struct {
 	URI        string           `json:"uri"`
 	FileName   string           `json:"fileName,omitempty"`
@@ -149,6 +143,10 @@ func (c *TZKT) GetContractToken(contract, tokenID string) (Token, error) {
 	defer resp.Body.Close()
 
 	var tokenResponse []Token
+
+	// if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
+	// 	return t, err
+	// }
 	token, err_ := io.ReadAll(resp.Body)
 	fmt.Println(" ===== Minh-20 token =====", string(token))
 	if err_ != io.EOF {
@@ -192,16 +190,23 @@ func (c *TZKT) RetrieveTokens(owner string, offset int) ([]OwnedToken, error) {
 	defer resp.Body.Close()
 
 	var ownedTokens []OwnedToken
+	// if err := json.NewDecoder(resp.Body).Decode(&ownedTokens); err != nil {
+	// 	return nil, err
+	// }
 	body, err_ := io.ReadAll(resp.Body)
 	fmt.Println(" ===== Minh-2 body =====", string(body))
 	if err_ != io.EOF {
 		if err := json.Unmarshal(body, &ownedTokens); err != nil {
-			fmt.Println(" ===== Minh-20 =====", err)
+			fmt.Println(" ===== Minh-20 RetrieveTokens=====", err)
 			return nil, err
 		}
 	} else {
 		fmt.Println(" ===== Minh-2 EOF =====", err_)
 	}
+
+	fmt.Println("\t ===== Minh-20 RetrieveTokens ownedTokens: =====", ownedTokens[0].Token.Metadata.Formats[0].MIMEType)
+	fmt.Println("\t ===== Minh-20 RetrieveTokens ownedTokens: =====", ownedTokens[0].Token.Metadata.Formats[0].URI)
+	fmt.Println("\t ===== Minh-20 RetrieveTokens ownedTokens: =====", ownedTokens[0].Token.Metadata.Formats[0].FileSize)
 
 	return ownedTokens, nil
 }

@@ -154,8 +154,8 @@ func (detail *AssetMetadataDetail) FromTZKT(t tzkt.Token) {
 
 	fmt.Printf("Minh - 3. Creators: %v\n", t.Metadata.Creators)
 	if len(t.Metadata.Creators) > 0 {
-		detail.ArtistID = t.Metadata.Creators[0].(string)
-		detail.ArtistName = t.Metadata.Creators[0].(string) // creator tezos address
+		detail.ArtistID = t.Metadata.Creators[0]
+		detail.ArtistName = t.Metadata.Creators[0] // creator tezos address
 		detail.ArtistURL = fmt.Sprintf("https://objkt.com/profile/%s", t.Metadata.Creators[0])
 	}
 
