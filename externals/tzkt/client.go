@@ -1,6 +1,7 @@
 package tzkt
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -25,9 +26,61 @@ func New(endpoint string) *TZKT {
 	}
 }
 
+type FormatDimensions struct {
+	Unit  string `json:"unit"`
+	Value string `json:"value"`
+}
+
 type FileFormat struct {
-	MIMEType string `json:"mimeType"`
-	URI      string `json:"uri"`
+	URI        string           `json:"uri"`
+	FileName   string           `json:"fileName,omitempty"`
+	FileSize   string           `json:"fileSize,omitempty"`
+	MIMEType   string           `json:"mimeType"`
+	Dimensions FormatDimensions `json:"dimensions,omitempty"`
+}
+
+type FileFormats []FileFormat
+
+func (f *FileFormats) UnmarshalJSON(data []byte) error {
+	type formats FileFormats
+
+	switch data[0] {
+	case 34:
+		d_ := bytes.ReplaceAll(bytes.Trim(data, `"`), []byte{92, 117, 48, 48, 50, 50}, []byte{34})
+		d := bytes.ReplaceAll(d_, []byte{92, 34}, []byte{34})
+
+		if err := json.Unmarshal(d, (*formats)(f)); err != nil {
+			return err
+		}
+	default:
+		if err := json.Unmarshal(data, (*formats)(f)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+type FileCreators []string
+
+func (c *FileCreators) UnmarshalJSON(data []byte) error {
+	type creators FileCreators
+
+	switch data[0] {
+	case 34:
+		d_ := bytes.ReplaceAll(bytes.Trim(data, `"`), []byte{92, 117, 48, 48, 50, 50}, []byte{34})
+		d := bytes.ReplaceAll(d_, []byte{92, 34}, []byte{34})
+
+		if err := json.Unmarshal(d, (*creators)(c)); err != nil {
+			return err
+		}
+	default:
+		if err := json.Unmarshal(data, (*creators)(c)); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 type TokenID struct {
@@ -40,6 +93,7 @@ func (b TokenID) MarshalJSON() ([]byte, error) {
 
 func (b *TokenID) UnmarshalJSON(p []byte) error {
 	s := string(p)
+
 	if s == "null" {
 		return fmt.Errorf("invalid token id: %s", p)
 	}
@@ -85,8 +139,8 @@ type TokenMetadata struct {
 	ArtifactURI  string       `json:"artifactUri"`
 	DisplayURI   string       `json:"displayUri"`
 	ThumbnailURI string       `json:"thumbnailUri"`
-	Creators     []string     `json:"creators"`
-	Formats      []FileFormat `json:"formats"`
+	Creators     FileCreators `json:"creators"`
+	Formats      FileFormats  `json:"formats"`
 }
 
 func (c *TZKT) GetContractToken(contract, tokenID string) (Token, error) {
@@ -109,6 +163,7 @@ func (c *TZKT) GetContractToken(contract, tokenID string) (Token, error) {
 	defer resp.Body.Close()
 
 	var tokenResponse []Token
+
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
 		return t, err
 	}
