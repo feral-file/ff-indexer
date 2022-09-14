@@ -145,15 +145,18 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, t tzkt.Token, owner s
 			fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract.Address, t.ID.String())},
 		)
 
-		if detail, err := e.objkt.GetObjktDetailed(ctx, t.ID.Text(10), t.Contract.Address); err != nil {
-			log.WithError(err).Error("fail to get token detail from objkt")
-		} else {
+		if t.Metadata.Symbol == "OBJKTCOM" {
 			metadataDetail.SetMarketplace(MarketplaceProfile{"objkt", "https://objkt.com",
 				fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract.Address, t.ID.String())},
 			)
-			metadataDetail.FromObjktObject(detail)
-			tokenDetail.MintedAt = detail.MintedAt
 		}
+		// if detail, err := e.objkt.GetObjktDetailed(ctx, t.ID.Text(10), t.Contract.Address); err != nil {
+		// 	log.WithError(err).Error("fail to get token detail from objkt")
+		// } else {
+
+		// 	metadataDetail.FromObjktObject(detail)
+		// 	tokenDetail.MintedAt = detail.MintedAt
+		// }
 	}
 
 	pm := ProjectMetadata{
