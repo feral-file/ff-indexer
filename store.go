@@ -152,6 +152,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 				logrus.WithField("token_id", token.ID).Warn("token is not found")
 
 				token.LastActivityTime = token.MintAt // set LastActivityTime to default token minted time
+				token.OwnersArray = []string{token.Owner}
 				_, err := s.tokenCollection.InsertOne(ctx, token)
 				if err != nil {
 					return err
@@ -178,16 +179,24 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		}
 
 		updateSet := bson.M{"owner": token.Owner, "fungible": token.Fungible}
+		var addToSet bson.M
 		if token.Fungible {
 			updateSet[fmt.Sprintf("owners.%s", token.Owner)] = token.Balance
+			addToSet = bson.M{"ownersArray": token.Owner}
 		} else {
 			updateSet["owners"] = map[string]int64{token.Owner: token.Balance}
+			updateSet["ownersArray"] = []string{token.Owner}
+		}
+
+		tokenUpdate := bson.M{"$set": updateSet}
+		if addToSet != nil {
+			tokenUpdate["$addToSet"] = addToSet
 		}
 
 		logrus.WithField("token_id", token.ID).WithField("token", token).Debug("token data for updated")
 		r, err := s.tokenCollection.UpdateOne(ctx,
 			bson.M{"indexID": token.IndexID, "swapped": bson.M{"$ne": true}, "burned": bson.M{"$ne": true}},
-			bson.M{"$set": updateSet}, options.Update().SetUpsert(true))
+			tokenUpdate, options.Update().SetUpsert(true))
 		if err != nil {
 			return err
 		}
@@ -305,6 +314,7 @@ func (s *MongodbIndexerStore) GetOutdatedTokensByOwner(ctx context.Context, owne
 
 	cursor, err := s.tokenCollection.Find(ctx, bson.M{
 		fmt.Sprintf("owners.%s", owner): bson.M{"$gte": 1},
+		"ownersArray":                   bson.M{"$in": bson.A{owner}},
 
 		"burned":  bson.M{"$ne": true},
 		"is_demo": bson.M{"$ne": true},
@@ -419,17 +429,19 @@ func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID
 		return nil
 	}
 
-	currentOwners := provenances[0].Owner
+	currentOwner := provenances[0].Owner
 	tokenUpdates := bson.M{
-		"owner":             currentOwners,
-		"owners":            map[string]int64{currentOwners: 1},
+		"owner":             currentOwner,
+		"owners":            map[string]int64{currentOwner: 1},
+		"ownersArray":       []string{currentOwner},
 		"lastActivityTime":  provenances[0].Timestamp,
 		"lastRefreshedTime": time.Now(),
 		"provenance":        provenances,
 	}
 
-	if provenances[len(provenances)-1].Type == "mint" {
-		tokenUpdates["mintedAt"] = provenances[len(provenances)-1].Timestamp
+	lastProvenance := provenances[len(provenances)-1]
+	if lastProvenance.Type == "mint" || lastProvenance.Type == "issue" {
+		tokenUpdates["mintedAt"] = lastProvenance.Timestamp
 	}
 
 	// update provenance only for non-burned tokens
@@ -450,8 +462,14 @@ func (s *MongodbIndexerStore) UpdateTokenOwners(ctx context.Context, indexID str
 		return nil
 	}
 
+	ownersArray := make([]string, 0, len(owners))
+	for owner := range owners {
+		ownersArray = append(ownersArray, owner)
+	}
+
 	tokenUpdates := bson.M{
 		"owners":            owners,
+		"ownersArray":       ownersArray,
 		"provenance":        nil,
 		"lastRefreshedTime": time.Now(),
 	}
@@ -487,6 +505,7 @@ func (s *MongodbIndexerStore) PushProvenance(ctx context.Context, indexID string
 		"$set": bson.M{
 			"owner":             provenance.Owner,
 			"owners":            map[string]int64{provenance.Owner: 1},
+			"ownersArray":       []string{provenance.Owner},
 			"lastActivityTime":  provenance.Timestamp,
 			"lastRefreshedTime": time.Now(),
 		},
@@ -600,6 +619,7 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 func (s *MongodbIndexerStore) getTokensByAggregationForOwner(ctx context.Context, owner string, filterParameter FilterParameter, offset, size int64) (*mongo.Cursor, error) {
 	matchQuery := bson.M{
 		fmt.Sprintf("owners.%s", owner): bson.M{"$gte": 1},
+		"ownersArray":                   bson.M{"$in": bson.A{owner}},
 		"burned":                        bson.M{"$ne": true},
 	}
 

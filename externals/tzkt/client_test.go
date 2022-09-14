@@ -13,6 +13,14 @@ func TestGetContractToken(t *testing.T) {
 	token, err := tc.GetContractToken("KT1LjmAdYQCLBjwv4S2oFkEzyHVkomAf5MrW", "24216")
 	assert.NoError(t, err)
 	assert.Equal(t, token.Contract.Alias, "Versum Items")
+
+	token2, err := tc.GetContractToken("KT1NVvPsNDChrLRH5K2cy6Sc9r1uuUwdiZQd", "5084") // token with string formats
+	assert.NoError(t, err)
+	assert.Len(t, token2.Metadata.Formats, 3)
+
+	token3, err := tc.GetContractToken("KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton", "777619")
+	assert.NoError(t, err)
+	assert.Len(t, token3.Metadata.Formats, 3)
 }
 
 func TestRetrieveTokens(t *testing.T) {
@@ -72,4 +80,21 @@ func TestGetTokenBalanceForOwner(t *testing.T) {
 	owner, err := tc.GetTokenBalanceForOwner("KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton", "751194", "tz1bpvbjRGW1XHkALp4hFee6PKbnZCcoN9hE")
 	assert.NoError(t, err)
 	assert.Equal(t, owner, int64(1))
+}
+
+func TestGetArtworkMIMEType(t *testing.T) {
+	tc := New("api.mainnet.tzkt.io")
+
+	token, err := tc.GetContractToken("KT1XXcp2U2vAn4dENmKjJkyYb8svTEf2DxTY", "0")
+	assert.NoError(t, err)
+	assert.Len(t, token.Metadata.Formats, 3)
+	var mimeType string
+	for _, f := range token.Metadata.Formats {
+		if f.URI == token.Metadata.ArtifactURI {
+			mimeType = f.MIMEType
+			break
+		}
+	}
+
+	assert.Equal(t, mimeType, "image/jpeg")
 }

@@ -103,6 +103,7 @@ func (b TokenID) MarshalJSON() ([]byte, error) {
 
 func (b *TokenID) UnmarshalJSON(p []byte) error {
 	s := string(p)
+
 	if s == "null" {
 		return fmt.Errorf("invalid token id: %s", p)
 	}
@@ -114,10 +115,6 @@ func (b *TokenID) UnmarshalJSON(p []byte) error {
 
 	b.Int = *z
 	return nil
-}
-
-type TokenInfo struct {
-	MimeType string `json:"mimeType"`
 }
 
 type Account struct {
@@ -143,7 +140,6 @@ type TokenMetadata struct {
 	Name         string       `json:"name"`
 	Description  string       `json:"description"`
 	Symbol       string       `json:"symbol"`
-	MIMEType     string       `json:"type"`
 	RightURI     string       `json:"rightUri"`
 	ArtifactURI  string       `json:"artifactUri"`
 	DisplayURI   string       `json:"displayUri"`
@@ -182,6 +178,7 @@ func (c *TZKT) GetContractToken(contract, tokenID string) (Token, error) {
 	defer resp.Body.Close()
 
 	var tokenResponse []Token
+
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
 		return t, err
 	}

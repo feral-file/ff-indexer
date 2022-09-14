@@ -142,9 +142,6 @@ func (detail *AssetMetadataDetail) FromTZKT(t tzkt.Token) {
 			break
 		}
 	}
-	if t.Metadata.MIMEType != "" {
-		mimeType = t.Metadata.MIMEType
-	}
 
 	detail.Name = t.Metadata.Name
 	detail.Description = t.Metadata.Description

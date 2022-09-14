@@ -42,6 +42,7 @@ type Token struct {
 	Balance         int64            `json:"balance" bson:"-"` // a temporarily state of balance for a specific owner
 	Owner           string           `json:"owner" bson:"owner"`
 	Owners          map[string]int64 `json:"owners" bson:"owners"`
+	OwnersArray     []string         `json:"-" bson:"ownersArray"`
 	AssetID         string           `json:"-" bson:"assetID"`
 	OriginTokenInfo []BaseTokenInfo  `json:"originTokenInfo" bson:"originTokenInfo"`
 
