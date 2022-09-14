@@ -81,3 +81,20 @@ func TestGetTokenBalanceForOwner(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, owner, int64(1))
 }
+
+func TestGetArtworkMIMEType(t *testing.T) {
+	tc := New("api.mainnet.tzkt.io")
+
+	token, err := tc.GetContractToken("KT1XXcp2U2vAn4dENmKjJkyYb8svTEf2DxTY", "0")
+	assert.NoError(t, err)
+	assert.Len(t, token.Metadata.Formats, 3)
+	var mimeType string
+	for _, f := range token.Metadata.Formats {
+		if f.URI == token.Metadata.ArtifactURI {
+			mimeType = f.MIMEType
+			break
+		}
+	}
+
+	assert.Equal(t, mimeType, "image/jpeg")
+}

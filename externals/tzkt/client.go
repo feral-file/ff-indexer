@@ -107,10 +107,6 @@ func (b *TokenID) UnmarshalJSON(p []byte) error {
 	return nil
 }
 
-type TokenInfo struct {
-	MimeType string `json:"mimeType"`
-}
-
 type Account struct {
 	Alias   string `json:"alias"`
 	Address string `json:"address"`
@@ -134,7 +130,6 @@ type TokenMetadata struct {
 	Name         string       `json:"name"`
 	Description  string       `json:"description"`
 	Symbol       string       `json:"symbol"`
-	MIMEType     string       `json:"type"`
 	RightURI     string       `json:"rightUri"`
 	ArtifactURI  string       `json:"artifactUri"`
 	DisplayURI   string       `json:"displayUri"`
