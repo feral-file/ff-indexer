@@ -1,11 +1,13 @@
 package tzkt
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math/big"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -25,9 +27,70 @@ func New(endpoint string) *TZKT {
 	}
 }
 
+type FormatDimensions struct {
+	Unit  string `json:"unit"`
+	Value string `json:"value"`
+}
+
+type FormatFileSize struct {
+	Int int
+}
+
+func (fs *FormatFileSize) UnmarshalJSON(data []byte) error {
+	fs.Int, _ = strconv.Atoi(string(bytes.Trim(data, `"`)))
+	return nil
+}
+
 type FileFormat struct {
-	MIMEType string `json:"mimeType"`
-	URI      string `json:"uri"`
+	URI        string           `json:"uri"`
+	FileName   string           `json:"fileName,omitempty"`
+	FileSize   FormatFileSize   `json:"fileSize,omitempty"`
+	MIMEType   string           `json:"mimeType"`
+	Dimensions FormatDimensions `json:"dimensions,omitempty"`
+}
+
+type FileFormats []FileFormat
+
+func (f *FileFormats) UnmarshalJSON(data []byte) error {
+	type formats FileFormats
+
+	switch data[0] {
+	case 34:
+		d_ := bytes.ReplaceAll(bytes.Trim(data, `"`), []byte{92, 117, 48, 48, 50, 50}, []byte{34})
+		d := bytes.ReplaceAll(d_, []byte{92, 34}, []byte{34})
+
+		if err := json.Unmarshal(d, (*formats)(f)); err != nil {
+			return err
+		}
+	default:
+		if err := json.Unmarshal(data, (*formats)(f)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+type FileCreators []string
+
+func (c *FileCreators) UnmarshalJSON(data []byte) error {
+	type creators FileCreators
+
+	switch data[0] {
+	case 34:
+		d_ := bytes.ReplaceAll(bytes.Trim(data, `"`), []byte{92, 117, 48, 48, 50, 50}, []byte{34})
+		d := bytes.ReplaceAll(d_, []byte{92, 34}, []byte{34})
+
+		if err := json.Unmarshal(d, (*creators)(c)); err != nil {
+			return err
+		}
+	default:
+		if err := json.Unmarshal(data, (*creators)(c)); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 type TokenID struct {
@@ -85,8 +148,18 @@ type TokenMetadata struct {
 	ArtifactURI  string       `json:"artifactUri"`
 	DisplayURI   string       `json:"displayUri"`
 	ThumbnailURI string       `json:"thumbnailUri"`
-	Creators     []string     `json:"creators"`
-	Formats      []FileFormat `json:"formats"`
+	Creators     FileCreators `json:"creators"`
+	Formats      FileFormats  `json:"formats"`
+}
+
+func (f *TokenMetadata) getMinFileSizeURI() string {
+	index := 0
+	for i := 0; len(f.Formats) > 0 && i < len(f.Formats); i++ {
+		if f.Formats[i].FileSize.Int < f.Formats[index].FileSize.Int {
+			index = i
+		}
+	}
+	return f.Formats[index].URI
 }
 
 func (c *TZKT) GetContractToken(contract, tokenID string) (Token, error) {
@@ -111,6 +184,11 @@ func (c *TZKT) GetContractToken(contract, tokenID string) (Token, error) {
 	var tokenResponse []Token
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
 		return t, err
+	}
+
+	tokenResponse[0].Metadata.ThumbnailURI = tokenResponse[0].Metadata.getMinFileSizeURI()
+	if tokenResponse[0].Metadata.ThumbnailURI != "" {
+		tokenResponse[0].Metadata.DisplayURI = tokenResponse[0].Metadata.ThumbnailURI
 	}
 
 	if len(tokenResponse) == 0 {
