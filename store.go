@@ -314,6 +314,7 @@ func (s *MongodbIndexerStore) GetOutdatedTokensByOwner(ctx context.Context, owne
 
 	cursor, err := s.tokenCollection.Find(ctx, bson.M{
 		fmt.Sprintf("owners.%s", owner): bson.M{"$gte": 1},
+		"ownersArray":                   bson.M{"$in": bson.A{owner}},
 
 		"burned":  bson.M{"$ne": true},
 		"is_demo": bson.M{"$ne": true},
@@ -618,6 +619,7 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 func (s *MongodbIndexerStore) getTokensByAggregationForOwner(ctx context.Context, owner string, filterParameter FilterParameter, offset, size int64) (*mongo.Cursor, error) {
 	matchQuery := bson.M{
 		fmt.Sprintf("owners.%s", owner): bson.M{"$gte": 1},
+		"ownersArray":                   bson.M{"$in": bson.A{owner}},
 		"burned":                        bson.M{"$ne": true},
 	}
 
