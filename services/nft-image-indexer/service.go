@@ -20,22 +20,23 @@ type NFTAsset struct {
 	ProjectMetadata indexer.VersionedProjectMetadata `bson:"projectMetadata"`
 }
 
-type NFTImageIndexer struct {
+type NFTContentIndexer struct {
 	wg sync.WaitGroup
 
 	db        *imageStore.ImageStore
+	ipfs      IPFSPinService
 	nftAssets *mongo.Collection
 }
 
-func NewNFTImageIndexer(db *imageStore.ImageStore, nftAssets *mongo.Collection) *NFTImageIndexer {
-	return &NFTImageIndexer{
+func NewNFTContentIndexer(db *imageStore.ImageStore, nftAssets *mongo.Collection) *NFTContentIndexer {
+	return &NFTContentIndexer{
 		db:        db,
 		nftAssets: nftAssets,
 	}
 }
 
 // spawnWorker spawn worker for generate thumbnails from source images
-func (s *NFTImageIndexer) spawnWorker(ctx context.Context, assets <-chan NFTAsset, count int) {
+func (s *NFTContentIndexer) spawnWorker(ctx context.Context, assets <-chan NFTAsset, count int) {
 	for i := 0; i < count; i++ {
 		s.wg.Add(1)
 		go func() {
@@ -74,7 +75,7 @@ func (s *NFTImageIndexer) spawnWorker(ctx context.Context, assets <-chan NFTAsse
 }
 
 // getAssetWithoutThumbnailCached looks up assets without thumbnail cached
-func (s *NFTImageIndexer) getAssetWithoutThumbnailCached(ctx context.Context) (NFTAsset, error) {
+func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) (NFTAsset, error) {
 	var asset NFTAsset
 	r := s.nftAssets.FindOneAndUpdate(ctx,
 		bson.M{
@@ -105,7 +106,7 @@ func (s *NFTImageIndexer) getAssetWithoutThumbnailCached(ctx context.Context) (N
 }
 
 // updateTokenThumbnail sets the thumbnail id for a specific token
-func (s *NFTImageIndexer) updateTokenThumbnail(ctx context.Context, indexID, thumbnailID string) error {
+func (s *NFTContentIndexer) updateTokenThumbnail(ctx context.Context, indexID, thumbnailID string) error {
 	_, err := s.nftAssets.UpdateOne(
 		ctx,
 		bson.M{"indexID": indexID},
@@ -115,7 +116,7 @@ func (s *NFTImageIndexer) updateTokenThumbnail(ctx context.Context, indexID, thu
 	return err
 }
 
-func (s *NFTImageIndexer) Start(ctx context.Context) {
+func (s *NFTContentIndexer) Start(ctx context.Context) {
 	for {
 		assets := make(chan NFTAsset, 200)
 		s.spawnWorker(ctx, assets, 100)

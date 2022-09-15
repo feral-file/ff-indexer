@@ -32,7 +32,7 @@ func main() {
 	db := mongoClient.Database(viper.GetString("store.db_name"))
 	assetCollection := db.Collection("assets")
 
-	imageIndexer := NewNFTImageIndexer(store, assetCollection)
+	imageIndexer := NewNFTContentIndexer(store, assetCollection)
 	imageIndexer.Start(ctx)
 
 	// TODO: detect signal the close the process gracefully
