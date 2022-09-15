@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -32,19 +31,10 @@ type FormatDimensions struct {
 	Value string `json:"value"`
 }
 
-type FormatFileSize struct {
-	Int int
-}
-
-func (fs *FormatFileSize) UnmarshalJSON(data []byte) error {
-	fs.Int, _ = strconv.Atoi(string(bytes.Trim(data, `"`)))
-	return nil
-}
-
 type FileFormat struct {
 	URI        string           `json:"uri"`
 	FileName   string           `json:"fileName,omitempty"`
-	FileSize   FormatFileSize   `json:"fileSize,omitempty"`
+	FileSize   int              `json:"fileSize,string"`
 	MIMEType   string           `json:"mimeType"`
 	Dimensions FormatDimensions `json:"dimensions,omitempty"`
 }
@@ -148,16 +138,6 @@ type TokenMetadata struct {
 	Formats      FileFormats  `json:"formats"`
 }
 
-func (f *TokenMetadata) getMinFileSizeURI() string {
-	index := 0
-	for i := 0; len(f.Formats) > 0 && i < len(f.Formats); i++ {
-		if f.Formats[i].FileSize.Int < f.Formats[index].FileSize.Int {
-			index = i
-		}
-	}
-	return f.Formats[index].URI
-}
-
 func (c *TZKT) GetContractToken(contract, tokenID string) (Token, error) {
 	var t Token
 	v := url.Values{
@@ -181,11 +161,6 @@ func (c *TZKT) GetContractToken(contract, tokenID string) (Token, error) {
 
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
 		return t, err
-	}
-
-	tokenResponse[0].Metadata.ThumbnailURI = tokenResponse[0].Metadata.getMinFileSizeURI()
-	if tokenResponse[0].Metadata.ThumbnailURI != "" {
-		tokenResponse[0].Metadata.DisplayURI = tokenResponse[0].Metadata.ThumbnailURI
 	}
 
 	if len(tokenResponse) == 0 {
