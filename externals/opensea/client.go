@@ -238,8 +238,9 @@ func (c *OpenseaClient) RetrieveAssets(owner string, offset int) ([]Asset, error
 }
 
 type TokenOwner struct {
-	Owner    User  `json:"owner"`
-	Quantity int64 `json:"quantity,string"`
+	Owner       User        `json:"owner"`
+	Quantity    int64       `json:"quantity,string"`
+	CreatedDate OpenSeaTime `json:"created_date"`
 }
 
 type AssetOwners struct {
@@ -327,4 +328,45 @@ func (c *OpenseaClient) RetrieveTokenOwners(contract, tokenID string, cursor *st
 	}
 
 	return ownersResp.Owners, ownersResp.Next, nil
+}
+
+// GetTokenLastActivityTime returns the timestamp of the last activity for a token
+func (c *OpenseaClient) GetTokenLastActivityTime(contract, tokenID string) (time.Time, error) {
+	v := url.Values{
+		"limit":           []string{"1"},
+		"order_by":        []string{"created_date"},
+		"order_direction": []string{"desc"},
+	}
+
+	u := url.URL{
+		Scheme:   "https",
+		Host:     c.apiEndpoint,
+		Path:     fmt.Sprintf("/api/v1/asset/%s/%s/owners", contract, tokenID),
+		RawQuery: v.Encode(),
+	}
+
+	resp, err := c.makeRequest("GET", u.String(), nil)
+	if err != nil {
+		return time.Time{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		errResp, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return time.Time{}, err
+		}
+		return time.Time{}, fmt.Errorf(string(errResp))
+	}
+
+	var ownersResp AssetOwners
+	if err := json.NewDecoder(resp.Body).Decode(&ownersResp); err != nil {
+		return time.Time{}, err
+	}
+
+	if len(ownersResp.Owners) == 0 {
+		return time.Time{}, fmt.Errorf("no activities for this token")
+	}
+
+	return ownersResp.Owners[0].CreatedDate.Time, nil
 }

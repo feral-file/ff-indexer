@@ -175,11 +175,16 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 	return tokenUpdate, nil
 }
 
-// IndexTezosTokenOwners indexes owners of a given token
+// IndexETHTokenLastActivityTime indexes the last activity timestamp of a given token
+func (e *IndexEngine) IndexETHTokenLastActivityTime(ctx context.Context, contract, tokenID string) (time.Time, error) {
+	return e.opensea.GetTokenLastActivityTime(contract, tokenID)
+}
+
+// IndexETHTokenOwners indexes owners of a given token
 func (e *IndexEngine) IndexETHTokenOwners(ctx context.Context, contract, tokenID string) (map[string]int64, error) {
 	log.WithField("blockchain", EthereumBlockchain).
 		WithField("contract", contract).WithField("tokenID", tokenID).
-		Trace("index tezos token owners")
+		Trace("index eth token owners")
 
 	var next *string
 	ownersMap := map[string]int64{}
