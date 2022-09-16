@@ -58,8 +58,7 @@ func main() {
 	worker := indexerWorker.New(network, indexerEngine, awsSession, indexerStore)
 
 	// workflows
-	workflow.Register(worker.IndexOpenseaProvenanceWorkflow)
-	// workflow.Register(worker.IndexTezosProvenanceWorkflow)
+	workflow.Register(worker.MaintainTokenProvenance)
 
 	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)
 	workerLogger := cadence.BuildCadenceLogger(logLevel)
