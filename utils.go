@@ -1,9 +1,11 @@
 package indexer
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -77,5 +79,16 @@ func TxURL(blockchain, network, txID string) string {
 		return fmt.Sprintf("https://etherscan.io/tx/%s", txID)
 	default:
 		return ""
+	}
+}
+
+// SleepWithContext will return whenever the slept time reached or context done
+// It returns true if the context is done
+func SleepWithContext(ctx context.Context, d time.Duration) bool {
+	select {
+	case <-time.After(d):
+		return false
+	case <-ctx.Done():
+		return true
 	}
 }

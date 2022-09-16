@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -28,15 +30,16 @@ type NFTContentIndexer struct {
 	nftAssets *mongo.Collection
 }
 
-func NewNFTContentIndexer(db *imageStore.ImageStore, nftAssets *mongo.Collection) *NFTContentIndexer {
+func NewNFTContentIndexer(db *imageStore.ImageStore, nftAssets *mongo.Collection, ipfs IPFSPinService) *NFTContentIndexer {
 	return &NFTContentIndexer{
 		db:        db,
+		ipfs:      ipfs,
 		nftAssets: nftAssets,
 	}
 }
 
-// spawnWorker spawn worker for generate thumbnails from source images
-func (s *NFTContentIndexer) spawnWorker(ctx context.Context, assets <-chan NFTAsset, count int) {
+// spawnThumbnailWorker spawn worker for generate thumbnails from source images
+func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-chan NFTAsset, count int) {
 	for i := 0; i < count; i++ {
 		s.wg.Add(1)
 		go func() {
@@ -70,6 +73,46 @@ func (s *NFTContentIndexer) spawnWorker(ctx context.Context, assets <-chan NFTAs
 
 				logrus.WithField("indexID", asset.IndexID).Info("thumbnail generating process finished")
 			}
+			logrus.Debug("ThumbnailWorker stopped")
+		}()
+	}
+}
+
+// spawnIPFSPinWorker spawn worker to pin preview file of assets to IPFS
+func (s *NFTContentIndexer) spawnIPFSPinWorker(ctx context.Context, assets <-chan NFTAsset, count int) {
+	for i := 0; i < count; i++ {
+		s.wg.Add(1)
+		go func() {
+			defer s.wg.Done()
+
+			for asset := range assets {
+				previewURL := asset.ProjectMetadata.Latest.PreviewURL
+				if strings.HasPrefix(previewURL, "https://ipfs.io/ipfs/") {
+					ipfsCIDPath := strings.ReplaceAll(previewURL, "https://ipfs.io/ipfs/", "")
+
+					if ipfsCIDPath == "" {
+						logrus.WithField("previewURL", previewURL).Error("incorrect file path")
+						continue
+					}
+
+					cid := strings.Split(ipfsCIDPath, "/")[0]
+
+					if _, err := s.ipfs.Pin(cid); err != nil {
+						logrus.WithField("previewURL", previewURL).WithError(err).Error("fail to pin a file into IPFS")
+						fmt.Println("www", indexer.SleepWithContext(ctx, 30*time.Second))
+						continue
+					}
+
+					if err := s.updateTokenPinnedStatus(ctx, asset.IndexID); err != nil {
+						logrus.WithError(err).Error("fail to update pin status for a token")
+					}
+
+					logrus.WithField("indexID", asset.IndexID).Info("preview url has pinned")
+				} else {
+					logrus.WithField("previewURL", previewURL).Warn("unsupported preview url")
+				}
+			}
+			logrus.Debug("IPFSPinWorker stopped")
 		}()
 	}
 }
@@ -79,7 +122,6 @@ func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) 
 	var asset NFTAsset
 	r := s.nftAssets.FindOneAndUpdate(ctx,
 		bson.M{
-			"indexID":                             bson.M{"$exists": true},
 			"thumbnailID":                         bson.M{"$exists": false},
 			"projectMetadata.latest.thumbnailURL": bson.M{"$ne": ""},
 			"$or": bson.A{
@@ -105,6 +147,39 @@ func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) 
 	return asset, err
 }
 
+// getAssetWithoutIPFSPinned looks up assets without ipfs pinned
+func (s *NFTContentIndexer) getAssetWithoutIPFSPinned(ctx context.Context) (NFTAsset, error) {
+	var asset NFTAsset
+	r := s.nftAssets.FindOneAndUpdate(ctx,
+		bson.M{
+			"ipfsPinned":                        bson.M{"$ne": true},
+			"source":                            indexer.SourceTZKT,
+			"projectMetadata.latest.previewURL": bson.M{"$ne": ""},
+			"projectMetadata.latest.medium":     indexer.MediumVideo,
+			"projectMetadata.latest.mimeType":   bson.M{"$eq": "video/webm"},
+			"$or": bson.A{
+				bson.M{
+					"ipfsPinnedLastCheck": bson.M{"$exists": false},
+				},
+				bson.M{
+					"ipfsPinnedLastCheck": bson.M{"$lt": time.Now().Add(-1 * time.Minute)},
+				},
+			},
+		},
+		bson.M{"$set": bson.M{"ipfsPinnedLastCheck": time.Now()}},
+		options.FindOneAndUpdate().SetProjection(
+			bson.M{"indexID": 1, "projectMetadata.latest.previewURL": 1},
+		),
+	)
+
+	if err := r.Err(); err != nil {
+		return asset, err
+	}
+
+	err := r.Decode(&asset)
+	return asset, err
+}
+
 // updateTokenThumbnail sets the thumbnail id for a specific token
 func (s *NFTContentIndexer) updateTokenThumbnail(ctx context.Context, indexID, thumbnailID string) error {
 	_, err := s.nftAssets.UpdateOne(
@@ -116,11 +191,28 @@ func (s *NFTContentIndexer) updateTokenThumbnail(ctx context.Context, indexID, t
 	return err
 }
 
-func (s *NFTContentIndexer) Start(ctx context.Context) {
-	for {
-		assets := make(chan NFTAsset, 200)
-		s.spawnWorker(ctx, assets, 100)
+// updateTokenPinnedStatus sets a specific token to be pinned
+func (s *NFTContentIndexer) updateTokenPinnedStatus(ctx context.Context, indexID string) error {
+	_, err := s.nftAssets.UpdateOne(
+		ctx,
+		bson.M{"indexID": indexID},
+		bson.D{{"$set", bson.D{{"ipfsPinned", true}}}},
+	)
 
+	return err
+}
+
+func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
+	s.wg.Add(1)
+	go func() {
+		defer s.wg.Done()
+
+		assets := make(chan NFTAsset, 200)
+		defer close(assets)
+
+		s.spawnThumbnailWorker(ctx, assets, 100)
+
+	WATCH_ASSETS:
 		for {
 			asset, err := s.getAssetWithoutThumbnailCached(ctx)
 			if err != nil {
@@ -130,12 +222,56 @@ func (s *NFTContentIndexer) Start(ctx context.Context) {
 					logrus.WithError(err).Error("fail to get asset")
 				}
 
-				// FIXME: add config for thumbnail checking interval
-				time.Sleep(time.Minute)
+				if done := indexer.SleepWithContext(ctx, 15*time.Second); done {
+					break WATCH_ASSETS
+				}
 				continue
 			}
 			logrus.WithField("indexID", asset.IndexID).Debug("send asset to process")
 			assets <- asset
 		}
-	}
+		logrus.Debug("Thumbnail checker closed")
+	}()
+
+}
+
+// checkIPFSPinned starts workers to check and pin files to IPFS
+func (s *NFTContentIndexer) checkIPFSPinned(ctx context.Context) {
+	s.wg.Add(1)
+	go func() {
+		defer s.wg.Done()
+
+		assets := make(chan NFTAsset, 50)
+		defer close(assets)
+
+		s.spawnIPFSPinWorker(ctx, assets, 1)
+
+	WATCH_ASSETS:
+		for {
+			asset, err := s.getAssetWithoutIPFSPinned(ctx)
+			if err != nil {
+				if errors.Is(err, mongo.ErrNoDocuments) {
+					logrus.Info("No token need to pin IPFS")
+				} else {
+					logrus.WithError(err).Error("fail to get asset")
+				}
+
+				if done := indexer.SleepWithContext(ctx, 15*time.Second); done {
+					break WATCH_ASSETS
+				}
+
+				continue
+			}
+
+			logrus.WithField("indexID", asset.IndexID).Debug("send asset to process")
+			assets <- asset
+		}
+		logrus.Debug("IPFS-pinned checker closed")
+	}()
+}
+
+func (s *NFTContentIndexer) Start(ctx context.Context) {
+	s.checkThumbnail(ctx)
+	s.checkIPFSPinned(ctx)
+	s.wg.Wait()
 }

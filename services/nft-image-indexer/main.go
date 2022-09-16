@@ -2,7 +2,11 @@ package main
 
 import (
 	"context"
+	"os"
+	"os/signal"
+	"syscall"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -12,7 +16,8 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
+	mainCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	config.LoadConfig("NFT_INDEXER")
 
@@ -23,7 +28,7 @@ func main() {
 		panic(err)
 	}
 
-	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(viper.GetString("store.db_uri")))
+	mongoClient, err := mongo.Connect(mainCtx, options.Client().ApplyURI(viper.GetString("store.db_uri")))
 	if err != nil {
 		panic(err)
 	}
@@ -32,11 +37,13 @@ func main() {
 	db := mongoClient.Database(viper.GetString("store.db_name"))
 	assetCollection := db.Collection("assets")
 
-	imageIndexer := NewNFTContentIndexer(store, assetCollection)
+	pinataIPFS := NewPinataIPFSPinService()
+
+	ctx, stop := signal.NotifyContext(mainCtx, os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	imageIndexer := NewNFTContentIndexer(store, assetCollection, pinataIPFS)
 	imageIndexer.Start(ctx)
 
-	// TODO: detect signal the close the process gracefully
-	// detect the signal to close and stop the process
-	// close(assets)
-	// s.wg.Wait()
+	logrus.Info("Content indexer terminated")
 }
