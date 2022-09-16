@@ -193,9 +193,10 @@ func (e *IndexEngine) IndexETHTokenOwners(ctx context.Context, contract, tokenID
 			ownersMap[o.Owner.Address] = o.Quantity
 		}
 
-		if len(owners) < 50 {
+		if n == nil {
 			break
 		}
+
 		next = n
 	}
 
