@@ -318,24 +318,3 @@ func (w *NFTIndexerWorker) CacheIPFSArtifactWorkflow(ctx workflow.Context, fullD
 
 	return nil
 }
-
-func (w *NFTIndexerWorker) IndexOpenseaProvenanceWorkflow(ctx workflow.Context, indexIDs []string, delay time.Duration) error {
-	ao := workflow.ActivityOptions{
-		TaskList:               w.TaskListName,
-		ScheduleToStartTimeout: time.Second * 60,
-		StartToCloseTimeout:    time.Hour * 24,
-	}
-
-	log := workflow.GetLogger(ctx)
-
-	ctx = workflow.WithActivityOptions(ctx, ao)
-
-	log.Debug("start - Minh - Start IndexOpenseaProvenanceWorkflow ")
-
-	err := workflow.ExecuteActivity(ctx, w.RefreshTokenProvenance, indexIDs, delay).Get(ctx, nil)
-	if err != nil {
-		log.Error("fail to refresh procenance for indexIDs", zap.Any("indexIDs", indexIDs))
-	}
-
-	return err
-}
