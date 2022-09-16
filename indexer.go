@@ -156,19 +156,20 @@ func (detail *AssetMetadataDetail) FromTZKT(t tzkt.Token) {
 
 	detail.MaxEdition = t.TotalSupply
 
-	var index = 0
-	if len(t.Metadata.Formats) > 0 {
-		for i := 0; i < len(t.Metadata.Formats); i++ {
-			if t.Metadata.Formats[i].FileSize < t.Metadata.Formats[index].FileSize {
-				index = i
-			}
+	var optimizedFileSize = 0
+	var optimizedDisplayURI string
+
+	for _, format := range t.Metadata.Formats {
+		if strings.Contains(format.MIMEType, "image") && format.FileSize > optimizedFileSize {
+			optimizedDisplayURI = format.URI
+			optimizedFileSize = format.FileSize
 		}
 	}
 
 	var displayURI, previewURI string
 
-	if len(t.Metadata.Formats) > 0 && t.Metadata.Formats[index].URI != "" {
-		displayURI = t.Metadata.Formats[index].URI
+	if optimizedDisplayURI != "" {
+		displayURI = optimizedDisplayURI
 	} else if t.Metadata.DisplayURI != "" {
 		displayURI = t.Metadata.DisplayURI
 	} else if t.Metadata.ThumbnailURI != "" {
@@ -177,9 +178,7 @@ func (detail *AssetMetadataDetail) FromTZKT(t tzkt.Token) {
 		displayURI = DEFAULT_DISPLAY_URI
 	}
 
-	if len(t.Metadata.Formats) > 0 && t.Metadata.Formats[index].URI != "" {
-		previewURI = t.Metadata.Formats[index].URI
-	} else if t.Metadata.ArtifactURI != "" {
+	if t.Metadata.ArtifactURI != "" {
 		previewURI = t.Metadata.ArtifactURI
 	} else {
 		previewURI = displayURI
