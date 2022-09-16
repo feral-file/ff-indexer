@@ -34,7 +34,7 @@ type FormatDimensions struct {
 type FileFormat struct {
 	URI        string           `json:"uri"`
 	FileName   string           `json:"fileName,omitempty"`
-	FileSize   string           `json:"fileSize,omitempty"`
+	FileSize   int              `json:"fileSize,string"`
 	MIMEType   string           `json:"mimeType"`
 	Dimensions FormatDimensions `json:"dimensions,omitempty"`
 }
