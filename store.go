@@ -28,6 +28,7 @@ type IndexerStore interface {
 
 	UpdateOwner(ctx context.Context, indexID, owner string, updatedAt time.Time) error
 	UpdateTokenProvenance(ctx context.Context, indexID string, provenances []Provenance) error
+	UpdateMaintainedTokenProvenance(ctx context.Context, indexID string, provenances MaintainedProvenance) error
 	UpdateTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error
 	PushProvenance(ctx context.Context, indexID string, lockedTime time.Time, provenance Provenance) error
 
@@ -72,11 +73,12 @@ func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*Mo
 }
 
 type MongodbIndexerStore struct {
-	dbName             string
-	mongoClient        *mongo.Client
-	tokenCollection    *mongo.Collection
-	assetCollection    *mongo.Collection
-	identityCollection *mongo.Collection
+	dbName               string
+	mongoClient          *mongo.Client
+	tokenCollection      *mongo.Collection
+	assetCollection      *mongo.Collection
+	identityCollection   *mongo.Collection
+	provenanceCollection *mongo.Collection
 }
 
 // IndexAsset creates an asset and its corresponded tokens by inputs
@@ -455,7 +457,27 @@ func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID
 	return err
 }
 
-// UpdateTokenProvenance updates owners for a specific token
+// UpdateMaintainedTokenProvenance updates provenance for a specific token
+func (s *MongodbIndexerStore) UpdateMaintainedTokenProvenance(ctx context.Context, indexID string, provenances MaintainedProvenance) error {
+
+	tokenUpdates := bson.M{
+		"IndexID":    indexID,
+		"Provenance": provenances.Provenance,
+		"Owners":     provenances.Owners,
+		"Fungible":   provenances.Fungible,
+		"AssetID":    provenances.AssetID,
+	}
+
+	_, err := s.provenanceCollection.UpdateOne(ctx, bson.M{
+		"indexID": indexID,
+	}, bson.M{
+		"$set": tokenUpdates,
+	})
+
+	return err
+}
+
+// UpdateTokenOwners updates owners for a specific token
 func (s *MongodbIndexerStore) UpdateTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error {
 	if len(owners) == 0 {
 		logrus.WithField("indexID", indexID).Warn("ignore update empty provenance")

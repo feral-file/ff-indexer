@@ -312,18 +312,16 @@ func (w *NFTIndexerWorker) MaintainTokenProvenance(ctx context.Context, indexIDs
 		return err
 	}
 
-	var totalProvenances []indexer.MaintainedProvenance
-
 	for _, token := range tokens {
-		totalProvenances = append(totalProvenances, indexer.MaintainedProvenance{
+		maintainedProvenances := indexer.MaintainedProvenance{
 			IndexID:    token.IndexID,
 			Provenance: token.Provenances,
 			Owners:     token.Owners,
 			Fungible:   token.Fungible,
 			AssetID:    token.AssetID,
-		})
+		}
 
-		if err := w.indexerStore.UpdateMaintainedTokenProvenance(ctx, token.IndexID, totalProvenances); err != nil {
+		if err := w.indexerStore.UpdateMaintainedTokenProvenance(ctx, token.IndexID, maintainedProvenances); err != nil {
 			return err
 		}
 	}
