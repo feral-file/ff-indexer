@@ -305,11 +305,11 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 	return nil
 }
 
-// maintainTokenProvenance
-func (w *NFTIndexerWorker) MaintainTokenProvenance(ctx context.Context, indexIDs []string) ([]indexer.MaintainedProvenance, error) {
+// MaintainTokenProvenance update Token provenance
+func (w *NFTIndexerWorker) MaintainTokenProvenance(ctx context.Context, indexIDs []string) error {
 	tokens, err := w.indexerStore.GetTokensByIndexIDs(ctx, indexIDs)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	var totalProvenances []indexer.MaintainedProvenance
@@ -322,9 +322,13 @@ func (w *NFTIndexerWorker) MaintainTokenProvenance(ctx context.Context, indexIDs
 			Fungible:   token.Fungible,
 			AssetID:    token.AssetID,
 		})
+
+		if err := w.indexerStore.UpdateMaintainedTokenProvenance(ctx, token.IndexID, totalProvenances); err != nil {
+			return err
+		}
 	}
 
-	return totalProvenances, nil
+	return nil
 }
 
 // RefreshTezosTokenOwnership refreshes ownership for each tokens

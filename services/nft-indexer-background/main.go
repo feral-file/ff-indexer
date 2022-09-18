@@ -64,7 +64,7 @@ func main() {
 	workflow.RegisterWithOptions(worker.IndexTokenWorkflow, workflow.RegisterOptions{
 		Name: "IndexTokenWorkflow",
 	})
-	workflow.Register(worker.RefreshTokenProvenanceWorkflow)
+	// workflow.Register(worker.RefreshTokenProvenanceWorkflow)
 	workflow.Register(worker.RefreshTokenOwnershipWorkflow)
 
 	// cache
@@ -83,7 +83,7 @@ func main() {
 	activity.Register(worker.IndexAsset)
 	activity.Register(worker.GetTokenIDsByOwner)
 	activity.Register(worker.GetOutdatedTokensByOwner)
-	activity.Register(worker.RefreshTokenProvenance)
+	// activity.Register(worker.RefreshTokenProvenance)
 
 	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)
 	workerLogger := cadence.BuildCadenceLogger(logLevel)

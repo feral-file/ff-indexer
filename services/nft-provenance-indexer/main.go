@@ -8,6 +8,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"go.uber.org/cadence/activity"
 	"go.uber.org/cadence/workflow"
 
 	"github.com/bitmark-inc/config-loader"
@@ -58,9 +59,12 @@ func main() {
 	worker := indexerWorker.New(network, indexerEngine, awsSession, indexerStore)
 
 	// workflows
-	workflow.Register(worker.MaintainTokenProvenance)
+	workflow.Register(worker.MaintainProvenanceWorkflow)
+
+	// activities
+	activity.Register(worker.MaintainTokenProvenance)
 
 	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)
 	workerLogger := cadence.BuildCadenceLogger(logLevel)
-	cadence.StartWorker(workerLogger, workerServiceClient, viper.GetString("cadence.domain"), indexerWorker.TaskListName)
+	cadence.StartWorker(workerLogger, workerServiceClient, viper.GetString("cadence.domain"), "nft-provenance-indexer")
 }

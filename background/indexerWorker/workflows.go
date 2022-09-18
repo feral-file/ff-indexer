@@ -277,6 +277,27 @@ func (w *NFTIndexerWorker) RefreshTokenProvenanceWorkflow(ctx workflow.Context, 
 	return err
 }
 
+func (w *NFTIndexerWorker) MaintainProvenanceWorkflow(ctx workflow.Context, indexIDs []string, delay time.Duration) error {
+	ao := workflow.ActivityOptions{
+		TaskList:               w.TaskListName,
+		ScheduleToStartTimeout: time.Second * 60,
+		StartToCloseTimeout:    time.Hour * 24,
+	}
+
+	log := workflow.GetLogger(ctx)
+
+	ctx = workflow.WithActivityOptions(ctx, ao)
+
+	log.Debug("start MaintainProvenanceWorkflow ")
+
+	err := workflow.ExecuteActivity(ctx, w.MaintainTokenProvenance, indexIDs).Get(ctx, nil)
+	if err != nil {
+		log.Error("fail to maintain provenance for indexIDs", zap.Any("indexIDs", indexIDs))
+	}
+
+	return nil
+}
+
 // RefreshTokenOwnershipWorkflow is a workflow to refresh ownership for a specific token
 func (w *NFTIndexerWorker) RefreshTokenOwnershipWorkflow(ctx workflow.Context, indexIDs []string, delay time.Duration) error {
 	ao := workflow.ActivityOptions{
