@@ -96,8 +96,9 @@ func main() {
 	}
 
 	engine := indexer.New(
-		opensea.New(viper.GetString("network"), viper.GetString("opensea.api_key"), viper.GetInt("opensea.ratelimit")),
-		tzkt.New("api.mainnet.tzkt.io"),
+		network,
+		opensea.New(network, viper.GetString("opensea.api_key"), viper.GetInt("opensea.ratelimit")),
+		tzkt.New(network),
 		fxhash.New(viper.GetString("fxhash.api_endpoint")),
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 	)

@@ -8,7 +8,7 @@ import (
 )
 
 func TestGetContractToken(t *testing.T) {
-	tc := New("api.mainnet.tzkt.io")
+	tc := New("")
 
 	token, err := tc.GetContractToken("KT1LjmAdYQCLBjwv4S2oFkEzyHVkomAf5MrW", "24216")
 	assert.NoError(t, err)
@@ -24,7 +24,7 @@ func TestGetContractToken(t *testing.T) {
 }
 
 func TestRetrieveTokens(t *testing.T) {
-	tc := New("api.mainnet.tzkt.io")
+	tc := New("")
 
 	ownedTokens, err := tc.RetrieveTokens("tz1RBi5DCVBYh1EGrcoJszkte1hDjrFfXm5C", 0)
 	assert.NoError(t, err)
@@ -33,7 +33,7 @@ func TestRetrieveTokens(t *testing.T) {
 }
 
 func TestGetTokenTransfers(t *testing.T) {
-	tc := New("api.mainnet.tzkt.io")
+	tc := New("")
 
 	transfers, err := tc.GetTokenTransfers("KT1U6EHmNxJTkvaWJ4ThczG4FSDaHC21ssvi", "905625")
 	assert.NoError(t, err)
@@ -49,7 +49,7 @@ func TestGetTokenTransfers(t *testing.T) {
 }
 
 func TestGetTransaction(t *testing.T) {
-	tc := New("api.mainnet.tzkt.io")
+	tc := New("")
 
 	transaction, err := tc.GetTransaction(123186632)
 	assert.NoError(t, err)
@@ -57,7 +57,7 @@ func TestGetTransaction(t *testing.T) {
 }
 
 func TestGetTokenActivityTime(t *testing.T) {
-	tc := New("api.mainnet.tzkt.io")
+	tc := New("")
 
 	activityTime, err := tc.GetTokenLastActivityTime("KT1U6EHmNxJTkvaWJ4ThczG4FSDaHC21ssvi", "905625")
 	assert.NoError(t, err)
@@ -67,7 +67,7 @@ func TestGetTokenActivityTime(t *testing.T) {
 }
 
 func TestGetTokenActivityTimeNotExist(t *testing.T) {
-	tc := New("api.mainnet.tzkt.io")
+	tc := New("")
 
 	activityTime, err := tc.GetTokenLastActivityTime("KT1U6EHmNxJTkvaWJ4ThczG4FSDaHC21ssvi", "0")
 	assert.Error(t, err, "no activities for this token")
@@ -75,7 +75,7 @@ func TestGetTokenActivityTimeNotExist(t *testing.T) {
 }
 
 func TestGetTokenBalanceForOwner(t *testing.T) {
-	tc := New("api.mainnet.tzkt.io")
+	tc := New("")
 
 	owner, err := tc.GetTokenBalanceForOwner("KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton", "751194", "tz1bpvbjRGW1XHkALp4hFee6PKbnZCcoN9hE")
 	assert.NoError(t, err)
@@ -83,7 +83,7 @@ func TestGetTokenBalanceForOwner(t *testing.T) {
 }
 
 func TestGetArtworkMIMEType(t *testing.T) {
-	tc := New("api.mainnet.tzkt.io")
+	tc := New("")
 
 	token, err := tc.GetContractToken("KT1XXcp2U2vAn4dENmKjJkyYb8svTEf2DxTY", "0")
 	assert.NoError(t, err)
