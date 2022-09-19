@@ -13,10 +13,11 @@ import (
 
 var ClientName = "nft-indexer-worker"
 var TaskListName = "nft-indexer"
+var ProvenanceTaskListName = "nft-provenance-indexer-worker"
 
 type NFTIndexerWorker struct {
-	http          *http.Client
-	awsSession    *session.Session
+	http       *http.Client
+	awsSession *session.Session
 
 	ipfsCacheBucketName string
 
@@ -27,8 +28,9 @@ type NFTIndexerWorker struct {
 	bitmarkZeroAddress string
 	bitmarkAPIEndpoint string
 
-	Network      string
-	TaskListName string
+	Network                string
+	TaskListName           string
+	ProvenanceTaskListName string
 }
 
 func New(network string,
@@ -66,7 +68,8 @@ func New(network string,
 		bitmarkZeroAddress: bitmarkZeroAddress,
 		bitmarkAPIEndpoint: bitmarkAPIEndpoint,
 
-		Network:      network,
-		TaskListName: TaskListName,
+		Network:                network,
+		TaskListName:           TaskListName,
+		ProvenanceTaskListName: ProvenanceTaskListName,
 	}
 }

@@ -65,7 +65,7 @@ func main() {
 		Name: "IndexTokenWorkflow",
 	})
 	// workflow.Register(worker.RefreshTokenProvenanceWorkflow)
-	workflow.Register(worker.RefreshTokenOwnershipWorkflow)
+	//workflow.Register(worker.RefreshTokenOwnershipWorkflow)
 
 	// cache
 	activity.Register(worker.CacheIPFSArtifactInS3)
@@ -78,7 +78,7 @@ func main() {
 	// tezos
 	activity.Register(worker.GetTezosTokenByOwner)
 	activity.Register(worker.PrepareTezosTokenFullData)
-	activity.Register(worker.RefreshTezosTokenOwnership)
+	// activity.Register(worker.RefreshTezosTokenOwnership)
 	// index store
 	activity.Register(worker.IndexAsset)
 	activity.Register(worker.GetTokenIDsByOwner)

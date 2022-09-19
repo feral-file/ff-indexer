@@ -35,14 +35,14 @@ func main() {
 		Dsn:         viper.GetString("sentry.dsn"),
 		Environment: network,
 	}); err != nil {
-		log.WithError(err).Panic("- Minh - Sentry initialization failed")
+		log.WithError(err).Panic("Sentry initialization failed")
 	}
 
 	ctx := context.Background()
 
 	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
 	if err != nil {
-		log.WithError(err).Panic("- Minh - fail to initiate indexer store")
+		log.WithError(err).Panic("fail to initiate indexer store")
 	}
 
 	indexerEngine := indexer.New(
@@ -60,11 +60,15 @@ func main() {
 
 	// workflows
 	workflow.Register(worker.MaintainProvenanceWorkflow)
+	workflow.Register(worker.RefreshTokenProvenanceWorkflow)
+	workflow.Register(worker.RefreshTokenOwnershipWorkflow)
 
 	// activities
 	activity.Register(worker.MaintainTokenProvenance)
+	activity.Register(worker.RefreshTokenProvenance)
+	activity.Register(worker.RefreshTezosTokenOwnership)
 
 	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)
 	workerLogger := cadence.BuildCadenceLogger(logLevel)
-	cadence.StartWorker(workerLogger, workerServiceClient, viper.GetString("cadence.domain"), "nft-provenance-indexer")
+	cadence.StartWorker(workerLogger, workerServiceClient, viper.GetString("cadence.domain"), indexerWorker.ProvenanceTaskListName)
 }
