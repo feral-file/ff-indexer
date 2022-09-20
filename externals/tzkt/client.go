@@ -17,7 +17,12 @@ type TZKT struct {
 	client *http.Client
 }
 
-func New(endpoint string) *TZKT {
+func New(network string) *TZKT {
+	endpoint := "api.mainnet.tzkt.io"
+	if network == "testnet" {
+		endpoint = "api.ghostnet.tzkt.io"
+	}
+
 	return &TZKT{
 		client: &http.Client{
 			Timeout: 15 * time.Second,

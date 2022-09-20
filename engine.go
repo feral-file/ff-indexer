@@ -8,6 +8,7 @@ import (
 )
 
 type IndexEngine struct {
+	network string
 	opensea *opensea.OpenseaClient
 	tzkt    *tzkt.TZKT
 	fxhash  *fxhash.FxHashAPI
@@ -15,12 +16,14 @@ type IndexEngine struct {
 }
 
 func New(
+	network string,
 	opensea *opensea.OpenseaClient,
 	tzkt *tzkt.TZKT,
 	fxhash *fxhash.FxHashAPI,
 	objkt *objkt.ObjktAPI,
 ) *IndexEngine {
 	return &IndexEngine{
+		network: network,
 		opensea: opensea,
 		tzkt:    tzkt,
 		fxhash:  fxhash,

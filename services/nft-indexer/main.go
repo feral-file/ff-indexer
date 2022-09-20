@@ -25,9 +25,11 @@ func main() {
 
 	config.LoadConfig("NFT_INDEXER")
 
+	network := viper.GetString("network")
+
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn:         viper.GetString("sentry.dsn"),
-		Environment: viper.GetString("network"),
+		Environment: network,
 	}); err != nil {
 		log.WithError(err).Panic("Sentry initialization failed")
 	}
@@ -45,8 +47,9 @@ func main() {
 	feralfileClient := feralfile.New(viper.GetString("feralfile.api_url"))
 
 	engine := indexer.New(
-		opensea.New(viper.GetString("network"), viper.GetString("opensea.api_key"), viper.GetInt("opensea.ratelimit")),
-		tzkt.New("api.mainnet.tzkt.io"),
+		network,
+		opensea.New(network, viper.GetString("opensea.api_key"), viper.GetInt("opensea.ratelimit")),
+		tzkt.New(network),
 		fxhash.New(viper.GetString("fxhash.api_endpoint")),
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 	)
