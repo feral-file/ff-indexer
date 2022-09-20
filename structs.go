@@ -14,14 +14,6 @@ const (
 	MediumOther    = "other"
 )
 
-type MaintainedProvenance struct {
-	IndexID    string
-	Provenance []Provenance
-	Owners     map[string]int64
-	Fungible   bool
-	AssetID    string
-}
-
 type Provenance struct {
 	// this field is only for ownership validating
 	FormerOwner *string `json:"formerOwner,omitempty" bson:"-"`

@@ -59,12 +59,10 @@ func main() {
 	worker := indexerWorker.New(network, indexerEngine, awsSession, indexerStore)
 
 	// workflows
-	workflow.Register(worker.MaintainProvenanceWorkflow)
 	workflow.Register(worker.RefreshTokenProvenanceWorkflow)
 	workflow.Register(worker.RefreshTokenOwnershipWorkflow)
 
 	// activities
-	activity.Register(worker.MaintainTokenProvenance)
 	activity.Register(worker.RefreshTokenProvenance)
 	activity.Register(worker.RefreshTezosTokenOwnership)
 
