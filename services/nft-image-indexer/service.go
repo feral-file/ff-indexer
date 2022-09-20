@@ -156,7 +156,7 @@ func (s *NFTContentIndexer) getAssetWithoutIPFSPinned(ctx context.Context) (NFTA
 			"source":                            indexer.SourceTZKT,
 			"projectMetadata.latest.previewURL": bson.M{"$ne": ""},
 			"projectMetadata.latest.medium":     indexer.MediumVideo,
-			"projectMetadata.latest.mimeType":   bson.M{"$eq": "video/webm"},
+			"projectMetadata.latest.mimeType":   bson.M{"$in": bson.A{"video/webm", "video/quicktime", "video/ogg", "video/mp4"}},
 			"$or": bson.A{
 				bson.M{
 					"ipfsPinnedLastCheck": bson.M{"$exists": false},
