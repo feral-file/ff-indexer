@@ -11,7 +11,11 @@ data:
     log:
       level: {{ .Values.serviceConfig.log_level | default "info" }}
 
-    network: {{ .Values.serviceConfig.network }}
+    environment: {{ .Values.serviceConfig.environment }}
+    network:
+      bitmark: {{ .Values.serviceConfig.network.bitmark }}
+      ethereum: {{ .Values.serviceConfig.network.ethereum }}
+      tezos: {{ .Values.serviceConfig.network.tezos }}
 
     cadence:
       host_port: {{ .Values.serviceConfig.cadence_hostport }}

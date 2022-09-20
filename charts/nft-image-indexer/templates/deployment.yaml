@@ -59,6 +59,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-image-indexer.fullname" . }}
                   key: cloudflare_api_token
+            - name: NFT_INDEXER_PINATA_JWT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-image-indexer.fullname" . }}
+                  key: pinata_jwt
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
