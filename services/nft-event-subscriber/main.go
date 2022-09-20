@@ -49,10 +49,10 @@ func main() {
 
 	ctx := context.Background()
 
-	network := viper.GetString("network")
+	environment := viper.GetString("environment")
 
 	bitmarksdk.Init(&bitmarksdk.Config{
-		Network: bitmarksdk.Network(network),
+		Network: bitmarksdk.Network(viper.GetString("network.bitmark")),
 		HTTPClient: &http.Client{
 			Timeout: 15 * time.Second,
 		},
@@ -61,7 +61,7 @@ func main() {
 
 	w, err := ethereum.NewWalletFromMnemonic(
 		viper.GetString("ethereum.worker_account_mnemonic"),
-		network,
+		viper.GetString("network.ethereum"),
 		viper.GetString("ethereum.rpc_url"),
 	)
 	if err != nil {
@@ -96,16 +96,16 @@ func main() {
 	}
 
 	engine := indexer.New(
-		network,
-		opensea.New(network, viper.GetString("opensea.api_key"), viper.GetInt("opensea.ratelimit")),
-		tzkt.New(network),
+		environment,
+		opensea.New(viper.GetString("network.ethereum"), viper.GetString("opensea.api_key"), viper.GetInt("opensea.ratelimit")),
+		tzkt.New(viper.GetString("network.tezos")),
 		fxhash.New(viper.GetString("fxhash.api_endpoint")),
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 	)
 
 	feed := NewFeedClient(viper.GetString("feed.endpoint"), viper.GetString("feed.api_token"))
 
-	service := New(w, network, wsClient,
+	service := New(w, environment, wsClient,
 		indexerStore, engine,
 		accountStore,
 		bitmarkListener,

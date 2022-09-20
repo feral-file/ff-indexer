@@ -65,18 +65,18 @@ func DetectContractBlockchain(contractAddress string) string {
 }
 
 // TxURL returns corresponded blockchain transaction URL
-func TxURL(blockchain, network, txID string) string {
+func TxURL(blockchain, environment, txID string) string {
 	switch blockchain {
 	case BitmarkBlockchain:
-		if network == "testnet" {
-			return fmt.Sprintf("https://registry.test.bitmark.com/transaction/%s", txID)
+		if environment == "production" {
+			return fmt.Sprintf("https://registry.bitmark.com/transaction/%s", txID)
 		}
-		return fmt.Sprintf("https://registry.bitmark.com/transaction/%s", txID)
+		return fmt.Sprintf("https://registry.test.bitmark.com/transaction/%s", txID)
 	case EthereumBlockchain:
-		if network == "testnet" {
-			return fmt.Sprintf("https://rinkeby.etherscan.io/tx/%s", txID)
+		if environment == "production" {
+			return fmt.Sprintf("https://etherscan.io/tx/%s", txID)
 		}
-		return fmt.Sprintf("https://etherscan.io/tx/%s", txID)
+		return fmt.Sprintf("https://goerli.etherscan.io/tx/%s", txID)
 	default:
 		return ""
 	}
