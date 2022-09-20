@@ -98,6 +98,15 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tags.tezosFeralfileIndexer | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: CONTRACT_CONFIG
+              value: /.config/config.json
+            - name: TEZOS_NODE_RPC_URL
+              value: {{ .Values.serviceConfig.tezosNodeRPCURL }}
+          volumeMounts:
+          - name: ff-indexer-config
+            mountPath: "/.config"
+            readOnly: true
       volumes:
       # You set volumes at the Pod level, then mount them into containers inside that Pod
       - name: config
@@ -106,6 +115,12 @@ spec:
           items:
           - key: "config.yaml"
             path: "config.yaml"
+      - name: ff-indexer-config
+        configMap:
+          name: {{ include "nft-event-subscriber.fullname" . }}
+          items:
+          - key: "ff_indexer_config.json"
+            path: "config.json"
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

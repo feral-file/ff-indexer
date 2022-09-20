@@ -26,3 +26,8 @@ data:
 
     feed:
       endpoint: http://autonomy-event-feed.autonomy.svc.cluster.local:80
+
+  ff_indexer_config.json: |
+    {
+      "contractAddress": {{ .Values.serviceConfig.contractAddress | toJson }}
+    }
