@@ -41,6 +41,35 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 		return
 	}
 
+	if len(reqParams.IDs) > len(tokenInfo) {
+		// find redundant reqParams.IDs to index
+		m := make(map[string]bool, len(reqParams.IDs))
+		for _, id := range reqParams.IDs {
+			m[id] = true
+		}
+
+		for _, info := range tokenInfo {
+			if m[info.IndexID] {
+				delete(m, info.IndexID)
+			}
+		}
+
+		// index redundant reqParams.IDs
+		for redundantID := range m {
+			owner := ""
+			blockchain := strings.Split(redundantID, "-")[0]
+			contract := strings.Split(redundantID, "-")[1]
+			tokenId := strings.Split(redundantID, "-")[2]
+
+			switch blockchain {
+			case indexer.BlockchianAlias["TezosBlockchain"]:
+				go s.indexerEngine.IndexTezosToken(c, owner, contract, tokenId)
+			case indexer.BlockchianAlias["EthereumBlockchain"]:
+				go s.indexerEngine.IndexETHToken(c, owner, contract, tokenId)
+			}
+		}
+	}
+
 	c.JSON(http.StatusOK, tokenInfo)
 }
 
