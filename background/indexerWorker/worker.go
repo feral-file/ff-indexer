@@ -13,7 +13,7 @@ import (
 
 var ClientName = "nft-indexer-worker"
 var TaskListName = "nft-indexer"
-var ProvenanceTaskListName = "nft-provenance-indexer-worker"
+var ProvenanceTaskListName = "nft-provenance-indexer"
 
 type NFTIndexerWorker struct {
 	http       *http.Client
