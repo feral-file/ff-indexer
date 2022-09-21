@@ -67,8 +67,23 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 	return tokenUpdates, nil
 }
 
+func (e *IndexEngine) GetTokenOwners(contract, tokenID string) ([]tzkt.TokenOwner, error) {
+	return e.tzkt.GetTokenOwners(contract, tokenID)
+}
+
 // IndexTezosToken indexes a Tezos token with a specific contract and ID
 func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, tokenID string) (*AssetUpdates, error) {
+	if contract == "" {
+		return nil, nil
+	} else if owner == "" {
+		tokenOwner, err := e.tzkt.GetTokenOwners(contract, tokenID)
+		fmt.Printf("\n\t IndexTezosToken: tokenOwner: %v", tokenOwner)
+		if err != nil {
+			return nil, err
+		}
+		owner = tokenOwner[0].Address
+	}
+	fmt.Printf("\n\t IndexTezosToken: tokenID: %s tokenOwner: %v, contract: %s ", tokenID, owner, contract)
 	t, err := e.tzkt.GetContractToken(contract, tokenID)
 	if err != nil {
 		return nil, err
@@ -90,6 +105,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, t tzkt.Token, owner s
 	t, err := e.tzkt.GetContractToken(t.Contract.Address, t.ID.String())
 	if err != nil {
 		log.WithError(err).Error("can not index token: fail to get metadata for the token")
+		fmt.Println("\n\n\t Index Tezos Token: error")
 		return nil, err
 	}
 
@@ -105,6 +121,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, t tzkt.Token, owner s
 
 	switch t.Contract.Address {
 	case KALAMContractAddress, TezDaoContractAddress, TezosDNSContractAddress:
+		fmt.Println("\n\n\t Index Tezos Token: RETURN")
 		return nil, nil
 
 	case FXHASHV2ContractAddress, FXHASHContractAddress, FXHASHOldContractAddress:
@@ -138,6 +155,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, t tzkt.Token, owner s
 		metadataDetail.SetMarketplace(MarketplaceProfile{"hic et nunc", "https://objkt.com",
 			fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract.Address, t.ID.String())},
 		)
+		fmt.Println("\n\n\t Index Tezos Token: HicEtNuncContractAddress")
 	default:
 		tokenDetail.Fungible = true
 		// fallback marketplace
@@ -150,6 +168,8 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, t tzkt.Token, owner s
 				fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract.Address, t.ID.String())},
 			)
 		}
+
+		fmt.Println("\n\n\t Index Tezos Token: DEFAULT")
 		// if detail, err := e.objkt.GetObjktDetailed(ctx, t.ID.Text(10), t.Contract.Address); err != nil {
 		// 	log.WithError(err).Error("fail to get token detail from objkt")
 		// } else {
@@ -205,7 +225,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, t tzkt.Token, owner s
 			},
 		},
 	}
-
+	fmt.Println("\n\n\t Index Tezos Token FINALLY : TezosBlockchainL ", TezosBlockchain)
 	log.WithField("blockchain", TezosBlockchain).
 		WithField("id", TokenIndexID(TezosBlockchain, t.Contract.Address, t.ID.String())).
 		WithField("tokenUpdate", tokenUpdate).
@@ -268,6 +288,7 @@ func (e *IndexEngine) IndexTezosTokenOwners(ctx context.Context, contract, token
 		Trace("index tezos token owners")
 
 	owners, err := e.tzkt.GetTokenOwners(contract, tokenID)
+	fmt.Println("\n\n Minh - IndexTezosTokenOwners. ", owners)
 	if err != nil {
 		return nil, err
 	}

@@ -30,7 +30,7 @@ func AssetIndexID(source, id string) string {
 // TokenIndexID returns blockchain-based unique token id. It is constructed by
 // blockchain alias, token contract and token id.
 func TokenIndexID(blockchainType, contractAddress, id string) string {
-	blockchainAlias, ok := BlockchianAlias[blockchainType]
+	blockchainAlias, ok := BlockchainAlias[blockchainType]
 	if !ok {
 		blockchainAlias = "undefined"
 	}

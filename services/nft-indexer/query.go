@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
 
@@ -56,16 +57,39 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 
 		// index redundant reqParams.IDs
 		for redundantID := range m {
-			owner := ""
+			owner := "tz1YXJXYYB6nUQbhJVPYV8giRr8JRygGT4w5"
 			blockchain := strings.Split(redundantID, "-")[0]
 			contract := strings.Split(redundantID, "-")[1]
 			tokenId := strings.Split(redundantID, "-")[2]
 
-			switch blockchain {
-			case indexer.BlockchianAlias["TezosBlockchain"]:
-				go s.indexerEngine.IndexTezosToken(c, owner, contract, tokenId)
-			case indexer.BlockchianAlias["EthereumBlockchain"]:
-				go s.indexerEngine.IndexETHToken(c, owner, contract, tokenId)
+			fmt.Printf("\n\n blockchain: %s. contract: %s, tokenId: %s\n", blockchain, contract, tokenId)
+
+			if contract != "" {
+				// var e indexer.IndexEngine
+				// tokenOwner, err := e.GetTokenOwners(contract, tokenId)
+
+				// fmt.Printf("\n\t IndexTezosToken: tokenID: %s tokenOwner: %v", tokenId, tokenOwner)
+
+				// if err != nil {
+				// 	fmt.Println("\n\n\t Some erros with GetTokenOwners: ", err)
+				// 	return
+				// }
+				// owner = tokenOwner[0].Address
+
+				fmt.Println("\n\t IndexTezosToken: owner: ", owner)
+
+				var w indexerWorker.NFTIndexerWorker
+				switch blockchain {
+				case "tez":
+					fmt.Println("\n\t\t Go to Tezos token")
+					// go s.indexerEngine.IndexTezosToken(c, owner, contract, tokenId)
+					go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[indexer.TezosBlockchain], w.IndexTezosTokenWorkflow)
+				case "eth":
+					fmt.Println("\n\t Go to ETH token")
+					go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[indexer.EthereumBlockchain], w.IndexTezosTokenWorkflow)
+				}
+			} else {
+				fmt.Println("\n\t === Contract = nil")
 			}
 		}
 	}
