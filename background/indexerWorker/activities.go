@@ -150,7 +150,7 @@ func (w *NFTIndexerWorker) fetchBitmarkProvenance(bitmarkID string) ([]indexer.P
 			Blockchain: indexer.BitmarkBlockchain,
 			Timestamp:  p.CreatedAt,
 			TxID:       p.TxId,
-			TxURL:      indexer.TxURL(indexer.BitmarkBlockchain, w.Network, p.TxId),
+			TxURL:      indexer.TxURL(indexer.BitmarkBlockchain, w.Environment, p.TxId),
 		})
 	}
 
@@ -199,7 +199,7 @@ func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID,
 			Owner:      indexer.EthereumChecksumAddress(toAccountHash.Hex()),
 			Blockchain: indexer.EthereumBlockchain,
 			TxID:       l.TxHash.Hex(),
-			TxURL:      indexer.TxURL(indexer.EthereumBlockchain, w.Network, l.TxHash.Hex()),
+			TxURL:      indexer.TxURL(indexer.EthereumBlockchain, w.Environment, l.TxHash.Hex()),
 		})
 	}
 

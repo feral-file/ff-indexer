@@ -119,64 +119,62 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, t tzkt.Token, owner s
 		MintedAt: t.Timestamp,
 	}
 
-	switch t.Contract.Address {
-	case KALAMContractAddress, TezDaoContractAddress, TezosDNSContractAddress:
-		fmt.Println("\n\n\t Index Tezos Token: RETURN")
-		return nil, nil
+	if e.environment != "development" {
+		switch t.Contract.Address {
+		case KALAMContractAddress, TezDaoContractAddress, TezosDNSContractAddress:
+			return nil, nil
 
-	case FXHASHV2ContractAddress, FXHASHContractAddress, FXHASHOldContractAddress:
-		metadataDetail.SetMarketplace(
-			MarketplaceProfile{
-				"fxhash",
-				"https://www.fxhash.xyz",
-				fmt.Sprintf("https://www.fxhash.xyz/gentk/%s", t.ID.String()),
-			},
-		)
-		metadataDetail.SetMedium(MediumSoftware)
+		case FXHASHV2ContractAddress, FXHASHContractAddress, FXHASHOldContractAddress:
+			metadataDetail.SetMarketplace(
+				MarketplaceProfile{
+					"fxhash",
+					"https://www.fxhash.xyz",
+					fmt.Sprintf("https://www.fxhash.xyz/gentk/%s", t.ID.String()),
+				},
+			)
+			metadataDetail.SetMedium(MediumSoftware)
 
-		if detail, err := e.fxhash.GetObjectDetail(ctx, t.ID.Int); err != nil {
-			log.WithError(err).Error("fail to get token detail from fxhash")
-		} else {
-			metadataDetail.FromFxhashObject(detail)
-			tokenDetail.MintedAt = detail.CreatedAt
-			tokenDetail.Edition = detail.Iteration
-		}
-	case VersumContractAddress:
-		tokenDetail.Fungible = true
-		metadataDetail.SetMarketplace(MarketplaceProfile{"versum", "https://versum.xyz",
-			fmt.Sprintf("https://versum.xyz/token/versum/%s", t.ID.String())},
-		)
+			if detail, err := e.fxhash.GetObjectDetail(ctx, t.ID.Int); err != nil {
+				log.WithError(err).Error("fail to get token detail from fxhash")
+			} else {
+				metadataDetail.FromFxhashObject(detail)
+				tokenDetail.MintedAt = detail.CreatedAt
+				tokenDetail.Edition = detail.Iteration
+			}
+		case VersumContractAddress:
+			tokenDetail.Fungible = true
+			metadataDetail.SetMarketplace(MarketplaceProfile{"versum", "https://versum.xyz",
+				fmt.Sprintf("https://versum.xyz/token/versum/%s", t.ID.String())},
+			)
 
-		metadataDetail.ArtistURL = fmt.Sprintf("https://versum.xyz/user/%s", metadataDetail.ArtistName)
+			metadataDetail.ArtistURL = fmt.Sprintf("https://versum.xyz/user/%s", metadataDetail.ArtistName)
 
-	case HicEtNuncContractAddress:
-		tokenDetail.Fungible = true
-		// hicetnunc is down. We now fallback the source url and asset url to objkt.com
-		metadataDetail.SetMarketplace(MarketplaceProfile{"hic et nunc", "https://objkt.com",
-			fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract.Address, t.ID.String())},
-		)
-		fmt.Println("\n\n\t Index Tezos Token: HicEtNuncContractAddress")
-	default:
-		tokenDetail.Fungible = true
-		// fallback marketplace
-		metadataDetail.SetMarketplace(MarketplaceProfile{"unknown", "https://objkt.com",
-			fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract.Address, t.ID.String())},
-		)
-
-		if t.Metadata.Symbol == "OBJKTCOM" {
-			metadataDetail.SetMarketplace(MarketplaceProfile{"objkt", "https://objkt.com",
+		case HicEtNuncContractAddress:
+			tokenDetail.Fungible = true
+			// hicetnunc is down. We now fallback the source url and asset url to objkt.com
+			metadataDetail.SetMarketplace(MarketplaceProfile{"hic et nunc", "https://objkt.com",
 				fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract.Address, t.ID.String())},
 			)
+		default:
+			tokenDetail.Fungible = true
+			// fallback marketplace
+			metadataDetail.SetMarketplace(MarketplaceProfile{"unknown", "https://objkt.com",
+				fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract.Address, t.ID.String())},
+			)
+
+			if t.Metadata.Symbol == "OBJKTCOM" {
+				metadataDetail.SetMarketplace(MarketplaceProfile{"objkt", "https://objkt.com",
+					fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract.Address, t.ID.String())},
+				)
+			}
+			// if detail, err := e.objkt.GetObjktDetailed(ctx, t.ID.Text(10), t.Contract.Address); err != nil {
+			// 	log.WithError(err).Error("fail to get token detail from objkt")
+			// } else {
+
+			// 	metadataDetail.FromObjktObject(detail)
+			// 	tokenDetail.MintedAt = detail.MintedAt
+			// }
 		}
-
-		fmt.Println("\n\n\t Index Tezos Token: DEFAULT")
-		// if detail, err := e.objkt.GetObjktDetailed(ctx, t.ID.Text(10), t.Contract.Address); err != nil {
-		// 	log.WithError(err).Error("fail to get token detail from objkt")
-		// } else {
-
-		// 	metadataDetail.FromObjktObject(detail)
-		// 	tokenDetail.MintedAt = detail.MintedAt
-		// }
 	}
 
 	pm := ProjectMetadata{

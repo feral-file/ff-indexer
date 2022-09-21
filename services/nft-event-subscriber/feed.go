@@ -64,8 +64,8 @@ func (f *FeedClient) SendEvent(blockchain, contract, tokenID, owner, action stri
 	resp, err := f.client.Do(req)
 	if err != nil {
 		logrus.
+			WithError(err).
 			WithField("req_dump", traceutils.DumpRequest(req)).
-			WithField("resp_dump", traceutils.DumpResponse(resp)).
 			Error("fail to submit event to feed server")
 		return err
 	}

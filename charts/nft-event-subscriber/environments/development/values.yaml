@@ -2,9 +2,13 @@ replicaCount: 1
 
 image:
   tags:
-    eventSubscriber: "event-subscriber-0.0.12"
+    eventSubscriber: "event-subscriber-0.0.14-12"
     tezosMarketplaceIndexer: tezos-marketplace-indexer-0.0.1-4
-    tezosFeralfileIndexer: tezos-feralfile-indexer-0.0.1-5
-
+    tezosFeralfileIndexer: tezos-feralfile-indexer-0.0.1-9
 serviceConfig:
   network: testnet
+  tezosNodeRPCURL: https://rpc.ghost.tzstats.com
+  contractAddress: [
+    "KT1VLvci96uGUNtCP5TYJFNGRKUkbgfs684v",
+    "KT1HaKfv73deHy4x5k4DUtL3CtkX5cVpFZUf",
+  ]

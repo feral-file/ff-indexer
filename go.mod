@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/aws/aws-sdk-go v1.43.9
-	github.com/bitmark-inc/account-vault-ethereum v0.2.2
+	github.com/bitmark-inc/account-vault-ethereum v0.2.3
 	github.com/bitmark-inc/autonomy-account v0.0.5-1
 	github.com/bitmark-inc/autonomy-notification v0.0.3
 	github.com/bitmark-inc/bitmark-sdk-go v0.3.0

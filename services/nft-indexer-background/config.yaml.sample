@@ -13,7 +13,12 @@ sentry:
 ethereum:
   rpc_url: https://mainnet.infura.io/v3/<project-id>
 
-network: testnet
+environment: development
+
+network:
+  tezos: testnet
+  ethereum: testnet
+  bitmark: testnet
 
 opensea:
   api_key:

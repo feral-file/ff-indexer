@@ -1,7 +1,12 @@
 server:
   port: :8089
 
-network: testnet
+environment: development
+
+network:
+  tezos: testnet
+  ethereum: testnet
+  bitmark: testnet
 
 ethereum:
   worker_account_mnemonic:

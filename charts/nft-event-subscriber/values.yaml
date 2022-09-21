@@ -9,14 +9,15 @@ image:
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tags:
-    eventSubscriber: "event-subscriber-0.0.9-1"
-    tezosIndexer: tezos-event-indexer-0.0.1-3
-    feralfileIndexer: tezos-feralfile-indexer-0.0.1
+    eventSubscriber: "event-subscriber-0.0.14-11"
+    tezosIndexer: tezos-event-indexer-0.0.1-4
+    feralfileIndexer: tezos-feralfile-indexer-0.0.1-8
 
 
 serviceConfig:
   network: testnet
   cadence_hostport: cadence-frontend.cadence.svc.cluster.local:7933
+  tezosNodeRPCURL: https://rpc.ghost.tzstats.com
 
 imagePullSecrets: []
 nameOverride: ""

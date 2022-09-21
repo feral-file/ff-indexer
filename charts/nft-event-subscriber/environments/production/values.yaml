@@ -2,10 +2,17 @@ replicaCount: 1
 
 image:
   tags:
-    eventSubscriber: "event-subscriber-0.0.12"
+    eventSubscriber: "event-subscriber-0.0.14-12"
     tezosMarketplaceIndexer: tezos-marketplace-indexer-0.0.1-4
-    tezosFeralfileIndexer: tezos-feralfile-indexer-0.0.1-5
+    tezosFeralfileIndexer: tezos-feralfile-indexer-0.0.1-9
 
 serviceConfig:
   network: livenet
+  tezosNodeRPCURL: https://mainnet-tezos.autonomy.io
   cadence_hostport: cadenceprod-frontend.cadenceprod.svc.cluster.local:7933
+  contractAddress: [
+    "KT1QWATcHYpBVDxvNoxw5CbkaMGpjm4SxXa2",
+    "KT1RnhKKsAD7ScFi3Nb7HKK2hnPCqXcbNG3k",
+    "KT1U1KFWkAR8ea9GUi8fAH1jPKRMmAHJLhpN",
+    "KT1WgvCKC8vvjbAYEgaXHo9A6GprKDyaw7N3"
+  ]

@@ -1,9 +1,11 @@
 package indexer
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -63,19 +65,30 @@ func DetectContractBlockchain(contractAddress string) string {
 }
 
 // TxURL returns corresponded blockchain transaction URL
-func TxURL(blockchain, network, txID string) string {
+func TxURL(blockchain, environment, txID string) string {
 	switch blockchain {
 	case BitmarkBlockchain:
-		if network == "testnet" {
-			return fmt.Sprintf("https://registry.test.bitmark.com/transaction/%s", txID)
+		if environment == "production" {
+			return fmt.Sprintf("https://registry.bitmark.com/transaction/%s", txID)
 		}
-		return fmt.Sprintf("https://registry.bitmark.com/transaction/%s", txID)
+		return fmt.Sprintf("https://registry.test.bitmark.com/transaction/%s", txID)
 	case EthereumBlockchain:
-		if network == "testnet" {
-			return fmt.Sprintf("https://rinkeby.etherscan.io/tx/%s", txID)
+		if environment == "production" {
+			return fmt.Sprintf("https://etherscan.io/tx/%s", txID)
 		}
-		return fmt.Sprintf("https://etherscan.io/tx/%s", txID)
+		return fmt.Sprintf("https://goerli.etherscan.io/tx/%s", txID)
 	default:
 		return ""
+	}
+}
+
+// SleepWithContext will return whenever the slept time reached or context done
+// It returns true if the context is done
+func SleepWithContext(ctx context.Context, d time.Duration) bool {
+	select {
+	case <-time.After(d):
+		return false
+	case <-ctx.Done():
+		return true
 	}
 }

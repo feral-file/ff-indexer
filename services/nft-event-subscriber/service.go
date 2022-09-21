@@ -14,7 +14,7 @@ import (
 )
 
 type NFTEventSubscriber struct {
-	network string
+	environment string
 
 	wallet       *ethereum.Wallet
 	wsClient     *ethclient.Client
@@ -33,7 +33,7 @@ type NFTEventSubscriber struct {
 }
 
 func New(wallet *ethereum.Wallet,
-	network string,
+	environment string,
 	wsClient *ethclient.Client,
 	store indexer.IndexerStore,
 	engine *indexer.IndexEngine,
@@ -43,7 +43,7 @@ func New(wallet *ethereum.Wallet,
 	feedServer *FeedClient,
 	cadenceWorker cadence.CadenceWorkerClient) *NFTEventSubscriber {
 	return &NFTEventSubscriber{
-		network:         network,
+		environment:     environment,
 		wallet:          wallet,
 		wsClient:        wsClient,
 		store:           store,

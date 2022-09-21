@@ -15,8 +15,8 @@ var ClientName = "nft-indexer-worker"
 var TaskListName = "nft-indexer"
 
 type NFTIndexerWorker struct {
-	http          *http.Client
-	awsSession    *session.Session
+	http       *http.Client
+	awsSession *session.Session
 
 	ipfsCacheBucketName string
 
@@ -27,18 +27,19 @@ type NFTIndexerWorker struct {
 	bitmarkZeroAddress string
 	bitmarkAPIEndpoint string
 
-	Network      string
+	Environment  string
 	TaskListName string
 }
 
-func New(network string,
+func New(environment string,
 	indexerEngine *indexer.IndexEngine,
 	awsSession *session.Session,
 	store indexer.IndexerStore) *NFTIndexerWorker {
 
 	w, err := ethereum.NewWalletFromMnemonic(
 		viper.GetString("ethereum.worker_account_mnemonic"),
-		network, viper.GetString("ethereum.rpc_url"))
+		viper.GetString("network.ethereum"),
+		viper.GetString("ethereum.rpc_url"))
 	if err != nil {
 		panic(err)
 	}
@@ -46,7 +47,8 @@ func New(network string,
 	bitmarkZeroAddress := indexer.LivenetZeroAddress
 	bitmarkAPIEndpoint := "https://api.bitmark.com"
 
-	if network == "testnet" {
+	if environment != "production" {
+		// staging / development
 		bitmarkZeroAddress = indexer.TestnetZeroAddress
 		bitmarkAPIEndpoint = "https://api.test.bitmark.com"
 	}
@@ -66,7 +68,7 @@ func New(network string,
 		bitmarkZeroAddress: bitmarkZeroAddress,
 		bitmarkAPIEndpoint: bitmarkAPIEndpoint,
 
-		Network:      network,
+		Environment:  environment,
 		TaskListName: TaskListName,
 	}
 }
