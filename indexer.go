@@ -156,8 +156,21 @@ func (detail *AssetMetadataDetail) FromTZKT(t tzkt.Token) {
 
 	detail.MaxEdition = t.TotalSupply
 
+	var optimizedFileSize = 0
+	var optimizedDisplayURI string
+
+	for _, format := range t.Metadata.Formats {
+		if strings.Contains(format.MIMEType, "image") && format.FileSize > optimizedFileSize {
+			optimizedDisplayURI = format.URI
+			optimizedFileSize = format.FileSize
+		}
+	}
+
 	var displayURI, previewURI string
-	if t.Metadata.DisplayURI != "" {
+
+	if optimizedDisplayURI != "" {
+		displayURI = optimizedDisplayURI
+	} else if t.Metadata.DisplayURI != "" {
 		displayURI = t.Metadata.DisplayURI
 	} else if t.Metadata.ThumbnailURI != "" {
 		displayURI = t.Metadata.ThumbnailURI

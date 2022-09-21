@@ -29,11 +29,11 @@ func main() {
 	hostPort := viper.GetString("cadence.host_port")
 	logLevel := viper.GetInt("cadence.log_level")
 
-	network := viper.GetString("network")
+	environment := viper.GetString("environment")
 
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn:         viper.GetString("sentry.dsn"),
-		Environment: network,
+		Environment: environment,
 	}); err != nil {
 		log.WithError(err).Panic("Sentry initialization failed")
 	}
@@ -46,8 +46,9 @@ func main() {
 	}
 
 	indexerEngine := indexer.New(
-		opensea.New(viper.GetString("network"), viper.GetString("opensea.api_key"), viper.GetInt("opensea.ratelimit")),
-		tzkt.New("api.mainnet.tzkt.io"),
+		environment,
+		opensea.New(viper.GetString("network.ethereum"), viper.GetString("opensea.api_key"), viper.GetInt("opensea.ratelimit")),
+		tzkt.New(viper.GetString("network.tezos")),
 		fxhash.New(viper.GetString("fxhash.api_endpoint")),
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 	)
@@ -56,7 +57,7 @@ func main() {
 		Region: aws.String(viper.GetString("aws.region")),
 	}))
 
-	worker := indexerWorker.New(network, indexerEngine, awsSession, indexerStore)
+	worker := indexerWorker.New(environment, indexerEngine, awsSession, indexerStore)
 
 	// workflows
 	workflow.Register(worker.RefreshTokenProvenanceWorkflow)

@@ -12,3 +12,6 @@ store:
 
 log:
   level: info
+
+pinata:
+  jwt:

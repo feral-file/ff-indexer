@@ -1,3 +1,11 @@
+
+environment: development
+
+network:
+  tezos: testnet
+  ethereum: testnet
+  bitmark: testnet
+
 server:
   port: :8089
   api_token: api_token

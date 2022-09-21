@@ -17,7 +17,12 @@ type TZKT struct {
 	client *http.Client
 }
 
-func New(endpoint string) *TZKT {
+func New(network string) *TZKT {
+	endpoint := "api.mainnet.tzkt.io"
+	if network == "testnet" {
+		endpoint = "api.ghostnet.tzkt.io"
+	}
+
 	return &TZKT{
 		client: &http.Client{
 			Timeout: 15 * time.Second,
@@ -34,7 +39,7 @@ type FormatDimensions struct {
 type FileFormat struct {
 	URI        string           `json:"uri"`
 	FileName   string           `json:"fileName,omitempty"`
-	FileSize   string           `json:"fileSize,omitempty"`
+	FileSize   int              `json:"fileSize,string"`
 	MIMEType   string           `json:"mimeType"`
 	Dimensions FormatDimensions `json:"dimensions,omitempty"`
 }

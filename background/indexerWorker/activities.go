@@ -150,7 +150,7 @@ func (w *NFTIndexerWorker) fetchBitmarkProvenance(bitmarkID string) ([]indexer.P
 			Blockchain: indexer.BitmarkBlockchain,
 			Timestamp:  p.CreatedAt,
 			TxID:       p.TxId,
-			TxURL:      indexer.TxURL(indexer.BitmarkBlockchain, w.Network, p.TxId),
+			TxURL:      indexer.TxURL(indexer.BitmarkBlockchain, w.Environment, p.TxId),
 		})
 	}
 
@@ -199,7 +199,7 @@ func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID,
 			Owner:      indexer.EthereumChecksumAddress(toAccountHash.Hex()),
 			Blockchain: indexer.EthereumBlockchain,
 			TxID:       l.TxHash.Hex(),
-			TxURL:      indexer.TxURL(indexer.EthereumBlockchain, w.Network, l.TxHash.Hex()),
+			TxURL:      indexer.TxURL(indexer.EthereumBlockchain, w.Environment, l.TxHash.Hex()),
 		})
 	}
 
@@ -331,6 +331,17 @@ func (w *NFTIndexerWorker) RefreshTezosTokenOwnership(ctx context.Context, index
 		)
 		switch token.Blockchain {
 		case indexer.EthereumBlockchain:
+			lastActivityTime, err = w.indexerEngine.IndexETHTokenLastActivityTime(ctx, token.ContractAddress, token.ID)
+			if err != nil {
+				return err
+			}
+
+			if lastActivityTime.Sub(token.LastActivityTime) <= 0 {
+				log.WithField("indexID", token.IndexID).Trace("no new updates since last check")
+				continue
+			}
+
+			log.WithField("indexID", token.IndexID).Debug("fetch eth ownership for the token")
 			owners, err = w.indexerEngine.IndexETHTokenOwners(ctx, token.ContractAddress, token.ID)
 			if err != nil {
 				return err
