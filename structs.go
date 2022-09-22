@@ -118,5 +118,6 @@ type VersionedProjectMetadata struct {
 type DetailedToken struct {
 	Token           `bson:",inline"`
 	ThumbnailID     string                   `json:"thumbnailID"`
+	IPFSPinned      bool                     `json:"ipfsPinned"`
 	ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
 }

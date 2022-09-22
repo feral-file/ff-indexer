@@ -363,6 +363,7 @@ func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParam
 
 	assets := map[string]struct {
 		ThumbnailID     string                   `bson:"thumbnailID"`
+		IPFSPinned      bool                     `bson:"ipfsPinned"`
 		ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
 	}{}
 	for cursor.Next(ctx) {
@@ -392,6 +393,7 @@ func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParam
 		tokens = append(tokens, DetailedToken{
 			Token:           token,
 			ThumbnailID:     a.ThumbnailID,
+			IPFSPinned:      a.IPFSPinned,
 			ProjectMetadata: a.ProjectMetadata,
 		})
 	}
@@ -563,6 +565,7 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 
 	type asset struct {
 		ThumbnailID     string                   `bson:"thumbnailID"`
+		IPFSPinned      bool                     `json:"ipfsPinned"`
 		ProjectMetadata VersionedProjectMetadata `bson:"projectMetadata"`
 	}
 
@@ -607,6 +610,7 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 		a.ProjectMetadata.Latest.FirstMintedAt = "0001-01-01T00:00:00.000Z"
 		a.ProjectMetadata.Origin.FirstMintedAt = "0001-01-01T00:00:00.000Z"
 		token.ThumbnailID = a.ThumbnailID
+		token.IPFSPinned = a.IPFSPinned
 		token.ProjectMetadata = a.ProjectMetadata
 
 		tokens = append(tokens, token)
