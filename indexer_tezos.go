@@ -67,10 +67,6 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 	return tokenUpdates, nil
 }
 
-func (e *IndexEngine) GetTokenOwners(contract, tokenID string) ([]tzkt.TokenOwner, error) {
-	return e.tzkt.GetTokenOwners(contract, tokenID)
-}
-
 // IndexTezosToken indexes a Tezos token with a specific contract and ID
 func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, tokenID string) (*AssetUpdates, error) {
 	if contract == "" {
@@ -105,7 +101,6 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, t tzkt.Token, owner s
 	t, err := e.tzkt.GetContractToken(t.Contract.Address, t.ID.String())
 	if err != nil {
 		log.WithError(err).Error("can not index token: fail to get metadata for the token")
-		fmt.Println("\n\n\t Index Tezos Token: error")
 		return nil, err
 	}
 
@@ -286,7 +281,6 @@ func (e *IndexEngine) IndexTezosTokenOwners(ctx context.Context, contract, token
 		Trace("index tezos token owners")
 
 	owners, err := e.tzkt.GetTokenOwners(contract, tokenID)
-	fmt.Println("\n\n Minh - IndexTezosTokenOwners. ", owners)
 	if err != nil {
 		return nil, err
 	}
