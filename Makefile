@@ -42,6 +42,10 @@ nft-image-indexer:
 nft-event-subscriber:
 	go build -o bin/nft-event-subscriber ./services/nft-event-subscriber
 
+.PHONY: nft-provenance-indexer
+nft-provenance-indexer:
+	go build -o bin/nft-provenance-indexer ./services/nft-provenance-indexer
+
 .PHONY: run-nft-indexer
 run-nft-indexer: nft-indexer
 	./bin/nft-indexer -c config.yaml
@@ -58,8 +62,12 @@ run-nft-image-indexer: nft-image-indexer
 run-nft-event-subscriber: nft-event-subscriber
 	./bin/nft-event-subscriber -c config.yaml
 
+.PHONY: run-nft-provenance-indexer
+run-nft-provenance-indexer: nft-provenance-indexer
+	./bin/nft-provenance-indexer -c config.yaml
+
 .PHONY: build
-build: nft-indexer nft-indexer-background nft-event-subscriber
+build: nft-indexer nft-indexer-background nft-event-subscriber nft-provenance-indexer
 
 .PHONY: run
 run: config run-nft-indexer

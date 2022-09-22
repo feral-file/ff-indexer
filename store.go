@@ -455,7 +455,7 @@ func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID
 	return err
 }
 
-// UpdateTokenProvenance updates owners for a specific token
+// UpdateTokenOwners updates owners for a specific token
 func (s *MongodbIndexerStore) UpdateTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error {
 	if len(owners) == 0 {
 		logrus.WithField("indexID", indexID).Warn("ignore update empty provenance")

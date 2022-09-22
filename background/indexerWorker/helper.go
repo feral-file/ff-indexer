@@ -36,7 +36,7 @@ func StartRefreshTokenOwnershipWorkflow(c context.Context, client *cadence.Caden
 	refreshOwnershipTaskID string, indexID string, delay time.Duration) {
 	workflowContext := cadenceClient.StartWorkflowOptions{
 		ID:                           fmt.Sprintf("index-token-ownership-helper-%s", refreshOwnershipTaskID),
-		TaskList:                     TaskListName,
+		TaskList:                     ProvenanceTaskListName,
 		ExecutionStartToCloseTimeout: time.Hour,
 		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
 	}
@@ -55,7 +55,7 @@ func StartRefreshTokenProvenanceWorkflow(c context.Context, client *cadence.Cade
 	refreshProvenanceTaskID string, indexID string, delay time.Duration) {
 	workflowContext := cadenceClient.StartWorkflowOptions{
 		ID:                           fmt.Sprintf("index-token-provenance-helper-%s", refreshProvenanceTaskID),
-		TaskList:                     TaskListName,
+		TaskList:                     ProvenanceTaskListName,
 		ExecutionStartToCloseTimeout: time.Hour,
 		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
 	}

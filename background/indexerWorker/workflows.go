@@ -60,6 +60,7 @@ func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, token
 				WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
 				ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
 				ExecutionStartToCloseTimeout: time.Minute * 10,
+				TaskList:                     ProvenanceTaskListName,
 			}
 			_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwo),
 				w.RefreshTokenProvenanceWorkflow, []string{t.IndexID}, TokenRefreshingDelay)
@@ -104,6 +105,7 @@ func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, token
 						WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
 						ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
 						ExecutionStartToCloseTimeout: time.Minute * 10,
+						TaskList:                     ProvenanceTaskListName,
 					}
 					_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwo),
 						w.RefreshTokenProvenanceWorkflow, []string{t.IndexID}, TokenRefreshingDelay)
@@ -144,6 +146,7 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 				WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
 				ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
 				ExecutionStartToCloseTimeout: time.Minute * 10,
+				TaskList:                     ProvenanceTaskListName,
 			}
 			_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwo),
 				w.RefreshTokenOwnershipWorkflow, []string{t.IndexID}, TokenRefreshingDelay)
@@ -154,6 +157,7 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 				WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
 				ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
 				ExecutionStartToCloseTimeout: time.Minute * 10,
+				TaskList:                     ProvenanceTaskListName,
 			}
 			_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwo),
 				w.RefreshTokenProvenanceWorkflow, []string{t.IndexID}, TokenRefreshingDelay)
@@ -197,6 +201,7 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 						WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
 						ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
 						ExecutionStartToCloseTimeout: time.Minute * 10,
+						TaskList:                     ProvenanceTaskListName,
 					}
 					_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwo),
 						w.RefreshTokenOwnershipWorkflow, []string{t.IndexID}, TokenRefreshingDelay)
@@ -207,6 +212,7 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 						WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
 						ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
 						ExecutionStartToCloseTimeout: time.Minute * 10,
+						TaskList:                     ProvenanceTaskListName,
 					}
 					_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwo),
 						w.RefreshTokenProvenanceWorkflow, []string{t.IndexID}, TokenRefreshingDelay)
@@ -258,7 +264,7 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 // RefreshTokenProvenanceWorkflow is a workflow to refresh provenance for a specific token
 func (w *NFTIndexerWorker) RefreshTokenProvenanceWorkflow(ctx workflow.Context, indexIDs []string, delay time.Duration) error {
 	ao := workflow.ActivityOptions{
-		TaskList:               w.TaskListName,
+		TaskList:               w.ProvenanceTaskListName,
 		ScheduleToStartTimeout: time.Second * 60,
 		StartToCloseTimeout:    time.Hour * 24,
 	}
@@ -280,7 +286,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenanceWorkflow(ctx workflow.Context, 
 // RefreshTokenOwnershipWorkflow is a workflow to refresh ownership for a specific token
 func (w *NFTIndexerWorker) RefreshTokenOwnershipWorkflow(ctx workflow.Context, indexIDs []string, delay time.Duration) error {
 	ao := workflow.ActivityOptions{
-		TaskList:               w.TaskListName,
+		TaskList:               w.ProvenanceTaskListName,
 		ScheduleToStartTimeout: time.Second * 60,
 		StartToCloseTimeout:    time.Hour * 24,
 	}

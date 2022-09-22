@@ -60,31 +60,14 @@ func main() {
 	worker := indexerWorker.New(environment, indexerEngine, awsSession, indexerStore)
 
 	// workflows
-	workflow.Register(worker.IndexOpenseaTokenWorkflow)
-	workflow.Register(worker.IndexTezosTokenWorkflow)
-	workflow.RegisterWithOptions(worker.IndexTokenWorkflow, workflow.RegisterOptions{
-		Name: "IndexTokenWorkflow",
-	})
+	workflow.Register(worker.RefreshTokenProvenanceWorkflow)
+	workflow.Register(worker.RefreshTokenOwnershipWorkflow)
 
-	// cache
-	activity.Register(worker.CacheIPFSArtifactInS3)
-
-	// opensea
-	activity.Register(worker.IndexOwnerTokenDataFromOpensea)
-	activity.Register(worker.IndexOwnerTokenDataFromTezos)
-	activity.Register(worker.IndexToken)
-
-	// tezos
-	activity.Register(worker.GetTezosTokenByOwner)
-	activity.Register(worker.PrepareTezosTokenFullData)
-	activity.Register(worker.RefreshTezosTokenOwnership)
-	// index store
-	activity.Register(worker.IndexAsset)
-	activity.Register(worker.GetTokenIDsByOwner)
-	activity.Register(worker.GetOutdatedTokensByOwner)
+	// activities
 	activity.Register(worker.RefreshTokenProvenance)
+	activity.Register(worker.RefreshTezosTokenOwnership)
 
 	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)
 	workerLogger := cadence.BuildCadenceLogger(logLevel)
-	cadence.StartWorker(workerLogger, workerServiceClient, viper.GetString("cadence.domain"), indexerWorker.TaskListName)
+	cadence.StartWorker(workerLogger, workerServiceClient, viper.GetString("cadence.domain"), indexerWorker.ProvenanceTaskListName)
 }
