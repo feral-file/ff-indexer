@@ -57,7 +57,7 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 
 		// index redundant reqParams.IDs
 		for redundantID := range m {
-			owner := "tz1YXJXYYB6nUQbhJVPYV8giRr8JRygGT4w5"
+			owner := "" //"tz1fRXMLR27hWoD49tdtKunHyfy3CQb5XZst"
 			blockchain := strings.Split(redundantID, "-")[0]
 			contract := strings.Split(redundantID, "-")[1]
 			tokenId := strings.Split(redundantID, "-")[2]
@@ -71,19 +71,17 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 				// fmt.Printf("\n\t IndexTezosToken: tokenID: %s tokenOwner: %v", tokenId, tokenOwner)
 
 				// if err != nil {
-				// 	fmt.Println("\n\n\t Some erros with GetTokenOwners: ", err)
+				// 	fmt.Println("\n\n\t Some error with GetTokenOwners: ", err)
 				// 	return
 				// }
 				// owner = tokenOwner[0].Address
-
-				fmt.Println("\n\t IndexTezosToken: owner: ", owner)
 
 				var w indexerWorker.NFTIndexerWorker
 				switch blockchain {
 				case "tez":
 					fmt.Println("\n\t\t Go to Tezos token")
-					// go s.indexerEngine.IndexTezosToken(c, owner, contract, tokenId)
-					go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[indexer.TezosBlockchain], w.IndexTezosTokenWorkflow)
+					go s.indexerEngine.IndexTezosToken(c, owner, contract, tokenId)
+					// go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[indexer.TezosBlockchain], w.IndexTezosTokenWorkflow)
 				case "eth":
 					fmt.Println("\n\t Go to ETH token")
 					go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[indexer.EthereumBlockchain], w.IndexTezosTokenWorkflow)

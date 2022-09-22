@@ -77,13 +77,13 @@ func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, toke
 		return nil, nil
 	} else if owner == "" {
 		tokenOwner, err := e.tzkt.GetTokenOwners(contract, tokenID)
-		fmt.Printf("\n\t IndexTezosToken: tokenOwner: %v", tokenOwner)
-		if err != nil {
+
+		if err != nil || len(tokenOwner) == 0 {
 			return nil, err
 		}
 		owner = tokenOwner[0].Address
 	}
-	fmt.Printf("\n\t IndexTezosToken: tokenID: %s tokenOwner: %v, contract: %s ", tokenID, owner, contract)
+
 	t, err := e.tzkt.GetContractToken(contract, tokenID)
 	if err != nil {
 		return nil, err
@@ -223,7 +223,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, t tzkt.Token, owner s
 			},
 		},
 	}
-	fmt.Println("\n\n\t Index Tezos Token FINALLY : TezosBlockchainL ", TezosBlockchain)
+
 	log.WithField("blockchain", TezosBlockchain).
 		WithField("id", TokenIndexID(TezosBlockchain, t.Contract.Address, t.ID.String())).
 		WithField("tokenUpdate", tokenUpdate).
