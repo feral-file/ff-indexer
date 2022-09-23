@@ -18,8 +18,8 @@ const TokenRefreshingDelay = 60 * time.Minute
 func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, tokenOwner string) error {
 	ao := workflow.ActivityOptions{
 		TaskList:               w.TaskListName,
-		ScheduleToStartTimeout: time.Second * 60,
-		StartToCloseTimeout:    time.Hour * 24,
+		ScheduleToStartTimeout: 10 * time.Minute,
+		StartToCloseTimeout:    time.Hour,
 	}
 
 	ctx = workflow.WithActivityOptions(ctx, ao)
@@ -42,30 +42,38 @@ func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, token
 
 	log.Debug("outdated tokens for owner", zap.Any("tokens", outdatedTokens), zap.String("owner", ethTokenOwner))
 
+	ownedFungibleToken := []string{}
+	ownedNonFungibleToken := []string{}
+
 	for _, t := range outdatedTokens {
 		if t.Fungible {
-			// log.Info("task to check existence token ownership", zap.String("tokenIndexID", t.IndexID))
-			// cwo := workflow.ChildWorkflowOptions{
-			// 	WorkflowID:                   fmt.Sprintf("index-token-ownership-%s", t.IndexID),
-			// 	WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-			// 	ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-			// 	ExecutionStartToCloseTimeout: time.Minute * 10,
-			// }
-			// _ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwo),
-			// 	w.RefreshTokenOwnershipWorkflow, []string{t.IndexID}, TokenRefreshingDelay)
+			ownedFungibleToken = append(ownedFungibleToken, t.IndexID)
 		} else {
-			log.Info("task to check existence token provenance", zap.String("tokenIndexID", t.IndexID))
-			cwo := workflow.ChildWorkflowOptions{
-				WorkflowID:                   fmt.Sprintf("index-token-provenance-%s", t.IndexID),
-				WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-				ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-				ExecutionStartToCloseTimeout: time.Minute * 10,
-				TaskList:                     ProvenanceTaskListName,
-			}
-			_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwo),
-				w.RefreshTokenProvenanceWorkflow, []string{t.IndexID}, TokenRefreshingDelay)
+			ownedNonFungibleToken = append(ownedNonFungibleToken, t.IndexID)
 		}
 	}
+
+	log.Info("task to check existence token ownership", zap.String("owner", ethTokenOwner))
+	cwoOwnership := workflow.ChildWorkflowOptions{
+		TaskList:                     ProvenanceTaskListName,
+		WorkflowID:                   fmt.Sprintf("index-token-ownership-by-owner-%s", ethTokenOwner),
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+		ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
+		ExecutionStartToCloseTimeout: time.Hour,
+	}
+	_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoOwnership),
+		w.RefreshTokenOwnershipWorkflow, ownedFungibleToken, TokenRefreshingDelay)
+
+	log.Info("task to check existence token provenance", zap.String("owner", ethTokenOwner))
+	cwoProvenance := workflow.ChildWorkflowOptions{
+		TaskList:                     ProvenanceTaskListName,
+		WorkflowID:                   fmt.Sprintf("index-token-provenance-by-owner-%s", ethTokenOwner),
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+		ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
+		ExecutionStartToCloseTimeout: time.Hour,
+	}
+	_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoProvenance),
+		w.RefreshTokenProvenanceWorkflow, ownedNonFungibleToken, TokenRefreshingDelay)
 
 	var offset = 0
 
@@ -86,32 +94,6 @@ func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, token
 				sentry.CaptureException(err)
 				return err
 			}
-
-			for _, t := range u.Tokens {
-				if t.Fungible {
-					// log.Info("task to check existence token ownership", zap.String("tokenIndexID", t.IndexID))
-					// cwo := workflow.ChildWorkflowOptions{
-					// 	WorkflowID:                   fmt.Sprintf("index-token-ownership-%s", t.IndexID),
-					// 	WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-					// 	ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-					// 	ExecutionStartToCloseTimeout: time.Minute * 10,
-					// }
-					// _ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwo),
-					// 	w.RefreshTokenOwnershipWorkflow, []string{t.IndexID}, TokenRefreshingDelay)
-				} else {
-					log.Info("task to check existence token provenance", zap.String("tokenIndexID", t.IndexID))
-					cwo := workflow.ChildWorkflowOptions{
-						WorkflowID:                   fmt.Sprintf("index-token-provenance-%s", t.IndexID),
-						WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-						ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-						ExecutionStartToCloseTimeout: time.Minute * 10,
-						TaskList:                     ProvenanceTaskListName,
-					}
-					_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwo),
-						w.RefreshTokenProvenanceWorkflow, []string{t.IndexID}, TokenRefreshingDelay)
-				}
-			}
-
 		}
 
 		offset += len(tokenUpdates)
@@ -123,8 +105,8 @@ func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, token
 func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOwner string) error {
 	ao := workflow.ActivityOptions{
 		TaskList:               w.TaskListName,
-		ScheduleToStartTimeout: time.Second * 60,
-		StartToCloseTimeout:    time.Hour * 24,
+		ScheduleToStartTimeout: 10 * time.Minute,
+		StartToCloseTimeout:    time.Hour,
 	}
 
 	ctx = workflow.WithActivityOptions(ctx, ao)
@@ -138,31 +120,38 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 
 	log.Debug("outdated tokens for owner", zap.Any("tokens", outdatedTokens), zap.String("owner", tokenOwner))
 
+	ownedFungibleToken := []string{}
+	ownedNonFungibleToken := []string{}
+
 	for _, t := range outdatedTokens {
 		if t.Fungible {
-			log.Info("task to check existence token ownership", zap.String("owner", tokenOwner), zap.String("tokenIndexID", t.IndexID))
-			cwo := workflow.ChildWorkflowOptions{
-				WorkflowID:                   fmt.Sprintf("index-token-ownership-%s", t.IndexID),
-				WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-				ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-				ExecutionStartToCloseTimeout: time.Minute * 10,
-				TaskList:                     ProvenanceTaskListName,
-			}
-			_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwo),
-				w.RefreshTokenOwnershipWorkflow, []string{t.IndexID}, TokenRefreshingDelay)
+			ownedFungibleToken = append(ownedFungibleToken, t.IndexID)
 		} else {
-			log.Info("task to check existence token provenance", zap.String("owner", tokenOwner), zap.String("tokenIndexID", t.IndexID))
-			cwo := workflow.ChildWorkflowOptions{
-				WorkflowID:                   fmt.Sprintf("index-token-provenance-%s", t.IndexID),
-				WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-				ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-				ExecutionStartToCloseTimeout: time.Minute * 10,
-				TaskList:                     ProvenanceTaskListName,
-			}
-			_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwo),
-				w.RefreshTokenProvenanceWorkflow, []string{t.IndexID}, TokenRefreshingDelay)
+			ownedNonFungibleToken = append(ownedNonFungibleToken, t.IndexID)
 		}
 	}
+
+	log.Info("task to check existence token ownership", zap.String("owner", tokenOwner))
+	cwoOwnership := workflow.ChildWorkflowOptions{
+		TaskList:                     ProvenanceTaskListName,
+		WorkflowID:                   fmt.Sprintf("index-token-ownership-by-owner-%s", tokenOwner),
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+		ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
+		ExecutionStartToCloseTimeout: time.Hour,
+	}
+	_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoOwnership),
+		w.RefreshTokenOwnershipWorkflow, ownedFungibleToken, TokenRefreshingDelay)
+
+	log.Info("task to check existence token provenance", zap.String("owner", tokenOwner))
+	cwoProvenance := workflow.ChildWorkflowOptions{
+		TaskList:                     ProvenanceTaskListName,
+		WorkflowID:                   fmt.Sprintf("index-token-provenance-by-owner-%s", tokenOwner),
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+		ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
+		ExecutionStartToCloseTimeout: time.Hour,
+	}
+	_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoProvenance),
+		w.RefreshTokenProvenanceWorkflow, ownedNonFungibleToken, TokenRefreshingDelay)
 
 	var offset = 0
 
@@ -192,32 +181,6 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 				sentry.CaptureException(err)
 				return err
 			}
-
-			for _, t := range u.Tokens {
-				if t.Fungible {
-					log.Info("refresh ownership for indexed token", zap.String("owner", tokenOwner), zap.String("tokenIndexID", t.IndexID))
-					cwo := workflow.ChildWorkflowOptions{
-						WorkflowID:                   fmt.Sprintf("index-token-ownership-%s", t.IndexID),
-						WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-						ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-						ExecutionStartToCloseTimeout: time.Minute * 10,
-						TaskList:                     ProvenanceTaskListName,
-					}
-					_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwo),
-						w.RefreshTokenOwnershipWorkflow, []string{t.IndexID}, TokenRefreshingDelay)
-				} else {
-					log.Info("refresh provenance for indexed token", zap.String("owner", tokenOwner), zap.String("tokenIndexID", t.IndexID))
-					cwo := workflow.ChildWorkflowOptions{
-						WorkflowID:                   fmt.Sprintf("index-token-provenance-%s", t.IndexID),
-						WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-						ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-						ExecutionStartToCloseTimeout: time.Minute * 10,
-						TaskList:                     ProvenanceTaskListName,
-					}
-					_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwo),
-						w.RefreshTokenProvenanceWorkflow, []string{t.IndexID}, TokenRefreshingDelay)
-				}
-			}
 		}
 
 		offset += len(ownedTokens)
@@ -232,8 +195,8 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contract, tokenID string, indexPreview bool) error {
 	ao := workflow.ActivityOptions{
 		TaskList:               w.TaskListName,
-		ScheduleToStartTimeout: time.Second * 60,
-		StartToCloseTimeout:    time.Hour * 24,
+		ScheduleToStartTimeout: 10 * time.Minute,
+		StartToCloseTimeout:    time.Hour,
 	}
 
 	ctx = workflow.WithActivityOptions(ctx, ao)
@@ -264,9 +227,10 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 // RefreshTokenProvenanceWorkflow is a workflow to refresh provenance for a specific token
 func (w *NFTIndexerWorker) RefreshTokenProvenanceWorkflow(ctx workflow.Context, indexIDs []string, delay time.Duration) error {
 	ao := workflow.ActivityOptions{
+
 		TaskList:               w.ProvenanceTaskListName,
-		ScheduleToStartTimeout: time.Second * 60,
-		StartToCloseTimeout:    time.Hour * 24,
+		ScheduleToStartTimeout: 10 * time.Minute,
+		StartToCloseTimeout:    time.Hour,
 	}
 
 	log := workflow.GetLogger(ctx)
@@ -287,8 +251,8 @@ func (w *NFTIndexerWorker) RefreshTokenProvenanceWorkflow(ctx workflow.Context, 
 func (w *NFTIndexerWorker) RefreshTokenOwnershipWorkflow(ctx workflow.Context, indexIDs []string, delay time.Duration) error {
 	ao := workflow.ActivityOptions{
 		TaskList:               w.ProvenanceTaskListName,
-		ScheduleToStartTimeout: time.Second * 60,
-		StartToCloseTimeout:    time.Hour * 24,
+		ScheduleToStartTimeout: 10 * time.Minute,
+		StartToCloseTimeout:    time.Hour,
 	}
 
 	log := workflow.GetLogger(ctx)
@@ -309,8 +273,8 @@ func (w *NFTIndexerWorker) RefreshTokenOwnershipWorkflow(ctx workflow.Context, i
 func (w *NFTIndexerWorker) CacheIPFSArtifactWorkflow(ctx workflow.Context, fullDataLink string) error {
 	ao := workflow.ActivityOptions{
 		TaskList:               w.TaskListName,
-		ScheduleToStartTimeout: time.Second * 60,
-		StartToCloseTimeout:    time.Hour * 24,
+		ScheduleToStartTimeout: 10 * time.Minute,
+		StartToCloseTimeout:    time.Hour,
 	}
 
 	ctx = workflow.WithActivityOptions(ctx, ao)
