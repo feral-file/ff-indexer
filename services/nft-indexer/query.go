@@ -132,9 +132,7 @@ func (s *NFTIndexerServer) OwnedNFTIDs(c *gin.Context) {
 		return
 	}
 
-	owners := strings.Split(reqParams.Owner, ",")
-
-	tokens, err := s.indexerStore.GetTokenIDsByOwners(c, owners)
+	tokens, err := s.indexerStore.GetTokenIDsByOwner(c, reqParams.Owner)
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
 		return

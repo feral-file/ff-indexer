@@ -34,7 +34,6 @@ type IndexerStore interface {
 	GetTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]Token, error)
 	GetOutdatedTokensByOwner(ctx context.Context, owner string) ([]Token, error)
 	GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error)
-	GetTokenIDsByOwners(ctx context.Context, owners []string) ([]string, error)
 
 	GetDetailedTokens(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
 	GetDetailedTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
@@ -529,16 +528,13 @@ func (s *MongodbIndexerStore) PushProvenance(ctx context.Context, indexID string
 
 // GetTokenIDsByOwner returns a list of tokens which belongs to an owner
 func (s *MongodbIndexerStore) GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
-	return s.GetTokenIDsByOwners(ctx, []string{owner})
-}
-
-// GetTokenIDsByOwners returns a list of tokens which belongs to a list of owner
-func (s *MongodbIndexerStore) GetTokenIDsByOwners(ctx context.Context, owners []string) ([]string, error) {
 	tokens := make([]string, 0)
 
 	c, err := s.tokenCollection.Find(ctx,
 		bson.M{
-			"owner": bson.M{"$in": owners}, "burned": bson.M{"$ne": true},
+			fmt.Sprintf("owners.%s", owner): bson.M{"$gte": 1},
+			"ownersArray":                   bson.M{"$in": bson.A{owner}},
+			"burned":                        bson.M{"$ne": true},
 		},
 		options.Find().SetProjection(bson.M{"indexID": 1, "_id": 0}))
 	if err != nil {
