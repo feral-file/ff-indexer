@@ -94,6 +94,18 @@ endif
 	-t nft-indexer:background-$(dist) -f Dockerfile-background .
 	docker tag nft-indexer:background-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:background-$(dist)
 
+.PHONY: build-nft-provenance-indexer
+build-nft-provenance-indexer:
+ifndef dist
+	$(error dist is undefined)
+endif
+	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
+	--build-arg GITHUB_USER=$(GITHUB_USER) \
+	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
+	-t nft-provenance-indexer-$(dist) -f Dockerfile-provenance-indexer .
+	docker tag nft-provenance-indexer-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-provenance-indexer-$(dist)
+
+
 .PHONY: build-nft-event-subscriber
 build-nft-event-subscriber:
 ifndef dist
