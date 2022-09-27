@@ -42,6 +42,13 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 		return
 	}
 
+	go s.IndexMissingTokens(c, reqParams, tokenInfo)
+
+	c.JSON(http.StatusOK, tokenInfo)
+}
+
+// IndexMissingTokens indexes tokens that have not been indexed yet.
+func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParams NFTQueryParams, tokenInfo []indexer.DetailedToken) {
 	if len(reqParams.IDs) > len(tokenInfo) {
 		// find redundant reqParams.IDs to index
 		m := make(map[string]bool, len(reqParams.IDs))
@@ -64,7 +71,7 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 				var e indexer.IndexEngine
 				tokenOwner, err := e.GetTokenOwners(contract, tokenId)
 				if err != nil || len(tokenOwner) == 0 {
-					return
+					continue
 				}
 
 				owner := tokenOwner[0].Address
@@ -72,8 +79,6 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 			}
 		}
 	}
-
-	c.JSON(http.StatusOK, tokenInfo)
 }
 
 // ListNFTs returns information for a list of NFTs with some criterias.
