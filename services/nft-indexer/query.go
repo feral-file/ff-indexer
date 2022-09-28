@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
 
@@ -41,7 +42,43 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 		return
 	}
 
+	go s.IndexMissingTokens(c, reqParams, tokenInfo)
+
 	c.JSON(http.StatusOK, tokenInfo)
+}
+
+// IndexMissingTokens indexes tokens that have not been indexed yet.
+func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParams NFTQueryParams, tokenInfo []indexer.DetailedToken) {
+	if len(reqParams.IDs) > len(tokenInfo) {
+		// find redundant reqParams.IDs to index
+		m := make(map[string]bool, len(reqParams.IDs))
+		for _, id := range reqParams.IDs {
+			m[id] = true
+		}
+
+		for _, info := range tokenInfo {
+			if m[info.IndexID] {
+				delete(m, info.IndexID)
+			}
+		}
+
+		// index redundant reqParams.IDs
+		for redundantID := range m {
+			contract := strings.Split(redundantID, "-")[1]
+			tokenId := strings.Split(redundantID, "-")[2]
+
+			if contract != "" {
+				var e indexer.IndexEngine
+				tokenOwner, err := e.GetTokenOwners(contract, tokenId)
+				if err != nil || len(tokenOwner) == 0 {
+					continue
+				}
+
+				owner := tokenOwner[0].Address
+				go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, tokenId, false)
+			}
+		}
+	}
 }
 
 // ListNFTs returns information for a list of NFTs with some criterias.

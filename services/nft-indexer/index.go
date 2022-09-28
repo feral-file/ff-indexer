@@ -135,9 +135,9 @@ func (s *NFTIndexerServer) IndexNFTs(c *gin.Context) {
 		go s.startIndexWorkflow(c, req.Owner, req.Blockchain, w.IndexTezosTokenWorkflow)
 	default:
 		if strings.HasPrefix(req.Owner, "0x") {
-			go s.startIndexWorkflow(c, req.Owner, indexer.BlockchianAlias[indexer.EthereumBlockchain], w.IndexOpenseaTokenWorkflow)
+			go s.startIndexWorkflow(c, req.Owner, indexer.BlockchainAlias[indexer.EthereumBlockchain], w.IndexOpenseaTokenWorkflow)
 		} else if strings.HasPrefix(req.Owner, "tz") {
-			go s.startIndexWorkflow(c, req.Owner, indexer.BlockchianAlias[indexer.TezosBlockchain], w.IndexTezosTokenWorkflow)
+			go s.startIndexWorkflow(c, req.Owner, indexer.BlockchainAlias[indexer.TezosBlockchain], w.IndexTezosTokenWorkflow)
 		} else {
 			abortWithError(c, http.StatusInternalServerError, "owner address with unsupported blockchain", fmt.Errorf("owner address with unsupported blockchain"))
 			return
