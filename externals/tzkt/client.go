@@ -25,7 +25,7 @@ func New(network string) *TZKT {
 
 	return &TZKT{
 		client: &http.Client{
-			Timeout: 15 * time.Second,
+			Timeout: time.Minute,
 		},
 		endpoint: endpoint,
 	}
