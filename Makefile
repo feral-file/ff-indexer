@@ -103,7 +103,7 @@ endif
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t nft-provenance-indexer-$(dist) -f Dockerfile-provenance-indexer .
-	docker tag nft-provenance-indexer-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-provenance-indexer-$(dist)
+	docker tag nft-provenance-indexer-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:nft-provenance-indexer-$(dist)
 
 
 .PHONY: build-nft-event-subscriber
