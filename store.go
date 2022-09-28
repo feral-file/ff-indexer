@@ -150,6 +150,9 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 				// If a token is not found, insert a new token
 				logrus.WithField("token_id", token.ID).Warn("token is not found")
 
+				if assetUpdates.Source == SourceFeralFile {
+					token.Source = SourceFeralFile
+				}
 				token.LastActivityTime = token.MintAt // set LastActivityTime to default token minted time
 				token.OwnersArray = []string{token.Owner}
 				_, err := s.tokenCollection.InsertOne(ctx, token)

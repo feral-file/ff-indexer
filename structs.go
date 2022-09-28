@@ -47,6 +47,7 @@ type Token struct {
 	OriginTokenInfo []BaseTokenInfo  `json:"originTokenInfo" bson:"originTokenInfo"`
 
 	IndexID           string       `json:"indexID" bson:"indexID"`
+	Source            string       `json:"source" bson:"source"`
 	Swapped           bool         `json:"swapped" bson:"swapped"`
 	SwappedFrom       *string      `json:"-" bson:"swappedFrom,omitempty"`
 	SwappedTo         *string      `json:"-" bson:"swappedTo,omitempty"`
