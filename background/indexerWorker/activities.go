@@ -256,7 +256,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 				return err
 			}
 
-			if lastActivityTime.Sub(token.LastActivityTime) <= 0 {
+			if delay > 0 && lastActivityTime.Sub(token.LastActivityTime) <= 0 {
 				log.WithField("indexID", token.IndexID).Trace("no new updates since last check")
 				continue
 			}
