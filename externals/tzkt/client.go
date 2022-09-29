@@ -354,7 +354,7 @@ func (c *TZKT) GetTokenOwners(contract, tokenID string) ([]TokenOwner, error) {
 	return owners, nil
 }
 
-// GetTokenOwners returns a list of TokenOwner for a specific token
+// GetTokenBalanceForOwner returns a list of TokenOwner for a specific token
 func (c *TZKT) GetTokenBalanceForOwner(contract, tokenID, owner string) (int64, error) {
 	v := url.Values{
 		"token.contract": []string{contract},

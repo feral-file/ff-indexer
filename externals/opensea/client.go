@@ -12,6 +12,7 @@ import (
 
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 type OpenSeaTime struct {
@@ -20,6 +21,7 @@ type OpenSeaTime struct {
 
 func (t *OpenSeaTime) UnmarshalJSON(b []byte) (err error) {
 	s := strings.Trim(string(b), "\"")
+	s = strings.Split(s, "+")[0]
 	tt, err := time.Parse("2006-01-02T15:04:05.999999", s)
 	if err != nil {
 		return err
@@ -292,6 +294,7 @@ func (c *OpenseaClient) GetTokenBalanceForOwner(contract, tokenID, owner string)
 }
 
 func (c *OpenseaClient) RetrieveTokenOwners(contract, tokenID string, cursor *string) ([]TokenOwner, *string, error) {
+	c = New(viper.GetString("network.ethereum"), viper.GetString("opensea.api_key"), viper.GetInt("opensea.ratelimit"))
 	v := url.Values{
 		"limit":           []string{"50"},
 		"order_direction": []string{"desc"},

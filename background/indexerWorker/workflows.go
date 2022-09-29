@@ -191,7 +191,7 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 	return nil
 }
 
-// IndexTokenWorkflow is a worlflow to index a single token
+// IndexTokenWorkflow is a workflow to index a single token
 func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contract, tokenID string, indexPreview bool) error {
 	ao := workflow.ActivityOptions{
 		TaskList:               w.TaskListName,
