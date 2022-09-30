@@ -34,8 +34,9 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 		return
 	}
 
+	checksumIDs := PreprocessTokens(reqParams.IDs)
 	tokenInfo, err := s.indexerStore.GetDetailedTokens(c, indexer.FilterParameter{
-		IDs: reqParams.IDs,
+		IDs: checksumIDs,
 	}, reqParams.Offset, reqParams.Size)
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
@@ -45,6 +46,20 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 	go s.IndexMissingTokens(c, reqParams, tokenInfo)
 
 	c.JSON(http.StatusOK, tokenInfo)
+}
+
+func PreprocessTokens(addresses []string) []string {
+	var processedAddresses = []string{}
+	for _, address := range addresses {
+		idElements := strings.Split(address, "-")
+		if idElements[0] == "eth" {
+
+			processedAddresses = append(processedAddresses, fmt.Sprintf("%s-%s-%s", idElements[0], indexer.EthereumChecksumAddress(idElements[1]), idElements[2]))
+		} else {
+			processedAddresses = append(processedAddresses, address)
+		}
+	}
+	return processedAddresses
 }
 
 // IndexMissingTokens indexes tokens that have not been indexed yet.
@@ -69,13 +84,13 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParams NFTQuery
 
 			if contract != "" {
 				var e indexer.IndexEngine
-				tokenOwner, err := e.GetTokenOwners(contract, tokenId)
-				if err != nil || len(tokenOwner) == 0 {
+
+				owner, newTokenID, err := e.GetTokenOwnerAddress(contract, tokenId)
+				if err != nil {
 					continue
 				}
 
-				owner := tokenOwner[0].Address
-				go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, tokenId, false)
+				go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, newTokenID, false)
 			}
 		}
 	}

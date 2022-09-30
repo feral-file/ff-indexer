@@ -20,6 +20,7 @@ type OpenSeaTime struct {
 
 func (t *OpenSeaTime) UnmarshalJSON(b []byte) (err error) {
 	s := strings.Trim(string(b), "\"")
+	s = strings.Split(s, "+")[0]
 	tt, err := time.Parse("2006-01-02T15:04:05.999999", s)
 	if err != nil {
 		return err
