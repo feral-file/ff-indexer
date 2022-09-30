@@ -49,10 +49,6 @@ func (e *IndexEngine) IndexETHTokenByOwner(ctx context.Context, owner string, of
 	return tokenUpdates, nil
 }
 
-func (e *IndexEngine) RetrieveETHTokenOwners(contract, tokenID string) ([]opensea.TokenOwner, *string, error) {
-	return e.opensea.RetrieveTokenOwners(contract, tokenID, nil)
-}
-
 // IndexETHToken indexes an Ethereum token with a specific contract and ID
 func (e *IndexEngine) IndexETHToken(ctx context.Context, owner, contract, tokenID string) (*AssetUpdates, error) {
 	a, err := e.opensea.RetrieveAsset(contract, tokenID)

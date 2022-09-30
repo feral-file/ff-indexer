@@ -64,31 +64,19 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParams NFTQuery
 
 		// index redundant reqParams.IDs
 		for redundantID := range m {
-			blockchain := strings.Split(redundantID, "-")[0]
 			contract := strings.Split(redundantID, "-")[1]
 			tokenId := strings.Split(redundantID, "-")[2]
-			fmt.Println("\n *** Missing data: ", contract)
 
 			if contract != "" {
-				var owner string
 				var e indexer.IndexEngine
 
-				switch blockchain {
-				case "tez":
-					tokenOwner, err := e.GetTokenOwners(contract, tokenId)
-					if err != nil || len(tokenOwner) == 0 {
-						continue
-					}
-					owner = tokenOwner[0].Address
-				case "eth":
-					tokenOwner, _, err := e.RetrieveETHTokenOwners(contract, tokenId)
-					if err != nil || len(tokenOwner) == 0 {
-						continue
-					}
-					owner = tokenOwner[0].Owner.Address
+				owner, newTokenID, err := e.GetTokenOwnerAddress(contract, tokenId)
+				if err != nil {
+					continue
 				}
 
-				go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, tokenId, false)
+				fmt.Printf("\n owner: %s, newTokenID: %s\n", owner, newTokenID)
+				go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, newTokenID, false)
 			}
 		}
 	}

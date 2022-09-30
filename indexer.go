@@ -3,13 +3,16 @@ package indexer
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
+	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -221,6 +224,38 @@ type TokenDetail struct {
 	Edition  int64
 	Fungible bool
 	MintedAt time.Time
+}
+
+// GetTokenOwnerAddress get token owners of a specific contract and tokenID
+func (e *IndexEngine) GetTokenOwnerAddress(contract, tokenID string) (string, string, error) {
+	switch DetectContractBlockchain(contract) {
+	case TezosBlockchain:
+		e.tzkt = tzkt.New("mainnet")
+
+		tokenOwners, err := e.tzkt.GetTokenOwners(contract, tokenID)
+		if err != nil {
+			return "", "", err
+		}
+
+		return tokenOwners[0].Address, tokenID, nil
+	case EthereumBlockchain:
+		e.opensea = opensea.New(viper.GetString("network.ethereum"), viper.GetString("opensea.api_key"), viper.GetInt("opensea.ratelimit"))
+
+		decimalTokenID, ok := big.NewInt(0).SetString(tokenID, 16)
+		if !ok {
+			return "", "", fmt.Errorf("fail to parse token id from opensea")
+		}
+
+		tokenOwners, _, err := e.opensea.RetrieveTokenOwners(contract, decimalTokenID.String(), nil)
+		if err != nil {
+			return "", "", err
+		}
+
+		return tokenOwners[0].Owner.Address, decimalTokenID.String(), nil
+	default:
+		return "", tokenID, ErrUnsupportedBlockchain
+	}
+
 }
 
 func (e *IndexEngine) IndexToken(c context.Context, owner, contract, tokenID string) (*AssetUpdates, error) {
