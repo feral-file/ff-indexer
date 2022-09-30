@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/crypto/sha3"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
@@ -54,24 +53,8 @@ func PreprocessTokens(addresses []string) []string {
 	for _, address := range addresses {
 		idElements := strings.Split(address, "-")
 		if idElements[0] == "eth" {
-			hex := strings.ToLower(idElements[1])[2:]
-			d := sha3.NewLegacyKeccak256()
-			d.Write([]byte(hex))
-			hash := d.Sum(nil)
 
-			ret := address[0:6]
-
-			for i, b := range hex {
-				c := string(b)
-				if b < '0' || b > '9' {
-					if hash[i/2]&byte(128-i%2*120) != 0 {
-						c = string(b - 32)
-					}
-				}
-				ret += c
-			}
-			ret = fmt.Sprintf("%s-%s", ret, idElements[2])
-			processedAddresses = append(processedAddresses, ret)
+			processedAddresses = append(processedAddresses, fmt.Sprintf("%s-%s-%s", idElements[0], indexer.EthereumChecksumAddress(idElements[1]), idElements[2]))
 		} else {
 			processedAddresses = append(processedAddresses, address)
 		}
