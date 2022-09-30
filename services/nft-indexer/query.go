@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/sha3"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
@@ -34,8 +35,9 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 		return
 	}
 
+	checksumIDs := PreprocessTokens(reqParams.IDs)
 	tokenInfo, err := s.indexerStore.GetDetailedTokens(c, indexer.FilterParameter{
-		IDs: reqParams.IDs,
+		IDs: checksumIDs,
 	}, reqParams.Offset, reqParams.Size)
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
@@ -45,6 +47,36 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 	go s.IndexMissingTokens(c, reqParams, tokenInfo)
 
 	c.JSON(http.StatusOK, tokenInfo)
+}
+
+func PreprocessTokens(addresses []string) []string {
+	var processedAddresses = []string{}
+	for _, address := range addresses {
+		idElements := strings.Split(address, "-")
+		if idElements[0] == "eth" {
+			hex := strings.ToLower(idElements[1])[2:]
+			d := sha3.NewLegacyKeccak256()
+			d.Write([]byte(hex))
+			hash := d.Sum(nil)
+
+			ret := address[0:6]
+
+			for i, b := range hex {
+				c := string(b)
+				if b < '0' || b > '9' {
+					if hash[i/2]&byte(128-i%2*120) != 0 {
+						c = string(b - 32)
+					}
+				}
+				ret += c
+			}
+			ret = fmt.Sprintf("%s-%s", ret, idElements[2])
+			processedAddresses = append(processedAddresses, ret)
+		} else {
+			processedAddresses = append(processedAddresses, address)
+		}
+	}
+	return processedAddresses
 }
 
 // IndexMissingTokens indexes tokens that have not been indexed yet.
@@ -75,7 +107,6 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParams NFTQuery
 					continue
 				}
 
-				fmt.Printf("\n owner: %s, newTokenID: %s\n", owner, newTokenID)
 				go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, newTokenID, false)
 			}
 		}
