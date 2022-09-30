@@ -67,11 +67,6 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 	return tokenUpdates, nil
 }
 
-// func (e *IndexEngine) GetTokenOwners(contract, tokenID string) ([]tzkt.TokenOwner, error) {
-// 	e.tzkt = tzkt.New("mainnet")
-// 	return e.tzkt.GetTokenOwners(contract, tokenID)
-// }
-
 // IndexTezosToken indexes a Tezos token with a specific contract and ID
 func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, tokenID string) (*AssetUpdates, error) {
 	t, err := e.tzkt.GetContractToken(contract, tokenID)
