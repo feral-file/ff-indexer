@@ -53,7 +53,6 @@ func PreprocessTokens(addresses []string) []string {
 	for _, address := range addresses {
 		idElements := strings.Split(address, "-")
 		if idElements[0] == "eth" {
-
 			processedAddresses = append(processedAddresses, fmt.Sprintf("%s-%s-%s", idElements[0], indexer.EthereumChecksumAddress(idElements[1]), idElements[2]))
 		} else {
 			processedAddresses = append(processedAddresses, address)
@@ -82,11 +81,9 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParams NFTQuery
 			contract := strings.Split(redundantID, "-")[1]
 			tokenId := strings.Split(redundantID, "-")[2]
 
-			if contract != "" {
-				var e indexer.IndexEngine
-
-				owner, newTokenID, err := e.GetTokenOwnerAddress(contract, tokenId)
-				if err != nil {
+			if contract != "" && indexer.EthereumChecksumAddress(contract) != indexer.ENSContractAddress {
+				owner, newTokenID, err := s.indexerEngine.GetTokenOwnerAddress(contract, tokenId)
+				if err != nil || owner == "" {
 					continue
 				}
 
