@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -81,14 +82,17 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParams NFTQuery
 			contract := strings.Split(redundantID, "-")[1]
 			tokenId := strings.Split(redundantID, "-")[2]
 
-			if contract != "" && indexer.EthereumChecksumAddress(contract) != indexer.ENSContractAddress {
-				owner, newTokenID, err := s.indexerEngine.GetTokenOwnerAddress(contract, tokenId)
-				if err != nil || owner == "" {
-					continue
-				}
-
-				go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, newTokenID, false)
+			owner, newTokenID, err := s.indexerEngine.GetTokenOwnerAddress(contract, tokenId)
+			if err != nil {
+				logrus.
+					WithField("Warning while getting token owner address of the contract", contract).
+					WithField("tokenId", tokenId).
+					WithField("warning", err).
+					Warn("IndexMissingTokens")
+				continue
 			}
+
+			go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, newTokenID, false)
 		}
 	}
 }

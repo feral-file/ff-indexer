@@ -226,6 +226,10 @@ type TokenDetail struct {
 
 // GetTokenOwnerAddress get token owners of a specific contract and tokenID
 func (e *IndexEngine) GetTokenOwnerAddress(contract, tokenID string) (string, string, error) {
+	if contract == "" {
+		return "", "", fmt.Errorf("contract must not be empty")
+	}
+
 	switch DetectContractBlockchain(contract) {
 	case TezosBlockchain:
 		tokenOwners, err := e.tzkt.GetTokenOwners(contract, tokenID)
@@ -233,16 +237,29 @@ func (e *IndexEngine) GetTokenOwnerAddress(contract, tokenID string) (string, st
 			return "", "", err
 		}
 
+		if len(tokenOwners) == 0 {
+			return "", "", fmt.Errorf("no token owners found")
+		}
+
 		return tokenOwners[0].Address, tokenID, nil
 	case EthereumBlockchain:
+		switch EthereumChecksumAddress(contract) {
+		case ENSContractAddress:
+			return "", "", fmt.Errorf("this contract is in the black list")
+		}
+
 		decimalTokenID, ok := big.NewInt(0).SetString(tokenID, 16)
 		if !ok {
 			return "", "", fmt.Errorf("fail to parse token id from opensea")
 		}
 
 		tokenOwners, _, err := e.opensea.RetrieveTokenOwners(contract, decimalTokenID.String(), nil)
-		if err != nil || len(tokenOwners) == 0 {
+		if err != nil {
 			return "", "", err
+		}
+
+		if len(tokenOwners) == 0 {
+			return "", "", fmt.Errorf("no token owners found")
 		}
 
 		return tokenOwners[0].Owner.Address, decimalTokenID.String(), nil
