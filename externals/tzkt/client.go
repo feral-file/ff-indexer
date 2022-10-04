@@ -57,6 +57,14 @@ func (f *FileFormats) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(d, (*formats)(f)); err != nil {
 			return err
 		}
+	case 123: // If the "formats" is not an array
+		d := append([]byte{91}, data...)
+		if data[len(data)-1] != 93 {
+			d = append(d, []byte{93}...)
+		}
+		if err := json.Unmarshal(d, (*formats)(f)); err != nil {
+			return err
+		}
 	default:
 		if err := json.Unmarshal(data, (*formats)(f)); err != nil {
 			return err
