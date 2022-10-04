@@ -85,10 +85,10 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParams NFTQuery
 			owner, newTokenID, err := s.indexerEngine.GetTokenOwnerAddress(contract, tokenId)
 			if err != nil {
 				logrus.
-					WithField("Warning while getting token owner address of the contract", contract).
+					WithField("contract", contract).
 					WithField("tokenId", tokenId).
-					WithField("warning", err).
-					Warn("IndexMissingTokens")
+					WithError(err).
+					Warn("unexpected error while getting token owner address of the contract")
 				continue
 			}
 
