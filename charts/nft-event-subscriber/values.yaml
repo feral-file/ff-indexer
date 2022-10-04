@@ -15,7 +15,7 @@ image:
 
 
 serviceConfig:
-  network: testnet
+  environment: development
   cadence_hostport: cadence-frontend.cadence.svc.cluster.local:7933
   tezosNodeRPCURL: https://rpc.ghost.tzstats.com
 

@@ -88,11 +88,13 @@ spec:
           - name: config
             mountPath: "/.config"
             readOnly: true
+{{- if eq .Values.serviceConfig.environment "production" }}
         - name: {{ .Chart.Name }}-tezos-indexer
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tags.tezosMarketplaceIndexer | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+{{- end }}
         - name: {{ .Chart.Name }}-feralfile-indexer
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
