@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -53,7 +54,6 @@ func PreprocessTokens(addresses []string) []string {
 	for _, address := range addresses {
 		idElements := strings.Split(address, "-")
 		if idElements[0] == "eth" {
-
 			processedAddresses = append(processedAddresses, fmt.Sprintf("%s-%s-%s", idElements[0], indexer.EthereumChecksumAddress(idElements[1]), idElements[2]))
 		} else {
 			processedAddresses = append(processedAddresses, address)
@@ -82,16 +82,17 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParams NFTQuery
 			contract := strings.Split(redundantID, "-")[1]
 			tokenId := strings.Split(redundantID, "-")[2]
 
-			if contract != "" {
-				var e indexer.IndexEngine
-
-				owner, newTokenID, err := e.GetTokenOwnerAddress(contract, tokenId)
-				if err != nil {
-					continue
-				}
-
-				go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, newTokenID, false)
+			owner, newTokenID, err := s.indexerEngine.GetTokenOwnerAddress(contract, tokenId)
+			if err != nil {
+				logrus.
+					WithField("contract", contract).
+					WithField("tokenId", tokenId).
+					WithError(err).
+					Warn("unexpected error while getting token owner address of the contract")
+				continue
 			}
+
+			go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, newTokenID, false)
 		}
 	}
 }
