@@ -20,7 +20,7 @@ type TZKT struct {
 func New(network string) *TZKT {
 	endpoint := "api.mainnet.tzkt.io"
 	if network == "testnet" {
-		endpoint = "api.ghostnet.tzkt.io"
+		endpoint = "api.kathmandunet.tzkt.io"
 	}
 
 	return &TZKT{
