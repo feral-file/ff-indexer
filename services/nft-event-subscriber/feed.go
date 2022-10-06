@@ -39,7 +39,7 @@ type EventRequest struct {
 	Timestamp  time.Time `json:"timestamp"`
 }
 
-func (f *FeedClient) SendEvent(blockchain, contract, tokenID, owner, action string) error {
+func (f *FeedClient) SendEvent(blockchain, contract, tokenID, owner, action string, isTestnet bool) error {
 	body := &bytes.Buffer{}
 
 	if err := json.NewEncoder(body).Encode(EventRequest{
@@ -48,7 +48,7 @@ func (f *FeedClient) SendEvent(blockchain, contract, tokenID, owner, action stri
 		TokenID:    tokenID,
 		Recipient:  owner,
 		Action:     action,
-		IsTest:     viper.GetString("network") != "livenet",
+		IsTest:     isTestnet,
 		Timestamp:  time.Now(),
 	}); err != nil {
 		return err

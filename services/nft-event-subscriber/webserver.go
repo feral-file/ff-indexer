@@ -32,6 +32,7 @@ type RequestNewEvent struct {
 	TokenID   string    `json:"tokenID" binding:"required"`
 	From      string    `json:"from" binding:"required"`
 	To        string    `json:"to" binding:"required"`
+	IsTestnet bool      `json:"isTest"`
 }
 
 func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
@@ -67,7 +68,7 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 	mintType := "transfer"
 	// FIXME: we do not have mint event as this moment.
 
-	if err := api.feedServer.SendEvent(tokenBlockchain, req.Contract, req.TokenID, req.To, mintType); err != nil {
+	if err := api.feedServer.SendEvent(tokenBlockchain, req.Contract, req.TokenID, req.To, mintType, req.IsTestnet); err != nil {
 		logrus.WithError(err).Error("fail to push event to feed server")
 	}
 

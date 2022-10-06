@@ -2,9 +2,9 @@ replicaCount: 1
 
 image:
   tags:
-    eventSubscriber: "event-subscriber-0.0.16-5"
-    tezosMarketplaceIndexer: tezos-marketplace-indexer-0.0.1-4
-    tezosFeralfileIndexer: tezos-feralfile-indexer-0.0.1-9
+    eventSubscriber: "event-subscriber-0.0.16-6"
+    tezosMarketplaceIndexer: tezos-marketplace-indexer-0.0.1-5
+    tezosFeralfileIndexer: tezos-feralfile-indexer-0.0.1-11
 
 serviceConfig:
   tezosNodeRPCURL: https://mainnet-tezos.autonomy.io

@@ -101,6 +101,10 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tags.tezosFeralfileIndexer | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
+{{- if eq .Values.serviceConfig.environment "development" }}
+            - name: NETWORK
+              value: testnet
+{{- end }}
             - name: CONTRACT_CONFIG
               value: /.config/config.json
             - name: TEZOS_NODE_RPC_URL

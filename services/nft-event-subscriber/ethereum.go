@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 // FIXME: the process is not thread-safe ensure it run only once.
@@ -77,7 +78,7 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 						logrus.WithError(err).Error("fail to push event to feed server")
 					}
 				} else {
-					if err := s.feedServer.SendEvent(indexer.EthereumBlockchain, contractAddress, tokenIDHash.Big().Text(10), toAddress, mintType); err != nil {
+					if err := s.feedServer.SendEvent(indexer.EthereumBlockchain, contractAddress, tokenIDHash.Big().Text(10), toAddress, mintType, viper.GetString("network.ethereum") == "testnet"); err != nil {
 						logrus.WithError(err).Error("fail to push event to feed server")
 					}
 				}
