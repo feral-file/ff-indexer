@@ -54,7 +54,7 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 				contractAddress := indexer.EthereumChecksumAddress(log.Address.String())
 				tokenIDHash := log.Topics[3]
 
-				indexID := indexer.TokenIndexID(indexer.EthereumBlockchain, contractAddress, tokenIDHash.Big().Text(16))
+				indexID := indexer.TokenIndexID(indexer.EthereumBlockchain, contractAddress, tokenIDHash.Big().Text(10))
 				// Flow:
 				// 1. Check if the destination address is followed
 				// 2. Check if the token is indexed
@@ -65,7 +65,7 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 				//     - if there is any follower:
 				// 		 - index the token
 				//       - update provenance
-				//       - send notificiation
+				//       - send notification
 
 				mintType := "transfer"
 				if fromAddress == indexer.EthereumZeroAddress {
