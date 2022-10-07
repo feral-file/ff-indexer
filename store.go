@@ -3,7 +3,6 @@ package indexer
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"strings"
 	"time"
 
@@ -240,12 +239,7 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 
 	switch swap.NewBlockchain {
 	case EthereumBlockchain:
-		tokenHexID, ok := big.NewInt(0).SetString(swap.NewTokenID, 10)
-		if !ok {
-			return "", fmt.Errorf("invalid token id for swapping")
-		}
-
-		newTokenIndexID = TokenIndexID(EthereumBlockchain, swap.NewContractAddress, tokenHexID.Text(16))
+		newTokenIndexID = TokenIndexID(EthereumBlockchain, swap.NewContractAddress, swap.NewTokenID)
 	default:
 		return "", fmt.Errorf("blockchain is not supported")
 	}

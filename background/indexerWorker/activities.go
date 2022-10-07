@@ -241,11 +241,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 
 			totalProvenances = append(totalProvenances, provenance...)
 		case indexer.EthereumBlockchain:
-			hexID, err := indexer.OpenseaTokenIDToHex(token.ID)
-			if err != nil {
-				return err
-			}
-			provenance, err := w.fetchEthereumProvenance(ctx, hexID, token.ContractAddress)
+			provenance, err := w.fetchEthereumProvenance(ctx, token.ID, token.ContractAddress)
 			if err != nil {
 				return err
 			}
@@ -279,11 +275,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 
 				totalProvenances = append(totalProvenances, provenance...)
 			case indexer.EthereumBlockchain:
-				hexID, err := indexer.OpenseaTokenIDToHex(tokenInfo.ID)
-				if err != nil {
-					return err
-				}
-				provenance, err := w.fetchEthereumProvenance(ctx, hexID, token.ContractAddress)
+				provenance, err := w.fetchEthereumProvenance(ctx, token.ID, token.ContractAddress)
 				if err != nil {
 					return err
 				}
