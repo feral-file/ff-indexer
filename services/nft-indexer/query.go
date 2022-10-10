@@ -294,3 +294,34 @@ func (s *NFTIndexerServer) GetIdentities(c *gin.Context) {
 
 	c.JSON(200, ids)
 }
+
+func (s *NFTIndexerServer) TokenPending(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "TokenPending")
+
+	var reqParams struct {
+		IndexID         string `json:"indexID"`
+		Blockchain      string `json:"blockchain"`
+		ID              string `json:"id"`
+		ContractAddress string `json:"contractAddress"`
+		OwnerAccount    string `json:"ownerAccount"`
+		PendingTx       string `json:"pendingTx"`
+	}
+
+	if err := c.BindQuery(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if err := c.Bind(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	err := s.indexerStore.IndexAccountToken(c, reqParams.PendingTx)
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "TBD", err)
+		return
+	}
+
+	c.JSON(200, reqParams.PendingTx)
+}

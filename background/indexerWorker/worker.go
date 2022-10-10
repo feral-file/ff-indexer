@@ -14,6 +14,7 @@ import (
 var ClientName = "nft-indexer-worker"
 var TaskListName = "nft-indexer"
 var ProvenanceTaskListName = "nft-provenance-indexer"
+var PendingTokenListName = "nft-pending-token"
 
 type NFTIndexerWorker struct {
 	http       *http.Client

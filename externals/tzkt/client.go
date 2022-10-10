@@ -402,3 +402,28 @@ func (c *TZKT) GetTokenBalanceForOwner(contract, tokenID, owner string) (int64, 
 
 	return owners[0].Balance, nil
 }
+
+// GetOperationStatus get the status of an operation for a given hash
+func (c *TZKT) GetOperationStatus(hash string) (bool, error) {
+	u := url.URL{
+		Scheme: "https",
+		Host:   c.endpoint,
+		Path:   fmt.Sprintf("%s/%s/%s", "/v1/operations/transactions", hash, "status"),
+	}
+
+	resp, err := c.client.Get(u.String())
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	var applied struct {
+		Applied bool
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&applied); err != nil {
+		return false, err
+	}
+
+	return applied.Applied, nil
+}

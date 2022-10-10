@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -15,9 +16,11 @@ import (
 )
 
 const (
-	assetCollectionName    = "assets"
-	tokenCollectionName    = "tokens"
-	identityCollectionName = "identities"
+	assetCollectionName         = "assets"
+	tokenCollectionName         = "tokens"
+	identityCollectionName      = "identities"
+	accountCollectionName       = "accounts"
+	accountsTokenCollectionName = "account_tokens"
 )
 
 var ErrNoRecordUpdated = fmt.Errorf("no record updated")
@@ -43,6 +46,7 @@ type IndexerStore interface {
 	GetIdentity(ctx context.Context, accountNumber string) (AccountIdentity, error)
 	GetIdentities(ctx context.Context, accountNumbers []string) (map[string]AccountIdentity, error)
 	IndexIdentity(ctx context.Context, identity AccountIdentity) error
+	IndexAccountToken(ctx context.Context, pendingTx string) error
 }
 
 type FilterParameter struct {
@@ -60,22 +64,28 @@ func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*Mo
 	tokenCollection := db.Collection(tokenCollectionName)
 	assetCollection := db.Collection(assetCollectionName)
 	identityCollection := db.Collection(identityCollectionName)
+	accountCollection := db.Collection(accountCollectionName)
+	accountTokenCollection := db.Collection(accountsTokenCollectionName)
 
 	return &MongodbIndexerStore{
-		dbName:             dbName,
-		mongoClient:        mongoClient,
-		tokenCollection:    tokenCollection,
-		assetCollection:    assetCollection,
-		identityCollection: identityCollection,
+		dbName:                 dbName,
+		mongoClient:            mongoClient,
+		tokenCollection:        tokenCollection,
+		assetCollection:        assetCollection,
+		identityCollection:     identityCollection,
+		accountCollection:      accountCollection,
+		accountTokenCollection: accountTokenCollection,
 	}, nil
 }
 
 type MongodbIndexerStore struct {
-	dbName             string
-	mongoClient        *mongo.Client
-	tokenCollection    *mongo.Collection
-	assetCollection    *mongo.Collection
-	identityCollection *mongo.Collection
+	dbName                 string
+	mongoClient            *mongo.Client
+	tokenCollection        *mongo.Collection
+	assetCollection        *mongo.Collection
+	identityCollection     *mongo.Collection
+	accountCollection      *mongo.Collection
+	accountTokenCollection *mongo.Collection
 }
 
 // IndexAsset creates an asset and its corresponded tokens by inputs
@@ -211,6 +221,40 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 			logrus.WithField("token_id", token.ID).Warn("token is not added or updated")
 		}
 	}
+	return nil
+}
+
+// IndexAccountToken create an account token
+func (s *MongodbIndexerStore) IndexAccountToken(ctx context.Context, pendingTx string) error {
+	// accountTokenCreated := false
+
+	r := s.assetCollection.FindOne(ctx, bson.M{"pendingTx": pendingTx})
+	if err := r.Err(); err != nil {
+		if err == mongo.ErrNoDocuments {
+			// query the result periodically
+			count := 0
+			for range time.Tick(time.Second * 30) {
+				// query the result function
+				tz := tzkt.New("mainnet")
+				applied, err := tz.GetOperationStatus(pendingTx)
+				if err != nil {
+					return err
+				}
+
+				if count == 10 || applied {
+					break
+				}
+			}
+
+			// when get the transaction is confirmed
+			if _, err := s.accountTokenCollection.InsertOne(ctx, bson.M{}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+
 	return nil
 }
 

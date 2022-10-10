@@ -122,3 +122,14 @@ type DetailedToken struct {
 	IPFSPinned      bool                     `json:"ipfsPinned"`
 	ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
 }
+
+type AccountToken struct {
+	IndexID          string    `json:"indexID" bson:"indexID"`
+	ID               string    `json:"id" bson:"id"`
+	ContractAddress  string    `json:"contractAddress" bson:"contractAddress"`
+	OwnerAccount     string    `json:"ownerAccount" bson:"ownerAccount"`
+	Balance          int64     `json:"balance"`
+	Fungible         bool      `json:"fungible" bson:"fungible"`
+	LastActivityTime time.Time `json:"lastActivityTime" bson:"lastActivityTime"`
+	PendingTx        string    `json:"pendingTx"`
+}
