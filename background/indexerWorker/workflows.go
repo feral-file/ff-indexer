@@ -167,19 +167,30 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 			break
 		}
 
-		for _, t := range ownedTokens {
+		rawTokens := make([]TezosTokenRawData, 0)
+		for i, t := range ownedTokens {
 			log.Debug("token raw data before summarizing", zap.String("owner", tokenOwner), zap.Any("token", t))
 
-			var u indexer.AssetUpdates
-			if err := workflow.ExecuteActivity(ctx, w.PrepareTezosTokenFullData, t.Token, tokenOwner, t.Balance).Get(ctx, &u); err != nil {
-				sentry.CaptureException(err)
-				return err
-			}
+			rawTokens = append(rawTokens, TezosTokenRawData{
+				Token:   t.Token,
+				Owner:   tokenOwner,
+				Balance: t.Balance,
+			})
 
-			log.Debug("token full data before indexing into DB", zap.String("owner", tokenOwner), zap.Any("assetUpdates", u))
-			if err := workflow.ExecuteActivity(ctx, w.IndexAsset, u).Get(ctx, nil); err != nil {
-				sentry.CaptureException(err)
-				return err
+			if len(rawTokens) >= 50 || i == len(ownedTokens)-1 {
+				var updates []indexer.AssetUpdates
+				if err := workflow.ExecuteActivity(ctx, w.BatchPrepareTezosTokenFullData, rawTokens).Get(ctx, &updates); err != nil {
+					sentry.CaptureException(err)
+					return err
+				}
+
+				log.Debug("token full data before indexing into DB", zap.String("owner", tokenOwner), zap.Any("assetUpdates", updates))
+				if err := workflow.ExecuteActivity(ctx, w.BatchIndexAsset, updates).Get(ctx, nil); err != nil {
+					sentry.CaptureException(err)
+					return err
+				}
+
+				rawTokens = make([]TezosTokenRawData, 0)
 			}
 		}
 

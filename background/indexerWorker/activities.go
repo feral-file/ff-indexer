@@ -68,6 +68,32 @@ func (w *NFTIndexerWorker) GetTezosTokenByOwner(ctx context.Context, owner strin
 	return w.indexerEngine.GetTezosTokenByOwner(ctx, owner, offset)
 }
 
+type TezosTokenRawData struct {
+	Token   tzkt.Token
+	Owner   string
+	Balance int64
+}
+
+// BatchPrepareTezosTokenFullData prepares asset objects for an array of tezos raw data
+func (w *NFTIndexerWorker) BatchPrepareTezosTokenFullData(ctx context.Context, tokens []TezosTokenRawData) ([]indexer.AssetUpdates, error) {
+	updates := make([]indexer.AssetUpdates, 0, len(tokens))
+
+	for _, t := range tokens {
+		u, err := w.indexerEngine.PrepareTezosTokenFullData(ctx, t.Token, t.Owner, t.Balance)
+		if err != nil {
+			// log error tokens but not break the flow
+			log.WithError(err).WithField("rawToken", t).Error("fail to prepare token full data")
+		}
+
+		if u != nil {
+			updates = append(updates, *u)
+		}
+	}
+
+	return updates, nil
+}
+
+// PrepareTezosTokenFullData prepares an asset object for a token
 func (w *NFTIndexerWorker) PrepareTezosTokenFullData(ctx context.Context, token tzkt.Token, owner string, balance int64) (*indexer.AssetUpdates, error) {
 	return w.indexerEngine.PrepareTezosTokenFullData(ctx, token, owner, balance)
 }
@@ -95,6 +121,16 @@ func (w *NFTIndexerWorker) GetOutdatedTokensByOwner(ctx context.Context, owner s
 // IndexAsset saves asset data into indexer's storage
 func (w *NFTIndexerWorker) IndexAsset(ctx context.Context, updates indexer.AssetUpdates) error {
 	return w.indexerStore.IndexAsset(ctx, updates.ID, updates)
+}
+
+// BatchIndexAsset saves an array of asset data into indexer's storage
+func (w *NFTIndexerWorker) BatchIndexAsset(ctx context.Context, updates []indexer.AssetUpdates) error {
+	for _, update := range updates {
+		if err := w.indexerStore.IndexAsset(ctx, update.ID, update); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type Provenance struct {
@@ -220,16 +256,16 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 
 	for _, token := range tokens {
 		if token.LastRefreshedTime.Unix() > time.Now().Add(-delay).Unix() {
-			log.WithField("indexID", token.IndexID).Debug("provenance refresh too frequently")
+			log.WithField("indexID", token.IndexID).Trace("provenance refresh too frequently")
 			continue
 		}
 
 		if token.Fungible {
-			log.WithField("indexID", token.IndexID).Debug("ignore fungible token")
+			log.WithField("indexID", token.IndexID).Trace("ignore fungible token")
 			continue
 		}
 
-		log.WithField("indexID", token.IndexID).Trace("start refresh token provenance")
+		log.WithField("indexID", token.IndexID).Debug("start refresh token provenance updating flow")
 
 		totalProvenances := []indexer.Provenance{}
 		switch token.Blockchain {
@@ -314,7 +350,9 @@ func (w *NFTIndexerWorker) RefreshTezosTokenOwnership(ctx context.Context, index
 
 	for _, token := range tokens {
 		if token.LastRefreshedTime.Unix() > time.Now().Add(-delay).Unix() {
-			log.WithField("indexID", token.IndexID).Trace("ownership refresh too frequently")
+			log.WithField("lastRefresh", token.LastRefreshedTime.Unix()).
+				WithField("now", time.Now().Add(-delay).Unix()).
+				WithField("indexID", token.IndexID).Trace("ownership refresh too frequently")
 			continue
 		}
 

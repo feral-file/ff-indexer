@@ -77,9 +77,11 @@ func main() {
 	// tezos
 	activity.Register(worker.GetTezosTokenByOwner)
 	activity.Register(worker.PrepareTezosTokenFullData)
+	activity.Register(worker.BatchPrepareTezosTokenFullData)
 	activity.Register(worker.RefreshTezosTokenOwnership)
 	// index store
 	activity.Register(worker.IndexAsset)
+	activity.Register(worker.BatchIndexAsset)
 	activity.Register(worker.GetTokenIDsByOwner)
 	activity.Register(worker.GetOutdatedTokensByOwner)
 	activity.Register(worker.RefreshTokenProvenance)
