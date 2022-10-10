@@ -14,6 +14,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var ErrTooManyRequest = fmt.Errorf("too many requests")
+
 type OpenSeaTime struct {
 	time.Time
 }
@@ -151,7 +153,27 @@ func (c *OpenseaClient) makeRequest(method, url string, body io.Reader) (*http.R
 	c.limiter.Request()
 	logrus.Trace("get a request from limiter")
 
-	return c.client.Do(req)
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != 200 {
+		// close the body only when we return an error
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusTooManyRequests {
+			return nil, ErrTooManyRequest
+		}
+
+		errResp, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, fmt.Errorf("opensea api error: %s", errResp)
+	}
+
+	return resp, nil
 }
 
 // RetrieveAsset returns the token information for a contract and a token id
@@ -173,14 +195,6 @@ func (c *OpenseaClient) RetrieveAsset(contract, tokenID string) (*Asset, error) 
 		return nil, err
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		errResp, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
-		}
-		return nil, fmt.Errorf("opensea api error: %s", errResp)
-	}
 
 	var assetResp struct {
 		Assets []Asset `json:"assets"`
@@ -218,14 +232,6 @@ func (c *OpenseaClient) RetrieveAssets(owner string, offset int) ([]Asset, error
 		return nil, err
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		errResp, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
-		}
-		return nil, fmt.Errorf(string(errResp))
-	}
 
 	var assetResp struct {
 		Assets []Asset `json:"assets"`
@@ -267,14 +273,6 @@ func (c *OpenseaClient) GetTokenBalanceForOwner(contract, tokenID, owner string)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		errResp, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return 0, err
-		}
-		return 0, fmt.Errorf(string(errResp))
-	}
-
 	var asset Asset
 	if err := json.NewDecoder(resp.Body).Decode(&asset); err != nil {
 		return 0, err
@@ -315,14 +313,6 @@ func (c *OpenseaClient) RetrieveTokenOwners(contract, tokenID string, cursor *st
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		errResp, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, nil, err
-		}
-		return nil, nil, fmt.Errorf(string(errResp))
-	}
-
 	var ownersResp AssetOwners
 	if err := json.NewDecoder(resp.Body).Decode(&ownersResp); err != nil {
 		return nil, nil, err
@@ -351,14 +341,6 @@ func (c *OpenseaClient) GetTokenLastActivityTime(contract, tokenID string) (time
 		return time.Time{}, err
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		errResp, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return time.Time{}, err
-		}
-		return time.Time{}, fmt.Errorf(string(errResp))
-	}
 
 	var ownersResp AssetOwners
 	if err := json.NewDecoder(resp.Body).Decode(&ownersResp); err != nil {
