@@ -86,16 +86,20 @@ func (s *NFTIndexerServer) QueryNFTsV1(c *gin.Context) {
 func PreprocessTokens(addresses []string, isConvertToDecimal bool) []string {
 	var processedAddresses = []string{}
 	for _, address := range addresses {
-		idElements := strings.Split(address, "-")
-		if idElements[0] == "eth" {
+		blockchain, contractAddress, tokenID, err := indexer.ParseIndexID(address)
+		if err != nil {
+			continue
+		}
+
+		if blockchain == "eth" {
 			if isConvertToDecimal {
-				decimalTokenID, ok := big.NewInt(0).SetString(idElements[2], 16)
+				decimalTokenID, ok := big.NewInt(0).SetString(tokenID, 16)
 				if !ok {
 					continue
 				}
-				processedAddresses = append(processedAddresses, fmt.Sprintf("%s-%s-%s", idElements[0], indexer.EthereumChecksumAddress(idElements[1]), decimalTokenID.String()))
+				processedAddresses = append(processedAddresses, fmt.Sprintf("%s-%s-%s", blockchain, indexer.EthereumChecksumAddress(contractAddress), decimalTokenID.String()))
 			} else {
-				processedAddresses = append(processedAddresses, fmt.Sprintf("%s-%s-%s", idElements[0], indexer.EthereumChecksumAddress(idElements[1]), idElements[2]))
+				processedAddresses = append(processedAddresses, fmt.Sprintf("%s-%s-%s", blockchain, indexer.EthereumChecksumAddress(contractAddress), tokenID))
 			}
 
 		} else {
@@ -122,8 +126,10 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParamsIDs []str
 
 		// index redundant reqParams.IDs
 		for redundantID := range m {
-			contract := strings.Split(redundantID, "-")[1]
-			tokenId := strings.Split(redundantID, "-")[2]
+			_, contract, tokenId, err := indexer.ParseIndexID(redundantID)
+			if err != nil {
+				panic(err)
+			}
 
 			owner, err := s.indexerEngine.GetTokenOwnerAddress(contract, tokenId)
 			if err != nil {
