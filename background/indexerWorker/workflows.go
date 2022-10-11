@@ -5,7 +5,6 @@ import (
 	"time"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 	"github.com/getsentry/sentry-go"
 	cadenceClient "go.uber.org/cadence/client"
 	"go.uber.org/cadence/workflow"
@@ -88,26 +87,25 @@ func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, token
 
 	for {
 		tokenUpdates := []indexer.AssetUpdates{}
-		if err := workflow.ExecuteActivity(ctx, w.IndexOwnerTokenDataFromOpensea, ethTokenOwner, offset).Get(ctx, &tokenUpdates); err != nil {
+		if err := workflow.ExecuteActivity(ctx, w.IndexETHTokenByOwner, ethTokenOwner, offset).Get(ctx, &tokenUpdates); err != nil {
 			sentry.CaptureException(err)
 			return err
 		}
 
 		if len(tokenUpdates) == 0 {
-			log.Debug("[loop] no token found from opensea", zap.String("owner", ethTokenOwner), zap.Int("offset", offset))
+			log.Debug("[loop] no token found from ethereum", zap.String("owner", ethTokenOwner), zap.Int("offset", offset))
 			break
 		}
 
-		for _, u := range tokenUpdates {
-			if err := workflow.ExecuteActivity(ctx, w.IndexAsset, u).Get(ctx, nil); err != nil {
-				sentry.CaptureException(err)
-				return err
-			}
+		if err := workflow.ExecuteActivity(ctx, w.BatchIndexAsset, tokenUpdates).Get(ctx, nil); err != nil {
+			sentry.CaptureException(err)
+			return err
 		}
 
 		offset += len(tokenUpdates)
 	}
-	log.Info("ETH tokens indexed", zap.String("owner", tokenOwner))
+
+	log.Info("ETH tokens indexed", zap.String("owner", ethTokenOwner))
 	return nil
 }
 
@@ -143,47 +141,23 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 	var offset = 0
 
 	for {
-		ownedTokens := []tzkt.OwnedToken{}
-		if err := workflow.ExecuteActivity(ctx, w.GetTezosTokenByOwner, tokenOwner, offset).Get(ctx, &ownedTokens); err != nil {
+		tokenUpdates := []indexer.AssetUpdates{}
+		if err := workflow.ExecuteActivity(ctx, w.IndexTezosTokenByOwner, tokenOwner, offset).Get(ctx, &tokenUpdates); err != nil {
 			sentry.CaptureException(err)
 			return err
 		}
 
-		if len(ownedTokens) == 0 {
-			log.Debug("no token found", zap.String("owner", tokenOwner), zap.Int("offset", offset))
+		if len(tokenUpdates) == 0 {
+			log.Debug("[loop] no token found from tezos", zap.String("owner", tokenOwner), zap.Int("offset", offset))
 			break
 		}
 
-		rawTokens := make([]TezosTokenRawData, 0)
-		for i, t := range ownedTokens {
-			log.Debug("token raw data before summarizing", zap.String("owner", tokenOwner), zap.Any("token", t))
-
-			rawTokens = append(rawTokens, TezosTokenRawData{
-				Token:   t.Token,
-				Owner:   tokenOwner,
-				Balance: t.Balance,
-			})
-
-			if len(rawTokens) >= 50 || i == len(ownedTokens)-1 {
-				var updates []indexer.AssetUpdates
-				if err := workflow.ExecuteActivity(ctx, w.BatchPrepareTezosTokenFullData, rawTokens).Get(ctx, &updates); err != nil {
-					sentry.CaptureException(err)
-					return err
-				}
-
-				log.Debug("token full data before indexing into DB", zap.String("owner", tokenOwner), zap.Any("assetUpdates", updates))
-				if err := workflow.ExecuteActivity(ctx, w.BatchIndexAsset, updates).Get(ctx, nil); err != nil {
-					sentry.CaptureException(err)
-					return err
-				}
-
-				rawTokens = make([]TezosTokenRawData, 0)
-			}
+		if err := workflow.ExecuteActivity(ctx, w.BatchIndexAsset, tokenUpdates).Get(ctx, nil); err != nil {
+			sentry.CaptureException(err)
+			return err
 		}
 
-		offset += len(ownedTokens)
-
-		workflow.Sleep(ctx, time.Second)
+		offset += len(tokenUpdates)
 	}
 	log.Info("TEZOS tokens indexed", zap.String("owner", tokenOwner))
 	return nil

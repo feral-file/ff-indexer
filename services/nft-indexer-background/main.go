@@ -70,14 +70,13 @@ func main() {
 	activity.Register(worker.CacheIPFSArtifactInS3)
 
 	// opensea
-	activity.Register(worker.IndexOwnerTokenDataFromOpensea)
+	activity.Register(worker.IndexETHTokenByOwner)
 	activity.Register(worker.IndexOwnerTokenDataFromTezos)
 	activity.Register(worker.IndexToken)
 
 	// tezos
 	activity.Register(worker.GetTezosTokenByOwner)
-	activity.Register(worker.PrepareTezosTokenFullData)
-	activity.Register(worker.BatchPrepareTezosTokenFullData)
+	activity.Register(worker.IndexTezosTokenByOwner)
 	activity.Register(worker.RefreshTezosTokenOwnership)
 	// index store
 	activity.Register(worker.IndexAsset)

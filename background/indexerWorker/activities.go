@@ -58,9 +58,14 @@ func (w *NFTIndexerWorker) GetOwnedERC721TokenIDByContract(ctx context.Context, 
 	return tokenIDs, nil
 }
 
-// IndexOwnerTokenDataFromOpensea indexes token data of an owner from OpenSea into the format of AssetUpdates
-func (w *NFTIndexerWorker) IndexOwnerTokenDataFromOpensea(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
+// IndexETHTokenByOwner indexes ETH token data for an owner into the format of AssetUpdates
+func (w *NFTIndexerWorker) IndexETHTokenByOwner(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
 	return w.indexerEngine.IndexETHTokenByOwner(ctx, owner, offset)
+}
+
+// IndexTezosTokenByOwner indexes Tezos token data for an owner into the format of AssetUpdates
+func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
+	return w.indexerEngine.IndexTezosTokenByOwner(ctx, owner, offset)
 }
 
 // IndexOwnerTokenDataFromTezos indexes data from Tezos into the format of AssetUpdates
@@ -72,30 +77,6 @@ type TezosTokenRawData struct {
 	Token   tzkt.Token
 	Owner   string
 	Balance int64
-}
-
-// BatchPrepareTezosTokenFullData prepares asset objects for an array of tezos raw data
-func (w *NFTIndexerWorker) BatchPrepareTezosTokenFullData(ctx context.Context, tokens []TezosTokenRawData) ([]indexer.AssetUpdates, error) {
-	updates := make([]indexer.AssetUpdates, 0, len(tokens))
-
-	for _, t := range tokens {
-		u, err := w.indexerEngine.PrepareTezosTokenFullData(ctx, t.Token, t.Owner, t.Balance)
-		if err != nil {
-			// log error tokens but not break the flow
-			log.WithError(err).WithField("rawToken", t).Error("fail to prepare token full data")
-		}
-
-		if u != nil {
-			updates = append(updates, *u)
-		}
-	}
-
-	return updates, nil
-}
-
-// PrepareTezosTokenFullData prepares an asset object for a token
-func (w *NFTIndexerWorker) PrepareTezosTokenFullData(ctx context.Context, token tzkt.Token, owner string, balance int64) (*indexer.AssetUpdates, error) {
-	return w.indexerEngine.PrepareTezosTokenFullData(ctx, token, owner, balance)
 }
 
 // IndexOwnerTokenDataFromTezos indexes data from Tezos into the format of AssetUpdates
