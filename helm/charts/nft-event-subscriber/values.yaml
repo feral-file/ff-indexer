@@ -17,6 +17,7 @@ image:
 serviceConfig:
   environment: development
   cadence_hostport: cadence-frontend.cadence.svc.cluster.local:7933
+  feedEndpoint: http://autonomy-event-feed.autonomy.svc.cluster.local:80
   tezosNodeRPCURL: https://rpc.ghost.tzstats.com
 
 imagePullSecrets: []

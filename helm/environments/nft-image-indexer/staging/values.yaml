@@ -1,0 +1,4 @@
+replicaCount: 1
+
+image:
+  tag: "image-indexer-0.0.10"
