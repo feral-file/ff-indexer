@@ -76,6 +76,7 @@ type Asset struct {
 }
 
 type OpenseaClient struct {
+	debug       bool
 	apiKey      string
 	apiEndpoint string
 	network     string
@@ -140,6 +141,10 @@ func NewRateLimiter(rps int) *RateLimiter {
 	return r
 }
 
+func (c *OpenseaClient) Debug(debug bool) {
+	c.debug = debug
+}
+
 func (c *OpenseaClient) makeRequest(method, url string, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
@@ -148,6 +153,10 @@ func (c *OpenseaClient) makeRequest(method, url string, body io.Reader) (*http.R
 
 	if c.network != "testnet" {
 		req.Header.Add("X-API-KEY", c.apiKey)
+	}
+
+	if c.debug {
+		logrus.WithField("req_dump", traceutils.DumpRequest(req)).Debug("debug request")
 	}
 
 	c.limiter.Request()
@@ -213,6 +222,7 @@ func (c *OpenseaClient) RetrieveAsset(contract, tokenID string) (*Asset, error) 
 }
 
 func (c *OpenseaClient) RetrieveAssets(owner string, offset int) ([]Asset, error) {
+	// NOTE: query by offset is removed from the document but still support at this moment.
 	v := url.Values{
 		"owner":           []string{owner},
 		"limit":           []string{"50"},
