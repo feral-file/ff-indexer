@@ -89,10 +89,34 @@ func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, owner str
 		return 0, nil
 	}
 
+	accountTokens := []indexer.AccountToken{}
+
 	for _, update := range updates {
 		if err := w.indexerStore.IndexAsset(ctx, update.ID, update); err != nil {
 			return 0, err
 		}
+
+		accountTokens = append(accountTokens, indexer.AccountToken{
+			BaseTokenInfo:    update.Tokens[0].BaseTokenInfo,
+			IndexID:          update.Tokens[0].IndexID,
+			OwnerAccount:     update.Tokens[0].Owner,
+			Balance:          update.Tokens[0].Balance,
+			LastActivityTime: update.Tokens[0].LastActivityTime,
+			Edition:          update.Tokens[0].Edition,
+			MintAt:           update.Tokens[0].MintAt,
+			OriginTokenInfo:  update.Tokens[0].OriginTokenInfo,
+			AssetID:          update.Tokens[0].AssetID,
+			Source:           update.Tokens[0].Source,
+			Provenances:      update.Tokens[0].Provenances,
+		})
+	}
+
+	if err := w.indexTezosAccount(ctx, owner); err != nil {
+		return 0, err
+	}
+
+	if err := w.indexTezosAccountTokens(ctx, owner, accountTokens); err != nil {
+		return 0, err
 	}
 
 	return len(updates), nil
@@ -122,6 +146,21 @@ func (w *NFTIndexerWorker) GetOutdatedTokensByOwner(ctx context.Context, owner s
 // IndexAsset saves asset data into indexer's storage
 func (w *NFTIndexerWorker) IndexAsset(ctx context.Context, updates indexer.AssetUpdates) error {
 	return w.indexerStore.IndexAsset(ctx, updates.ID, updates)
+}
+
+// Index saves asset data into indexer's storage
+func (w *NFTIndexerWorker) indexTezosAccount(ctx context.Context, owner string) error {
+	account := indexer.Account{
+		Account:         owner,
+		Blockchain:      "tezos",
+		LastUpdatedTime: time.Now(),
+	}
+	return w.indexerStore.IndexAccount(ctx, account)
+}
+
+// Index saves asset data into indexer's storage
+func (w *NFTIndexerWorker) indexTezosAccountTokens(ctx context.Context, owner string, accountTokens []indexer.AccountToken) error {
+	return w.indexerStore.IndexAccountTokens(ctx, owner, accountTokens)
 }
 
 type Provenance struct {
@@ -394,6 +433,59 @@ func (w *NFTIndexerWorker) RefreshTezosTokenOwnership(ctx context.Context, index
 		}
 
 		if err := w.indexerStore.UpdateTokenOwners(ctx, token.IndexID, lastActivityTime, owners); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// RefreshTezosTokenOwnership refreshes ownership for each tokens
+func (w *NFTIndexerWorker) RefreshNewTezosTokenOwnership(ctx context.Context, indexIDs []string, delay time.Duration) error {
+	tokens, err := w.indexerStore.GetAccountTokensByIndexIDs(ctx, indexIDs)
+	if err != nil {
+		return err
+	}
+
+	for _, token := range tokens {
+		if token.LastActivityTime.Unix() > time.Now().Add(-delay).Unix() {
+			log.WithField("indexID", token.IndexID).Trace("ownership refresh too frequently")
+			continue
+		}
+
+		if !token.Fungible {
+			log.WithField("indexID", token.IndexID).Trace("ignore non-fungible token")
+			continue
+		}
+
+		log.WithField("indexID", token.IndexID).Debug("start refresh token ownership updating flow")
+		var (
+			owners           map[string]int64
+			lastActivityTime time.Time
+			err              error
+		)
+		switch token.Blockchain {
+		case indexer.EthereumBlockchain:
+			//ignore
+			return nil
+		case indexer.TezosBlockchain:
+			lastActivityTime, err = w.indexerEngine.IndexTezosTokenLastActivityTime(ctx, token.ContractAddress, token.ID)
+			if err != nil {
+				return err
+			}
+
+			if lastActivityTime.Sub(token.LastActivityTime) <= 0 {
+				log.WithField("indexID", token.IndexID).Trace("no new updates since last check")
+				continue
+			}
+
+			log.WithField("indexID", token.IndexID).Debug("fetch tezos ownership for the token")
+			owners, err = w.indexerEngine.IndexTezosTokenOwners(ctx, token.ContractAddress, token.ID)
+			if err != nil {
+				return err
+			}
+		}
+
+		if err := w.indexerStore.UpdateAccountTokenOwners(ctx, token.IndexID, lastActivityTime, owners); err != nil {
 			return err
 		}
 	}
