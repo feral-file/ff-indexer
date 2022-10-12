@@ -59,29 +59,49 @@ func (w *NFTIndexerWorker) GetOwnedERC721TokenIDByContract(ctx context.Context, 
 }
 
 // IndexETHTokenByOwner indexes ETH token data for an owner into the format of AssetUpdates
-func (w *NFTIndexerWorker) IndexETHTokenByOwner(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
-	return w.indexerEngine.IndexETHTokenByOwner(ctx, owner, offset)
+func (w *NFTIndexerWorker) IndexETHTokenByOwner(ctx context.Context, owner string, offset int) (int, error) {
+	updates, err := w.indexerEngine.IndexETHTokenByOwner(ctx, owner, offset)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(updates) == 0 {
+		return 0, nil
+	}
+
+	for _, update := range updates {
+		if err := w.indexerStore.IndexAsset(ctx, update.ID, update); err != nil {
+			return 0, err
+		}
+	}
+
+	return len(updates), nil
 }
 
 // IndexTezosTokenByOwner indexes Tezos token data for an owner into the format of AssetUpdates
-func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
-	return w.indexerEngine.IndexTezosTokenByOwner(ctx, owner, offset)
-}
+func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, owner string, offset int) (int, error) {
+	updates, err := w.indexerEngine.IndexTezosTokenByOwner(ctx, owner, offset)
+	if err != nil {
+		return 0, err
+	}
 
-// IndexOwnerTokenDataFromTezos indexes data from Tezos into the format of AssetUpdates
-func (w *NFTIndexerWorker) GetTezosTokenByOwner(ctx context.Context, owner string, offset int) ([]tzkt.OwnedToken, error) {
-	return w.indexerEngine.GetTezosTokenByOwner(ctx, owner, offset)
+	if len(updates) == 0 {
+		return 0, nil
+	}
+
+	for _, update := range updates {
+		if err := w.indexerStore.IndexAsset(ctx, update.ID, update); err != nil {
+			return 0, err
+		}
+	}
+
+	return len(updates), nil
 }
 
 type TezosTokenRawData struct {
 	Token   tzkt.Token
 	Owner   string
 	Balance int64
-}
-
-// IndexOwnerTokenDataFromTezos indexes data from Tezos into the format of AssetUpdates
-func (w *NFTIndexerWorker) IndexOwnerTokenDataFromTezos(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
-	return w.indexerEngine.IndexTezosTokenByOwner(ctx, owner, offset)
 }
 
 // IndexToken indexes a token by the given contract and token id
@@ -102,16 +122,6 @@ func (w *NFTIndexerWorker) GetOutdatedTokensByOwner(ctx context.Context, owner s
 // IndexAsset saves asset data into indexer's storage
 func (w *NFTIndexerWorker) IndexAsset(ctx context.Context, updates indexer.AssetUpdates) error {
 	return w.indexerStore.IndexAsset(ctx, updates.ID, updates)
-}
-
-// BatchIndexAsset saves an array of asset data into indexer's storage
-func (w *NFTIndexerWorker) BatchIndexAsset(ctx context.Context, updates []indexer.AssetUpdates) error {
-	for _, update := range updates {
-		if err := w.indexerStore.IndexAsset(ctx, update.ID, update); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 type Provenance struct {

@@ -46,17 +46,9 @@ func (w *NFTIndexerWorker) triggerIndexOutdatedTokenWorkflow(ctx workflow.Contex
 
 // IndexOpenseaTokenWorkflow is a workflow to summarize NFT data from OpenSea and save it to the storage.
 func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, tokenOwner string) error {
-	ao := workflow.ActivityOptions{
-		TaskList:               w.TaskListName,
-		ScheduleToStartTimeout: 10 * time.Minute,
-		StartToCloseTimeout:    time.Hour,
-	}
-
-	ctx = workflow.WithActivityOptions(ctx, ao)
 	log := workflow.GetLogger(ctx)
 
 	ethTokenOwner := indexer.EthereumChecksumAddress(tokenOwner)
-
 	if ethTokenOwner == indexer.EthereumZeroAddress {
 		log.Warn("invalid ethereum token owner", zap.String("owner", tokenOwner))
 		var err = fmt.Errorf("invalid ethereum token owner")
@@ -64,45 +56,43 @@ func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, token
 		return err
 	}
 
-	var outdatedTokens []indexer.Token
-	if err := workflow.ExecuteActivity(ctx, w.GetOutdatedTokensByOwner, ethTokenOwner).Get(ctx, &outdatedTokens); err != nil {
-		sentry.CaptureException(err)
-		return err
-	}
+	{
+		// ctx = ContextNoRetryActivity(ctx)
+		// var outdatedTokens []indexer.Token
+		// if err := workflow.ExecuteActivity(ctx, w.GetOutdatedTokensByOwner, ethTokenOwner).Get(ctx, &outdatedTokens); err != nil {
+		// 	sentry.CaptureException(err)
+		// 	return err
+		// }
 
-	log.Debug("Classify outdated tokens for owner", zap.Any("tokens", outdatedTokens), zap.String("owner", ethTokenOwner))
-	ownedFungibleToken := []string{}
-	ownedNonFungibleToken := []string{}
-	for _, t := range outdatedTokens {
-		if t.Fungible {
-			ownedFungibleToken = append(ownedFungibleToken, t.IndexID)
-		} else {
-			ownedNonFungibleToken = append(ownedNonFungibleToken, t.IndexID)
-		}
+		// log.Debug("Classify outdated tokens for owner", zap.Any("tokens", outdatedTokens), zap.String("owner", ethTokenOwner))
+		// ownedFungibleToken := []string{}
+		// ownedNonFungibleToken := []string{}
+		// for _, t := range outdatedTokens {
+		// 	if t.Fungible {
+		// 		ownedFungibleToken = append(ownedFungibleToken, t.IndexID)
+		// 	} else {
+		// 		ownedNonFungibleToken = append(ownedNonFungibleToken, t.IndexID)
+		// 	}
+		// }
+		// log.Info("Start workflows to check existence token ownership and provenance", zap.String("owner", ethTokenOwner))
+		// w.triggerIndexOutdatedTokenWorkflow(ctx, ethTokenOwner, ownedFungibleToken, ownedNonFungibleToken)
 	}
-	log.Info("Start workflows to check existence token ownership and provenance", zap.String("owner", ethTokenOwner))
-	w.triggerIndexOutdatedTokenWorkflow(ctx, ethTokenOwner, ownedFungibleToken, ownedNonFungibleToken)
 
 	var offset = 0
-
 	for {
-		tokenUpdates := []indexer.AssetUpdates{}
-		if err := workflow.ExecuteActivity(ctx, w.IndexETHTokenByOwner, ethTokenOwner, offset).Get(ctx, &tokenUpdates); err != nil {
+		var updateCounts int
+
+		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx), w.IndexETHTokenByOwner, ethTokenOwner, offset).Get(ctx, &updateCounts); err != nil {
 			sentry.CaptureException(err)
 			return err
 		}
 
-		if len(tokenUpdates) == 0 {
+		if updateCounts == 0 {
 			log.Debug("[loop] no token found from ethereum", zap.String("owner", ethTokenOwner), zap.Int("offset", offset))
 			break
 		}
 
-		if err := workflow.ExecuteActivity(ctx, w.BatchIndexAsset, tokenUpdates).Get(ctx, nil); err != nil {
-			sentry.CaptureException(err)
-			return err
-		}
-
-		offset += len(tokenUpdates)
+		offset += updateCounts
 	}
 
 	log.Info("ETH tokens indexed", zap.String("owner", ethTokenOwner))
@@ -110,54 +100,45 @@ func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, token
 }
 
 func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOwner string) error {
-	ao := workflow.ActivityOptions{
-		TaskList:               w.TaskListName,
-		ScheduleToStartTimeout: 10 * time.Minute,
-		StartToCloseTimeout:    time.Hour,
-	}
-
-	ctx = workflow.WithActivityOptions(ctx, ao)
 	log := workflow.GetLogger(ctx)
 
-	var outdatedTokens []indexer.Token
-	if err := workflow.ExecuteActivity(ctx, w.GetOutdatedTokensByOwner, tokenOwner).Get(ctx, &outdatedTokens); err != nil {
-		sentry.CaptureException(err)
-		return err
-	}
+	{
+		// ctx = ContextNoRetryActivity(ctx)
+		// var outdatedTokens []indexer.Token
+		// if err := workflow.ExecuteActivity(ctx, w.GetOutdatedTokensByOwner, tokenOwner).Get(ctx, &outdatedTokens); err != nil {
+		// 	sentry.CaptureException(err)
+		// 	return err
+		// }
 
-	log.Debug("Classify outdated tokens for owner", zap.Any("tokens", outdatedTokens), zap.String("owner", tokenOwner))
-	ownedFungibleToken := []string{}
-	ownedNonFungibleToken := []string{}
-	for _, t := range outdatedTokens {
-		if t.Fungible {
-			ownedFungibleToken = append(ownedFungibleToken, t.IndexID)
-		} else {
-			ownedNonFungibleToken = append(ownedNonFungibleToken, t.IndexID)
-		}
+		// log.Debug("Classify outdated tokens for owner", zap.Any("tokens", outdatedTokens), zap.String("owner", tokenOwner))
+		// ownedFungibleToken := []string{}
+		// ownedNonFungibleToken := []string{}
+		// for _, t := range outdatedTokens {
+		// 	if t.Fungible {
+		// 		ownedFungibleToken = append(ownedFungibleToken, t.IndexID)
+		// 	} else {
+		// 		ownedNonFungibleToken = append(ownedNonFungibleToken, t.IndexID)
+		// 	}
+		// }
+		// log.Info("Start workflows to check existence token ownership and provenance", zap.String("owner", tokenOwner))
+		// w.triggerIndexOutdatedTokenWorkflow(ctx, tokenOwner, ownedFungibleToken, ownedNonFungibleToken)
 	}
-	log.Info("Start workflows to check existence token ownership and provenance", zap.String("owner", tokenOwner))
-	w.triggerIndexOutdatedTokenWorkflow(ctx, tokenOwner, ownedFungibleToken, ownedNonFungibleToken)
 
 	var offset = 0
-
 	for {
-		tokenUpdates := []indexer.AssetUpdates{}
-		if err := workflow.ExecuteActivity(ctx, w.IndexTezosTokenByOwner, tokenOwner, offset).Get(ctx, &tokenUpdates); err != nil {
+		var updateCounts int
+
+		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx), w.IndexTezosTokenByOwner, tokenOwner, offset).Get(ctx, &updateCounts); err != nil {
 			sentry.CaptureException(err)
 			return err
 		}
 
-		if len(tokenUpdates) == 0 {
+		if updateCounts == 0 {
 			log.Debug("[loop] no token found from tezos", zap.String("owner", tokenOwner), zap.Int("offset", offset))
 			break
 		}
 
-		if err := workflow.ExecuteActivity(ctx, w.BatchIndexAsset, tokenUpdates).Get(ctx, nil); err != nil {
-			sentry.CaptureException(err)
-			return err
-		}
-
-		offset += len(tokenUpdates)
+		offset += updateCounts
 	}
 	log.Info("TEZOS tokens indexed", zap.String("owner", tokenOwner))
 	return nil
