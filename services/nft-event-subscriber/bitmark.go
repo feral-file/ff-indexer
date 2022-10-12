@@ -9,6 +9,7 @@ import (
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 // WatchBitmarkEvent listens events from bitmark blockchain db for new transfer events.
@@ -47,7 +48,7 @@ func (s *NFTEventSubscriber) WatchBitmarkEvent(ctx context.Context) error {
 							logrus.WithError(err).Error("fail to push event to feed server")
 						}
 					} else {
-						if err := s.feedServer.SendEvent(indexer.BitmarkBlockchain, "", t.BitmarkID, t.Owner, action); err != nil {
+						if err := s.feedServer.SendEvent(indexer.BitmarkBlockchain, "", t.BitmarkID, t.Owner, action, viper.GetString("network.bitmark") == "testnet"); err != nil {
 							logrus.WithError(err).Error("fail to push event to feed server")
 						}
 					}

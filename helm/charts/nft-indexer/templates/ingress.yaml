@@ -1,0 +1,54 @@
+{{- if .Values.ingress.enabled -}}
+{{- if empty .Values.ingress.hosts }}
+{{ fail ".Values.ingress.hosts should not be empty when ingress is enabled" }}
+{{- end }}
+{{- $fullName := include "nft-indexer.fullname" . -}}
+{{- $tlsSecretName := include "nft-indexer.tlsSecretName" . -}}
+{{- $svcPort := .Values.service.port -}}
+
+{{- if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: networking.k8s.io/v1beta1
+{{- else -}}
+apiVersion: extensions/v1beta1
+{{- end }}
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "nft-indexer.labels" . | nindent 4 }}
+  annotations:
+  {{- if .Values.ingress.external_dns }}
+    external-dns.alpha.kubernetes.io/hostname: {{ range $index, $value := .Values.ingress.hosts }}{{ if ne $index 0 }},{{ end }}{{ $value.host }}{{ end }}
+  {{- end }}
+  {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if $.Values.certificate.enabled }}
+  tls:
+    {{- range .Values.ingress.hosts }}
+    - hosts:
+        - {{ .host }}
+      secretName: {{ $tlsSecretName }}-{{ .issuerRef.name }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- with .paths }}
+          {{- range . }}
+          - path: {{ . }}
+            backend:
+              serviceName: {{ $fullName }}
+              servicePort: {{ $svcPort }}
+          {{- end }}
+          {{- else }}
+          - path: "/"
+            backend:
+              serviceName: {{ $fullName }}
+              servicePort: {{ $svcPort }}
+          {{- end }}
+    {{- end }}
+  {{- end }}

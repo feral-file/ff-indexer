@@ -1,0 +1,23 @@
+replicaCount: 1
+
+image:
+  tags:
+    eventSubscriber: "event-subscriber-0.0.16-6"
+    tezosMarketplaceIndexer: tezos-marketplace-indexer-0.0.1-5
+    tezosFeralfileIndexer: tezos-feralfile-indexer-0.0.1-11
+
+serviceConfig:
+  tezosNodeRPCURL: https://mainnet-tezos.autonomy.io
+  cadence_hostport: cadenceau-frontend.cadenceau.svc.cluster.local:7933
+  contractAddress: [
+    "KT1QWATcHYpBVDxvNoxw5CbkaMGpjm4SxXa2",
+    "KT1RnhKKsAD7ScFi3Nb7HKK2hnPCqXcbNG3k",
+    "KT1U1KFWkAR8ea9GUi8fAH1jPKRMmAHJLhpN",
+    "KT1WgvCKC8vvjbAYEgaXHo9A6GprKDyaw7N3",
+    "KT1GbUx4MFBWHi3YhofDDvDYyeDeqahpKAGD",
+  ]
+  environment: production
+  network:
+    tezos: livenet
+    ethereum: livenet
+    bitmark: livenet

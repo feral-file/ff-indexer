@@ -1,0 +1,81 @@
+# Default values for nft-event-subscriber.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tags:
+    eventSubscriber: "event-subscriber-0.0.14-11"
+    tezosIndexer: tezos-event-indexer-0.0.1-4
+    feralfileIndexer: tezos-feralfile-indexer-0.0.1-8
+
+
+serviceConfig:
+  environment: development
+  cadence_hostport: cadence-frontend.cadence.svc.cluster.local:7933
+  feedEndpoint: http://autonomy-event-feed.autonomy.svc.cluster.local:80
+  tezosNodeRPCURL: https://rpc.ghost.tzstats.com
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  external_dns: true
+  hosts: {}
+    # - host: xxx.bitmark.com
+    #   issuerRef:
+    #     name: letsencrypt-dns
+    #     kind: ClusterIssuer
+    #   paths:
+    #     - "/"
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/proxy-body-size: 100m
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "Strict-Transport-Security: max-age=10886400; includeSubDomains; preload";
+
+certificate:
+  enabled: false
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

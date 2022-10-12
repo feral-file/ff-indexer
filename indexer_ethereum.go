@@ -22,11 +22,12 @@ func (e *IndexEngine) IndexETHTokenByOwner(ctx context.Context, owner string, of
 	tokenUpdates := make([]AssetUpdates, 0, len(assets))
 
 	for _, a := range assets {
-		balance, err := e.opensea.GetTokenBalanceForOwner(a.AssetContract.Address, a.TokenID, owner)
-		if err != nil {
-			log.WithError(err).Error("fail to get token balance from owner")
-			continue
-		}
+		// balance, err := e.opensea.GetTokenBalanceForOwner(a.AssetContract.Address, a.TokenID, owner)
+		// if err != nil {
+		// 	log.WithError(err).Error("fail to get token balance from owner")
+		// 	continue
+		// }
+		balance := int64(1) // set default balance to 1 to reduce extra call to opensea
 
 		log.WithFields(log.Fields{
 			"contract": a.AssetContract.Address,

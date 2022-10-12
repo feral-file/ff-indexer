@@ -5,7 +5,6 @@ import (
 	"time"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 	"github.com/getsentry/sentry-go"
 	cadenceClient "go.uber.org/cadence/client"
 	"go.uber.org/cadence/workflow"
@@ -14,19 +13,42 @@ import (
 
 const TokenRefreshingDelay = 60 * time.Minute
 
-// IndexOpenseaTokenWorkflow is a workflow to summarize NFT data from OpenSea and save it to the storage.
-func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, tokenOwner string) error {
-	ao := workflow.ActivityOptions{
-		TaskList:               w.TaskListName,
-		ScheduleToStartTimeout: 10 * time.Minute,
-		StartToCloseTimeout:    time.Hour,
+// triggerIndexOutdatedTokenWorkflow triggers two workflows for checking both ownership and provenance
+func (w *NFTIndexerWorker) triggerIndexOutdatedTokenWorkflow(ctx workflow.Context, owner string, ownedFungibleToken, ownedNonFungibleToken []string) {
+	log := workflow.GetLogger(ctx)
+
+	if len(ownedFungibleToken) > 0 {
+		log.Debug("Start child workflow to check existence token ownership", zap.String("owner", owner))
+		cwoOwnership := workflow.ChildWorkflowOptions{
+			TaskList:                     ProvenanceTaskListName,
+			WorkflowID:                   WorkflowIDIndexTokenOwnershipByOwner(owner),
+			WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+			ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
+			ExecutionStartToCloseTimeout: time.Hour,
+		}
+		_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoOwnership),
+			w.RefreshTokenOwnershipWorkflow, ownedFungibleToken, TokenRefreshingDelay)
 	}
 
-	ctx = workflow.WithActivityOptions(ctx, ao)
+	if len(ownedNonFungibleToken) > 0 {
+		log.Debug("Start child workflow to check existence token provenance", zap.String("owner", owner))
+		cwoProvenance := workflow.ChildWorkflowOptions{
+			TaskList:                     ProvenanceTaskListName,
+			WorkflowID:                   WorkflowIDIndexTokenProvenanceByOwner(owner),
+			WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+			ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
+			ExecutionStartToCloseTimeout: time.Hour,
+		}
+		_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoProvenance),
+			w.RefreshTokenProvenanceWorkflow, ownedNonFungibleToken, TokenRefreshingDelay)
+	}
+}
+
+// IndexOpenseaTokenWorkflow is a workflow to summarize NFT data from OpenSea and save it to the storage.
+func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, tokenOwner string) error {
 	log := workflow.GetLogger(ctx)
 
 	ethTokenOwner := indexer.EthereumChecksumAddress(tokenOwner)
-
 	if ethTokenOwner == indexer.EthereumZeroAddress {
 		log.Warn("invalid ethereum token owner", zap.String("owner", tokenOwner))
 		var err = fmt.Errorf("invalid ethereum token owner")
@@ -34,158 +56,89 @@ func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, token
 		return err
 	}
 
-	var outdatedTokens []indexer.Token
-	if err := workflow.ExecuteActivity(ctx, w.GetOutdatedTokensByOwner, ethTokenOwner).Get(ctx, &outdatedTokens); err != nil {
-		sentry.CaptureException(err)
-		return err
+	{
+		// ctx = ContextNoRetryActivity(ctx)
+		// var outdatedTokens []indexer.Token
+		// if err := workflow.ExecuteActivity(ctx, w.GetOutdatedTokensByOwner, ethTokenOwner).Get(ctx, &outdatedTokens); err != nil {
+		// 	sentry.CaptureException(err)
+		// 	return err
+		// }
+
+		// log.Debug("Classify outdated tokens for owner", zap.Any("tokens", outdatedTokens), zap.String("owner", ethTokenOwner))
+		// ownedFungibleToken := []string{}
+		// ownedNonFungibleToken := []string{}
+		// for _, t := range outdatedTokens {
+		// 	if t.Fungible {
+		// 		ownedFungibleToken = append(ownedFungibleToken, t.IndexID)
+		// 	} else {
+		// 		ownedNonFungibleToken = append(ownedNonFungibleToken, t.IndexID)
+		// 	}
+		// }
+		// log.Info("Start workflows to check existence token ownership and provenance", zap.String("owner", ethTokenOwner))
+		// w.triggerIndexOutdatedTokenWorkflow(ctx, ethTokenOwner, ownedFungibleToken, ownedNonFungibleToken)
 	}
-
-	log.Debug("outdated tokens for owner", zap.Any("tokens", outdatedTokens), zap.String("owner", ethTokenOwner))
-
-	ownedFungibleToken := []string{}
-	ownedNonFungibleToken := []string{}
-
-	for _, t := range outdatedTokens {
-		if t.Fungible {
-			ownedFungibleToken = append(ownedFungibleToken, t.IndexID)
-		} else {
-			ownedNonFungibleToken = append(ownedNonFungibleToken, t.IndexID)
-		}
-	}
-
-	log.Info("task to check existence token ownership", zap.String("owner", ethTokenOwner))
-	cwoOwnership := workflow.ChildWorkflowOptions{
-		TaskList:                     ProvenanceTaskListName,
-		WorkflowID:                   fmt.Sprintf("index-token-ownership-by-owner-%s", ethTokenOwner),
-		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-		ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-		ExecutionStartToCloseTimeout: time.Hour,
-	}
-	_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoOwnership),
-		w.RefreshTokenOwnershipWorkflow, ownedFungibleToken, TokenRefreshingDelay)
-
-	log.Info("task to check existence token provenance", zap.String("owner", ethTokenOwner))
-	cwoProvenance := workflow.ChildWorkflowOptions{
-		TaskList:                     ProvenanceTaskListName,
-		WorkflowID:                   fmt.Sprintf("index-token-provenance-by-owner-%s", ethTokenOwner),
-		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-		ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-		ExecutionStartToCloseTimeout: time.Hour,
-	}
-	_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoProvenance),
-		w.RefreshTokenProvenanceWorkflow, ownedNonFungibleToken, TokenRefreshingDelay)
 
 	var offset = 0
-
 	for {
-		tokenUpdates := []indexer.AssetUpdates{}
-		if err := workflow.ExecuteActivity(ctx, w.IndexOwnerTokenDataFromOpensea, ethTokenOwner, offset).Get(ctx, &tokenUpdates); err != nil {
+		var updateCounts int
+
+		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx), w.IndexETHTokenByOwner, ethTokenOwner, offset).Get(ctx, &updateCounts); err != nil {
 			sentry.CaptureException(err)
 			return err
 		}
 
-		if len(tokenUpdates) == 0 {
-			log.Debug("[loop] no token found from opensea", zap.String("owner", ethTokenOwner), zap.Int("offset", offset))
+		if updateCounts == 0 {
+			log.Debug("[loop] no token found from ethereum", zap.String("owner", ethTokenOwner), zap.Int("offset", offset))
 			break
 		}
 
-		for _, u := range tokenUpdates {
-			if err := workflow.ExecuteActivity(ctx, w.IndexAsset, u).Get(ctx, nil); err != nil {
-				sentry.CaptureException(err)
-				return err
-			}
-		}
-
-		offset += len(tokenUpdates)
+		offset += updateCounts
 	}
-	log.Info("ETH tokens indexed", zap.String("owner", tokenOwner))
+
+	log.Info("ETH tokens indexed", zap.String("owner", ethTokenOwner))
 	return nil
 }
 
 func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOwner string) error {
-	ao := workflow.ActivityOptions{
-		TaskList:               w.TaskListName,
-		ScheduleToStartTimeout: 10 * time.Minute,
-		StartToCloseTimeout:    time.Hour,
-	}
-
-	ctx = workflow.WithActivityOptions(ctx, ao)
 	log := workflow.GetLogger(ctx)
 
-	var outdatedTokens []indexer.Token
-	if err := workflow.ExecuteActivity(ctx, w.GetOutdatedTokensByOwner, tokenOwner).Get(ctx, &outdatedTokens); err != nil {
-		sentry.CaptureException(err)
-		return err
+	{
+		// ctx = ContextNoRetryActivity(ctx)
+		// var outdatedTokens []indexer.Token
+		// if err := workflow.ExecuteActivity(ctx, w.GetOutdatedTokensByOwner, tokenOwner).Get(ctx, &outdatedTokens); err != nil {
+		// 	sentry.CaptureException(err)
+		// 	return err
+		// }
+
+		// log.Debug("Classify outdated tokens for owner", zap.Any("tokens", outdatedTokens), zap.String("owner", tokenOwner))
+		// ownedFungibleToken := []string{}
+		// ownedNonFungibleToken := []string{}
+		// for _, t := range outdatedTokens {
+		// 	if t.Fungible {
+		// 		ownedFungibleToken = append(ownedFungibleToken, t.IndexID)
+		// 	} else {
+		// 		ownedNonFungibleToken = append(ownedNonFungibleToken, t.IndexID)
+		// 	}
+		// }
+		// log.Info("Start workflows to check existence token ownership and provenance", zap.String("owner", tokenOwner))
+		// w.triggerIndexOutdatedTokenWorkflow(ctx, tokenOwner, ownedFungibleToken, ownedNonFungibleToken)
 	}
-
-	log.Debug("outdated tokens for owner", zap.Any("tokens", outdatedTokens), zap.String("owner", tokenOwner))
-
-	ownedFungibleToken := []string{}
-	ownedNonFungibleToken := []string{}
-
-	for _, t := range outdatedTokens {
-		if t.Fungible {
-			ownedFungibleToken = append(ownedFungibleToken, t.IndexID)
-		} else {
-			ownedNonFungibleToken = append(ownedNonFungibleToken, t.IndexID)
-		}
-	}
-
-	log.Info("task to check existence token ownership", zap.String("owner", tokenOwner))
-	cwoOwnership := workflow.ChildWorkflowOptions{
-		TaskList:                     ProvenanceTaskListName,
-		WorkflowID:                   fmt.Sprintf("index-token-ownership-by-owner-%s", tokenOwner),
-		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-		ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-		ExecutionStartToCloseTimeout: time.Hour,
-	}
-	_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoOwnership),
-		w.RefreshTokenOwnershipWorkflow, ownedFungibleToken, TokenRefreshingDelay)
-
-	log.Info("task to check existence token provenance", zap.String("owner", tokenOwner))
-	cwoProvenance := workflow.ChildWorkflowOptions{
-		TaskList:                     ProvenanceTaskListName,
-		WorkflowID:                   fmt.Sprintf("index-token-provenance-by-owner-%s", tokenOwner),
-		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-		ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-		ExecutionStartToCloseTimeout: time.Hour,
-	}
-	_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoProvenance),
-		w.RefreshTokenProvenanceWorkflow, ownedNonFungibleToken, TokenRefreshingDelay)
 
 	var offset = 0
-
 	for {
-		ownedTokens := []tzkt.OwnedToken{}
-		if err := workflow.ExecuteActivity(ctx, w.GetTezosTokenByOwner, tokenOwner, offset).Get(ctx, &ownedTokens); err != nil {
+		var updateCounts int
+
+		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx), w.IndexTezosTokenByOwner, tokenOwner, offset).Get(ctx, &updateCounts); err != nil {
 			sentry.CaptureException(err)
 			return err
 		}
 
-		if len(ownedTokens) == 0 {
-			log.Debug("no token found", zap.String("owner", tokenOwner), zap.Int("offset", offset))
+		if updateCounts == 0 {
+			log.Debug("[loop] no token found from tezos", zap.String("owner", tokenOwner), zap.Int("offset", offset))
 			break
 		}
 
-		for _, t := range ownedTokens {
-			log.Debug("token raw data before summarizing", zap.String("owner", tokenOwner), zap.Any("token", t))
-
-			var u indexer.AssetUpdates
-			if err := workflow.ExecuteActivity(ctx, w.PrepareTezosTokenFullData, t.Token, tokenOwner, t.Balance).Get(ctx, &u); err != nil {
-				sentry.CaptureException(err)
-				return err
-			}
-
-			log.Debug("token full data before indexing into DB", zap.String("owner", tokenOwner), zap.Any("assetUpdates", u))
-			if err := workflow.ExecuteActivity(ctx, w.IndexAsset, u).Get(ctx, nil); err != nil {
-				sentry.CaptureException(err)
-				return err
-			}
-		}
-
-		offset += len(ownedTokens)
-
-		workflow.Sleep(ctx, time.Second)
+		offset += updateCounts
 	}
 	log.Info("TEZOS tokens indexed", zap.String("owner", tokenOwner))
 	return nil
