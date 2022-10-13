@@ -315,11 +315,24 @@ func (s *NFTIndexerServer) GetAccountNFTs(c *gin.Context) {
 
 	owner := reqParams.Owner
 
-	tokensInfo, err := s.indexerStore.GetDetailedAccountTokensByOwner(c, owner,
-		indexer.FilterParameter{
-			Source: reqParams.Source,
-		},
-		reqParams.Offset, reqParams.Size)
+	var tokensInfo []indexer.DetailedToken
+	var err error
+
+	switch indexer.DetectAccountBlockchain(owner) {
+	case indexer.TezosBlockchain:
+		tokensInfo, err = s.indexerStore.GetDetailedAccountTokensByOwner(c, owner,
+			indexer.FilterParameter{
+				Source: reqParams.Source,
+			},
+			reqParams.Offset, reqParams.Size)
+	default:
+		tokensInfo, err = s.indexerStore.GetDetailedTokensByOwners(c, []string{owner},
+			indexer.FilterParameter{
+				Source: reqParams.Source,
+			},
+			reqParams.Offset, reqParams.Size)
+	}
+
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
 		return

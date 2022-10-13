@@ -48,6 +48,7 @@ type IndexerStore interface {
 
 	IndexAccount(ctx context.Context, account Account) error
 	IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error
+	GetAccount(ctx context.Context, owner string) (Account, error)
 	GetAccountTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]AccountToken, error)
 	UpdateAccountTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error
 	GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
@@ -226,7 +227,6 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		}
 	}
 
-	// s.indexAccountTokens(ctx, assetUpdates)
 	return nil
 }
 
@@ -930,11 +930,34 @@ func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner stri
 	return err
 }
 
+// GetAccount returns an account by a given address
+func (s *MongodbIndexerStore) GetAccount(ctx context.Context, owner string) (Account, error) {
+	var account Account
+
+	r := s.identityCollection.FindOne(ctx,
+		bson.M{"account": owner},
+	)
+	if err := r.Err(); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return account, nil
+		} else {
+			return account, err
+		}
+	}
+
+	if err := r.Decode(&account); err != nil {
+		return account, err
+	}
+
+	return account, nil
+}
+
 // GetAccountTokensByIndexIDs returns a list of account tokens by a given list of index id
 func (s *MongodbIndexerStore) GetAccountTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]AccountToken, error) {
 	tokens := make([]AccountToken, 0)
 
 	c, err := s.accountTokenCollection.Aggregate(ctx, []bson.M{
+		{"$match": bson.M{"indexID": bson.M{"$in": indexIDs}}},
 		{"$sort": bson.D{{"lastActivityTime", 1}}},
 		{
 			"$group": bson.M{
@@ -1023,6 +1046,10 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwner(ctx context.Contex
 		accountTokenMap[token.IndexID] = token
 	}
 
+	if len(indexIDs) == 0 {
+		return []DetailedToken{}, nil
+	}
+
 	filterParameter.IDs = indexIDs
 	assets, err := s.GetDetailedTokens(ctx, filterParameter, offset, size)
 
@@ -1030,7 +1057,9 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwner(ctx context.Contex
 		return nil, err
 	}
 
-	for _, asset := range assets {
+	for i := range assets {
+		asset := &assets[i]
+
 		asset.Balance = accountTokenMap[asset.IndexID].Balance
 		asset.Owner = accountTokenMap[asset.IndexID].OwnerAccount
 	}
