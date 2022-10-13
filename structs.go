@@ -126,30 +126,16 @@ type DetailedToken struct {
 type Account struct {
 	Account         string    `json:"account" bson:"account"`
 	Blockchain      string    `json:"blockchain" bson:"blockchain"`
-	LastUpdatedTime time.Time `json:"LastUpdateTime" bson:"LastUpdateTime"`
+	LastUpdatedTime time.Time `json:"lastUpdateTime" bson:"lastUpdateTime"`
 }
 
 type AccountToken struct {
-	BaseTokenInfo    `bson:",inline"` // the latest token info
-	IndexID          string           `json:"indexID" bson:"indexID"`
-	OwnerAccount     string           `json:"ownerAccount" bson:"ownerAccount"`
-	Balance          int64            `json:"balance" bson:"balance"`
-	LastActivityTime time.Time        `json:"lastActivityTime" bson:"lastActivityTime"`
-
-	Edition         int64           `json:"edition" bson:"edition"`
-	MintAt          time.Time       `json:"mintedAt" bson:"mintedAt"`
-	AssetID         string          `json:"-" bson:"assetID"`
-	OriginTokenInfo []BaseTokenInfo `json:"originTokenInfo" bson:"originTokenInfo"`
-
-	Source      string       `json:"source" bson:"source"`
-	Provenances []Provenance `json:"provenance" bson:"provenance"`
+	BaseTokenInfo     `bson:",inline"` // the latest token info
+	IndexID           string           `json:"indexID" bson:"indexID"`
+	OwnerAccount      string           `json:"ownerAccount" bson:"ownerAccount"`
+	Balance           int64            `json:"balance" bson:"balance"`
+	LastActivityTime  time.Time        `json:"lastActivityTime" bson:"lastActivityTime"`
+	LastRefreshedTime time.Time        `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
 
 	PendingTx string `json:"pendingTx" bson:"pendingTx"`
-}
-
-type DetailedAccountToken struct {
-	AccountToken    `bson:",inline"`
-	ThumbnailID     string                   `json:"thumbnailID"`
-	IPFSPinned      bool                     `json:"ipfsPinned"`
-	ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
 }

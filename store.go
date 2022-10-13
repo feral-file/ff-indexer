@@ -50,7 +50,7 @@ type IndexerStore interface {
 	IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error
 	GetAccountTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]AccountToken, error)
 	UpdateAccountTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error
-	GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedAccountToken, error)
+	GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
 }
 
 type FilterParameter struct {
@@ -884,6 +884,7 @@ func (s *MongodbIndexerStore) IndexIdentity(ctx context.Context, identity Accoun
 	return nil
 }
 
+// IndexAccount indexes the account by inputs
 func (s *MongodbIndexerStore) IndexAccount(ctx context.Context, account Account) error {
 	account.LastUpdatedTime = time.Now()
 
@@ -903,6 +904,7 @@ func (s *MongodbIndexerStore) IndexAccount(ctx context.Context, account Account)
 	return nil
 }
 
+// IndexAccountTokens indexes the account tokens by inputs
 func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error {
 	indexIDs := make([]string, 0, len(accountTokens))
 
@@ -928,10 +930,11 @@ func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner stri
 	return err
 }
 
+// GetAccountTokensByIndexIDs returns a list of account tokens by a given list of index id
 func (s *MongodbIndexerStore) GetAccountTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]AccountToken, error) {
 	tokens := make([]AccountToken, 0)
 
-	c, err := s.assetCollection.Aggregate(ctx, []bson.M{
+	c, err := s.accountTokenCollection.Aggregate(ctx, []bson.M{
 		{"$sort": bson.D{{"lastActivityTime", 1}}},
 		{
 			"$group": bson.M{
@@ -958,6 +961,7 @@ func (s *MongodbIndexerStore) GetAccountTokensByIndexIDs(ctx context.Context, in
 	return tokens, nil
 }
 
+// UpdateAccountTokenOwners updates all account owners for a specific token
 func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error {
 	ownerList := make([]string, 0, len(owners))
 
@@ -975,6 +979,7 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 		tokenUpdate.OwnerAccount = owner
 		tokenUpdate.Balance = balance
 		tokenUpdate.LastActivityTime = lastActivityTime
+		tokenUpdate.LastRefreshedTime = time.Now()
 		s.accountTokenCollection.UpdateOne(ctx,
 			bson.M{"indexID": indexID, "ownerAccount": owner},
 			bson.M{"$set": tokenUpdate},
@@ -989,10 +994,8 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 	return err
 }
 
-// GetIdentities returns a list of identities by a list of account numbers
-func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedAccountToken, error) {
-	tokens := []DetailedAccountToken{}
-
+// GetDetailedAccountTokensByOwner returns a list of DetailedToken by account owner
+func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error) {
 	findOptions := options.Find().SetSort(bson.D{{"lastActivityTime", -1}}).SetLimit(size).SetSkip(offset)
 
 	logrus.
@@ -1007,11 +1010,8 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwner(ctx context.Contex
 	}
 	defer cursor.Close(ctx)
 
-	assets := map[string]struct {
-		ThumbnailID     string                   `bson:"thumbnailID"`
-		IPFSPinned      bool                     `bson:"ipfsPinned"`
-		ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
-	}{}
+	indexIDs := make([]string, 0)
+	accountTokenMap := map[string]AccountToken{}
 	for cursor.Next(ctx) {
 		var token AccountToken
 
@@ -1019,29 +1019,21 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwner(ctx context.Contex
 			return nil, err
 		}
 
-		a, assetExist := assets[token.AssetID]
-		if !assetExist {
-			assetResult := s.assetCollection.FindOne(ctx, bson.M{"id": token.AssetID})
-			if err := assetResult.Err(); err != nil {
-				return nil, err
-			}
-
-			if err := assetResult.Decode(&a); err != nil {
-				return nil, err
-			}
-
-			assets[token.AssetID] = a
-		}
-
-		// FIXME: hardcoded values for backward compatibility
-		a.ProjectMetadata.Latest.FirstMintedAt = "0001-01-01T00:00:00.000Z"
-		a.ProjectMetadata.Origin.FirstMintedAt = "0001-01-01T00:00:00.000Z"
-		tokens = append(tokens, DetailedAccountToken{
-			AccountToken:    token,
-			ThumbnailID:     a.ThumbnailID,
-			IPFSPinned:      a.IPFSPinned,
-			ProjectMetadata: a.ProjectMetadata,
-		})
+		indexIDs = append(indexIDs, token.IndexID)
+		accountTokenMap[token.IndexID] = token
 	}
-	return tokens, nil
+
+	filterParameter.IDs = indexIDs
+	assets, err := s.GetDetailedTokens(ctx, filterParameter, offset, size)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, asset := range assets {
+		asset.Balance = accountTokenMap[asset.IndexID].Balance
+		asset.Owner = accountTokenMap[asset.IndexID].OwnerAccount
+	}
+
+	return assets, nil
 }
