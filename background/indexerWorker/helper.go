@@ -15,7 +15,7 @@ func StartIndexTokenWorkflow(c context.Context, client *cadence.CadenceWorkerCli
 	workflowContext := cadenceClient.StartWorkflowOptions{
 		ID:                           fmt.Sprintf("index-single-nft-%s-%s", contract, tokenID),
 		TaskList:                     TaskListName,
-		ExecutionStartToCloseTimeout: time.Hour,
+		ExecutionStartToCloseTimeout: 2 * time.Hour,
 		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
 	}
 

@@ -298,14 +298,7 @@ func (s *NFTIndexerServer) GetIdentities(c *gin.Context) {
 func (s *NFTIndexerServer) TokenPending(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "TokenPending")
 
-	var reqParams struct {
-		IndexID         string `json:"indexID"`
-		Blockchain      string `json:"blockchain"`
-		ID              string `json:"id"`
-		ContractAddress string `json:"contractAddress"`
-		OwnerAccount    string `json:"ownerAccount"`
-		PendingTx       string `json:"pendingTx"`
-	}
+	var reqParams indexer.PendingTxParams
 
 	if err := c.BindQuery(&reqParams); err != nil {
 		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
@@ -317,11 +310,48 @@ func (s *NFTIndexerServer) TokenPending(c *gin.Context) {
 		return
 	}
 
-	err := s.indexerStore.IndexAccountToken(c, reqParams.PendingTx)
+	if reqParams.PendingTx == "" {
+		abortWithError(c, http.StatusBadRequest, "invalid parameter", fmt.Errorf("pendingTx is required"))
+		return
+	}
+
+	err := s.indexerStore.GetDetailedPendingTx(c, reqParams)
 	if err != nil {
-		abortWithError(c, http.StatusInternalServerError, "TBD", err)
+		abortWithError(c, http.StatusInternalServerError, "invalid pendingTx", err)
 		return
 	}
 
 	c.JSON(200, reqParams.PendingTx)
+}
+func (s *NFTIndexerServer) GetAccountNFTs(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "GetNewAccountTokens")
+
+	var reqParams = NFTQueryParams{
+		Offset: 0,
+		Size:   50,
+	}
+
+	if err := c.BindQuery(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if reqParams.Owner == "" {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("owner is required"))
+		return
+	}
+
+	owner := reqParams.Owner
+
+	tokensInfo, err := s.indexerStore.GetDetailedAccountTokensByOwner(c, owner,
+		indexer.FilterParameter{
+			Source: reqParams.Source,
+		},
+		reqParams.Offset, reqParams.Size)
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, tokensInfo)
 }

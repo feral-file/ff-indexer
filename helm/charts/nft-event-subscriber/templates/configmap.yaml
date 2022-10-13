@@ -29,7 +29,7 @@ data:
       db_name: nft_indexer
 
     feed:
-      endpoint: http://autonomy-event-feed.autonomy.svc.cluster.local:80
+      endpoint: {{ .Values.serviceConfig.feedEndpoint }}
 
   ff_indexer_config.json: |
     {

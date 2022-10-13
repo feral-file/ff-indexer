@@ -417,13 +417,43 @@ func (c *TZKT) GetOperationStatus(hash string) (bool, error) {
 	}
 	defer resp.Body.Close()
 
-	var applied struct {
-		Applied bool
-	}
+	var applied bool
 
 	if err := json.NewDecoder(resp.Body).Decode(&applied); err != nil {
 		return false, err
 	}
 
-	return applied.Applied, nil
+	return applied, nil
+}
+
+type TransactionDetails struct {
+	Sender EntityFormat `json:"sender"`
+	Target EntityFormat `json:"target"`
+}
+
+type EntityFormat struct {
+	Address string `json:"address"`
+	Alias   string `json:"alias"`
+}
+
+func (c *TZKT) GetTransactionByPendingTx(hash string) ([]TransactionDetails, error) {
+	u := url.URL{
+		Scheme: "https",
+		Host:   c.endpoint,
+		Path:   fmt.Sprintf("%s/%s", "/v1/operations/transactions", hash),
+	}
+
+	var transactionDetails []TransactionDetails
+
+	resp, err := c.client.Get(u.String())
+	if err != nil {
+		return transactionDetails, err
+	}
+	defer resp.Body.Close()
+
+	if err := json.NewDecoder(resp.Body).Decode(&transactionDetails); err != nil {
+		return transactionDetails, err
+	}
+
+	return transactionDetails, nil
 }
