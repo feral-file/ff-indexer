@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"math/big"
 	"strings"
@@ -33,6 +34,7 @@ type Token struct {
 	Provenances       []Provenance `json:"provenance" bson:"provenance"`
 	LastActivityTime  time.Time    `json:"lastActivityTime" bson:"lastActivityTime"`
 	LastRefreshedTime time.Time    `json:"-" bson:"lastRefreshedTime"`
+	Checked           bool         `json:"checked" bson:"checked"`
 }
 
 type Provenance struct {
@@ -56,8 +58,12 @@ type BaseTokenInfo struct {
 }
 
 func main() {
+	db_uri_input := flag.String("mongouri", "mongodb://localhost:27017", "mongodb uri")
+	flag.Parse()
+	db_uri := *db_uri_input
+
 	ctx := context.TODO()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(db_uri))
 	if err != nil {
 		panic(err)
 	}
@@ -79,6 +85,11 @@ func main() {
 		if err != nil {
 			continue
 		}
+		fmt.Printf("[%v] %s-%s-%s. ID: %s\n", time.Now(), blockchain, contractAddress, tokenID, token.Id)
+		if tokenID == token.Id || token.Checked {
+			fmt.Println("\t token is updated")
+			continue
+		}
 
 		newId, ok := big.NewInt(0).SetString(tokenID, 16)
 		if !ok {
@@ -91,13 +102,14 @@ func main() {
 			ctx,
 			bson.M{"indexID": token.IndexID},
 			bson.D{
-				{"$set", bson.D{{"id", newId.String()}, {"indexID", newIndexID}}},
+				{"$set", bson.D{{"checked", "true"}, {"indexID", newIndexID}}},
 			},
 		)
 
 		if err != nil {
-			panic(err)
+			continue
 		}
+		fmt.Printf("[%v] Update a document is finished\n", time.Now())
 		count += result.ModifiedCount
 	}
 	fmt.Printf("Updated %v Documents!\n", count)
