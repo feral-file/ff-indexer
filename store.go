@@ -925,16 +925,14 @@ func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner stri
 		indexIDs = append(indexIDs, accountToken.IndexID)
 	}
 
-	_, err := s.accountTokenCollection.DeleteMany(ctx, bson.M{"ownerAccount": bson.M{"$eq": owner}, "indexID": bson.M{"$nin": indexIDs}})
-
-	return err
+	return nil
 }
 
 // GetAccount returns an account by a given address
 func (s *MongodbIndexerStore) GetAccount(ctx context.Context, owner string) (Account, error) {
 	var account Account
 
-	r := s.identityCollection.FindOne(ctx,
+	r := s.accountCollection.FindOne(ctx,
 		bson.M{"account": owner},
 	)
 	if err := r.Err(); err != nil {

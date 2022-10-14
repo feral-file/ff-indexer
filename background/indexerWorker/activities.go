@@ -80,10 +80,14 @@ func (w *NFTIndexerWorker) IndexETHTokenByOwner(ctx context.Context, owner strin
 
 // IndexTezosTokenByOwner indexes Tezos token data for an owner into the format of AssetUpdates
 func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, owner string, offset int) (int, error) {
-	delay := time.Duration(time.Minute)
+	delay := time.Minute
 	account, err := w.indexerStore.GetAccount(ctx, owner)
 
-	if err == nil && account.LastUpdatedTime.Unix() > time.Now().Add(-delay).Unix() {
+	if err != nil {
+		return 0, err
+	}
+
+	if account.LastUpdatedTime.Unix() > time.Now().Add(-delay).Unix() {
 		log.WithField("lastUpdatedTime", account.LastUpdatedTime.Unix()).
 			WithField("now", time.Now().Add(-delay).Unix()).
 			WithField("owner", account.Account).Trace("owner refresh too frequently")
