@@ -58,6 +58,7 @@ type Token struct {
 }
 
 type ProjectMetadata struct {
+	// Common attributes
 	ArtistID            string `json:"artistID" bson:"artistID"`                       // Artist blockchain address
 	ArtistName          string `json:"artistName" bson:"artistName"`                   // <creator.user.username>,
 	ArtistURL           string `json:"artistURL" bson:"artistURL"`                     // <OpenseaAPI/creator.address>,
@@ -77,7 +78,11 @@ type ProjectMetadata struct {
 	AssetData           string `json:"assetData" bson:"assetData"`                     // null,
 	AssetURL            string `json:"assetURL" bson:"assetURL"`                       // <permalink>
 
+	// Operation attributes
 	LastUpdatedAt time.Time `json:"lastUpdatedAt" bson:"lastUpdatedAt"`
+
+	// Feral File attributes
+	InitialSaleModel string `json:"initialSaleModel" bson:"initialSaleModel"` // airdrop|fix-price|highest-bid-auction|group-auction
 
 	// Deprecated attributes
 	OriginalFileURL string `json:"originalFileURL" bson:"-"`
