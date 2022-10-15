@@ -55,9 +55,8 @@ func main() {
 			delete(token, "_id")
 			indexID := token["indexID"].(string)
 			token["indexID"] = fmt.Sprintf("demo-%d-%s", i, indexID)
-			token["owners"] = map[string]int{
-				"demo": 1,
-			}
+			token["owners"] = map[string]int{"demo": 1, "demo2": 1}
+			token["ownersArray"] = []string{"demo", "demo2"}
 			token["is_demo"] = true
 
 			demoTokens = append(demoTokens, token)
