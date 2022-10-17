@@ -136,6 +136,7 @@ type AccountToken struct {
 	Balance           int64            `json:"balance" bson:"balance"`
 	LastActivityTime  time.Time        `json:"lastActivityTime" bson:"lastActivityTime"`
 	LastRefreshedTime time.Time        `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
+	RunID             string           `json:"-" bson:"runID"`
 
 	PendingTx string `json:"pendingTx" bson:"pendingTx"`
 }

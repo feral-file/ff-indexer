@@ -79,19 +79,21 @@ func (w *NFTIndexerWorker) IndexETHTokenByOwner(ctx context.Context, owner strin
 }
 
 // IndexTezosTokenByOwner indexes Tezos token data for an owner into the format of AssetUpdates
-func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, owner string, offset int) (int, error) {
-	delay := time.Minute
-	account, err := w.indexerStore.GetAccount(ctx, owner)
+func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, runID string, owner string, offset int) (int, error) {
+	if offset == 0 {
+		delay := time.Minute
+		account, err := w.indexerStore.GetAccount(ctx, owner)
 
-	if err != nil {
-		return 0, err
-	}
+		if err != nil {
+			return 0, err
+		}
 
-	if account.LastUpdatedTime.Unix() > time.Now().Add(-delay).Unix() {
-		log.WithField("lastUpdatedTime", account.LastUpdatedTime.Unix()).
-			WithField("now", time.Now().Add(-delay).Unix()).
-			WithField("owner", account.Account).Trace("owner refresh too frequently")
-		return 0, nil
+		if account.LastUpdatedTime.Unix() > time.Now().Add(-delay).Unix() {
+			log.WithField("lastUpdatedTime", account.LastUpdatedTime.Unix()).
+				WithField("now", time.Now().Add(-delay).Unix()).
+				WithField("owner", account.Account).Trace("owner refresh too frequently")
+			return 0, nil
+		}
 	}
 
 	updates, err := w.indexerEngine.IndexTezosTokenByOwner(ctx, owner, offset)
@@ -100,7 +102,8 @@ func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, owner str
 	}
 
 	if len(updates) == 0 {
-		return 0, nil
+		err := w.indexerStore.CleanupAccountTokens(ctx, runID, owner)
+		return 0, err
 	}
 
 	accountTokens := []indexer.AccountToken{}
@@ -117,6 +120,7 @@ func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, owner str
 			Balance:           update.Tokens[0].Balance,
 			LastActivityTime:  update.Tokens[0].LastActivityTime,
 			LastRefreshedTime: update.Tokens[0].LastRefreshedTime,
+			RunID:             runID,
 		})
 	}
 

@@ -48,6 +48,7 @@ type IndexerStore interface {
 
 	IndexAccount(ctx context.Context, account Account) error
 	IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error
+	CleanupAccountTokens(ctx context.Context, runID, owner string) error
 	GetAccount(ctx context.Context, owner string) (Account, error)
 	GetAccountTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]AccountToken, error)
 	UpdateAccountTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error
@@ -926,6 +927,13 @@ func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner stri
 	}
 
 	return nil
+}
+
+// Cleanup unowned account token
+func (s *MongodbIndexerStore) CleanupAccountTokens(ctx context.Context, runID, owner string) error {
+	_, err := s.accountTokenCollection.DeleteMany(ctx, bson.M{"ownerAccount": bson.M{"$eq": owner}, "runID": bson.M{"$ne": runID}})
+
+	return err
 }
 
 // GetAccount returns an account by a given address
