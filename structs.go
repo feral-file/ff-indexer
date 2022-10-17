@@ -67,7 +67,7 @@ type ProjectMetadata struct {
 	Description         string `json:"description" bson:"description"`                 // <description>,
 	MIMEType            string `json:"mimeType" bson:"mimeType"`                       // <mime_type from file extension or metadata>,
 	Medium              Medium `json:"medium" bson:"medium"`                           // <"image" if image_url is present; "other" if animation_url is present> ,
-	MaxEdition          int64  `json:"maxEdition" bson:"maxEdition"`                   // 0,
+	MaxEdition          string `json:"maxEdition" bson:"maxEdition"`                   // 0,
 	BaseCurrency        string `json:"baseCurrency,omitempty" bson:"baseCurrency"`     // null,
 	BasePrice           int64  `json:"basePrice,omitempty" bson:"basePrice"`           // null,
 	Source              string `json:"source" bson:"source"`                           // <Opeasea/Artblock>,

@@ -110,7 +110,7 @@ type AssetMetadataDetail struct {
 	ArtistID   string
 	ArtistName string
 	ArtistURL  string
-	MaxEdition int64
+	MaxEdition string
 
 	DisplayURI string
 	PreviewURI string

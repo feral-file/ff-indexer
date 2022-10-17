@@ -36,27 +36,27 @@ func New(graphQLEndpoint string) *FxHashAPI {
 	}
 }
 
-// {
-// 	objkt(id: 358743) {
-// 	  name
-// 	  createdAt
-// 	  issuer {
-// 		name
-// 		slug
-// 		author {
-// 		  id
-// 		  name
-// 		}
-// 	  }
-// 	}
-// }
+//	{
+//		objkt(id: 358743) {
+//		  name
+//		  createdAt
+//		  issuer {
+//			name
+//			slug
+//			author {
+//			  id
+//			  name
+//			}
+//		  }
+//		}
+//	}
 type FxHashObjectDetail struct {
 	Name      string
 	CreatedAt time.Time
 	Iteration int64
 	Metadata  URLMetadata `scalar:"true"`
 	Issuer    struct {
-		Supply int64
+		Supply string
 		Author struct {
 			ID   string
 			Name string

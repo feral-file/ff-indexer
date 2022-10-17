@@ -394,7 +394,7 @@ type ObjktContractDetails struct {
 type ObjktTokenDetails struct {
 	TokenID  string    `json:"token_id"`
 	MintedAt time.Time `json:"timestamp"`
-	Supply   int64     `json:"supply"`
+	Supply   string    `json:"supply"`
 
 	Name         string `json:"name"`
 	Description  string `json:"description"`

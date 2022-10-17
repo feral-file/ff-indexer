@@ -100,6 +100,10 @@ type TokenID struct {
 	big.Int
 }
 
+type TotalSupply struct {
+	big.Int
+}
+
 func (b TokenID) MarshalJSON() ([]byte, error) {
 	return []byte(b.String()), nil
 }
@@ -129,7 +133,7 @@ type Token struct {
 	Contract    Account       `json:"contract"`
 	ID          TokenID       `json:"tokenId"`
 	Standard    string        `json:"standard"`
-	TotalSupply int64         `json:"totalSupply,string"`
+	TotalSupply string        `json:"totalSupply"`
 	Timestamp   time.Time     `json:"firstTime"`
 	Metadata    TokenMetadata `json:"metadata"`
 }
