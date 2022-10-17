@@ -427,8 +427,30 @@ func (c *TZKT) GetOperationStatus(hash string) (bool, error) {
 }
 
 type TransactionDetails struct {
-	Sender EntityFormat `json:"sender"`
-	Target EntityFormat `json:"target"`
+	Block     string               `json:"block"`
+	Parameter TransactionParameter `json:"parameter"`
+	Target    TargetParameter      `json:"target"`
+	Timestamp time.Time            `json:"timestamp" bson:"timestamp"`
+}
+
+type TargetParameter struct {
+	Address string `json:"address"`
+}
+
+type TransactionParameter struct {
+	EntryPoint string            `json:"entrypoint"`
+	Value      []ParametersValue `json:"value"`
+}
+
+type ParametersValue struct {
+	From_ string      `json:"from_"`
+	Txs   []TxsFormat `json:"txs`
+}
+
+type TxsFormat struct {
+	To_     string `json:"to_"`
+	Amount  string `json:"amount"`
+	TokenID string `json:"token_id"`
 }
 
 type EntityFormat struct {

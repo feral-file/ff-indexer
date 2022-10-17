@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 	"time"
 
@@ -48,7 +49,7 @@ type IndexerStore interface {
 	IndexIdentity(ctx context.Context, identity AccountIdentity) error
 
 	GetDetailedPendingTx(ctx context.Context, pendingTxParams PendingTxParams) error
-	UpdateAccountTokenByPendingTx(ctx context.Context, pendingTxParams PendingTxParams) error
+	UpdateAccountTokenByPendingTx(ctx context.Context, tz *tzkt.TZKT, pendingTxParams PendingTxParams) error
 
 	IndexAccount(ctx context.Context, account Account) error
 	IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error
@@ -231,40 +232,6 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 	}
 
 	// s.indexAccountTokens(ctx, assetUpdates)
-	return nil
-}
-
-// IndexAccountToken create an account token
-func (s *MongodbIndexerStore) IndexAccountToken(ctx context.Context, pendingTx string) error {
-	// accountTokenCreated := false
-
-	r := s.assetCollection.FindOne(ctx, bson.M{"pendingTx": pendingTx})
-	if err := r.Err(); err != nil {
-		if err == mongo.ErrNoDocuments {
-			// query the result periodically
-			count := 0
-			for range time.Tick(time.Second * 30) {
-				// query the result function
-				tz := tzkt.New("mainnet")
-				applied, err := tz.GetOperationStatus(pendingTx)
-				if err != nil {
-					return err
-				}
-
-				if count == 10 || applied {
-					break
-				}
-			}
-
-			// when get the transaction is confirmed
-			if _, err := s.accountTokenCollection.InsertOne(ctx, bson.M{}); err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
-	}
-
 	return nil
 }
 
@@ -923,7 +890,7 @@ func (s *MongodbIndexerStore) IndexIdentity(ctx context.Context, identity Accoun
 }
 
 func (s *MongodbIndexerStore) GetDetailedPendingTx(ctx context.Context, pendingTxParams PendingTxParams) error {
-	tz := tzkt.New("mainnet")
+	tz := tzkt.New("testnet")
 
 WATCH_PENDINGTX:
 	for {
@@ -933,8 +900,12 @@ WATCH_PENDINGTX:
 		}
 
 		if applied {
-			go s.UpdateAccountTokenByPendingTx(ctx, pendingTxParams)
-			logrus.Debug("AccountToken updated")
+			err := s.UpdateAccountTokenByPendingTx(ctx, tz, pendingTxParams)
+			if err != nil {
+				return err
+			}
+
+			logrus.Debug("AccountToken update completed")
 			return nil
 		} else {
 			if done := SleepWithContext(ctx, 15*time.Second); done {
@@ -948,32 +919,73 @@ WATCH_PENDINGTX:
 	return nil
 }
 
-func (s *MongodbIndexerStore) UpdateAccountTokenByPendingTx(ctx context.Context, pendingTxParams PendingTxParams) error {
-	tz := tzkt.New("mainnet")
-	detailedTransaction, err := tz.GetTransactionByPendingTx(pendingTxParams.PendingTx)
-	if err != nil {
-		logrus.Error("error while getting details of transactions", err)
-		return err
-	}
-
-	// if err := s.UpdateAccountTokenOwners(ctx, pendingTxParams.IndexID, time.Now(), owners); err != nil {
-	// 	return err
-	// }
-
-	r, err := s.accountTokenCollection.UpdateOne(ctx,
-		bson.M{"indexID": pendingTxParams.IndexID},
-		bson.M{"$set": bson.M{
-			"ownerAccount": detailedTransaction[0].Target.Address,
-		}},
-		options.Update().SetUpsert(true),
-	)
-
+func (s *MongodbIndexerStore) UpdateAccountTokenByPendingTx(ctx context.Context, tz *tzkt.TZKT, pendingTxParams PendingTxParams) error {
+	detailedTransactions, err := tz.GetTransactionByPendingTx(pendingTxParams.PendingTx)
 	if err != nil {
 		return err
 	}
 
-	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-		logrus.WithField("new Owner", detailedTransaction[0].Target.Address).Warn("New owner is not added or updated")
+	isTransactionMatch := false
+
+	for _, txs := range detailedTransactions[0].Parameter.Value[0].Txs {
+		if txs.TokenID == pendingTxParams.ID {
+			isTransactionMatch = true
+			balance, err := strconv.Atoi(txs.Amount)
+			if err != nil {
+				return err
+			}
+
+			switch pendingTxParams.OwnerAccount {
+			case detailedTransactions[0].Parameter.Value[0].From_:
+				balance = -balance
+			case txs.To_:
+				// do nothing
+			default:
+				return fmt.Errorf("owner account does not match")
+			}
+
+			r, err := s.accountTokenCollection.UpdateOne(ctx,
+				bson.M{"indexID": pendingTxParams.IndexID, "ownerAccount": pendingTxParams.OwnerAccount},
+				bson.M{"$set": bson.M{
+					"ownerAccount":     pendingTxParams.OwnerAccount,
+					"indexID":          pendingTxParams.IndexID,
+					"lastActivityTime": detailedTransactions[0].Timestamp,
+					"lastRefreshTime":  time.Now(),
+				},
+					"$inc": bson.M{
+						"balance": balance,
+					},
+				},
+				options.Update().SetUpsert(true),
+			)
+
+			if err != nil {
+				return err
+			}
+
+			if r.MatchedCount == 0 && r.UpsertedCount == 0 {
+				logrus.WithField("IndexID", pendingTxParams.IndexID).WithField("ownerAccount", pendingTxParams.OwnerAccount).Warn("New account token is not added or updated")
+			} else {
+				logrus.WithField("IndexID", pendingTxParams.IndexID).WithField("ownerAccount", pendingTxParams.OwnerAccount).Warn("New account token is added or updated")
+			}
+			break
+		}
+	}
+
+	if !isTransactionMatch {
+		r, err := s.accountTokenCollection.DeleteOne(ctx,
+			bson.M{"indexID": pendingTxParams.IndexID, "ownerAccount": pendingTxParams.OwnerAccount},
+		)
+
+		if err != nil {
+			return err
+		}
+
+		if r.DeletedCount == 0 {
+			logrus.WithField("IndexID", pendingTxParams.IndexID).WithField("ownerAccount", pendingTxParams.OwnerAccount).Warn("account token is not deleted")
+		} else {
+			logrus.WithField("IndexID", pendingTxParams.IndexID).WithField("ownerAccount", pendingTxParams.OwnerAccount).Warn("account token is deleted")
+		}
 	}
 
 	return nil
