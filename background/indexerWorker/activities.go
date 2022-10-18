@@ -469,6 +469,10 @@ func (w *NFTIndexerWorker) RefreshTezosTokenOwnership(ctx context.Context, index
 		if err := w.indexerStore.UpdateTokenOwners(ctx, token.IndexID, lastActivityTime, owners); err != nil {
 			return err
 		}
+
+		if err := w.indexerStore.UpdateAccountTokenOwners(ctx, token.IndexID, lastActivityTime, owners); err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -134,13 +134,6 @@ type Account struct {
 	LastUpdatedTime time.Time `json:"LastUpdateTime" bson:"LastUpdateTime"`
 }
 
-type DetailedAccountToken struct {
-	AccountToken    `bson:",inline"`
-	ThumbnailID     string                   `json:"thumbnailID"`
-	IPFSPinned      bool                     `json:"ipfsPinned"`
-	ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
-}
-
 type PendingTxParams struct {
 	IndexID         string `json:"indexID"`
 	Blockchain      string `json:"blockchain"`
