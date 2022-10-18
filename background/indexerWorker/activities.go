@@ -186,19 +186,23 @@ func (w *NFTIndexerWorker) fetchBitmarkProvenance(bitmarkID string) ([]indexer.P
 
 // fetchEthereumProvenance reads ethereum provenance through filterLogs
 func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID, contractAddress string) ([]indexer.Provenance, error) {
+	hexID, err := indexer.OpenseaTokenIDToHex(tokenID)
+	if err != nil {
+		return nil, err
+	}
 	transferLogs, err := w.wallet.RPCClient().FilterLogs(ctx, goethereum.FilterQuery{
 		Addresses: []common.Address{common.HexToAddress(contractAddress)},
 		Topics: [][]common.Hash{
 			{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")},
 			nil, nil,
-			{common.HexToHash(tokenID)},
+			{common.HexToHash(hexID)},
 		},
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	log.WithField("tokenID", tokenID).WithField("logs", transferLogs).Debug("token provenance")
+	log.WithField("tokenID", hexID).WithField("logs", transferLogs).Debug("token provenance")
 
 	totalTransferLogs := len(transferLogs)
 
@@ -268,11 +272,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 
 			totalProvenances = append(totalProvenances, provenance...)
 		case indexer.EthereumBlockchain:
-			hexID, err := indexer.OpenseaTokenIDToHex(token.ID)
-			if err != nil {
-				return err
-			}
-			provenance, err := w.fetchEthereumProvenance(ctx, hexID, token.ContractAddress)
+			provenance, err := w.fetchEthereumProvenance(ctx, token.ID, token.ContractAddress)
 			if err != nil {
 				return err
 			}
@@ -306,11 +306,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 
 				totalProvenances = append(totalProvenances, provenance...)
 			case indexer.EthereumBlockchain:
-				hexID, err := indexer.OpenseaTokenIDToHex(tokenInfo.ID)
-				if err != nil {
-					return err
-				}
-				provenance, err := w.fetchEthereumProvenance(ctx, hexID, token.ContractAddress)
+				provenance, err := w.fetchEthereumProvenance(ctx, token.ID, token.ContractAddress)
 				if err != nil {
 					return err
 				}
