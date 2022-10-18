@@ -48,8 +48,7 @@ type IndexerStore interface {
 	GetIdentities(ctx context.Context, accountNumbers []string) (map[string]AccountIdentity, error)
 	IndexIdentity(ctx context.Context, identity AccountIdentity) error
 
-	GetDetailedPendingTx(ctx context.Context, pendingTxParams PendingTxParams) error
-	UpdateAccountTokenByPendingTx(ctx context.Context, tz *tzkt.TZKT, pendingTxParams PendingTxParams) error
+	UpdateAccountTokenByPendingTx(ctx context.Context, detailedTransactions []tzkt.TransactionDetails, pendingTxParams PendingTxParams) error
 
 	IndexAccount(ctx context.Context, account Account) error
 	IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error
@@ -889,42 +888,8 @@ func (s *MongodbIndexerStore) IndexIdentity(ctx context.Context, identity Accoun
 	return nil
 }
 
-func (s *MongodbIndexerStore) GetDetailedPendingTx(ctx context.Context, pendingTxParams PendingTxParams) error {
-	tz := tzkt.New("testnet")
-
-WATCH_PENDINGTX:
-	for {
-		applied, err := tz.GetOperationStatus(pendingTxParams.PendingTx)
-		if err != nil {
-			return err
-		}
-
-		if applied {
-			err := s.UpdateAccountTokenByPendingTx(ctx, tz, pendingTxParams)
-			if err != nil {
-				return err
-			}
-
-			logrus.Debug("AccountToken update completed")
-			return nil
-		} else {
-			if done := SleepWithContext(ctx, 15*time.Second); done {
-				break WATCH_PENDINGTX
-			}
-			continue
-		}
-
-	}
-	logrus.Debug("pendingTx checker closed")
-	return nil
-}
-
-func (s *MongodbIndexerStore) UpdateAccountTokenByPendingTx(ctx context.Context, tz *tzkt.TZKT, pendingTxParams PendingTxParams) error {
-	detailedTransactions, err := tz.GetTransactionByPendingTx(pendingTxParams.PendingTx)
-	if err != nil {
-		return err
-	}
-
+// UpdateAccountTokenByPendingTx updates account token from transaction details
+func (s *MongodbIndexerStore) UpdateAccountTokenByPendingTx(ctx context.Context, detailedTransactions []tzkt.TransactionDetails, pendingTxParams PendingTxParams) error {
 	isTransactionMatch := false
 
 	for _, txs := range detailedTransactions[0].Parameter.Value[0].Txs {
@@ -947,8 +912,6 @@ func (s *MongodbIndexerStore) UpdateAccountTokenByPendingTx(ctx context.Context,
 			r, err := s.accountTokenCollection.UpdateOne(ctx,
 				bson.M{"indexID": pendingTxParams.IndexID, "ownerAccount": pendingTxParams.OwnerAccount},
 				bson.M{"$set": bson.M{
-					"ownerAccount":     pendingTxParams.OwnerAccount,
-					"indexID":          pendingTxParams.IndexID,
 					"lastActivityTime": detailedTransactions[0].Timestamp,
 					"lastRefreshTime":  time.Now(),
 				},

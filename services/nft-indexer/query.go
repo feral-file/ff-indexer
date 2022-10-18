@@ -315,13 +315,19 @@ func (s *NFTIndexerServer) TokenPending(c *gin.Context) {
 		return
 	}
 
-	err := s.indexerStore.GetDetailedPendingTx(c, reqParams)
+	detailedTransactions, err := s.indexerEngine.GetDetailedPendingTx(c, reqParams)
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "invalid pendingTx", err)
 		return
 	}
 
-	c.JSON(200, reqParams.PendingTx)
+	err = s.indexerStore.UpdateAccountTokenByPendingTx(c, detailedTransactions, reqParams)
+	if err != nil {
+		abortWithError(c, http.StatusBadRequest, "some information doesn't match", err)
+		return
+	}
+
+	c.JSON(200, detailedTransactions)
 }
 func (s *NFTIndexerServer) GetAccountNFTs(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "GetNewAccountTokens")

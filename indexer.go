@@ -11,6 +11,7 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -278,4 +279,31 @@ func (e *IndexEngine) IndexToken(c context.Context, owner, contract, tokenID str
 	default:
 		return nil, ErrUnsupportedBlockchain
 	}
+}
+
+func (e *IndexEngine) GetDetailedPendingTx(ctx context.Context, pendingTxParams PendingTxParams) ([]tzkt.TransactionDetails, error) {
+WATCH_PENDINGTX:
+	for {
+		applied, err := e.tzkt.GetOperationStatus(pendingTxParams.PendingTx)
+		if err != nil {
+			return nil, err
+		}
+
+		if applied {
+			detailedTransactions, err := e.tzkt.GetTransactionByPendingTx(pendingTxParams.PendingTx)
+			if err != nil {
+				return nil, err
+			}
+
+			return detailedTransactions, nil
+		} else {
+			if done := SleepWithContext(ctx, 15*time.Second); done {
+				break WATCH_PENDINGTX
+			}
+			continue
+		}
+
+	}
+	logrus.Debug("pendingTx checker closed")
+	return nil, nil
 }
