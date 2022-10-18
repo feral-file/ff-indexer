@@ -40,7 +40,7 @@ func TokenIndexID(blockchainType, contractAddress, id string) string {
 	return fmt.Sprintf("%s-%s-%s", blockchainAlias, contractAddress, id)
 }
 
-// DetectAccountBlockchain returns underlying blokchain of a given account number
+// DetectAccountBlockchain returns underlying blockchain of a given account number
 func DetectAccountBlockchain(accountNumber string) string {
 	if strings.HasPrefix(accountNumber, "0x") {
 		return EthereumBlockchain
@@ -53,7 +53,7 @@ func DetectAccountBlockchain(accountNumber string) string {
 	return UnknownBlockchain
 }
 
-// DetectContractBlockchain returns underlying blokchain of a given contract address
+// DetectContractBlockchain returns underlying blockchain of a given contract address
 func DetectContractBlockchain(contractAddress string) string {
 	if strings.HasPrefix(contractAddress, "0x") {
 		return EthereumBlockchain
@@ -91,4 +91,12 @@ func SleepWithContext(ctx context.Context, d time.Duration) bool {
 	case <-ctx.Done():
 		return true
 	}
+}
+
+func ParseIndexID(indexID string) (string, string, string, error) {
+	v := strings.Split(indexID, "-")
+	if len(v) != 3 {
+		return "", "", "", fmt.Errorf("error while parsing indexID: %v", indexID)
+	}
+	return v[0], v[1], v[2], nil
 }

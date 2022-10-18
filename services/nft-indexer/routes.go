@@ -25,6 +25,7 @@ func (s *NFTIndexerServer) SetupRoute() {
 	s.route.POST("/nft/:token_id/provenance", s.RefreshProvenance)
 
 	s.route.POST("/nft/query", s.QueryNFTs)
+	s.route.POST("/v1/nft/query", s.QueryNFTsV1)
 	s.route.GET("/nft/search", s.SearchNFTs)
 	s.route.GET("/nft/owned", s.OwnedNFTIDs)
 	s.route.GET("/nft", s.ListNFTs)

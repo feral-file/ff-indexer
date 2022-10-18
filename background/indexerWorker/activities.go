@@ -79,14 +79,31 @@ func (w *NFTIndexerWorker) IndexETHTokenByOwner(ctx context.Context, owner strin
 }
 
 // IndexTezosTokenByOwner indexes Tezos token data for an owner into the format of AssetUpdates
-func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, owner string, offset int) (int, error) {
+func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, runID string, owner string, offset int) (int, error) {
+	if offset == 0 {
+		delay := time.Minute
+		account, err := w.indexerStore.GetAccount(ctx, owner)
+
+		if err != nil {
+			return 0, err
+		}
+
+		if account.LastUpdatedTime.Unix() > time.Now().Add(-delay).Unix() {
+			log.WithField("lastUpdatedTime", account.LastUpdatedTime.Unix()).
+				WithField("now", time.Now().Add(-delay).Unix()).
+				WithField("owner", account.Account).Trace("owner refresh too frequently")
+			return 0, nil
+		}
+	}
+
 	updates, err := w.indexerEngine.IndexTezosTokenByOwner(ctx, owner, offset)
 	if err != nil {
 		return 0, err
 	}
 
 	if len(updates) == 0 {
-		return 0, nil
+		err := w.indexerStore.CleanupAccountTokens(ctx, runID, owner)
+		return 0, err
 	}
 
 	accountTokens := []indexer.AccountToken{}
@@ -97,17 +114,13 @@ func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, owner str
 		}
 
 		accountTokens = append(accountTokens, indexer.AccountToken{
-			BaseTokenInfo:    update.Tokens[0].BaseTokenInfo,
-			IndexID:          update.Tokens[0].IndexID,
-			OwnerAccount:     update.Tokens[0].Owner,
-			Balance:          update.Tokens[0].Balance,
-			LastActivityTime: update.Tokens[0].LastActivityTime,
-			Edition:          update.Tokens[0].Edition,
-			MintAt:           update.Tokens[0].MintAt,
-			OriginTokenInfo:  update.Tokens[0].OriginTokenInfo,
-			AssetID:          update.Tokens[0].AssetID,
-			Source:           update.Tokens[0].Source,
-			Provenances:      update.Tokens[0].Provenances,
+			BaseTokenInfo:     update.Tokens[0].BaseTokenInfo,
+			IndexID:           update.Tokens[0].IndexID,
+			OwnerAccount:      update.Tokens[0].Owner,
+			Balance:           update.Tokens[0].Balance,
+			LastActivityTime:  update.Tokens[0].LastActivityTime,
+			LastRefreshedTime: update.Tokens[0].LastRefreshedTime,
+			RunID:             runID,
 		})
 	}
 
@@ -148,7 +161,7 @@ func (w *NFTIndexerWorker) IndexAsset(ctx context.Context, updates indexer.Asset
 	return w.indexerStore.IndexAsset(ctx, updates.ID, updates)
 }
 
-// Index saves asset data into indexer's storage
+// indexTezosAccount saves tezos account data into indexer's storage
 func (w *NFTIndexerWorker) indexTezosAccount(ctx context.Context, owner string) error {
 	account := indexer.Account{
 		Account:         owner,
@@ -158,7 +171,7 @@ func (w *NFTIndexerWorker) indexTezosAccount(ctx context.Context, owner string) 
 	return w.indexerStore.IndexAccount(ctx, account)
 }
 
-// Index saves asset data into indexer's storage
+// indexTezosAccountTokens saves tezos account tokens data into indexer's storage
 func (w *NFTIndexerWorker) indexTezosAccountTokens(ctx context.Context, owner string, accountTokens []indexer.AccountToken) error {
 	return w.indexerStore.IndexAccountTokens(ctx, owner, accountTokens)
 }
@@ -225,19 +238,23 @@ func (w *NFTIndexerWorker) fetchBitmarkProvenance(bitmarkID string) ([]indexer.P
 
 // fetchEthereumProvenance reads ethereum provenance through filterLogs
 func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID, contractAddress string) ([]indexer.Provenance, error) {
+	hexID, err := indexer.OpenseaTokenIDToHex(tokenID)
+	if err != nil {
+		return nil, err
+	}
 	transferLogs, err := w.wallet.RPCClient().FilterLogs(ctx, goethereum.FilterQuery{
 		Addresses: []common.Address{common.HexToAddress(contractAddress)},
 		Topics: [][]common.Hash{
 			{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")},
 			nil, nil,
-			{common.HexToHash(tokenID)},
+			{common.HexToHash(hexID)},
 		},
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	log.WithField("tokenID", tokenID).WithField("logs", transferLogs).Debug("token provenance")
+	log.WithField("tokenID", hexID).WithField("logs", transferLogs).Debug("token provenance")
 
 	totalTransferLogs := len(transferLogs)
 
@@ -307,11 +324,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 
 			totalProvenances = append(totalProvenances, provenance...)
 		case indexer.EthereumBlockchain:
-			hexID, err := indexer.OpenseaTokenIDToHex(token.ID)
-			if err != nil {
-				return err
-			}
-			provenance, err := w.fetchEthereumProvenance(ctx, hexID, token.ContractAddress)
+			provenance, err := w.fetchEthereumProvenance(ctx, token.ID, token.ContractAddress)
 			if err != nil {
 				return err
 			}
@@ -345,11 +358,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 
 				totalProvenances = append(totalProvenances, provenance...)
 			case indexer.EthereumBlockchain:
-				hexID, err := indexer.OpenseaTokenIDToHex(tokenInfo.ID)
-				if err != nil {
-					return err
-				}
-				provenance, err := w.fetchEthereumProvenance(ctx, hexID, token.ContractAddress)
+				provenance, err := w.fetchEthereumProvenance(ctx, token.ID, token.ContractAddress)
 				if err != nil {
 					return err
 				}
@@ -373,12 +382,37 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 
 // RefreshTezosTokenOwnership refreshes ownership for each tokens
 func (w *NFTIndexerWorker) RefreshTezosTokenOwnership(ctx context.Context, indexIDs []string, delay time.Duration) error {
+	indexTokens := map[string]indexer.AccountToken{}
+
+	accountTokens, err := w.indexerStore.GetAccountTokensByIndexIDs(ctx, indexIDs)
+	if err != nil {
+		return err
+	}
+
+	for _, token := range accountTokens {
+		indexTokens[token.IndexID] = token
+	}
+
 	tokens, err := w.indexerStore.GetTokensByIndexIDs(ctx, indexIDs)
 	if err != nil {
 		return err
 	}
 
 	for _, token := range tokens {
+		_, tokenExist := indexTokens[token.IndexID]
+		if !tokenExist {
+			indexTokens[token.AssetID] = indexer.AccountToken{
+				BaseTokenInfo:     token.BaseTokenInfo,
+				IndexID:           token.IndexID,
+				OwnerAccount:      token.Owner,
+				Balance:           token.Balance,
+				LastActivityTime:  token.LastActivityTime,
+				LastRefreshedTime: token.LastRefreshedTime,
+			}
+		}
+	}
+
+	for _, token := range indexTokens {
 		if token.LastRefreshedTime.Unix() > time.Now().Add(-delay).Unix() {
 			log.WithField("lastRefresh", token.LastRefreshedTime.Unix()).
 				WithField("now", time.Now().Add(-delay).Unix()).
@@ -433,59 +467,6 @@ func (w *NFTIndexerWorker) RefreshTezosTokenOwnership(ctx context.Context, index
 		}
 
 		if err := w.indexerStore.UpdateTokenOwners(ctx, token.IndexID, lastActivityTime, owners); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// RefreshTezosTokenOwnership refreshes ownership for each tokens
-func (w *NFTIndexerWorker) RefreshNewTezosTokenOwnership(ctx context.Context, indexIDs []string, delay time.Duration) error {
-	tokens, err := w.indexerStore.GetAccountTokensByIndexIDs(ctx, indexIDs)
-	if err != nil {
-		return err
-	}
-
-	for _, token := range tokens {
-		if token.LastActivityTime.Unix() > time.Now().Add(-delay).Unix() {
-			log.WithField("indexID", token.IndexID).Trace("ownership refresh too frequently")
-			continue
-		}
-
-		if !token.Fungible {
-			log.WithField("indexID", token.IndexID).Trace("ignore non-fungible token")
-			continue
-		}
-
-		log.WithField("indexID", token.IndexID).Debug("start refresh token ownership updating flow")
-		var (
-			owners           map[string]int64
-			lastActivityTime time.Time
-			err              error
-		)
-		switch token.Blockchain {
-		case indexer.EthereumBlockchain:
-			//ignore
-			return nil
-		case indexer.TezosBlockchain:
-			lastActivityTime, err = w.indexerEngine.IndexTezosTokenLastActivityTime(ctx, token.ContractAddress, token.ID)
-			if err != nil {
-				return err
-			}
-
-			if lastActivityTime.Sub(token.LastActivityTime) <= 0 {
-				log.WithField("indexID", token.IndexID).Trace("no new updates since last check")
-				continue
-			}
-
-			log.WithField("indexID", token.IndexID).Debug("fetch tezos ownership for the token")
-			owners, err = w.indexerEngine.IndexTezosTokenOwners(ctx, token.ContractAddress, token.ID)
-			if err != nil {
-				return err
-			}
-		}
-
-		if err := w.indexerStore.UpdateAccountTokenOwners(ctx, token.IndexID, lastActivityTime, owners); err != nil {
 			return err
 		}
 	}

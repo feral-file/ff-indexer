@@ -134,24 +134,6 @@ type Account struct {
 	LastUpdatedTime time.Time `json:"LastUpdateTime" bson:"LastUpdateTime"`
 }
 
-type AccountToken struct {
-	BaseTokenInfo    `bson:",inline"` // the latest token info
-	IndexID          string           `json:"indexID" bson:"indexID"`
-	OwnerAccount     string           `json:"ownerAccount" bson:"ownerAccount"`
-	Balance          int64            `json:"balance" bson:"balance"`
-	LastActivityTime time.Time        `json:"lastActivityTime" bson:"lastActivityTime"`
-
-	Edition         int64           `json:"edition" bson:"edition"`
-	MintAt          time.Time       `json:"mintedAt" bson:"mintedAt"`
-	AssetID         string          `json:"-" bson:"assetID"`
-	OriginTokenInfo []BaseTokenInfo `json:"originTokenInfo" bson:"originTokenInfo"`
-
-	Source      string       `json:"source" bson:"source"`
-	Provenances []Provenance `json:"provenance" bson:"provenance"`
-
-	PendingTx string `json:"pendingTx" bson:"pendingTx"`
-}
-
 type DetailedAccountToken struct {
 	AccountToken    `bson:",inline"`
 	ThumbnailID     string                   `json:"thumbnailID"`
@@ -166,4 +148,16 @@ type PendingTxParams struct {
 	ContractAddress string `json:"contractAddress"`
 	OwnerAccount    string `json:"ownerAccount"`
 	PendingTx       string `json:"pendingTx"`
+}
+
+type AccountToken struct {
+	BaseTokenInfo     `bson:",inline"` // the latest token info
+	IndexID           string           `json:"indexID" bson:"indexID"`
+	OwnerAccount      string           `json:"ownerAccount" bson:"ownerAccount"`
+	Balance           int64            `json:"balance" bson:"balance"`
+	LastActivityTime  time.Time        `json:"lastActivityTime" bson:"lastActivityTime"`
+	LastRefreshedTime time.Time        `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
+	RunID             string           `json:"-" bson:"runID"`
+
+	PendingTx string `json:"pendingTx" bson:"pendingTx"`
 }

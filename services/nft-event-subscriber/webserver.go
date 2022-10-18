@@ -63,7 +63,7 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 	//     - if there is any follower:
 	// 		 - index the token
 	//       - update provenance
-	//       - send notificiation
+	//       - send notification
 
 	mintType := "transfer"
 	// FIXME: we do not have mint event as this moment.
