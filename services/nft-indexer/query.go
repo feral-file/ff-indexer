@@ -366,55 +366,71 @@ func (s *NFTIndexerServer) TokenPending(c *gin.Context) {
 		return
 	}
 
-	go s.UpdateAccountTokenByPendingTx(c, reqParams)
+	go s.updateAccountTokenByPendingTx(c, reqParams)
 
 	c.JSON(http.StatusOK, 1)
 }
 
-func (s *NFTIndexerServer) UpdateAccountTokenByPendingTx(c *gin.Context, pendingTxParams PendingTxParams) {
+func (s *NFTIndexerServer) updateAccountTokenByPendingTx(c *gin.Context, pendingTxParams PendingTxParams) {
 	transactionDetails, err := s.indexerEngine.GetDetailedPendingTx(c, pendingTxParams.PendingTx)
 	if err != nil {
-		abortWithError(c, http.StatusInternalServerError, "invalid pendingTx", err)
+		logrus.WithField("pendingTX", pendingTxParams.PendingTx).WithField("error", err).Warn("invalid transaction pendingTx")
 		return
 	}
 
-	balance, err := s.GetBalanceFromTransaction(c, transactionDetails[0], pendingTxParams)
+	updatedAccountTokens, err := s.GetBalanceFromTransaction(c, transactionDetails[0], pendingTxParams)
 	if err == fmt.Errorf("conversion error") {
 		return
 	} else if err != nil {
 		err = s.indexerStore.DeleteAccountToken(c, pendingTxParams.IndexID, pendingTxParams.OwnerAccount)
 		if err != nil {
-			abortWithError(c, http.StatusBadRequest, "cannot delete account token", err)
+			logrus.WithField("indexID", pendingTxParams.IndexID).WithField("ownerAccount", pendingTxParams.OwnerAccount).Warn("cannot delete account token")
 		}
 		return
 	}
 
-	err = s.indexerStore.UpdateAccountToken(c, pendingTxParams.OwnerAccount, pendingTxParams.IndexID, balance, transactionDetails[0].Timestamp)
-	if err != nil {
-		abortWithError(c, http.StatusBadRequest, "some information doesn't match", err)
-		return
+	for _, updupdatedAccountToken := range updatedAccountTokens {
+		err = s.indexerStore.UpdateAccountToken(c, updupdatedAccountToken.OwnerAccount, updupdatedAccountToken.IndexID, updupdatedAccountToken.Balance, transactionDetails[0].Timestamp)
+		if err != nil {
+			logrus.WithField("indexID", pendingTxParams.IndexID).WithField("ownerAccount", pendingTxParams.OwnerAccount).Warn("some information doesn't match")
+			continue
+		}
 	}
 }
 
-func (s *NFTIndexerServer) GetBalanceFromTransaction(c *gin.Context, transactionDetails tzkt.TransactionDetails, pendingTxParams PendingTxParams) (int, error) {
+func (s *NFTIndexerServer) GetBalanceFromTransaction(c *gin.Context, transactionDetails tzkt.TransactionDetails, pendingTxParams PendingTxParams) ([]indexer.AccountToken, error) {
+	if pendingTxParams.OwnerAccount != transactionDetails.Parameter.Value[0].From_ {
+		return nil, fmt.Errorf("owner account is not the sender")
+	}
+
+	var updatedAccountTokens = []indexer.AccountToken{}
+	var totalTransferredBalance = int64(0)
+
 	for _, txs := range transactionDetails.Parameter.Value[0].Txs {
 		if txs.TokenID == pendingTxParams.ID {
-			balance, err := strconv.Atoi(txs.Amount)
+			balance, err := strconv.ParseInt(txs.Amount, 10, 64)
 			if err != nil {
-				return 0, fmt.Errorf("conversion error")
+				continue
 			}
 
-			switch pendingTxParams.OwnerAccount {
-			case transactionDetails.Parameter.Value[0].From_:
-				return -balance, nil
-			case txs.To_:
-				return balance, nil
-			default:
-				return 0, fmt.Errorf("owner account doesn't match neither of From and To account")
+			receiverAccountToken := indexer.AccountToken{
+				IndexID:      pendingTxParams.IndexID,
+				OwnerAccount: txs.To_,
+				Balance:      balance,
 			}
+
+			updatedAccountTokens = append(updatedAccountTokens, receiverAccountToken)
+			totalTransferredBalance += balance
 		}
 	}
-	return 0, fmt.Errorf("requested ID doesn't match with tokenID of the transaction")
+	senderAccountToken := indexer.AccountToken{
+		IndexID:      pendingTxParams.IndexID,
+		OwnerAccount: pendingTxParams.OwnerAccount,
+		Balance:      -totalTransferredBalance,
+	}
+
+	updatedAccountTokens = append(updatedAccountTokens, senderAccountToken)
+	return updatedAccountTokens, nil
 }
 
 func (s *NFTIndexerServer) GetAccountNFTs(c *gin.Context) {

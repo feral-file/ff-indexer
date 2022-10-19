@@ -45,7 +45,7 @@ type IndexerStore interface {
 	GetIdentities(ctx context.Context, accountNumbers []string) (map[string]AccountIdentity, error)
 	IndexIdentity(ctx context.Context, identity AccountIdentity) error
 
-	UpdateAccountToken(ctx context.Context, ownerAccount, indexID string, balance int, lastActivityTime time.Time) error
+	UpdateAccountToken(ctx context.Context, ownerAccount, indexID string, balance int64, lastActivityTime time.Time) error
 	DeleteAccountToken(ctx context.Context, indexID, ownerAccount string) error
 
 	IndexAccount(ctx context.Context, account Account) error
@@ -883,7 +883,7 @@ func (s *MongodbIndexerStore) IndexIdentity(ctx context.Context, identity Accoun
 }
 
 // UpdateAccountToken updates account token from transaction details
-func (s *MongodbIndexerStore) UpdateAccountToken(ctx context.Context, ownerAccount string, indexID string, balance int, lastActivityTime time.Time) error {
+func (s *MongodbIndexerStore) UpdateAccountToken(ctx context.Context, ownerAccount string, indexID string, balance int64, lastActivityTime time.Time) error {
 	r, err := s.accountTokenCollection.UpdateOne(ctx,
 		bson.M{"indexID": indexID, "ownerAccount": ownerAccount},
 		bson.M{"$set": bson.M{

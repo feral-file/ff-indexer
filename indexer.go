@@ -3,6 +3,7 @@ package indexer
 import (
 	"context"
 	"fmt"
+	"io"
 	"path/filepath"
 	"strings"
 	"time"
@@ -276,28 +277,37 @@ func (e *IndexEngine) IndexToken(c context.Context, owner, contract, tokenID str
 }
 
 func (e *IndexEngine) GetDetailedPendingTx(ctx context.Context, pendingTx string) ([]tzkt.TransactionDetails, error) {
+	count := 0
 WATCH_PENDINGTX:
 	for {
 		applied, err := e.tzkt.GetOperationStatus(pendingTx)
-		if err != nil {
-			return nil, err
-		}
 
-		if applied {
-			detailedTransactions, err := e.tzkt.GetTransactionByPendingTx(pendingTx)
-			if err != nil {
-				return nil, err
+		if err == io.EOF {
+			count++
+			if count > 4 {
+				break
 			}
-
-			return detailedTransactions, nil
-		} else {
 			if done := SleepWithContext(ctx, 15*time.Second); done {
 				break WATCH_PENDINGTX
 			}
 			continue
+		} else if err == nil {
+			if applied {
+				detailedTransactions, err := e.tzkt.GetTransactionByPendingTx(pendingTx)
+				if err != nil {
+					return nil, err
+				}
+
+				return detailedTransactions, nil
+			} else {
+				logrus.WithField("pendingTX", pendingTx).Warn("the transaction was failed")
+				return nil, nil
+			}
+		} else {
+			return nil, err
 		}
 
 	}
 	logrus.Debug("pendingTx checker closed")
-	return nil, nil
+	return nil, fmt.Errorf("too much time for pending")
 }
