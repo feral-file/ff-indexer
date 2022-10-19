@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -135,7 +134,7 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParamsIDs []str
 
 			owner, err := s.indexerEngine.GetTokenOwnerAddress(contract, tokenId)
 			if err != nil {
-				logrus.
+				log.
 					WithField("contract", contract).
 					WithField("tokenId", tokenId).
 					WithError(err).
@@ -374,7 +373,7 @@ func (s *NFTIndexerServer) TokenPending(c *gin.Context) {
 func (s *NFTIndexerServer) updateAccountTokenByPendingTx(c *gin.Context, pendingTxParams PendingTxParams) {
 	transactionDetails, err := s.indexerEngine.GetDetailedPendingTx(c, pendingTxParams.PendingTx)
 	if err != nil {
-		logrus.WithField("pendingTX", pendingTxParams.PendingTx).WithField("error", err).Warn("invalid transaction pendingTx")
+		log.WithField("pendingTX", pendingTxParams.PendingTx).WithField("error", err).Warn("invalid transaction pendingTx")
 		return
 	}
 
@@ -384,7 +383,7 @@ func (s *NFTIndexerServer) updateAccountTokenByPendingTx(c *gin.Context, pending
 	} else if err != nil {
 		err = s.indexerStore.DeleteAccountToken(c, pendingTxParams.IndexID, pendingTxParams.OwnerAccount)
 		if err != nil {
-			logrus.WithField("indexID", pendingTxParams.IndexID).WithField("ownerAccount", pendingTxParams.OwnerAccount).Warn("cannot delete account token")
+			log.WithField("indexID", pendingTxParams.IndexID).WithField("ownerAccount", pendingTxParams.OwnerAccount).Warn("cannot delete account token")
 		}
 		return
 	}
@@ -392,7 +391,7 @@ func (s *NFTIndexerServer) updateAccountTokenByPendingTx(c *gin.Context, pending
 	for _, updupdatedAccountToken := range updatedAccountTokens {
 		err = s.indexerStore.UpdateAccountToken(c, updupdatedAccountToken.OwnerAccount, updupdatedAccountToken.IndexID, updupdatedAccountToken.Balance, transactionDetails[0].Timestamp)
 		if err != nil {
-			logrus.WithField("indexID", pendingTxParams.IndexID).WithField("ownerAccount", pendingTxParams.OwnerAccount).Warn("some information doesn't match")
+			log.WithField("indexID", pendingTxParams.IndexID).WithField("ownerAccount", pendingTxParams.OwnerAccount).Warn("some information doesn't match")
 			continue
 		}
 	}
