@@ -131,7 +131,7 @@ type DetailedToken struct {
 type Account struct {
 	Account         string    `json:"account" bson:"account"`
 	Blockchain      string    `json:"blockchain" bson:"blockchain"`
-	LastUpdatedTime time.Time `json:"LastUpdateTime" bson:"LastUpdateTime"`
+	LastUpdatedTime time.Time `json:"lastUpdateTime" bson:"lastUpdateTime"`
 }
 
 type AccountToken struct {
