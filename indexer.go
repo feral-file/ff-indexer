@@ -275,16 +275,16 @@ func (e *IndexEngine) IndexToken(c context.Context, owner, contract, tokenID str
 	}
 }
 
-func (e *IndexEngine) GetDetailedPendingTx(ctx context.Context, pendingTxParams PendingTxParams) ([]tzkt.TransactionDetails, error) {
+func (e *IndexEngine) GetDetailedPendingTx(ctx context.Context, pendingTx string) ([]tzkt.TransactionDetails, error) {
 WATCH_PENDINGTX:
 	for {
-		applied, err := e.tzkt.GetOperationStatus(pendingTxParams.PendingTx)
+		applied, err := e.tzkt.GetOperationStatus(pendingTx)
 		if err != nil {
 			return nil, err
 		}
 
 		if applied {
-			detailedTransactions, err := e.tzkt.GetTransactionByPendingTx(pendingTxParams.PendingTx)
+			detailedTransactions, err := e.tzkt.GetTransactionByPendingTx(pendingTx)
 			if err != nil {
 				return nil, err
 			}

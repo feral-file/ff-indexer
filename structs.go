@@ -134,15 +134,6 @@ type Account struct {
 	LastUpdatedTime time.Time `json:"LastUpdateTime" bson:"LastUpdateTime"`
 }
 
-type PendingTxParams struct {
-	IndexID         string `json:"indexID"`
-	Blockchain      string `json:"blockchain"`
-	ID              string `json:"id"`
-	ContractAddress string `json:"contractAddress"`
-	OwnerAccount    string `json:"ownerAccount"`
-	PendingTx       string `json:"pendingTx"`
-}
-
 type AccountToken struct {
 	BaseTokenInfo     `bson:",inline"` // the latest token info
 	IndexID           string           `json:"indexID" bson:"indexID"`

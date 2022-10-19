@@ -38,6 +38,15 @@ func (s *NFTIndexerServer) IndexAsset(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": 1})
 }
 
+type PendingTxParams struct {
+	IndexID         string `json:"indexID"`
+	Blockchain      string `json:"blockchain"`
+	ID              string `json:"id"`
+	ContractAddress string `json:"contractAddress"`
+	OwnerAccount    string `json:"ownerAccount"`
+	PendingTx       string `json:"pendingTx"`
+}
+
 type NFTQueryParams struct {
 	// global
 	Offset int64  `form:"offset"`

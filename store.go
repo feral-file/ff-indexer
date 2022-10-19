@@ -3,11 +3,9 @@ package indexer
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
-	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -47,7 +45,8 @@ type IndexerStore interface {
 	GetIdentities(ctx context.Context, accountNumbers []string) (map[string]AccountIdentity, error)
 	IndexIdentity(ctx context.Context, identity AccountIdentity) error
 
-	UpdateAccountTokenByPendingTx(ctx context.Context, detailedTransactions []tzkt.TransactionDetails, pendingTxParams PendingTxParams) error
+	UpdateAccountToken(ctx context.Context, ownerAccount, indexID string, balance int, lastActivityTime time.Time) error
+	DeleteAccountToken(ctx context.Context, indexID, ownerAccount string) error
 
 	IndexAccount(ctx context.Context, account Account) error
 	IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error
@@ -883,67 +882,47 @@ func (s *MongodbIndexerStore) IndexIdentity(ctx context.Context, identity Accoun
 	return nil
 }
 
-// UpdateAccountTokenByPendingTx updates account token from transaction details
-func (s *MongodbIndexerStore) UpdateAccountTokenByPendingTx(ctx context.Context, detailedTransactions []tzkt.TransactionDetails, pendingTxParams PendingTxParams) error {
-	isTransactionMatch := false
+// UpdateAccountToken updates account token from transaction details
+func (s *MongodbIndexerStore) UpdateAccountToken(ctx context.Context, ownerAccount string, indexID string, balance int, lastActivityTime time.Time) error {
+	r, err := s.accountTokenCollection.UpdateOne(ctx,
+		bson.M{"indexID": indexID, "ownerAccount": ownerAccount},
+		bson.M{"$set": bson.M{
+			"lastActivityTime": lastActivityTime,
+			"lastRefreshTime":  time.Now(),
+		},
+			"$inc": bson.M{
+				"balance": balance,
+			},
+		},
+		options.Update().SetUpsert(true),
+	)
 
-	for _, txs := range detailedTransactions[0].Parameter.Value[0].Txs {
-		if txs.TokenID == pendingTxParams.ID {
-			isTransactionMatch = true
-			balance, err := strconv.Atoi(txs.Amount)
-			if err != nil {
-				return err
-			}
-
-			switch pendingTxParams.OwnerAccount {
-			case detailedTransactions[0].Parameter.Value[0].From_:
-				balance = -balance
-			case txs.To_:
-				// do nothing
-			default:
-				return fmt.Errorf("owner account does not match")
-			}
-
-			r, err := s.accountTokenCollection.UpdateOne(ctx,
-				bson.M{"indexID": pendingTxParams.IndexID, "ownerAccount": pendingTxParams.OwnerAccount},
-				bson.M{"$set": bson.M{
-					"lastActivityTime": detailedTransactions[0].Timestamp,
-					"lastRefreshTime":  time.Now(),
-				},
-					"$inc": bson.M{
-						"balance": balance,
-					},
-				},
-				options.Update().SetUpsert(true),
-			)
-
-			if err != nil {
-				return err
-			}
-
-			if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-				logrus.WithField("IndexID", pendingTxParams.IndexID).WithField("ownerAccount", pendingTxParams.OwnerAccount).Warn("New account token is not added or updated")
-			} else {
-				logrus.WithField("IndexID", pendingTxParams.IndexID).WithField("ownerAccount", pendingTxParams.OwnerAccount).Warn("New account token is added or updated")
-			}
-			break
-		}
+	if err != nil {
+		return err
 	}
 
-	if !isTransactionMatch {
-		r, err := s.accountTokenCollection.DeleteOne(ctx,
-			bson.M{"indexID": pendingTxParams.IndexID, "ownerAccount": pendingTxParams.OwnerAccount},
-		)
+	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
+		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("New account token is not added or updated")
+	} else {
+		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("New account token is added or updated")
+	}
 
-		if err != nil {
-			return err
-		}
+	return nil
+}
 
-		if r.DeletedCount == 0 {
-			logrus.WithField("IndexID", pendingTxParams.IndexID).WithField("ownerAccount", pendingTxParams.OwnerAccount).Warn("account token is not deleted")
-		} else {
-			logrus.WithField("IndexID", pendingTxParams.IndexID).WithField("ownerAccount", pendingTxParams.OwnerAccount).Warn("account token is deleted")
-		}
+func (s *MongodbIndexerStore) DeleteAccountToken(ctx context.Context, indexID string, ownerAccount string) error {
+	r, err := s.accountTokenCollection.DeleteOne(ctx,
+		bson.M{"indexID": indexID, "ownerAccount": ownerAccount},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if r.DeletedCount == 0 {
+		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("account token is not deleted")
+	} else {
+		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("account token is deleted")
 	}
 
 	return nil
