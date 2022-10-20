@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -14,7 +13,6 @@ import (
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
-	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
 
@@ -365,71 +363,22 @@ func (s *NFTIndexerServer) SetTokenPending(c *gin.Context) {
 		return
 	}
 
-	go s.updateAccountTokenByPendingTx(c, reqParams)
+	if err := s.updateAccountTokenByPendingTx(c, reqParams); err != nil {
+		return
+	}
 
 	c.JSON(http.StatusOK, 1)
 }
 
-func (s *NFTIndexerServer) updateAccountTokenByPendingTx(c *gin.Context, pendingTxParams PendingTxParams) {
-	transactionDetails, err := s.indexerEngine.GetDetailedPendingTx(c, pendingTxParams.PendingTx)
+func (s *NFTIndexerServer) updateAccountTokenByPendingTx(c *gin.Context, pendingTxParams PendingTxParams) error {
+	err := s.indexerStore.AddPendingTxToAccountToken(c, pendingTxParams.OwnerAccount, pendingTxParams.IndexID, pendingTxParams.PendingTx)
 	if err != nil {
-		log.WithField("pendingTX", pendingTxParams.PendingTx).WithField("error", err).Warn("invalid transaction pendingTx")
-		return
+		log.WithField("error", err).Warn("error while updating accountToken")
+		return err
 	}
+	log.WithField("pendingTx", pendingTxParams.PendingTx).Debug("an account token is pending")
 
-	updatedAccountTokens, err := s.GetBalanceFromTransaction(c, transactionDetails[0], pendingTxParams)
-	if err == fmt.Errorf("conversion error") {
-		return
-	} else if err != nil {
-		err = s.indexerStore.DeleteAccountToken(c, pendingTxParams.IndexID, pendingTxParams.OwnerAccount)
-		if err != nil {
-			log.WithField("indexID", pendingTxParams.IndexID).WithField("ownerAccount", pendingTxParams.OwnerAccount).Warn("cannot delete account token")
-		}
-		return
-	}
-
-	for _, updupdatedAccountToken := range updatedAccountTokens {
-		err = s.indexerStore.UpdateAccountToken(c, updupdatedAccountToken.OwnerAccount, updupdatedAccountToken.IndexID, updupdatedAccountToken.Balance, transactionDetails[0].Timestamp)
-		if err != nil {
-			log.WithField("indexID", pendingTxParams.IndexID).WithField("ownerAccount", pendingTxParams.OwnerAccount).Warn("some information doesn't match")
-			continue
-		}
-	}
-}
-
-func (s *NFTIndexerServer) GetBalanceFromTransaction(c *gin.Context, transactionDetails tzkt.TransactionDetails, pendingTxParams PendingTxParams) ([]indexer.AccountToken, error) {
-	if pendingTxParams.OwnerAccount != transactionDetails.Parameter.Value[0].From_ {
-		return nil, fmt.Errorf("owner account is not the sender")
-	}
-
-	var updatedAccountTokens = []indexer.AccountToken{}
-	var totalTransferredBalance = int64(0)
-
-	for _, txs := range transactionDetails.Parameter.Value[0].Txs {
-		if txs.TokenID == pendingTxParams.ID {
-			balance, err := strconv.ParseInt(txs.Amount, 10, 64)
-			if err != nil {
-				continue
-			}
-
-			receiverAccountToken := indexer.AccountToken{
-				IndexID:      pendingTxParams.IndexID,
-				OwnerAccount: txs.To_,
-				Balance:      balance,
-			}
-
-			updatedAccountTokens = append(updatedAccountTokens, receiverAccountToken)
-			totalTransferredBalance += balance
-		}
-	}
-	senderAccountToken := indexer.AccountToken{
-		IndexID:      pendingTxParams.IndexID,
-		OwnerAccount: pendingTxParams.OwnerAccount,
-		Balance:      -totalTransferredBalance,
-	}
-
-	updatedAccountTokens = append(updatedAccountTokens, senderAccountToken)
-	return updatedAccountTokens, nil
+	return nil
 }
 
 func (s *NFTIndexerServer) GetAccountNFTs(c *gin.Context) {

@@ -45,8 +45,10 @@ type IndexerStore interface {
 	GetIdentities(ctx context.Context, accountNumbers []string) (map[string]AccountIdentity, error)
 	IndexIdentity(ctx context.Context, identity AccountIdentity) error
 
-	UpdateAccountToken(ctx context.Context, ownerAccount, indexID string, balance int64, lastActivityTime time.Time) error
-	DeleteAccountToken(ctx context.Context, indexID, ownerAccount string) error
+	UpdatePendingAccountToken(ctx context.Context, ownerAccount, indexID string, balance int64, lastActivityTime time.Time) error
+	GetPendingAccountTokens(ctx context.Context) ([]AccountToken, error)
+	AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx string) error
+	DeleteFailedAccountTokens(ctx context.Context, ownerAccount, indexID string) error
 
 	IndexAccount(ctx context.Context, account Account) error
 	IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error
@@ -882,8 +884,8 @@ func (s *MongodbIndexerStore) IndexIdentity(ctx context.Context, identity Accoun
 	return nil
 }
 
-// UpdateAccountToken updates account token from transaction details
-func (s *MongodbIndexerStore) UpdateAccountToken(ctx context.Context, ownerAccount string, indexID string, balance int64, lastActivityTime time.Time) error {
+// UpdatePendingAccountToken updates account token from transaction details
+func (s *MongodbIndexerStore) UpdatePendingAccountToken(ctx context.Context, ownerAccount string, indexID string, balance int64, lastActivityTime time.Time) error {
 	r, err := s.accountTokenCollection.UpdateOne(ctx,
 		bson.M{"indexID": indexID, "ownerAccount": ownerAccount},
 		bson.M{"$set": bson.M{
@@ -892,6 +894,9 @@ func (s *MongodbIndexerStore) UpdateAccountToken(ctx context.Context, ownerAccou
 		},
 			"$inc": bson.M{
 				"balance": balance,
+			},
+			"$unset": bson.M{
+				"pendingTx": "",
 			},
 		},
 		options.Update().SetUpsert(true),
@@ -903,29 +908,55 @@ func (s *MongodbIndexerStore) UpdateAccountToken(ctx context.Context, ownerAccou
 
 	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
 		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("New account token is not added or updated")
-	} else {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("New account token is added or updated")
 	}
 
 	return nil
 }
 
-func (s *MongodbIndexerStore) DeleteAccountToken(ctx context.Context, indexID string, ownerAccount string) error {
-	r, err := s.accountTokenCollection.DeleteOne(ctx,
+func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx string) error {
+	r, err := s.accountTokenCollection.UpdateOne(ctx,
 		bson.M{"indexID": indexID, "ownerAccount": ownerAccount},
+		bson.M{"$set": bson.M{
+			"pendingTx": pendingTx,
+		}},
+		options.Update().SetUpsert(true),
 	)
 
 	if err != nil {
 		return err
 	}
 
-	if r.DeletedCount == 0 {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("account token is not deleted")
-	} else {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("account token is deleted")
+	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
+		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("pending token is not added")
 	}
-
 	return nil
+}
+
+func (s *MongodbIndexerStore) DeleteFailedAccountTokens(ctx context.Context, ownerAccount, indexID string) error {
+	_, err := s.accountTokenCollection.DeleteOne(ctx, bson.M{"ownerAccount": bson.M{"$eq": ownerAccount}})
+
+	return err
+}
+
+func (s *MongodbIndexerStore) GetPendingAccountTokens(ctx context.Context) ([]AccountToken, error) {
+	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{"pendingTx": bson.M{"$ne": nil}})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	pendingAccountTokens := []AccountToken{}
+	for cursor.Next(ctx) {
+		var accountToken AccountToken
+
+		if err := cursor.Decode(&accountToken); err != nil {
+			continue
+		}
+
+		pendingAccountTokens = append(pendingAccountTokens, accountToken)
+
+	}
+	return pendingAccountTokens, nil
 }
 
 // IndexAccount indexes the account by inputs

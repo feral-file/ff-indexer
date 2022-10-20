@@ -46,6 +46,10 @@ nft-event-subscriber:
 nft-provenance-indexer:
 	go build -o bin/nft-provenance-indexer ./services/nft-provenance-indexer
 
+.PHONY: nft-account-token-update
+nft-account-token-update:
+	go build -o bin/nft-account-token-update ./services/nft-account-token-update
+
 .PHONY: run-nft-indexer
 run-nft-indexer: nft-indexer
 	./bin/nft-indexer -c config.yaml
@@ -66,8 +70,12 @@ run-nft-event-subscriber: nft-event-subscriber
 run-nft-provenance-indexer: nft-provenance-indexer
 	./bin/nft-provenance-indexer -c config.yaml
 
+.PHONY: run-nft-account-token-update
+run-nft-account-token-update: nft-account-token-update
+	./bin/nft-account-token-update -c config.yaml
+
 .PHONY: build
-build: nft-indexer nft-indexer-background nft-event-subscriber nft-provenance-indexer
+build: nft-indexer nft-indexer-background nft-event-subscriber nft-provenance-indexer nft-account-token-update
 
 .PHONY: run
 run: config run-nft-indexer
@@ -105,6 +113,16 @@ endif
 	-t nft-provenance-indexer-$(dist) -f Dockerfile-provenance-indexer .
 	docker tag nft-provenance-indexer-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:nft-provenance-indexer-$(dist)
 
+.PHONY: build-nft-account-token-update
+build-nft-account-token-update:
+ifndef dist
+	$(error dist is undefined)
+endif
+	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
+	--build-arg GITHUB_USER=$(GITHUB_USER) \
+	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
+	-t nft-account-token-update-$(dist) -f Dockerfile-provenance-indexer .
+	docker tag nft-account-token-update-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:nft-account-token-update-$(dist)
 
 .PHONY: build-nft-event-subscriber
 build-nft-event-subscriber:

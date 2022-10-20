@@ -3,7 +3,6 @@ package indexer
 import (
 	"context"
 	"fmt"
-	"io"
 	"path/filepath"
 	"strings"
 	"time"
@@ -11,7 +10,6 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -277,37 +275,20 @@ func (e *IndexEngine) IndexToken(c context.Context, owner, contract, tokenID str
 }
 
 func (e *IndexEngine) GetDetailedPendingTx(ctx context.Context, pendingTx string) ([]tzkt.TransactionDetails, error) {
-	count := 0
-WATCH_PENDINGTX:
-	for {
-		applied, err := e.tzkt.GetOperationStatus(pendingTx)
 
-		if err == io.EOF {
-			count++
-			if count > 4 {
-				break
-			}
-			if done := SleepWithContext(ctx, 15*time.Second); done {
-				break WATCH_PENDINGTX
-			}
-			continue
-		} else if err == nil {
-			if applied {
-				detailedTransactions, err := e.tzkt.GetTransactionByPendingTx(pendingTx)
-				if err != nil {
-					return nil, err
-				}
+	applied, err := e.tzkt.GetOperationStatus(pendingTx)
+	if err != nil {
+		return nil, err
+	}
 
-				return detailedTransactions, nil
-			} else {
-				logrus.WithField("pendingTX", pendingTx).Warn("the transaction was failed")
-				return nil, nil
-			}
-		} else {
+	if applied {
+		detailedTransactions, err := e.tzkt.GetTransactionByTx(pendingTx)
+		if err != nil {
 			return nil, err
 		}
 
+		return detailedTransactions, nil
+	} else {
+		return nil, fmt.Errorf("transaction is failed")
 	}
-	logrus.Debug("pendingTx checker closed")
-	return nil, fmt.Errorf("too much time for pending")
 }

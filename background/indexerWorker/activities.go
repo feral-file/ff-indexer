@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
+	"strconv"
+	"strings"
 	"time"
 
 	goethereum "github.com/ethereum/go-ethereum"
@@ -475,4 +478,66 @@ func (w *NFTIndexerWorker) RefreshTezosTokenOwnership(ctx context.Context, index
 		}
 	}
 	return nil
+}
+
+func (w *NFTIndexerWorker) UpdateAccountTokens(ctx context.Context) error {
+	pendingAccountTokens, err := w.indexerStore.GetPendingAccountTokens(ctx)
+	if err != nil {
+		log.Warn("errors in the pending account tokens")
+		return err
+	}
+
+	for _, pendingAccountToken := range pendingAccountTokens {
+		transactionDetails, err := w.indexerEngine.GetDetailedPendingTx(ctx, pendingAccountToken.PendingTx)
+		if err != nil {
+			if err != io.EOF {
+				w.indexerStore.DeleteFailedAccountTokens(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID)
+			}
+			continue
+		}
+
+		accountTokens, err := w.GetBalanceFromTransaction(ctx, transactionDetails[0], pendingAccountToken)
+		if err != nil {
+			continue
+		}
+		for _, accountToken := range accountTokens {
+			w.indexerStore.UpdatePendingAccountToken(ctx, accountToken.OwnerAccount, accountToken.IndexID, accountToken.Balance, transactionDetails[0].Timestamp)
+		}
+	}
+	return nil
+}
+
+func (w *NFTIndexerWorker) GetBalanceFromTransaction(ctx context.Context, transactionDetails tzkt.TransactionDetails, accountToken indexer.AccountToken) ([]indexer.AccountToken, error) {
+	if accountToken.OwnerAccount != transactionDetails.Parameter.Value[0].From_ {
+		return nil, fmt.Errorf("owner account is not the sender")
+	}
+
+	var updatedAccountTokens = []indexer.AccountToken{}
+	var totalTransferredBalance = int64(0)
+
+	for _, txs := range transactionDetails.Parameter.Value[0].Txs {
+		if txs.TokenID == strings.Split(accountToken.IndexID, "-")[2] {
+			balance, err := strconv.ParseInt(txs.Amount, 10, 64)
+			if err != nil {
+				continue
+			}
+
+			receiverAccountToken := indexer.AccountToken{
+				IndexID:      accountToken.IndexID,
+				OwnerAccount: txs.To_,
+				Balance:      balance,
+			}
+
+			updatedAccountTokens = append(updatedAccountTokens, receiverAccountToken)
+			totalTransferredBalance += balance
+		}
+	}
+	senderAccountToken := indexer.AccountToken{
+		IndexID:      accountToken.IndexID,
+		OwnerAccount: accountToken.OwnerAccount,
+		Balance:      -totalTransferredBalance,
+	}
+
+	updatedAccountTokens = append(updatedAccountTokens, senderAccountToken)
+	return updatedAccountTokens, nil
 }
