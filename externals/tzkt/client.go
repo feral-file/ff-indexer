@@ -458,7 +458,7 @@ type EntityFormat struct {
 	Alias   string `json:"alias"`
 }
 
-func (c *TZKT) GetTransactionByPendingTx(hash string) ([]TransactionDetails, error) {
+func (c *TZKT) GetTransactionByTx(hash string) ([]TransactionDetails, error) {
 	u := url.URL{
 		Scheme: "https",
 		Host:   c.endpoint,

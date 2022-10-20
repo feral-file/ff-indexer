@@ -345,7 +345,7 @@ func (s *NFTIndexerServer) GetIdentities(c *gin.Context) {
 	c.JSON(200, ids)
 }
 
-func (s *NFTIndexerServer) TokenPending(c *gin.Context) {
+func (s *NFTIndexerServer) SetTokenPending(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "TokenPending")
 
 	var reqParams PendingTxParams
