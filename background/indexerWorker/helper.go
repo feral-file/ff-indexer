@@ -62,6 +62,7 @@ func StartRefreshTokenProvenanceWorkflow(c context.Context, client *cadence.Cade
 		RetryPolicy: &uberCadence.RetryPolicy{
 			InitialInterval:    10 * time.Second,
 			BackoffCoefficient: 1.0,
+			MaximumAttempts:    60,
 		},
 	}
 
