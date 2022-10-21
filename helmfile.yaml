@@ -8,6 +8,13 @@ releases:
   labels:
     app: indexer
   values:
+  {{- if env "GITHUB_SHA" }}
+  - image:
+      tags:
+        api: "api-{{ env "GITHUB_SHA" }}"
+        background: "background-{{ env "GITHUB_SHA" }}"
+        provenance_indexer: "nft-provenance-indexer-{{ env "GITHUB_SHA" }}"
+  {{- end }}
   - helm/environments/nft-indexer/{{ .Environment.Name }}/values.yaml
   secrets:
   - helm/environments/nft-indexer/{{ .Environment.Name }}/secrets.yaml
@@ -18,6 +25,11 @@ releases:
   labels:
     app: event-subscriber
   values:
+  {{- if env "GITHUB_SHA" }}
+  - image:
+      tags:
+        eventSubscriber: "event-subscriber-{{ env "GITHUB_SHA" }}"
+  {{- end }}
   - helm/environments/nft-event-subscriber/{{ .Environment.Name }}/values.yaml
   secrets:
   - helm/environments/nft-event-subscriber/{{ .Environment.Name }}/secrets.yaml
@@ -28,6 +40,10 @@ releases:
   labels:
     app: image-indexer
   values:
+  {{- if env "IMAGE_TAG" }}
+  - image:
+      tag: {{ env "IMAGE_TAG" | quote }}
+  {{- end }}
   - helm/environments/nft-image-indexer/{{ .Environment.Name }}/values.yaml
   secrets:
   - helm/environments/nft-image-indexer/{{ .Environment.Name }}/secrets.yaml
