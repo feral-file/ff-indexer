@@ -39,21 +39,17 @@ func TestGetTokenTransfers(t *testing.T) {
 	assert.NoError(t, err)
 	assert.GreaterOrEqual(t, len(transfers), 1)
 	assert.Nil(t, transfers[0].From)
-	assert.Equal(t, transfers[0].TransactionID, uint64(265770894))
-
-	transfers2, err := tc.GetTokenTransfers("KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE", "178227")
-	assert.NoError(t, err)
-	assert.GreaterOrEqual(t, len(transfers2), 1)
-	assert.Nil(t, transfers2[0].From)
-	assert.Equal(t, transfers2[0].TransactionID, uint64(138631754))
+	assert.Equal(t, transfers[0].TransactionID, uint64(251825029644288))
+	assert.Nil(t, transfers[0].From)
+	assert.Equal(t, transfers[0].To.Address, "tz1QnNR17RHvXxDKHQEdRaAxrGL9hGysVcqT")
 }
 
 func TestGetTransaction(t *testing.T) {
 	tc := New("")
 
-	transaction, err := tc.GetTransaction(123186632)
+	transaction, err := tc.GetTransaction(251825029644288)
 	assert.NoError(t, err)
-	assert.Equal(t, transaction.Hash, "ooL9AXhccM4Jeb525QhRtbb94fozC9rmB4mRanXGU9kHSm42cWX")
+	assert.Equal(t, transaction.Hash, "ooJe9soP53x4dSBZR2mkEi1h3oQDCk5WZLaDBTVB3YzouC7dacQ")
 }
 
 func TestGetTokenActivityTime(t *testing.T) {
