@@ -14,7 +14,7 @@ releases:
       tags:
         api: "api-{{ env "GITHUB_SHA" }}"
         background: "background-{{ env "GITHUB_SHA" }}"
-        provenance_indexer: "nft-provenance-indexer-{{ env "GITHUB_SHA" }}"
+        provenance_indexer: "provenance-indexer-{{ env "GITHUB_SHA" }}"
   {{- end }}
   secrets:
   - helm/environments/nft-indexer/{{ .Environment.Name }}/secrets.yaml
