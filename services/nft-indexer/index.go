@@ -45,7 +45,6 @@ type PendingTxParams struct {
 	ContractAddress string `json:"contractAddress"`
 	OwnerAccount    string `json:"ownerAccount"`
 	PendingTx       string `json:"pendingTx"`
-	BalanceDiff     int64  `json:"balanceDiff"`
 }
 
 type NFTQueryParams struct {

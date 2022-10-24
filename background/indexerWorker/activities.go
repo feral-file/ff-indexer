@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
 	"strconv"
 	"strings"
@@ -480,6 +479,7 @@ func (w *NFTIndexerWorker) RefreshTezosTokenOwnership(ctx context.Context, index
 	return nil
 }
 
+// UpdateAccountTokens updates all pending account tokens
 func (w *NFTIndexerWorker) UpdateAccountTokens(ctx context.Context) error {
 	pendingAccountTokens, err := w.indexerStore.GetPendingAccountTokens(ctx)
 	if err != nil {
@@ -488,16 +488,20 @@ func (w *NFTIndexerWorker) UpdateAccountTokens(ctx context.Context) error {
 	}
 
 	for _, pendingAccountToken := range pendingAccountTokens {
-		transactionDetails, err := w.indexerEngine.GetDetailedPendingTx(ctx, pendingAccountToken.PendingTx)
+		transactionDetails, err := w.indexerEngine.GetTransactionDetailsByPendingTx(pendingAccountToken.PendingTx)
 		if err != nil {
-			if err != io.EOF {
-				w.indexerStore.DeleteFailedAccountTokens(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID)
-			}
+			w.indexerStore.DeleteFailedAccountTokens(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID)
 			continue
 		}
 
-		accountTokens, err := w.GetBalanceFromTransaction(ctx, transactionDetails[0], pendingAccountToken)
+		// if the transaction is pending or invalid
+		if len(transactionDetails) == 0 {
+			continue
+		}
+
+		accountTokens, err := w.GetBalanceDiffFromTransaction(ctx, transactionDetails[0], pendingAccountToken)
 		if err != nil {
+			w.indexerStore.DeleteFailedAccountTokens(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID)
 			continue
 		}
 		for _, accountToken := range accountTokens {
@@ -507,7 +511,8 @@ func (w *NFTIndexerWorker) UpdateAccountTokens(ctx context.Context) error {
 	return nil
 }
 
-func (w *NFTIndexerWorker) GetBalanceFromTransaction(ctx context.Context, transactionDetails tzkt.TransactionDetails, accountToken indexer.AccountToken) ([]indexer.AccountToken, error) {
+// GetBalanceDiffFromTransaction gets the balance difference of account tokens in a transaction.
+func (w *NFTIndexerWorker) GetBalanceDiffFromTransaction(ctx context.Context, transactionDetails tzkt.TransactionDetails, accountToken indexer.AccountToken) ([]indexer.AccountToken, error) {
 	if accountToken.OwnerAccount != transactionDetails.Parameter.Value[0].From_ {
 		return nil, fmt.Errorf("owner account is not the sender")
 	}

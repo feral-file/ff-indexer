@@ -899,7 +899,6 @@ func (s *MongodbIndexerStore) UpdatePendingAccountToken(ctx context.Context, own
 				"pendingTx": "",
 			},
 		},
-		options.Update().SetUpsert(true),
 	)
 
 	if err != nil {
@@ -933,7 +932,7 @@ func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ow
 }
 
 func (s *MongodbIndexerStore) DeleteFailedAccountTokens(ctx context.Context, ownerAccount, indexID string) error {
-	_, err := s.accountTokenCollection.DeleteOne(ctx, bson.M{"ownerAccount": bson.M{"$eq": ownerAccount}})
+	_, err := s.accountTokenCollection.DeleteOne(ctx, bson.M{"ownerAccount": bson.M{"$eq": ownerAccount}, "indexID": bson.M{"$eq": indexID}})
 
 	return err
 }

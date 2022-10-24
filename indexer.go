@@ -274,21 +274,11 @@ func (e *IndexEngine) IndexToken(c context.Context, owner, contract, tokenID str
 	}
 }
 
-func (e *IndexEngine) GetDetailedPendingTx(ctx context.Context, pendingTx string) ([]tzkt.TransactionDetails, error) {
-
-	applied, err := e.tzkt.GetOperationStatus(pendingTx)
+func (e *IndexEngine) GetTransactionDetailsByPendingTx(pendingTx string) ([]tzkt.TransactionDetails, error) {
+	detailedTransactions, err := e.tzkt.GetTransactionByTx(pendingTx)
 	if err != nil {
 		return nil, err
 	}
 
-	if applied {
-		detailedTransactions, err := e.tzkt.GetTransactionByTx(pendingTx)
-		if err != nil {
-			return nil, err
-		}
-
-		return detailedTransactions, nil
-	} else {
-		return nil, fmt.Errorf("transaction is failed")
-	}
+	return detailedTransactions, nil
 }

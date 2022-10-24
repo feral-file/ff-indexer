@@ -363,22 +363,13 @@ func (s *NFTIndexerServer) SetTokenPending(c *gin.Context) {
 		return
 	}
 
-	if err := s.updateAccountTokenByPendingTx(c, reqParams); err != nil {
+	if err := s.indexerStore.AddPendingTxToAccountToken(c, reqParams.OwnerAccount, reqParams.IndexID, reqParams.PendingTx); err != nil {
+		log.WithField("error", err).Warn("error while adding pending accountToken")
 		return
 	}
+	log.WithField("pendingTx", reqParams.PendingTx).Debug("a pending account token is added")
 
 	c.JSON(http.StatusOK, 1)
-}
-
-func (s *NFTIndexerServer) updateAccountTokenByPendingTx(c *gin.Context, pendingTxParams PendingTxParams) error {
-	err := s.indexerStore.AddPendingTxToAccountToken(c, pendingTxParams.OwnerAccount, pendingTxParams.IndexID, pendingTxParams.PendingTx)
-	if err != nil {
-		log.WithField("error", err).Warn("error while updating accountToken")
-		return err
-	}
-	log.WithField("pendingTx", pendingTxParams.PendingTx).Debug("an account token is pending")
-
-	return nil
 }
 
 func (s *NFTIndexerServer) GetAccountNFTs(c *gin.Context) {

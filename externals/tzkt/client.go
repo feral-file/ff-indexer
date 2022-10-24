@@ -424,38 +424,11 @@ func (c *TZKT) GetTokenBalanceForOwner(contract, tokenID, owner string) (int64, 
 	return owners[0].Balance, nil
 }
 
-// GetOperationStatus get the status of an operation for a given hash
-func (c *TZKT) GetOperationStatus(hash string) (bool, error) {
-	u := url.URL{
-		Scheme: "https",
-		Host:   c.endpoint,
-		Path:   fmt.Sprintf("%s/%s/%s", "/v1/operations/transactions", hash, "status"),
-	}
-
-	resp, err := c.client.Get(u.String())
-	if err != nil {
-		return false, err
-	}
-	defer resp.Body.Close()
-
-	var applied bool
-
-	if err := json.NewDecoder(resp.Body).Decode(&applied); err != nil {
-		return false, err
-	}
-
-	return applied, nil
-}
-
 type TransactionDetails struct {
 	Block     string               `json:"block"`
 	Parameter TransactionParameter `json:"parameter"`
-	Target    TargetParameter      `json:"target"`
+	Account   Account              `json:"target"`
 	Timestamp time.Time            `json:"timestamp" bson:"timestamp"`
-}
-
-type TargetParameter struct {
-	Address string `json:"address"`
 }
 
 type TransactionParameter struct {
@@ -474,11 +447,7 @@ type TxsFormat struct {
 	TokenID string `json:"token_id"`
 }
 
-type EntityFormat struct {
-	Address string `json:"address"`
-	Alias   string `json:"alias"`
-}
-
+// GetTransactionByTx gets transaction details from a specific Tx
 func (c *TZKT) GetTransactionByTx(hash string) ([]TransactionDetails, error) {
 	u := url.URL{
 		Scheme: "https",
