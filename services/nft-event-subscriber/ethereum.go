@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -138,8 +137,7 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 						TxURL:       indexer.TxURL(indexer.EthereumBlockchain, s.environment, txID),
 					}); err != nil {
 						logrus.WithError(err).Warn("unable to push provenance, will trigger a full provenance refresh")
-						go indexerWorker.StartRefreshTokenProvenanceWorkflow(ctx, &s.Worker,
-							fmt.Sprintf("subscriber-%s", indexID), indexID, 0)
+						go indexerWorker.StartRefreshTokenProvenanceWorkflow(ctx, &s.Worker, "subscriber", indexID, 0)
 					}
 				}
 

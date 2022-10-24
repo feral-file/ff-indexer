@@ -9,9 +9,9 @@ image:
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tags:
-    api: "api-0.0.16-10"
-    background: "background-0.0.16-13"
-    provenance_indexer: "nft-provenance-indexer-0.0.16-11"
+    api: "api-0.0.16-25"
+    background: "background-0.0.16-26"
+    provenance_indexer: "nft-provenance-indexer-0.0.16-27"
 
 serviceConfig:
   feralfile_api_url: https://feralfile2.dev.bitmark.com

@@ -22,5 +22,5 @@ serviceConfig:
   environment: staging
   network:
     tezos: livenet
-    ethereum: testnet
-    bitmark: testnet
+    ethereum: livenet
+    bitmark: livenet

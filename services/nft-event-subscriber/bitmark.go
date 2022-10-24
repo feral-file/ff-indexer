@@ -56,8 +56,7 @@ func (s *NFTEventSubscriber) WatchBitmarkEvent(ctx context.Context) error {
 					indexID := indexer.TokenIndexID(indexer.BitmarkBlockchain, "", t.BitmarkID)
 
 					logrus.WithField("id", indexID).Debug("refresh provenance from subscriber")
-					go indexerWorker.StartRefreshTokenProvenanceWorkflow(ctx, &s.Worker,
-						fmt.Sprintf("subscriber-%s", indexID), indexID, 0)
+					go indexerWorker.StartRefreshTokenProvenanceWorkflow(ctx, &s.Worker, "subscriber", indexID, 0)
 
 					// TODO: do something for the feed
 					toAddress := t.Owner
