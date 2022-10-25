@@ -45,8 +45,9 @@ type IndexerStore interface {
 	GetIdentities(ctx context.Context, accountNumbers []string) (map[string]AccountIdentity, error)
 	IndexIdentity(ctx context.Context, identity AccountIdentity) error
 
-	UpdatePendingAccountToken(ctx context.Context, ownerAccount, indexID string, balance int64, lastActivityTime time.Time) error
+	UpdatePendingAccountToken(ctx context.Context, ownerAccount, indexID string, balance int64, lastActivityTime time.Time, pendingTx string, lastPendingTime time.Time) error
 	UpdateReceivedAccountToken(ctx context.Context, ownerAccount, indexID string, balance int64, lastActivityTime time.Time) error
+	DeletePendingFieldsAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx string, lastPendingTime time.Time) error
 	GetPendingAccountTokens(ctx context.Context) ([]AccountToken, error)
 	AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx string) error
 	DeleteFailedAccountTokens(ctx context.Context, ownerAccount, indexID string) error
@@ -886,7 +887,7 @@ func (s *MongodbIndexerStore) IndexIdentity(ctx context.Context, identity Accoun
 }
 
 // UpdatePendingAccountToken updates pending (sender) account token from transaction details
-func (s *MongodbIndexerStore) UpdatePendingAccountToken(ctx context.Context, ownerAccount string, indexID string, balance int64, lastActivityTime time.Time) error {
+func (s *MongodbIndexerStore) UpdatePendingAccountToken(ctx context.Context, ownerAccount, indexID string, balance int64, lastActivityTime time.Time, pendingTx string, lastPendingTime time.Time) error {
 	r, err := s.accountTokenCollection.UpdateOne(ctx,
 		bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "pendingTx": bson.M{"$exists": true}},
 		bson.M{"$set": bson.M{
@@ -896,8 +897,9 @@ func (s *MongodbIndexerStore) UpdatePendingAccountToken(ctx context.Context, own
 			"$inc": bson.M{
 				"balance": balance,
 			},
-			"$unset": bson.M{
-				"pendingTx": "",
+			"$pull": bson.M{
+				"pendingTx":       pendingTx,
+				"lastPendingTime": lastPendingTime,
 			},
 		},
 	)
@@ -907,7 +909,9 @@ func (s *MongodbIndexerStore) UpdatePendingAccountToken(ctx context.Context, own
 	}
 
 	if r.MatchedCount == 0 {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("New account token is not updated")
+		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).WithField("pendingTx", pendingTx).Warn("Pending account token is not updated")
+	} else {
+		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).WithField("pendingTx", pendingTx).Debug("Pending account token is updated")
 	}
 
 	return nil
@@ -933,29 +937,71 @@ func (s *MongodbIndexerStore) UpdateReceivedAccountToken(ctx context.Context, ow
 	}
 
 	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("received account token is not added or updated")
+		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("Received account token is not added or updated")
+	} else {
+		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Debug("Received account token is added or updated")
 	}
 
 	return nil
 }
 
-// AddPendingTxToAccountToken add pendingTx to a specific account token
-func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx string) error {
+// DeletePendingFieldsAccountToken deletes elements in pending fields of a account token
+func (s *MongodbIndexerStore) DeletePendingFieldsAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx string, lastPendingTime time.Time) error {
 	r, err := s.accountTokenCollection.UpdateOne(ctx,
-		bson.M{"indexID": indexID, "ownerAccount": ownerAccount},
-		bson.M{"$set": bson.M{
-			"pendingTx":         pendingTx,
-			"lastRefreshedTime": time.Now(),
-		}},
-		options.Update().SetUpsert(true),
+		bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "pendingTx": bson.M{"$exists": true}},
+		bson.M{
+			"$pull": bson.M{
+				"pendingTx":       pendingTx,
+				"lastPendingTime": lastPendingTime,
+			},
+		},
 	)
 
 	if err != nil {
 		return err
 	}
 
-	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("pending token is not added")
+	if r.MatchedCount == 0 {
+		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).WithField("pendingTx", pendingTx).WithField("lastPendingTime", lastPendingTime).Warn("pending account token is not deleted its pending fields")
+	} else {
+		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).WithField("pendingTx", pendingTx).WithField("lastPendingTime", lastPendingTime).Debug("pending account token is deleted its pending fields")
+	}
+
+	return nil
+}
+
+// AddPendingTxToAccountToken add pendingTx to a specific account token if this pendingTx does not exist
+func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx string) error {
+	r := s.accountTokenCollection.FindOne(ctx,
+		bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "pendingTx": bson.M{"$in": bson.A{pendingTx}}},
+	)
+
+	if err := r.Err(); err != nil {
+		if err == mongo.ErrNoDocuments {
+
+			// only update account if its pendingTx is not recorded
+			r, err := s.accountTokenCollection.UpdateOne(ctx,
+				bson.M{"indexID": indexID, "ownerAccount": ownerAccount},
+				bson.M{"$push": bson.M{
+					"pendingTx":       pendingTx,
+					"lastPendingTime": time.Now(),
+				}},
+				options.Update().SetUpsert(true),
+			)
+
+			if err != nil {
+				return err
+			}
+
+			if r.MatchedCount == 0 && r.UpsertedCount == 0 {
+				logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("pending token is not added")
+			}
+		} else {
+			return err
+		}
+	} else {
+		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Debug("pending token is already added")
+		return nil
 	}
 	return nil
 }
