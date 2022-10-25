@@ -889,7 +889,7 @@ func (s *MongodbIndexerStore) IndexIdentity(ctx context.Context, identity Accoun
 // UpdatePendingAccountToken updates pending (sender) account token from transaction details
 func (s *MongodbIndexerStore) UpdatePendingAccountToken(ctx context.Context, ownerAccount, indexID string, balance int64, lastActivityTime time.Time, pendingTx string, lastPendingTime time.Time) error {
 	r, err := s.accountTokenCollection.UpdateOne(ctx,
-		bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "pendingTx": bson.M{"$exists": true}},
+		bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "pendingTx": bson.M{"$in": bson.A{pendingTx}}},
 		bson.M{"$set": bson.M{
 			"lastActivityTime":  lastActivityTime,
 			"lastRefreshedTime": time.Now(),
@@ -948,7 +948,7 @@ func (s *MongodbIndexerStore) UpdateReceivedAccountToken(ctx context.Context, ow
 // DeletePendingFieldsAccountToken deletes elements in pending fields of a account token
 func (s *MongodbIndexerStore) DeletePendingFieldsAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx string, lastPendingTime time.Time) error {
 	r, err := s.accountTokenCollection.UpdateOne(ctx,
-		bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "pendingTx": bson.M{"$exists": true}},
+		bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "pendingTx": bson.M{"$in": bson.A{pendingTx}}, "lastPendingTime": bson.M{"$in": bson.A{lastPendingTime}}},
 		bson.M{
 			"$pull": bson.M{
 				"pendingTx":       pendingTx,
@@ -1015,7 +1015,7 @@ func (s *MongodbIndexerStore) DeleteFailedAccountTokens(ctx context.Context, own
 
 // GetPendingAccountTokens gets all pending account tokens in the db
 func (s *MongodbIndexerStore) GetPendingAccountTokens(ctx context.Context) ([]AccountToken, error) {
-	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{"pendingTx": bson.M{"$ne": nil}})
+	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{"pendingTx": bson.M{"$exists": true, "$ne": bson.A{}}})
 	if err != nil {
 		return nil, err
 	}
@@ -1030,7 +1030,6 @@ func (s *MongodbIndexerStore) GetPendingAccountTokens(ctx context.Context) ([]Ac
 		}
 
 		pendingAccountTokens = append(pendingAccountTokens, accountToken)
-
 	}
 	return pendingAccountTokens, nil
 }
