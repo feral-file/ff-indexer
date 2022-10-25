@@ -889,7 +889,7 @@ func (s *MongodbIndexerStore) IndexIdentity(ctx context.Context, identity Accoun
 // UpdatePendingAccountToken updates pending (sender) account token from transaction details
 func (s *MongodbIndexerStore) UpdatePendingAccountToken(ctx context.Context, ownerAccount, indexID string, balance int64, lastActivityTime time.Time, pendingTx string, lastPendingTime time.Time) error {
 	r, err := s.accountTokenCollection.UpdateOne(ctx,
-		bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "pendingTx": bson.M{"$in": bson.A{pendingTx}}},
+		bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "pendingTx": bson.M{"$in": bson.A{pendingTx}}, "lastPendingTime": bson.M{"$in": bson.A{lastPendingTime}}},
 		bson.M{"$set": bson.M{
 			"lastActivityTime":  lastActivityTime,
 			"lastRefreshedTime": time.Now(),
