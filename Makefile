@@ -46,9 +46,9 @@ nft-event-subscriber:
 nft-provenance-indexer:
 	go build -o bin/nft-provenance-indexer ./services/nft-provenance-indexer
 
-.PHONY: nft-account-token-update
-nft-account-token-update:
-	go build -o bin/nft-account-token-update ./services/nft-account-token-update
+.PHONY: nft-account-token-indexer
+nft-account-token-indexer:
+	go build -o bin/nft-account-token-indexer ./services/nft-account-token-indexer
 
 .PHONY: run-nft-indexer
 run-nft-indexer: nft-indexer
@@ -70,12 +70,12 @@ run-nft-event-subscriber: nft-event-subscriber
 run-nft-provenance-indexer: nft-provenance-indexer
 	./bin/nft-provenance-indexer -c config.yaml
 
-.PHONY: run-nft-account-token-update
-run-nft-account-token-update: nft-account-token-update
-	./bin/nft-account-token-update -c config.yaml
+.PHONY: run-nft-account-token-indexer
+run-nft-account-token-indexer: nft-account-token-indexer
+	./bin/nft-account-token-indexer -c config.yaml
 
 .PHONY: build
-build: nft-indexer nft-indexer-background nft-event-subscriber nft-provenance-indexer nft-account-token-update
+build: nft-indexer nft-indexer-background nft-event-subscriber nft-provenance-indexer nft-account-token-indexer
 
 .PHONY: run
 run: config run-nft-indexer
@@ -113,16 +113,16 @@ endif
 	-t nft-indexer:provenance-indexer-$(dist) -f Dockerfile-provenance-indexer .
 	docker tag nft-indexer:provenance-indexer-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:provenance-indexer-$(dist)
 
-.PHONY: build-nft-account-token-update
-build-nft-account-token-update:
+.PHONY: build-nft-account-token-indexer
+build-nft-account-token-indexer:
 ifndef dist
 	$(error dist is undefined)
 endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
-	-t nft-account-token-update-$(dist) -f Dockerfile-provenance-indexer .
-	docker tag nft-account-token-update-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:nft-account-token-update-$(dist)
+	-t nft-indexer:account-token-indexer-$(dist) -f Dockerfile-account-token-indexer .
+	docker tag nft-indexer:account-token-indexer-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:account-token-indexer-$(dist)
 
 .PHONY: build-nft-event-subscriber
 build-nft-event-subscriber:

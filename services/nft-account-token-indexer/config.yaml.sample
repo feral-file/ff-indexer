@@ -11,14 +11,18 @@ sentry:
   dsn:
 
 ethereum:
-  worker_account_mnemonic: opinion infant flip creek month absorb enact endless will glare engine still drastic adjust brush card physical uncover usage that false rotate vessel smile
-  rpc_url: https://rinkeby.infura.io/v3/b36dfe0cf447495bae5aab26da0f9afc
+  rpc_url: https://mainnet.infura.io/v3/<project-id>
 
-network: testnet
+environment: development
+
+network:
+  tezos: testnet
+  ethereum: testnet
+  bitmark: testnet
 
 opensea:
-  api_key: 5831deaf9c684cc39489bfd4bff2ad81
-  ratelimit: 1
+  api_key:
+  ratelimit:
 
 fxhash:
   api_endpoint: https://api.fxhash.xyz/graphql

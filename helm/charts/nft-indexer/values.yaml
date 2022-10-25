@@ -12,7 +12,7 @@ image:
     api: "api-0.0.2"
     background: "background-0.0.2-1"
     provenance_indexer: "nft-provenance-indexer-0.0.16-4"
-    account-token-update: "nft-account-token-update-0.0.16-1"
+    account_token_indexer: "nft-account-token-update-0.0.16-1"
 
 serviceConfig:
   cadence_hostport: cadence-frontend.cadence.svc.cluster.local:7933
