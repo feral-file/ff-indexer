@@ -488,14 +488,15 @@ func (w *NFTIndexerWorker) UpdateAccountTokens(ctx context.Context) error {
 	}
 
 	for _, pendingAccountToken := range pendingAccountTokens {
-		transactionDetails, err := w.indexerEngine.GetTransactionDetailsByPendingTx(pendingAccountToken.PendingTx)
-		if err != nil {
+		delay := time.Hour
+		if pendingAccountToken.LastRefreshedTime.Unix() < time.Now().Add(-delay).Unix() {
+			log.WithField("indexID", pendingAccountToken.IndexID).Trace("pending too long")
 			w.indexerStore.DeleteFailedAccountTokens(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID)
 			continue
 		}
 
-		// if the transaction is pending or invalid
-		if len(transactionDetails) == 0 {
+		transactionDetails, err := w.indexerEngine.GetTransactionDetailsByPendingTx(pendingAccountToken.PendingTx)
+		if err != nil || len(transactionDetails) == 0 {
 			continue
 		}
 
@@ -505,7 +506,11 @@ func (w *NFTIndexerWorker) UpdateAccountTokens(ctx context.Context) error {
 			continue
 		}
 		for _, accountToken := range accountTokens {
-			w.indexerStore.UpdatePendingAccountToken(ctx, accountToken.OwnerAccount, accountToken.IndexID, accountToken.Balance, transactionDetails[0].Timestamp)
+			if accountToken.Balance < 0 {
+				w.indexerStore.UpdatePendingAccountToken(ctx, accountToken.OwnerAccount, accountToken.IndexID, accountToken.Balance, transactionDetails[0].Timestamp)
+			} else {
+				w.indexerStore.UpdateReceivedAccountToken(ctx, accountToken.OwnerAccount, accountToken.IndexID, accountToken.Balance, transactionDetails[0].Timestamp)
+			}
 		}
 	}
 	return nil

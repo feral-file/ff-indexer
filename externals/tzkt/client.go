@@ -427,7 +427,7 @@ func (c *TZKT) GetTokenBalanceForOwner(contract, tokenID, owner string) (int64, 
 type TransactionDetails struct {
 	Block     string               `json:"block"`
 	Parameter TransactionParameter `json:"parameter"`
-	Account   Account              `json:"target"`
+	Target    Account              `json:"target"`
 	Timestamp time.Time            `json:"timestamp" bson:"timestamp"`
 }
 

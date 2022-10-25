@@ -46,6 +46,7 @@ type IndexerStore interface {
 	IndexIdentity(ctx context.Context, identity AccountIdentity) error
 
 	UpdatePendingAccountToken(ctx context.Context, ownerAccount, indexID string, balance int64, lastActivityTime time.Time) error
+	UpdateReceivedAccountToken(ctx context.Context, ownerAccount, indexID string, balance int64, lastActivityTime time.Time) error
 	GetPendingAccountTokens(ctx context.Context) ([]AccountToken, error)
 	AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx string) error
 	DeleteFailedAccountTokens(ctx context.Context, ownerAccount, indexID string) error
@@ -884,13 +885,13 @@ func (s *MongodbIndexerStore) IndexIdentity(ctx context.Context, identity Accoun
 	return nil
 }
 
-// UpdatePendingAccountToken updates account token from transaction details
+// UpdatePendingAccountToken updates pending (sender) account token from transaction details
 func (s *MongodbIndexerStore) UpdatePendingAccountToken(ctx context.Context, ownerAccount string, indexID string, balance int64, lastActivityTime time.Time) error {
 	r, err := s.accountTokenCollection.UpdateOne(ctx,
-		bson.M{"indexID": indexID, "ownerAccount": ownerAccount},
+		bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "pendingTx": bson.M{"$exists": true}},
 		bson.M{"$set": bson.M{
-			"lastActivityTime": lastActivityTime,
-			"lastRefreshTime":  time.Now(),
+			"lastActivityTime":  lastActivityTime,
+			"lastRefreshedTime": time.Now(),
 		},
 			"$inc": bson.M{
 				"balance": balance,
@@ -905,18 +906,46 @@ func (s *MongodbIndexerStore) UpdatePendingAccountToken(ctx context.Context, own
 		return err
 	}
 
-	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("New account token is not added or updated")
+	if r.MatchedCount == 0 {
+		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("New account token is not updated")
 	}
 
 	return nil
 }
 
+// UpdateReceivedAccountToken updates received account token from transaction details
+func (s *MongodbIndexerStore) UpdateReceivedAccountToken(ctx context.Context, ownerAccount string, indexID string, balance int64, lastActivityTime time.Time) error {
+	r, err := s.accountTokenCollection.UpdateOne(ctx,
+		bson.M{"indexID": indexID, "ownerAccount": ownerAccount},
+		bson.M{"$set": bson.M{
+			"lastActivityTime":  lastActivityTime,
+			"lastRefreshedTime": time.Now(),
+		},
+			"$inc": bson.M{
+				"balance": balance,
+			},
+		},
+		options.Update().SetUpsert(true),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
+		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("received account token is not added or updated")
+	}
+
+	return nil
+}
+
+// AddPendingTxToAccountToken add pendingTx to a specific account token
 func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx string) error {
 	r, err := s.accountTokenCollection.UpdateOne(ctx,
 		bson.M{"indexID": indexID, "ownerAccount": ownerAccount},
 		bson.M{"$set": bson.M{
-			"pendingTx": pendingTx,
+			"pendingTx":         pendingTx,
+			"lastRefreshedTime": time.Now(),
 		}},
 		options.Update().SetUpsert(true),
 	)
@@ -931,12 +960,14 @@ func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ow
 	return nil
 }
 
+// DeleteFailedAccountTokens deletes a specific account tokens whose transaction is failed
 func (s *MongodbIndexerStore) DeleteFailedAccountTokens(ctx context.Context, ownerAccount, indexID string) error {
 	_, err := s.accountTokenCollection.DeleteOne(ctx, bson.M{"ownerAccount": bson.M{"$eq": ownerAccount}, "indexID": bson.M{"$eq": indexID}})
 
 	return err
 }
 
+// GetPendingAccountTokens gets all pending account tokens in the db
 func (s *MongodbIndexerStore) GetPendingAccountTokens(ctx context.Context) ([]AccountToken, error) {
 	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{"pendingTx": bson.M{"$ne": nil}})
 	if err != nil {
