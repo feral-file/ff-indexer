@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"net/http"
 	"strings"
 	"time"
@@ -35,7 +36,40 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 		return
 	}
 
-	checksumIDs := PreprocessTokens(reqParams.IDs)
+	checksumDecimalIDs := PreprocessTokens(reqParams.IDs, true)
+	tokenInfo, err := s.indexerStore.GetDetailedTokens(c, indexer.FilterParameter{
+		IDs: checksumDecimalIDs,
+	}, reqParams.Offset, reqParams.Size)
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
+		return
+	}
+
+	go s.IndexMissingTokens(c, checksumDecimalIDs, tokenInfo)
+
+	c.JSON(http.StatusOK, tokenInfo)
+}
+
+// QueryNFTsV1 queries NFTsV1 based on given criteria (decimal input)
+func (s *NFTIndexerServer) QueryNFTsV1(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "QueryNFTs")
+
+	var reqParams = NFTQueryParams{
+		Offset: 0,
+		Size:   50,
+	}
+
+	if err := c.BindQuery(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if err := c.Bind(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	checksumIDs := PreprocessTokens(reqParams.IDs, false)
 	tokenInfo, err := s.indexerStore.GetDetailedTokens(c, indexer.FilterParameter{
 		IDs: checksumIDs,
 	}, reqParams.Offset, reqParams.Size)
@@ -44,17 +78,30 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 		return
 	}
 
-	go s.IndexMissingTokens(c, reqParams, tokenInfo)
+	go s.IndexMissingTokens(c, reqParams.IDs, tokenInfo)
 
 	c.JSON(http.StatusOK, tokenInfo)
 }
 
-func PreprocessTokens(addresses []string) []string {
+func PreprocessTokens(addresses []string, isConvertToDecimal bool) []string {
 	var processedAddresses = []string{}
 	for _, address := range addresses {
-		idElements := strings.Split(address, "-")
-		if idElements[0] == "eth" {
-			processedAddresses = append(processedAddresses, fmt.Sprintf("%s-%s-%s", idElements[0], indexer.EthereumChecksumAddress(idElements[1]), idElements[2]))
+		blockchain, contractAddress, tokenID, err := indexer.ParseIndexID(address)
+		if err != nil {
+			continue
+		}
+
+		if blockchain == "eth" {
+			if isConvertToDecimal {
+				decimalTokenID, ok := big.NewInt(0).SetString(tokenID, 16)
+				if !ok {
+					continue
+				}
+				processedAddresses = append(processedAddresses, fmt.Sprintf("%s-%s-%s", blockchain, indexer.EthereumChecksumAddress(contractAddress), decimalTokenID.String()))
+			} else {
+				processedAddresses = append(processedAddresses, fmt.Sprintf("%s-%s-%s", blockchain, indexer.EthereumChecksumAddress(contractAddress), tokenID))
+			}
+
 		} else {
 			processedAddresses = append(processedAddresses, address)
 		}
@@ -63,11 +110,11 @@ func PreprocessTokens(addresses []string) []string {
 }
 
 // IndexMissingTokens indexes tokens that have not been indexed yet.
-func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParams NFTQueryParams, tokenInfo []indexer.DetailedToken) {
-	if len(reqParams.IDs) > len(tokenInfo) {
+func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParamsIDs []string, tokenInfo []indexer.DetailedToken) {
+	if len(reqParamsIDs) > len(tokenInfo) {
 		// find redundant reqParams.IDs to index
-		m := make(map[string]bool, len(reqParams.IDs))
-		for _, id := range reqParams.IDs {
+		m := make(map[string]bool, len(reqParamsIDs))
+		for _, id := range reqParamsIDs {
 			m[id] = true
 		}
 
@@ -79,10 +126,12 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParams NFTQuery
 
 		// index redundant reqParams.IDs
 		for redundantID := range m {
-			contract := strings.Split(redundantID, "-")[1]
-			tokenId := strings.Split(redundantID, "-")[2]
+			_, contract, tokenId, err := indexer.ParseIndexID(redundantID)
+			if err != nil {
+				panic(err)
+			}
 
-			owner, newTokenID, err := s.indexerEngine.GetTokenOwnerAddress(contract, tokenId)
+			owner, err := s.indexerEngine.GetTokenOwnerAddress(contract, tokenId)
 			if err != nil {
 				logrus.
 					WithField("contract", contract).
@@ -92,7 +141,7 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParams NFTQuery
 				continue
 			}
 
-			go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, newTokenID, false)
+			go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, tokenId, false)
 		}
 	}
 }
@@ -293,4 +342,50 @@ func (s *NFTIndexerServer) GetIdentities(c *gin.Context) {
 	}
 
 	c.JSON(200, ids)
+}
+
+func (s *NFTIndexerServer) GetAccountNFTs(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "GetNewAccountTokens")
+
+	var reqParams = NFTQueryParams{
+		Offset: 0,
+		Size:   50,
+	}
+
+	if err := c.BindQuery(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if reqParams.Owner == "" {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("owner is required"))
+		return
+	}
+
+	owner := reqParams.Owner
+
+	var tokensInfo []indexer.DetailedToken
+	var err error
+
+	switch indexer.DetectAccountBlockchain(owner) {
+	case indexer.TezosBlockchain:
+		tokensInfo, err = s.indexerStore.GetDetailedAccountTokensByOwner(c, owner,
+			indexer.FilterParameter{
+				Source: reqParams.Source,
+			},
+			reqParams.Offset, reqParams.Size)
+	default:
+		tokensInfo, err = s.indexerStore.GetDetailedTokensByOwners(c, []string{owner},
+			indexer.FilterParameter{
+				Source: reqParams.Source,
+			},
+			reqParams.Offset, reqParams.Size)
+	}
+
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, tokensInfo)
 }

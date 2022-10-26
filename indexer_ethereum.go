@@ -3,7 +3,6 @@ package indexer
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"strings"
 	"time"
 
@@ -137,11 +136,6 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 		metadata.Medium = MediumImage
 	}
 
-	// token id from opensea is a decimal integer string
-	tokenID, ok := big.NewInt(0).SetString(a.TokenID, 10)
-	if !ok {
-		return nil, fmt.Errorf("fail to parse token id from opensea")
-	}
 	contractType := strings.ToLower(a.AssetContract.SchemaName)
 	fungible := contractType != "erc721"
 
@@ -158,7 +152,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 					ContractType:    contractType,
 					ContractAddress: contractAddress,
 				},
-				IndexID: TokenIndexID(EthereumBlockchain, contractAddress, tokenID.Text(16)),
+				IndexID: TokenIndexID(EthereumBlockchain, contractAddress, a.TokenID),
 				Edition: 0,
 				Balance: balance,
 				Owner:   owner,
@@ -169,7 +163,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 	}
 
 	log.WithField("blockchain", EthereumBlockchain).
-		WithField("id", TokenIndexID(EthereumBlockchain, contractAddress, tokenID.Text(16))).
+		WithField("id", TokenIndexID(EthereumBlockchain, contractAddress, a.TokenID)).
 		WithField("tokenUpdate", tokenUpdate).
 		Trace("asset updating data prepared")
 

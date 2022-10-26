@@ -127,3 +127,21 @@ type DetailedToken struct {
 	IPFSPinned      bool                     `json:"ipfsPinned"`
 	ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
 }
+
+type Account struct {
+	Account         string    `json:"account" bson:"account"`
+	Blockchain      string    `json:"blockchain" bson:"blockchain"`
+	LastUpdatedTime time.Time `json:"lastUpdateTime" bson:"lastUpdateTime"`
+}
+
+type AccountToken struct {
+	BaseTokenInfo     `bson:",inline"` // the latest token info
+	IndexID           string           `json:"indexID" bson:"indexID"`
+	OwnerAccount      string           `json:"ownerAccount" bson:"ownerAccount"`
+	Balance           int64            `json:"balance" bson:"balance"`
+	LastActivityTime  time.Time        `json:"lastActivityTime" bson:"lastActivityTime"`
+	LastRefreshedTime time.Time        `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
+	RunID             string           `json:"-" bson:"runID"`
+
+	PendingTx string `json:"pendingTx" bson:"pendingTx"`
+}

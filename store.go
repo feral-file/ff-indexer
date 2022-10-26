@@ -3,7 +3,6 @@ package indexer
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"strings"
 	"time"
 
@@ -15,9 +14,11 @@ import (
 )
 
 const (
-	assetCollectionName    = "assets"
-	tokenCollectionName    = "tokens"
-	identityCollectionName = "identities"
+	assetCollectionName        = "assets"
+	tokenCollectionName        = "tokens"
+	identityCollectionName     = "identities"
+	accountCollectionName      = "accounts"
+	accountTokenCollectionName = "account_tokens"
 )
 
 var ErrNoRecordUpdated = fmt.Errorf("no record updated")
@@ -43,6 +44,14 @@ type IndexerStore interface {
 	GetIdentity(ctx context.Context, accountNumber string) (AccountIdentity, error)
 	GetIdentities(ctx context.Context, accountNumbers []string) (map[string]AccountIdentity, error)
 	IndexIdentity(ctx context.Context, identity AccountIdentity) error
+
+	IndexAccount(ctx context.Context, account Account) error
+	IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error
+	CleanupAccountTokens(ctx context.Context, runID, owner string) error
+	GetAccount(ctx context.Context, owner string) (Account, error)
+	GetAccountTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]AccountToken, error)
+	UpdateAccountTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error
+	GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
 }
 
 type FilterParameter struct {
@@ -60,22 +69,28 @@ func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*Mo
 	tokenCollection := db.Collection(tokenCollectionName)
 	assetCollection := db.Collection(assetCollectionName)
 	identityCollection := db.Collection(identityCollectionName)
+	accountCollection := db.Collection(accountCollectionName)
+	accountTokenCollection := db.Collection(accountTokenCollectionName)
 
 	return &MongodbIndexerStore{
-		dbName:             dbName,
-		mongoClient:        mongoClient,
-		tokenCollection:    tokenCollection,
-		assetCollection:    assetCollection,
-		identityCollection: identityCollection,
+		dbName:                 dbName,
+		mongoClient:            mongoClient,
+		tokenCollection:        tokenCollection,
+		assetCollection:        assetCollection,
+		identityCollection:     identityCollection,
+		accountCollection:      accountCollection,
+		accountTokenCollection: accountTokenCollection,
 	}, nil
 }
 
 type MongodbIndexerStore struct {
-	dbName             string
-	mongoClient        *mongo.Client
-	tokenCollection    *mongo.Collection
-	assetCollection    *mongo.Collection
-	identityCollection *mongo.Collection
+	dbName                 string
+	mongoClient            *mongo.Client
+	tokenCollection        *mongo.Collection
+	assetCollection        *mongo.Collection
+	identityCollection     *mongo.Collection
+	accountCollection      *mongo.Collection
+	accountTokenCollection *mongo.Collection
 }
 
 // IndexAsset creates an asset and its corresponded tokens by inputs
@@ -211,6 +226,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 			logrus.WithField("token_id", token.ID).Warn("token is not added or updated")
 		}
 	}
+
 	return nil
 }
 
@@ -240,12 +256,7 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 
 	switch swap.NewBlockchain {
 	case EthereumBlockchain:
-		tokenHexID, ok := big.NewInt(0).SetString(swap.NewTokenID, 10)
-		if !ok {
-			return "", fmt.Errorf("invalid token id for swapping")
-		}
-
-		newTokenIndexID = TokenIndexID(EthereumBlockchain, swap.NewContractAddress, tokenHexID.Text(16))
+		newTokenIndexID = TokenIndexID(EthereumBlockchain, swap.NewContractAddress, swap.NewTokenID)
 	default:
 		return "", fmt.Errorf("blockchain is not supported")
 	}
@@ -866,4 +877,192 @@ func (s *MongodbIndexerStore) IndexIdentity(ctx context.Context, identity Accoun
 	}
 
 	return nil
+}
+
+// IndexAccount indexes the account by inputs
+func (s *MongodbIndexerStore) IndexAccount(ctx context.Context, account Account) error {
+	account.LastUpdatedTime = time.Now()
+
+	r, err := s.accountCollection.UpdateOne(ctx,
+		bson.M{"account": account.Account},
+		bson.M{"$set": account},
+		options.Update().SetUpsert(true),
+	)
+	if err != nil {
+		return err
+	}
+
+	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
+		logrus.WithField("account", account.Account).Warn("account is not added or updated")
+	}
+
+	return nil
+}
+
+// IndexAccountTokens indexes the account tokens by inputs
+func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error {
+	indexIDs := make([]string, 0, len(accountTokens))
+
+	for _, accountToken := range accountTokens {
+		r, err := s.accountTokenCollection.UpdateOne(ctx,
+			bson.M{"indexID": accountToken.IndexID, "ownerAccount": owner},
+			bson.M{"$set": accountToken},
+			options.Update().SetUpsert(true),
+		)
+
+		if err != nil {
+			return err
+		}
+		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
+			logrus.WithField("token_id", accountToken.ID).Warn("acount token is not added or updated")
+		}
+
+		indexIDs = append(indexIDs, accountToken.IndexID)
+	}
+
+	return nil
+}
+
+// Cleanup unowned account token
+func (s *MongodbIndexerStore) CleanupAccountTokens(ctx context.Context, runID, owner string) error {
+	_, err := s.accountTokenCollection.DeleteMany(ctx, bson.M{"ownerAccount": bson.M{"$eq": owner}, "runID": bson.M{"$ne": runID}})
+
+	return err
+}
+
+// GetAccount returns an account by a given address
+func (s *MongodbIndexerStore) GetAccount(ctx context.Context, owner string) (Account, error) {
+	var account Account
+
+	r := s.accountCollection.FindOne(ctx,
+		bson.M{"account": owner},
+	)
+	if err := r.Err(); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return account, nil
+		} else {
+			return account, err
+		}
+	}
+
+	if err := r.Decode(&account); err != nil {
+		return account, err
+	}
+
+	return account, nil
+}
+
+// GetAccountTokensByIndexIDs returns a list of account tokens by a given list of index id
+func (s *MongodbIndexerStore) GetAccountTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]AccountToken, error) {
+	tokens := make([]AccountToken, 0)
+
+	c, err := s.accountTokenCollection.Aggregate(ctx, []bson.M{
+		{"$match": bson.M{"indexID": bson.M{"$in": indexIDs}}},
+		{"$sort": bson.D{{"lastActivityTime", 1}}},
+		{
+			"$group": bson.M{
+				"_id":    "$indexID",
+				"detail": bson.M{"$first": "$$ROOT"},
+			},
+		},
+		{"$replaceRoot": bson.M{"newRoot": "$detail"}},
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	for c.Next(ctx) {
+		var token AccountToken
+		if err := c.Decode(&token); err != nil {
+			return nil, err
+		}
+
+		tokens = append(tokens, token)
+	}
+
+	return tokens, nil
+}
+
+// UpdateAccountTokenOwners updates all account owners for a specific token
+func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error {
+	ownerList := make([]string, 0, len(owners))
+
+	tokenResult := s.accountTokenCollection.FindOne(ctx, bson.M{"indexID": indexID})
+	if err := tokenResult.Err(); err != nil {
+		return err
+	}
+
+	var tokenUpdate AccountToken
+	if err := tokenResult.Decode(&tokenUpdate); err != nil {
+		return err
+	}
+
+	for owner, balance := range owners {
+		tokenUpdate.OwnerAccount = owner
+		tokenUpdate.Balance = balance
+		tokenUpdate.LastActivityTime = lastActivityTime
+		tokenUpdate.LastRefreshedTime = time.Now()
+		s.accountTokenCollection.UpdateOne(ctx,
+			bson.M{"indexID": indexID, "ownerAccount": owner},
+			bson.M{"$set": tokenUpdate},
+			options.Update().SetUpsert(true),
+		)
+
+		ownerList = append(ownerList, owner)
+	}
+
+	_, err := s.accountTokenCollection.DeleteMany(ctx, bson.M{"indexID": bson.M{"$eq": indexID}, "ownerAccount": bson.M{"$nin": ownerList}})
+
+	return err
+}
+
+// GetDetailedAccountTokensByOwner returns a list of DetailedToken by account owner
+func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error) {
+	findOptions := options.Find().SetSort(bson.D{{"lastActivityTime", -1}}).SetLimit(size).SetSkip(offset)
+
+	logrus.
+		WithField("filterParameter", filterParameter).
+		WithField("offset", offset).
+		WithField("size", size).
+		Debug("GetDetailedAccountTokensByOwner")
+
+	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{"ownerAccount": account}, findOptions)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	indexIDs := make([]string, 0)
+	accountTokenMap := map[string]AccountToken{}
+	for cursor.Next(ctx) {
+		var token AccountToken
+
+		if err := cursor.Decode(&token); err != nil {
+			return nil, err
+		}
+
+		indexIDs = append(indexIDs, token.IndexID)
+		accountTokenMap[token.IndexID] = token
+	}
+
+	if len(indexIDs) == 0 {
+		return []DetailedToken{}, nil
+	}
+
+	filterParameter.IDs = indexIDs
+	assets, err := s.GetDetailedTokens(ctx, filterParameter, offset, size)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range assets {
+		asset := &assets[i]
+
+		asset.Balance = accountTokenMap[asset.IndexID].Balance
+		asset.Owner = accountTokenMap[asset.IndexID].OwnerAccount
+	}
+
+	return assets, nil
 }

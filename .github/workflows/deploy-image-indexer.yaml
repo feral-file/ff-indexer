@@ -30,12 +30,14 @@ jobs:
         ECR_REPOSITORY: nft-indexer
         IMAGE_TAG: image-indexer-${{ github.sha }}
         DOCKERFILE: Dockerfile-image-indexer
+        GITHUB_USER: bitmark-bot
+        GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
       run: |
         # Build a docker container and push it to ECR so that it can be deployed.
         # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
         if ! aws ecr describe-images --repository-name="${ECR_REPOSITORY}" --image-ids="imageTag=${IMAGE_TAG}" > /dev/null 2>&1
         then
-          docker build --tag="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" --file="${DOCKERFILE}" "."
+          docker build --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} --tag="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" --file="${DOCKERFILE}" "."
           docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
