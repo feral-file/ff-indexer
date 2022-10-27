@@ -45,8 +45,8 @@ type IndexerStore interface {
 	GetIdentities(ctx context.Context, accountNumbers []string) (map[string]AccountIdentity, error)
 	IndexIdentity(ctx context.Context, identity AccountIdentity) error
 
-	UpdatePendingAccountToken(ctx context.Context, ownerAccount, indexID string, balance int64, lastActivityTime time.Time, pendingTx string, lastPendingTime time.Time) error
-	UpdateReceivedAccountToken(ctx context.Context, ownerAccount, indexID string, balance int64, lastActivityTime time.Time) error
+	UpdatePendingAccountToken(ctx context.Context, ownerAccount, indexID string, balance int64, transactionTime time.Time, pendingTx string, lastPendingTime time.Time) error
+	UpdateReceivedAccountToken(ctx context.Context, ownerAccount, indexID string, balance int64, transactionTime time.Time) error
 	DeletePendingFieldsAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx string, lastPendingTime time.Time) error
 	GetPendingAccountTokens(ctx context.Context) ([]AccountToken, error)
 	AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx string) error
@@ -887,13 +887,22 @@ func (s *MongodbIndexerStore) IndexIdentity(ctx context.Context, identity Accoun
 }
 
 // UpdatePendingAccountToken updates pending (sender) account token from transaction details
-func (s *MongodbIndexerStore) UpdatePendingAccountToken(ctx context.Context, ownerAccount, indexID string, balance int64, lastActivityTime time.Time, pendingTx string, lastPendingTime time.Time) error {
+func (s *MongodbIndexerStore) UpdatePendingAccountToken(ctx context.Context, ownerAccount, indexID string, balance int64, transactionTime time.Time, pendingTx string, lastPendingTime time.Time) error {
+	isUpdated := false
+
+	// The last update time is before the transaction time
+	// that means the balance is not updated from the transaction
 	r, err := s.accountTokenCollection.UpdateOne(ctx,
-		bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "pendingTx": bson.M{"$in": bson.A{pendingTx}}, "lastPendingTime": bson.M{"$in": bson.A{lastPendingTime}}},
-		bson.M{"$set": bson.M{
-			"lastActivityTime":  lastActivityTime,
-			"lastRefreshedTime": time.Now(),
-		},
+		bson.M{
+			"indexID": indexID, "ownerAccount": ownerAccount,
+			"pendingTx":        bson.M{"$in": bson.A{pendingTx}},
+			"lastPendingTime":  bson.M{"$in": bson.A{lastPendingTime}},
+			"lastActivityTime": bson.M{"$not": bson.M{"$gte": transactionTime}}},
+		bson.M{
+			"$set": bson.M{
+				"lastActivityTime":  transactionTime,
+				"lastRefreshedTime": time.Now(),
+			},
 			"$inc": bson.M{
 				"balance": balance,
 			},
@@ -909,37 +918,86 @@ func (s *MongodbIndexerStore) UpdatePendingAccountToken(ctx context.Context, own
 	}
 
 	if r.MatchedCount == 0 {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).WithField("pendingTx", pendingTx).Warn("Pending account token is not updated")
+		// The last update time is after the transaction time
+		// that means the balance is already updated from the transaction
+		r, err = s.accountTokenCollection.UpdateOne(ctx,
+			bson.M{"indexID": indexID, "ownerAccount": ownerAccount,
+				"pendingTx":        bson.M{"$in": bson.A{pendingTx}},
+				"lastPendingTime":  bson.M{"$in": bson.A{lastPendingTime}},
+				"lastActivityTime": bson.M{"$gte": transactionTime}},
+			bson.M{
+				"$set": bson.M{
+					"lastRefreshedTime": time.Now(),
+				},
+				"$pull": bson.M{
+					"pendingTx":       pendingTx,
+					"lastPendingTime": lastPendingTime,
+				},
+			},
+		)
+
+		if err != nil {
+			return err
+		}
+		if r.MatchedCount > 0 {
+			isUpdated = true
+		}
 	} else {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).WithField("pendingTx", pendingTx).Debug("Pending account token is updated")
+		isUpdated = true
+	}
+
+	if isUpdated {
+		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).WithField("pendingTx", pendingTx).Debug("Pending account token's balance is updated")
+	} else {
+		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).WithField("pendingTx", pendingTx).Warn("Pending account token's balance is not updated")
 	}
 
 	return nil
 }
 
 // UpdateReceivedAccountToken updates received account token from transaction details
-func (s *MongodbIndexerStore) UpdateReceivedAccountToken(ctx context.Context, ownerAccount string, indexID string, balance int64, lastActivityTime time.Time) error {
+func (s *MongodbIndexerStore) UpdateReceivedAccountToken(ctx context.Context, ownerAccount string, indexID string, balance int64, transactionTime time.Time) error {
+	isUpdated := false
 	r, err := s.accountTokenCollection.UpdateOne(ctx,
-		bson.M{"indexID": indexID, "ownerAccount": ownerAccount},
+		bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "lastActivityTime": bson.M{"$gte": transactionTime}},
 		bson.M{"$set": bson.M{
-			"lastActivityTime":  lastActivityTime,
 			"lastRefreshedTime": time.Now(),
-		},
-			"$inc": bson.M{
-				"balance": balance,
-			},
-		},
-		options.Update().SetUpsert(true),
+		}},
 	)
 
 	if err != nil {
 		return err
 	}
 
-	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("Received account token is not added or updated")
+	if r.MatchedCount == 0 {
+		r, err = s.accountTokenCollection.UpdateOne(ctx,
+			bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "lastActivityTime": bson.M{"$not": bson.M{"$gte": transactionTime}}},
+			bson.M{"$set": bson.M{
+				"lastActivityTime":  transactionTime,
+				"lastRefreshedTime": time.Now(),
+			},
+				"$inc": bson.M{
+					"balance": balance,
+				},
+			},
+			options.Update().SetUpsert(true),
+		)
+
+		if err != nil {
+			return err
+		}
+
+		if r.MatchedCount > 0 || r.UpsertedCount > 0 {
+			isUpdated = true
+		}
 	} else {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Debug("Received account token is added or updated")
+		isUpdated = true
+	}
+
+	if isUpdated {
+		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Debug("An account token's balance is updated")
+	} else {
+		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("An account token's balance is not updated")
 	}
 
 	return nil

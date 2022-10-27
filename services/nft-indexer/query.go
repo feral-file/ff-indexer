@@ -363,6 +363,11 @@ func (s *NFTIndexerServer) SetTokenPending(c *gin.Context) {
 		return
 	}
 
+	if len(strings.Split(reqParams.IndexID, "-")) != 3 {
+		abortWithError(c, http.StatusBadRequest, "invalid parameter", fmt.Errorf("indexID structure is not correct"))
+		return
+	}
+
 	if err := s.indexerStore.AddPendingTxToAccountToken(c, reqParams.OwnerAccount, reqParams.IndexID, reqParams.PendingTx); err != nil {
 		log.WithField("error", err).Warn("error while adding pending accountToken")
 		return
