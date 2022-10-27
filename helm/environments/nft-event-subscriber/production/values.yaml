@@ -15,6 +15,9 @@ serviceConfig:
     "KT1U1KFWkAR8ea9GUi8fAH1jPKRMmAHJLhpN",
     "KT1WgvCKC8vvjbAYEgaXHo9A6GprKDyaw7N3",
     "KT1GbUx4MFBWHi3YhofDDvDYyeDeqahpKAGD",
+    "KT1EyVFCmLFqzgwSBNbdnwfqGeCPRWPvH9QF", // test contract
+    "KT1Q4SBM941oAeu69v8LsrfwSiEkhMWJiVrp",
+    "KT1Mkhkz1XLSAxdadViQCjnaRLpWzfdxyWHM",
   ]
   environment: production
   network:

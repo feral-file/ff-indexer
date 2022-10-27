@@ -4,14 +4,21 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/bitmark-inc/nft-indexer/traceutils"
+	"github.com/sirupsen/logrus"
 )
 
+var ErrTooManyRequest = fmt.Errorf("too many requests")
+
 type TZKT struct {
+	debug    bool
 	endpoint string
 
 	client *http.Client
@@ -151,33 +158,72 @@ type TokenMetadata struct {
 	Formats      FileFormats  `json:"formats"`
 }
 
-func (c *TZKT) GetContractToken(contract, tokenID string) (Token, error) {
-	var t Token
-	v := url.Values{
-		"contract": []string{contract},
-		"tokenId":  []string{tokenID},
+func (c *TZKT) Debug() *TZKT {
+	c.debug = true
+	return c
+}
+
+func (c *TZKT) request(req *http.Request, responseData interface{}) error {
+	if c.debug {
+		logrus.WithField("req", traceutils.DumpRequest(req)).Debug("tzkt request")
 	}
 
-	u := url.URL{
-		Scheme:   "https",
-		Host:     c.endpoint,
-		Path:     "/v1/tokens",
-		RawQuery: v.Encode(),
-	}
-	resp, err := c.client.Get(u.String())
+	resp, err := c.client.Do(req)
 	if err != nil {
-		return t, err
+		return err
 	}
 	defer resp.Body.Close()
 
+	if c.debug {
+		logrus.WithField("resp", traceutils.DumpResponse(resp)).Debug("tzkt response")
+	}
+
+	if resp.StatusCode != 200 {
+		// close the body only when we return an error
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusTooManyRequests {
+			return ErrTooManyRequest
+		}
+
+		errResp, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+
+		return fmt.Errorf("tzkt api error: %s", errResp)
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(&responseData)
+	if err != nil {
+		logrus.
+			WithField("req", traceutils.DumpRequest(req)).
+			WithField("resp", traceutils.DumpResponse(resp)).
+			Error("tzkt error response")
+	}
+
+	return err
+}
+
+func (c *TZKT) GetContractToken(contract, tokenID string) (Token, error) {
 	var tokenResponse []Token
 
-	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
-		return t, err
+	u := url.URL{
+		Scheme: "https",
+		Host:   c.endpoint,
+		Path:   "/v1/tokens",
+		RawQuery: url.Values{
+			"contract": []string{contract},
+			"tokenId":  []string{tokenID},
+		}.Encode(),
+	}
+
+	req, _ := http.NewRequest("GET", u.String(), nil)
+	if err := c.request(req, &tokenResponse); err != nil {
+		return Token{}, err
 	}
 
 	if len(tokenResponse) == 0 {
-		return t, fmt.Errorf("token not found")
+		return Token{}, fmt.Errorf("token not found")
 	}
 
 	return tokenResponse[0], nil
@@ -200,16 +246,11 @@ func (c *TZKT) RetrieveTokens(owner string, offset int) ([]OwnedToken, error) {
 		Path:     "/v1/tokens/balances",
 		RawQuery: v.Encode(),
 	}
-
-	resp, err := c.client.Get(u.String())
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
 	var ownedTokens []OwnedToken
-	if err := json.NewDecoder(resp.Body).Decode(&ownedTokens); err != nil {
-		return nil, err
+
+	req, _ := http.NewRequest("GET", u.String(), nil)
+	if err := c.request(req, &ownedTokens); err != nil {
+		return ownedTokens, err
 	}
 
 	return ownedTokens, nil
@@ -237,15 +278,10 @@ func (c *TZKT) GetTokenTransfers(contract, tokenID string) ([]TokenTransfer, err
 		RawQuery: v.Encode(),
 	}
 
-	resp, err := c.client.Get(u.String())
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
 	var transfers []TokenTransfer
 
-	if err := json.NewDecoder(resp.Body).Decode(&transfers); err != nil {
+	req, _ := http.NewRequest("GET", u.String(), nil)
+	if err := c.request(req, &transfers); err != nil {
 		return nil, err
 	}
 
@@ -270,15 +306,10 @@ func (c *TZKT) GetTokenLastActivityTime(contract, tokenID string) (time.Time, er
 		RawQuery: v.Encode(),
 	}
 
-	resp, err := c.client.Get(u.String())
-	if err != nil {
-		return time.Time{}, err
-	}
-	defer resp.Body.Close()
-
 	var activityTime []time.Time
 
-	if err := json.NewDecoder(resp.Body).Decode(&activityTime); err != nil {
+	req, _ := http.NewRequest("GET", u.String(), nil)
+	if err := c.request(req, &activityTime); err != nil {
 		return time.Time{}, err
 	}
 
@@ -307,15 +338,10 @@ func (c *TZKT) GetTransaction(id uint64) (Transaction, error) {
 		RawQuery: v.Encode(),
 	}
 
-	resp, err := c.client.Get(u.String())
-	if err != nil {
-		return t, err
-	}
-	defer resp.Body.Close()
-
 	var txs []Transaction
 
-	if err := json.NewDecoder(resp.Body).Decode(&txs); err != nil {
+	req, _ := http.NewRequest("GET", u.String(), nil)
+	if err := c.request(req, &txs); err != nil {
 		return t, err
 	}
 
@@ -380,15 +406,10 @@ func (c *TZKT) GetTokenBalanceForOwner(contract, tokenID, owner string) (int64, 
 		RawQuery: v.Encode(),
 	}
 
-	resp, err := c.client.Get(u.String())
-	if err != nil {
-		return 0, err
-	}
-	defer resp.Body.Close()
-
 	var owners []TokenOwner
 
-	if err := json.NewDecoder(resp.Body).Decode(&owners); err != nil {
+	req, _ := http.NewRequest("GET", u.String(), nil)
+	if err := c.request(req, &owners); err != nil {
 		return 0, err
 	}
 

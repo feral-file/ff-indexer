@@ -82,7 +82,7 @@ func (s *NFTIndexerServer) SwapNFT(c *gin.Context) {
 	}
 
 	// trigger refreshing provenance to merge two blockchain provenance
-	go indexerWorker.StartRefreshTokenProvenanceWorkflow(c, s.cadenceWorker, fmt.Sprintf("swap-%s", input.NewTokenID), swappedTokenIndexID, 0)
+	go indexerWorker.StartRefreshTokenProvenanceWorkflow(c, s.cadenceWorker, "api-swap-nft", swappedTokenIndexID, 0)
 
 	c.JSON(http.StatusOK, gin.H{
 		"ok": 1,
@@ -102,7 +102,7 @@ func (s *NFTIndexerServer) RefreshProvenance(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "RefreshProvenance")
 	tokenID := c.Param("token_id")
 
-	go indexerWorker.StartRefreshTokenProvenanceWorkflow(c, s.cadenceWorker, fmt.Sprintf("api-%s", tokenID), tokenID, 0)
+	go indexerWorker.StartRefreshTokenProvenanceWorkflow(c, s.cadenceWorker, "api-refresh", tokenID, 0)
 
 	c.JSON(http.StatusOK, gin.H{
 		"ok": 1,
