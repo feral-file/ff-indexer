@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -45,7 +46,20 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 		return
 	}
 
-	go s.IndexMissingTokens(c, checksumDecimalIDs, tokenInfo)
+	// go s.IndexMissingTokens(c, checksumDecimalIDs, tokenInfo)
+	for i, t := range tokenInfo {
+		if t.Blockchain != indexer.EthereumBlockchain {
+			continue
+		}
+
+		id, err := strconv.Atoi(t.ID)
+		if err != nil {
+			continue
+		}
+
+		oldIndexID := indexer.TokenIndexID(indexer.EthereumBlockchain, t.ContractAddress, fmt.Sprintf("%x", id))
+		tokenInfo[i].IndexID = oldIndexID
+	}
 
 	c.JSON(http.StatusOK, tokenInfo)
 }
