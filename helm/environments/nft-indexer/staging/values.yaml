@@ -9,7 +9,7 @@ image:
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tags:
-    api: "api-0.0.16-25"
+    api: "api-0.0.16-26"
     background: "background-0.0.16-26"
     provenance_indexer: "nft-provenance-indexer-0.0.16-27"
     account_token_indexer: "nft-account-token-update-0.0.17"
@@ -23,8 +23,8 @@ serviceConfig:
   environment: staging
   network:
     tezos: livenet
-    ethereum: testnet
-    bitmark: testnet
+    ethereum: livenet
+    bitmark: livenet
 
 imagePullSecrets: []
 nameOverride: ""
