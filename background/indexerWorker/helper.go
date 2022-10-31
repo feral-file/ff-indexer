@@ -75,3 +75,22 @@ func StartRefreshTokenProvenanceWorkflow(c context.Context, client *cadence.Cade
 		log.WithField("caller", caller).WithField("workflow_id", workflow.ID).Debug("start workflow for refreshing provenance")
 	}
 }
+
+func StartUpdateAccountTokensWorkflow(c context.Context, client *cadence.CadenceWorkerClient, delay time.Duration) {
+	workflowContext := cadenceClient.StartWorkflowOptions{
+		ID:                           fmt.Sprintf("update-account-token-helper-%s", time.Now()),
+		TaskList:                     AccountTokenTaskListName,
+		ExecutionStartToCloseTimeout: time.Hour,
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+	}
+
+	var w NFTIndexerWorker
+
+	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.UpdateAccountTokensWorkflow, delay)
+	if err != nil {
+		log.WithError(err).Error("fail to start refreshing provenance workflow")
+	} else {
+		log.WithField("workflow_id", workflow.ID).Debug("start workflow for updating pending account tokens")
+	}
+
+}

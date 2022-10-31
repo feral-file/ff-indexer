@@ -423,3 +423,49 @@ func (c *TZKT) GetTokenBalanceForOwner(contract, tokenID, owner string) (int64, 
 
 	return owners[0].Balance, nil
 }
+
+type TransactionDetails struct {
+	Block     string               `json:"block"`
+	Parameter TransactionParameter `json:"parameter"`
+	Target    Account              `json:"target"`
+	Timestamp time.Time            `json:"timestamp" bson:"timestamp"`
+}
+
+type TransactionParameter struct {
+	EntryPoint string            `json:"entrypoint"`
+	Value      []ParametersValue `json:"value"`
+}
+
+type ParametersValue struct {
+	From_ string      `json:"from_"`
+	Txs   []TxsFormat `json:"txs`
+}
+
+type TxsFormat struct {
+	To_     string `json:"to_"`
+	Amount  string `json:"amount"`
+	TokenID string `json:"token_id"`
+}
+
+// GetTransactionByTx gets transaction details from a specific Tx
+func (c *TZKT) GetTransactionByTx(hash string) ([]TransactionDetails, error) {
+	u := url.URL{
+		Scheme: "https",
+		Host:   c.endpoint,
+		Path:   fmt.Sprintf("%s/%s", "/v1/operations/transactions", hash),
+	}
+
+	var transactionDetails []TransactionDetails
+
+	resp, err := c.client.Get(u.String())
+	if err != nil {
+		return transactionDetails, err
+	}
+	defer resp.Body.Close()
+
+	if err := json.NewDecoder(resp.Body).Decode(&transactionDetails); err != nil {
+		return transactionDetails, err
+	}
+
+	return transactionDetails, nil
+}

@@ -273,3 +273,12 @@ func (e *IndexEngine) IndexToken(c context.Context, owner, contract, tokenID str
 		return nil, ErrUnsupportedBlockchain
 	}
 }
+
+func (e *IndexEngine) GetTransactionDetailsByPendingTx(pendingTx string) ([]tzkt.TransactionDetails, error) {
+	detailedTransactions, err := e.tzkt.GetTransactionByTx(pendingTx)
+	if err != nil {
+		return nil, err
+	}
+
+	return detailedTransactions, nil
+}

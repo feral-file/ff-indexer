@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
+	"strings"
 	"time"
 
 	goethereum "github.com/ethereum/go-ethereum"
@@ -475,4 +477,79 @@ func (w *NFTIndexerWorker) RefreshTezosTokenOwnership(ctx context.Context, index
 		}
 	}
 	return nil
+}
+
+// UpdateAccountTokens updates all pending account tokens
+func (w *NFTIndexerWorker) UpdateAccountTokens(ctx context.Context) error {
+	pendingAccountTokens, err := w.indexerStore.GetPendingAccountTokens(ctx)
+	if err != nil {
+		log.Warn("errors in the pending account tokens")
+		return err
+	}
+
+	delay := time.Hour
+	for _, pendingAccountToken := range pendingAccountTokens {
+		for idx, pendingTx := range pendingAccountToken.PendingTx {
+			if pendingAccountToken.LastPendingTime[idx].Unix() < time.Now().Add(-delay).Unix() {
+				log.WithField("pendingTx", pendingAccountToken.PendingTx).Warn("pending too long")
+				w.indexerStore.DeletePendingFieldsAccountToken(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID, pendingTx, pendingAccountToken.LastPendingTime[idx])
+				continue
+			}
+
+			transactionDetails, err := w.indexerEngine.GetTransactionDetailsByPendingTx(pendingTx)
+			if err != nil || len(transactionDetails) == 0 {
+				continue
+			}
+
+			accountTokens, err := w.GetBalanceDiffFromTransaction(ctx, transactionDetails[0], pendingAccountToken)
+			if err != nil {
+				w.indexerStore.DeletePendingFieldsAccountToken(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID, pendingTx, pendingAccountToken.LastPendingTime[idx])
+				continue
+			}
+			for _, accountToken := range accountTokens {
+				if accountToken.Balance < 0 {
+					w.indexerStore.UpdatePendingAccountToken(ctx, accountToken.OwnerAccount, accountToken.IndexID, accountToken.Balance, transactionDetails[0].Timestamp, pendingTx, pendingAccountToken.LastPendingTime[idx])
+				} else {
+					w.indexerStore.UpdateReceivedAccountToken(ctx, accountToken.OwnerAccount, accountToken.IndexID, accountToken.Balance, transactionDetails[0].Timestamp)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// GetBalanceDiffFromTransaction gets the balance difference of account tokens in a transaction.
+func (w *NFTIndexerWorker) GetBalanceDiffFromTransaction(ctx context.Context, transactionDetails tzkt.TransactionDetails, accountToken indexer.AccountToken) ([]indexer.AccountToken, error) {
+	if accountToken.OwnerAccount != transactionDetails.Parameter.Value[0].From_ {
+		return nil, fmt.Errorf("owner account is not the sender")
+	}
+
+	var updatedAccountTokens = []indexer.AccountToken{}
+	var totalTransferredBalance = int64(0)
+
+	for _, txs := range transactionDetails.Parameter.Value[0].Txs {
+		if txs.TokenID == strings.Split(accountToken.IndexID, "-")[2] {
+			balance, err := strconv.ParseInt(txs.Amount, 10, 64)
+			if err != nil {
+				continue
+			}
+
+			receiverAccountToken := indexer.AccountToken{
+				IndexID:      accountToken.IndexID,
+				OwnerAccount: txs.To_,
+				Balance:      balance,
+			}
+
+			updatedAccountTokens = append(updatedAccountTokens, receiverAccountToken)
+			totalTransferredBalance += balance
+		}
+	}
+	senderAccountToken := indexer.AccountToken{
+		IndexID:      accountToken.IndexID,
+		OwnerAccount: accountToken.OwnerAccount,
+		Balance:      -totalTransferredBalance,
+	}
+
+	updatedAccountTokens = append(updatedAccountTokens, senderAccountToken)
+	return updatedAccountTokens, nil
 }
