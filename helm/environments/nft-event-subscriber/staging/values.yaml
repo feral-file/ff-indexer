@@ -3,22 +3,15 @@ replicaCount: 1
 image:
   tags:
     eventSubscriber: "event-subscriber-0.0.16-6"
-    tezosMarketplaceIndexer: tezos-marketplace-indexer-0.0.1-5
-    tezosFeralfileIndexer: tezos-feralfile-indexer-0.0.1-11
+    tezosMarketplaceIndexer: tezos-marketplace-indexer-2.0.0-6
+    tezosFeralfileIndexer: tezos-feralfile-indexer-2.0.0-6
 
 serviceConfig:
   tezosNodeRPCURL: https://mainnet-tezos.autonomy.io
   feedEndpoint: http://autonomy-event-feed.autonomy-staging.svc.cluster.local:80
-  contractAddress: [
+  contractAddresses: [
     "KT1QWATcHYpBVDxvNoxw5CbkaMGpjm4SxXa2",
   ]
-  # tezosNodeRPCURL: https://rpc.ghost.tzstats.com
-  # contractAddress: [
-  #   "KT1VLvci96uGUNtCP5TYJFNGRKUkbgfs684v",
-  #   "KT1HaKfv73deHy4x5k4DUtL3CtkX5cVpFZUf",
-  #   "KT1QZJ9qJ4RAxmMrjLaBQAUTMvJQAMshBkJr",
-  #   "KT1RHWH2KYVHaP5Dxvkr2gx75Zks7PWvQEu2"
-  # ]
   environment: staging
   network:
     tezos: livenet
