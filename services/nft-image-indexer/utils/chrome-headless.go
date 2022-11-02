@@ -3,9 +3,11 @@ package utils
 import (
 	"bytes"
 	"context"
-	"errors"
-	"github.com/chromedp/chromedp"
 	"time"
+
+	"github.com/chromedp/chromedp"
+
+	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/customErrors"
 )
 
 const CropImageTimeout = 5 * time.Second
@@ -21,7 +23,7 @@ func ConvertSVGToPNG(url string) (*bytes.Buffer, error) {
 		return bytes.NewBuffer(bufSVG), nil
 	}
 
-	return nil, errors.New("can not convert SVG to PNG")
+	return nil, customErrors.NewUnsupportedSVG(url)
 }
 
 func ScreenShoot(url string, selector string) []byte {
