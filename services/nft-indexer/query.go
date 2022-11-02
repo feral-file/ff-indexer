@@ -474,7 +474,11 @@ func (s *NFTIndexerServer) CreateDemoTokens(c *gin.Context) {
 		}
 	}
 
-	go s.indexerStore.IndexDemoTokens(c, owner, reqParams.IDs)
+	err := s.indexerStore.IndexDemoTokens(c, owner, reqParams.IDs)
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to index all demo tokens", err)
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"ok": 1,
