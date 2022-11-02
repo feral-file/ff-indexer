@@ -59,6 +59,8 @@ type IndexerStore interface {
 	GetAccountTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]AccountToken, error)
 	UpdateAccountTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error
 	GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
+	IndexDemoTokens(ctx context.Context, owner string, indexIDs []string) error
+	DeleteDemoTokens(ctx context.Context, owner string) error
 }
 
 type FilterParameter struct {
@@ -1281,4 +1283,66 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwner(ctx context.Contex
 	}
 
 	return assets, nil
+}
+
+// IndexDemoTokens copies  existent tokens in the db but change the blockchain name to "demo" and modify owner
+// Before indexing new demo tokens, all of the old ones of the same owner need to be deleted.
+func (s *MongodbIndexerStore) IndexDemoTokens(ctx context.Context, owner string, indexIDs []string) error {
+	if err := s.DeleteDemoTokens(ctx, owner); err != nil {
+		return err
+	}
+
+	for _, indexID := range indexIDs {
+		demoIndexID, err := DemoTokenPrefix(indexID)
+		if err != nil {
+			return err
+		}
+
+		r := s.tokenCollection.FindOne(ctx, bson.M{"indexID": indexID})
+		if err := r.Err(); err != nil {
+			return err
+		}
+
+		var token Token
+
+		if err := r.Decode(&token); err != nil {
+			return err
+		}
+
+		token.IndexID = demoIndexID
+		token.OwnersArray = []string{owner} // TODO: need to add the owner rather than replace the old ones
+		token.Owners[owner] = 1
+
+		_, err = s.tokenCollection.UpdateOne(ctx,
+			bson.M{"indexID": demoIndexID},
+			bson.M{"$set": token},
+			options.Update().SetUpsert(true))
+
+		if err != nil {
+			logrus.WithField("indexID", demoIndexID).Warn("demo token is not indexed")
+		} else {
+			logrus.WithField("indexID", demoIndexID).Debug("demo token is indexed")
+		}
+	}
+
+	return nil
+}
+
+// DeleteDemoTokens deletes demo tokens belong to an owner
+func (s *MongodbIndexerStore) DeleteDemoTokens(ctx context.Context, owner string) error {
+	// don't clean the demo tokens if it is shared with others.
+	r, err := s.tokenCollection.DeleteMany(ctx, bson.M{
+		"ownersArray": bson.M{"$eq": bson.A{owner}},
+		"indexID":     bson.M{"$regex": "demo"}},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if r.DeletedCount > 0 {
+		logrus.WithField("owner", owner).Debug("demo tokens of an owner are deleted")
+	}
+
+	return nil
 }

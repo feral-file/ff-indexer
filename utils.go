@@ -100,3 +100,12 @@ func ParseIndexID(indexID string) (string, string, string, error) {
 	}
 	return v[0], v[1], v[2], nil
 }
+
+func DemoTokenPrefix(indexID string) (string, error) {
+	// TODO: maybe we add "demo-account"
+	_, contract, id, err := ParseIndexID(indexID)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("demo-%s-%s", contract, id), nil
+}
