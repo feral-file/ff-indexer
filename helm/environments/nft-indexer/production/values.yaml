@@ -9,16 +9,16 @@ image:
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tags:
-    api: "api-0.0.16-10"
-    background: "background-0.0.16-19"
-    provenance_indexer: "nft-provenance-indexer-0.0.16-11"
+    api: "api-0.0.16-25"
+    background: "background-0.0.16-22"
+    provenance_indexer: "nft-provenance-indexer-0.0.16-27"
     account_token_indexer: "nft-account-token-update-0.0.17"
 
 serviceConfig:
   cadence_hostport: cadenceau-frontend.cadenceau.svc.cluster.local:7933
   feralfile_api_url: https://feralfile.com
   cache_bucket_name: autonomy-cached-full-artwork
-  opensea_ratelimit: 4
+  opensea_ratelimit: 0
   environment: production
   network:
     tezos: livenet

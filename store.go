@@ -205,16 +205,19 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		updateSet := bson.M{}
 		if !(currentToken.Source == SourceFeralFile && assetUpdates.Source != SourceFeralFile) {
 			updateSet["fungible"] = token.Fungible
+			updateSet["assetID"] = id
 			currentToken.Fungible = token.Fungible
 		}
 
 		var addToSet bson.M
-		if currentToken.Fungible {
-			updateSet[fmt.Sprintf("owners.%s", token.Owner)] = token.Balance
-			addToSet = bson.M{"ownersArray": token.Owner}
-		} else {
-			updateSet["owners"] = map[string]int64{token.Owner: token.Balance}
-			updateSet["ownersArray"] = []string{token.Owner}
+		if token.Balance != 0 {
+			if currentToken.Fungible {
+				updateSet[fmt.Sprintf("owners.%s", token.Owner)] = token.Balance
+				addToSet = bson.M{"ownersArray": token.Owner}
+			} else {
+				updateSet["owners"] = map[string]int64{token.Owner: token.Balance}
+				updateSet["ownersArray"] = []string{token.Owner}
+			}
 		}
 
 		tokenUpdate := bson.M{"$set": updateSet}

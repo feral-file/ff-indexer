@@ -25,8 +25,6 @@ type ImageDownloader interface {
 func isSupportedImageType(mimeType string) bool {
 	if !strings.HasPrefix(mimeType, "image/") {
 		return false
-	} else if strings.HasPrefix(mimeType, "image/svg") {
-		return false
 	}
 	return true
 }
@@ -129,7 +127,12 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 		if metadata == nil {
 			metadata = Metadata{}
 		}
-		metadata["mime_type"] = mimeType
+
+		if strings.HasPrefix(mimeType, "image/svg") {
+			metadata["mime_type"] = "image/png"
+		} else {
+			metadata["mime_type"] = mimeType
+		}
 
 		uploadRequest := cloudflare.ImageUploadRequest{
 			File:     io.NopCloser(file),
