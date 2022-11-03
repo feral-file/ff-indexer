@@ -272,6 +272,6 @@ func (s *NFTContentIndexer) checkIPFSPinned(ctx context.Context) {
 
 func (s *NFTContentIndexer) Start(ctx context.Context) {
 	s.checkThumbnail(ctx)
-	s.checkIPFSPinned(ctx)
+	// s.checkIPFSPinned(ctx)
 	s.wg.Wait()
 }
