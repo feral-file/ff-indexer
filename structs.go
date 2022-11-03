@@ -142,6 +142,6 @@ type AccountToken struct {
 	LastActivityTime  time.Time        `json:"lastActivityTime" bson:"lastActivityTime"`
 	LastRefreshedTime time.Time        `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
 	RunID             string           `json:"-" bson:"runID"`
-	LastPendingTime   []time.Time      `json:"lastPendingTime" bson:"lastPendingTime"`
-	PendingTx         []string         `json:"pendingTx" bson:"pendingTx"`
+	LastPendingTime   []time.Time      `json:"-" bson:"lastPendingTime"`
+	PendingTxs        []string         `json:"pendingTxs" bson:"pendingTxs"`
 }
