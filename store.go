@@ -1314,12 +1314,12 @@ func (s *MongodbIndexerStore) IndexDemoTokens(ctx context.Context, owner string,
 				token.OwnersArray = []string{owner}
 				token.Owners[owner] = 1
 				if _, err := s.tokenCollection.InsertOne(ctx, token); err != nil {
-					logrus.WithField("indexID", demoIndexID).Warn("error while inserting demo tokens")
+					logrus.WithField("indexID", demoIndexID).Error("error while inserting demo tokens")
 					return err
 				}
 				logrus.WithField("indexID", demoIndexID).Debug("demo token is indexed")
 			} else {
-				logrus.WithField("demoIndexID", demoIndexID).Warn("error while finding demoIndexID in the database")
+				logrus.WithField("demoIndexID", demoIndexID).Error("error while finding demoIndexID in the database")
 				return err
 			}
 		} else {
@@ -1342,7 +1342,7 @@ func (s *MongodbIndexerStore) IndexDemoTokens(ctx context.Context, owner string,
 // DeleteDemoTokens deletes demo tokens which exclusively belong to an owner and updates demo tokens if they are related to other owners
 func (s *MongodbIndexerStore) DeleteDemoTokens(ctx context.Context, owner string) error {
 	// delete demo tokens that exclusively belong to the owner
-	r, err := s.tokenCollection.DeleteMany(ctx, bson.M{
+	_, err := s.tokenCollection.DeleteMany(ctx, bson.M{
 		"isDemo":      true,
 		"ownersArray": bson.M{"$eq": bson.A{owner}},
 		"indexID":     bson.M{"$regex": "^demo"}},
@@ -1353,7 +1353,7 @@ func (s *MongodbIndexerStore) DeleteDemoTokens(ctx context.Context, owner string
 	}
 
 	// remove the owners in the demo tokens if the tokens belong to other owners
-	result, err := s.tokenCollection.UpdateMany(ctx,
+	_, err = s.tokenCollection.UpdateMany(ctx,
 		bson.M{
 			"isDemo":      true,
 			"ownersArray": bson.M{"$in": bson.A{owner}},
@@ -1369,10 +1369,6 @@ func (s *MongodbIndexerStore) DeleteDemoTokens(ctx context.Context, owner string
 		})
 	if err != nil {
 		return err
-	}
-
-	if r.DeletedCount > 0 || result.ModifiedCount > 0 {
-		logrus.WithField("owner", owner).Debug("demo tokens of an owner are deleted")
 	}
 
 	return nil

@@ -481,6 +481,6 @@ func (s *NFTIndexerServer) CreateDemoTokens(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"ok": 1,
+		"ok": "tokens in the system are added",
 	})
 }
