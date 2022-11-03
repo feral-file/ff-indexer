@@ -898,7 +898,7 @@ func (s *MongodbIndexerStore) UpdatePendingAccountToken(ctx context.Context, own
 	r, err := s.accountTokenCollection.UpdateOne(ctx,
 		bson.M{
 			"indexID": indexID, "ownerAccount": ownerAccount,
-			"pendingTx":        bson.M{"$in": bson.A{pendingTx}},
+			"pendingTxs":       bson.M{"$in": bson.A{pendingTx}},
 			"lastPendingTime":  bson.M{"$in": bson.A{lastPendingTime}},
 			"lastActivityTime": bson.M{"$not": bson.M{"$gte": transactionTime}}},
 		bson.M{
@@ -910,7 +910,7 @@ func (s *MongodbIndexerStore) UpdatePendingAccountToken(ctx context.Context, own
 				"balance": balance,
 			},
 			"$pull": bson.M{
-				"pendingTx":       pendingTx,
+				"pendingTxs":      pendingTx,
 				"lastPendingTime": lastPendingTime,
 			},
 		},
@@ -925,7 +925,7 @@ func (s *MongodbIndexerStore) UpdatePendingAccountToken(ctx context.Context, own
 		// that means the balance is already updated from the transaction
 		r, err = s.accountTokenCollection.UpdateOne(ctx,
 			bson.M{"indexID": indexID, "ownerAccount": ownerAccount,
-				"pendingTx":        bson.M{"$in": bson.A{pendingTx}},
+				"pendingTxs":       bson.M{"$in": bson.A{pendingTx}},
 				"lastPendingTime":  bson.M{"$in": bson.A{lastPendingTime}},
 				"lastActivityTime": bson.M{"$gte": transactionTime}},
 			bson.M{
@@ -933,7 +933,7 @@ func (s *MongodbIndexerStore) UpdatePendingAccountToken(ctx context.Context, own
 					"lastRefreshedTime": time.Now(),
 				},
 				"$pull": bson.M{
-					"pendingTx":       pendingTx,
+					"pendingTxs":      pendingTx,
 					"lastPendingTime": lastPendingTime,
 				},
 			},
@@ -1009,10 +1009,10 @@ func (s *MongodbIndexerStore) UpdateReceivedAccountToken(ctx context.Context, ow
 // DeletePendingFieldsAccountToken deletes elements in pending fields of a account token
 func (s *MongodbIndexerStore) DeletePendingFieldsAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx string, lastPendingTime time.Time) error {
 	r, err := s.accountTokenCollection.UpdateOne(ctx,
-		bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "pendingTx": bson.M{"$in": bson.A{pendingTx}}, "lastPendingTime": bson.M{"$in": bson.A{lastPendingTime}}},
+		bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "pendingTxs": bson.M{"$in": bson.A{pendingTx}}, "lastPendingTime": bson.M{"$in": bson.A{lastPendingTime}}},
 		bson.M{
 			"$pull": bson.M{
-				"pendingTx":       pendingTx,
+				"pendingTxs":      pendingTx,
 				"lastPendingTime": lastPendingTime,
 			},
 		},
@@ -1034,7 +1034,7 @@ func (s *MongodbIndexerStore) DeletePendingFieldsAccountToken(ctx context.Contex
 // AddPendingTxToAccountToken add pendingTx to a specific account token if this pendingTx does not exist
 func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx string) error {
 	r := s.accountTokenCollection.FindOne(ctx,
-		bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "pendingTx": bson.M{"$in": bson.A{pendingTx}}},
+		bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "pendingTxs": bson.M{"$in": bson.A{pendingTx}}},
 	)
 
 	if err := r.Err(); err != nil {
@@ -1044,7 +1044,7 @@ func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ow
 			r, err := s.accountTokenCollection.UpdateOne(ctx,
 				bson.M{"indexID": indexID, "ownerAccount": ownerAccount},
 				bson.M{"$push": bson.M{
-					"pendingTx":       pendingTx,
+					"pendingTxs":      pendingTx,
 					"lastPendingTime": time.Now(),
 				}},
 				options.Update().SetUpsert(true),
@@ -1076,7 +1076,7 @@ func (s *MongodbIndexerStore) DeleteFailedAccountTokens(ctx context.Context, own
 
 // GetPendingAccountTokens gets all pending account tokens in the db
 func (s *MongodbIndexerStore) GetPendingAccountTokens(ctx context.Context) ([]AccountToken, error) {
-	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{"pendingTx": bson.M{"$exists": true, "$ne": bson.A{}}})
+	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{"pendingTxs": bson.M{"$exists": true, "$ne": bson.A{}}})
 	if err != nil {
 		return nil, err
 	}
