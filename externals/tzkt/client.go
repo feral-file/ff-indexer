@@ -11,8 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bitmark-inc/nft-indexer/traceutils"
 	"github.com/sirupsen/logrus"
+
+	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
 
 var ErrTooManyRequest = fmt.Errorf("too many requests")
@@ -193,13 +194,7 @@ func (c *TZKT) request(req *http.Request, responseData interface{}) error {
 		return fmt.Errorf("tzkt api error: %s", errResp)
 	}
 
-	err = json.NewDecoder(resp.Body).Decode(&responseData)
-	if err != nil {
-		logrus.
-			WithField("req", traceutils.DumpRequest(req)).
-			WithField("resp", traceutils.DumpResponse(resp)).
-			Error("tzkt error response")
-	}
+	err = UnmarshalJSON(req, resp, responseData)
 
 	return err
 }

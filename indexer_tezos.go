@@ -30,6 +30,7 @@ func fxhashLink(ipfsLink string) string {
 
 func (e *IndexEngine) GetTezosTokenByOwner(ctx context.Context, owner string, offset int) ([]tzkt.OwnedToken, error) {
 	tokens, err := e.tzkt.RetrieveTokens(owner, offset)
+
 	if err != nil {
 		return nil, err
 	}
