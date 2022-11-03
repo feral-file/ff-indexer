@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -20,6 +21,12 @@ func main() {
 	defer cancel()
 
 	config.LoadConfig("NFT_INDEXER")
+
+	if err := sentry.Init(sentry.ClientOptions{
+		Dsn: viper.GetString("sentry.dsn"),
+	}); err != nil {
+		logrus.WithError(err).Panic("Sentry initialization failed")
+	}
 
 	store := imageStore.New(
 		viper.GetString("image_db.dsn"),
