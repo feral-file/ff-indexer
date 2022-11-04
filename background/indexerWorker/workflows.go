@@ -124,23 +124,21 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 		w.triggerIndexOutdatedTokenWorkflow(ctx, tokenOwner, ownedFungibleToken, ownedNonFungibleToken)
 	}
 
-	var offset = 0
-	var time = time.Time{}
+	var isFirstPage = true
 	for {
-		var indexedInfo IndexedInfo
+		var shouldContinue bool
 
-		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx), w.IndexTezosTokenByOwner, tokenOwner, time, offset).Get(ctx, &indexedInfo); err != nil {
+		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx), w.IndexTezosTokenByOwner, tokenOwner, isFirstPage).Get(ctx, &shouldContinue); err != nil {
 			sentry.CaptureException(err)
 			return err
 		}
 
-		if indexedInfo.Count == 0 {
-			log.Debug("[loop] no token found from tezos", zap.String("owner", tokenOwner), zap.Int("offset", offset))
+		if !shouldContinue {
+			log.Debug("[loop] no token found from tezos", zap.String("owner", tokenOwner))
 			break
 		}
 
-		offset += indexedInfo.Count
-		time = indexedInfo.LastTime
+		isFirstPage = false
 	}
 	log.Info("TEZOS tokens indexed", zap.String("owner", tokenOwner))
 	return nil
