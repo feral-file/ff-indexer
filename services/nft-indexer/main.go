@@ -54,7 +54,7 @@ func main() {
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 	)
 
-	s := NewNFTIndexerServer(cadenceClient, ensClient, tezosDomain, feralfileClient, indexerStore, engine, viper.GetString("server.api_token"))
+	s := NewNFTIndexerServer(cadenceClient, ensClient, tezosDomain, feralfileClient, indexerStore, engine, viper.GetString("server.api_token"), viper.GetString("server.admin_api_token"))
 	s.SetupRoute()
 	if err := s.Run(viper.GetString("server.port")); err != nil {
 		log.WithError(err).Panic("server interrupted")
