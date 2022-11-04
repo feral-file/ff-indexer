@@ -28,8 +28,8 @@ func fxhashLink(ipfsLink string) string {
 	return u.String()
 }
 
-func (e *IndexEngine) GetTezosTokenByOwner(ctx context.Context, owner string, offset int) ([]tzkt.OwnedToken, error) {
-	tokens, err := e.tzkt.RetrieveTokens(owner, offset)
+func (e *IndexEngine) GetTezosTokenByOwner(ctx context.Context, owner string, lastTime time.Time, offset int) ([]tzkt.OwnedToken, error) {
+	tokens, err := e.tzkt.RetrieveTokens(owner, lastTime, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -42,10 +42,11 @@ func (e *IndexEngine) PrepareTezosTokenFullData(ctx context.Context, token tzkt.
 }
 
 // IndexTezosTokenByOwner indexes all tokens owned by a specific tezos address
-func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, offset int) ([]AssetUpdates, error) {
-	ownedTokens, err := e.GetTezosTokenByOwner(ctx, owner, offset)
+func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, lastTime time.Time, offset int) ([]AssetUpdates, time.Time, error) {
+	var newLastTime = time.Time{}
+	ownedTokens, err := e.GetTezosTokenByOwner(ctx, owner, lastTime, offset)
 	if err != nil {
-		return nil, err
+		return nil, newLastTime, err
 	}
 
 	log.WithField("tokens", ownedTokens).WithField("owner", owner).Debug("retrive tokens for owner")
@@ -64,7 +65,11 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 		}
 	}
 
-	return tokenUpdates, nil
+	if len(ownedTokens) > 0 {
+		newLastTime = ownedTokens[len(tokenUpdates)-1].LastTime
+	}
+
+	return tokenUpdates, newLastTime, nil
 }
 
 // IndexTezosToken indexes a Tezos token with a specific contract and ID

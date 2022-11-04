@@ -129,9 +129,10 @@ type DetailedToken struct {
 }
 
 type Account struct {
-	Account         string    `json:"account" bson:"account"`
-	Blockchain      string    `json:"blockchain" bson:"blockchain"`
-	LastUpdatedTime time.Time `json:"lastUpdateTime" bson:"lastUpdateTime"`
+	Account          string    `json:"account" bson:"account"`
+	Blockchain       string    `json:"blockchain" bson:"blockchain"`
+	LastUpdatedTime  time.Time `json:"lastUpdateTime" bson:"lastUpdateTime"`
+	LastActivityTime time.Time `json:"lastActivityTime" bson:"lastActivityTime"`
 }
 
 type AccountToken struct {
@@ -141,7 +142,6 @@ type AccountToken struct {
 	Balance           int64            `json:"balance" bson:"balance"`
 	LastActivityTime  time.Time        `json:"lastActivityTime" bson:"lastActivityTime"`
 	LastRefreshedTime time.Time        `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
-	RunID             string           `json:"-" bson:"runID"`
 	LastPendingTime   []time.Time      `json:"lastPendingTime" bson:"lastPendingTime"`
 	PendingTx         []string         `json:"pendingTx" bson:"pendingTx"`
 }

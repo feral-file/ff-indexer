@@ -6,7 +6,6 @@ import (
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/getsentry/sentry-go"
-	"github.com/google/uuid"
 	cadenceClient "go.uber.org/cadence/client"
 	"go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
@@ -126,21 +125,22 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 	}
 
 	var offset = 0
-	runID := uuid.New().String()
+	var time = time.Time{}
 	for {
-		var updateCounts int
+		var indexedInfo IndexedInfo
 
-		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx), w.IndexTezosTokenByOwner, runID, tokenOwner, offset).Get(ctx, &updateCounts); err != nil {
+		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx), w.IndexTezosTokenByOwner, tokenOwner, time, offset).Get(ctx, &indexedInfo); err != nil {
 			sentry.CaptureException(err)
 			return err
 		}
 
-		if updateCounts == 0 {
+		if indexedInfo.Count == 0 {
 			log.Debug("[loop] no token found from tezos", zap.String("owner", tokenOwner), zap.Int("offset", offset))
 			break
 		}
 
-		offset += updateCounts
+		offset += indexedInfo.Count
+		time = indexedInfo.LastTime
 	}
 	log.Info("TEZOS tokens indexed", zap.String("owner", tokenOwner))
 	return nil

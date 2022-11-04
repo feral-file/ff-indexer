@@ -54,7 +54,6 @@ type IndexerStore interface {
 
 	IndexAccount(ctx context.Context, account Account) error
 	IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error
-	CleanupAccountTokens(ctx context.Context, runID, owner string) error
 	GetAccount(ctx context.Context, owner string) (Account, error)
 	GetAccountTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]AccountToken, error)
 	UpdateAccountTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error
@@ -1117,33 +1116,29 @@ func (s *MongodbIndexerStore) IndexAccount(ctx context.Context, account Account)
 
 // IndexAccountTokens indexes the account tokens by inputs
 func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error {
-	indexIDs := make([]string, 0, len(accountTokens))
-
 	for _, accountToken := range accountTokens {
-		r, err := s.accountTokenCollection.UpdateOne(ctx,
-			bson.M{"indexID": accountToken.IndexID, "ownerAccount": owner},
-			bson.M{"$set": accountToken},
-			options.Update().SetUpsert(true),
-		)
+		if accountToken.Balance > 0 {
+			r, err := s.accountTokenCollection.UpdateOne(ctx,
+				bson.M{"indexID": accountToken.IndexID, "ownerAccount": owner},
+				bson.M{"$set": accountToken},
+				options.Update().SetUpsert(true),
+			)
 
-		if err != nil {
-			return err
+			if err != nil {
+				return err
+			}
+			if r.MatchedCount == 0 && r.UpsertedCount == 0 {
+				logrus.WithField("token_id", accountToken.ID).Warn("account token is not added or updated")
+			}
+		} else {
+			_, err := s.accountTokenCollection.DeleteOne(ctx, bson.M{"ownerAccount": owner, "indexID": accountToken.IndexID})
+			if err != nil {
+				return err
+			}
 		}
-		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-			logrus.WithField("token_id", accountToken.ID).Warn("account token is not added or updated")
-		}
-
-		indexIDs = append(indexIDs, accountToken.IndexID)
 	}
 
 	return nil
-}
-
-// Cleanup unowned account token
-func (s *MongodbIndexerStore) CleanupAccountTokens(ctx context.Context, runID, owner string) error {
-	_, err := s.accountTokenCollection.DeleteMany(ctx, bson.M{"ownerAccount": bson.M{"$eq": owner}, "runID": bson.M{"$ne": runID}})
-
-	return err
 }
 
 // GetAccount returns an account by a given address
