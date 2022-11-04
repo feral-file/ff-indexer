@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: {{ include "nft-event-subscriber.fullname" . }}
   labels:
+    v: "1"
     {{- include "nft-event-subscriber.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
@@ -88,12 +89,21 @@ spec:
           - name: config
             mountPath: "/.config"
             readOnly: true
-{{- if eq .Values.serviceConfig.environment "production" }}
+{{- if ne .Values.serviceConfig.environment "development" }}
         - name: {{ .Chart.Name }}-tezos-indexer
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tags.tezosMarketplaceIndexer | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: DEFAULT_CONFIG_PATH
+              value: /.config/dappetizer.default.config.json
+            - name: TEZOS_NODE_RPC_URL
+              value: {{ .Values.serviceConfig.tezosNodeRPCURL }}
+          volumeMounts:
+          - name: marketplace-indexer-config
+            mountPath: "/.config"
+            readOnly: true
 {{- end }}
         - name: {{ .Chart.Name }}-feralfile-indexer
           securityContext:
@@ -105,12 +115,12 @@ spec:
             - name: NETWORK
               value: testnet
 {{- end }}
-            - name: CONTRACT_CONFIG
-              value: /.config/config.json
+            - name: DEFAULT_CONFIG_PATH
+              value: /.config/dappetizer.default.config.json
             - name: TEZOS_NODE_RPC_URL
               value: {{ .Values.serviceConfig.tezosNodeRPCURL }}
           volumeMounts:
-          - name: ff-indexer-config
+          - name: feralfile-indexer-config
             mountPath: "/.config"
             readOnly: true
       volumes:
@@ -121,12 +131,18 @@ spec:
           items:
           - key: "config.yaml"
             path: "config.yaml"
-      - name: ff-indexer-config
+      - name: marketplace-indexer-config
         configMap:
           name: {{ include "nft-event-subscriber.fullname" . }}
           items:
-          - key: "ff_indexer_config.json"
-            path: "config.json"
+          - key: "dappetizer.marketplace.config.json"
+            path: "dappetizer.default.config.json"
+      - name: feralfile-indexer-config
+        configMap:
+          name: {{ include "nft-event-subscriber.fullname" . }}
+          items:
+          - key: "dappetizer.feralfile.config.json"
+            path: "dappetizer.default.config.json"
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

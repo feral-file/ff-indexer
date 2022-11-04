@@ -45,7 +45,6 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 		return
 	}
 
-	// go s.IndexMissingTokens(c, checksumDecimalIDs, tokenInfo)
 	for i, t := range tokenInfo {
 		if t.Blockchain != indexer.EthereumBlockchain {
 			continue
@@ -141,7 +140,7 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParamsIDs []str
 		for redundantID := range m {
 			_, contract, tokenId, err := indexer.ParseIndexID(redundantID)
 			if err != nil {
-				panic(err)
+				continue
 			}
 
 			owner, err := s.indexerEngine.GetTokenOwnerAddress(contract, tokenId)

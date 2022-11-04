@@ -51,6 +51,15 @@ db.assets.createIndex({
   unique: true,
   sparse: true
 })
+db.assets.createIndex({
+  "source": 1
+})
+db.assets.createIndex({
+  "thumbnailID": 1
+})
+db.assets.createIndex({
+  "projectMetadata.latest.source": 1
+})
 
 db.accounts.createIndex({
   account: 1

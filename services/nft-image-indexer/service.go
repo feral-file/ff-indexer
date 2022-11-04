@@ -127,7 +127,9 @@ func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) 
 	var asset NFTAsset
 	r := s.nftAssets.FindOneAndUpdate(ctx,
 		bson.M{
+			"source":                              "tzkt",
 			"thumbnailID":                         bson.M{"$exists": false},
+			"projectMetadata.latest.source":       bson.M{"$nin": []string{"fxhash"}},
 			"projectMetadata.latest.thumbnailURL": bson.M{"$ne": ""},
 			"$or": bson.A{
 				bson.M{
@@ -277,6 +279,6 @@ func (s *NFTContentIndexer) checkIPFSPinned(ctx context.Context) {
 
 func (s *NFTContentIndexer) Start(ctx context.Context) {
 	s.checkThumbnail(ctx)
-	s.checkIPFSPinned(ctx)
+	// s.checkIPFSPinned(ctx)
 	s.wg.Wait()
 }
