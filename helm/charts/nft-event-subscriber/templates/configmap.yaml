@@ -31,7 +31,59 @@ data:
     feed:
       endpoint: {{ .Values.serviceConfig.feedEndpoint }}
 
-  ff_indexer_config.json: |
+  dappetizer.feralfile.config.json: |
     {
-      "contractAddress": {{ .Values.serviceConfig.contractAddress | toJson }}
+      "indexing": {
+        "fromBlockLevel": 2845033,
+        "contractBoost": {
+          "type": "tzkt"
+        },
+        "contracts": [
+          {
+            "name": "FeralFileV1",
+            "addresses": {{ .Values.serviceConfig.contractAddresses | toJson }}
+          }
+        ]
+      },
+      "tezosNode": {
+        "url": "https://mainnet-tezos.autonomy.io"
+      }
+    }
+  dappetizer.marketplace.config.json: |
+    {
+      "indexing": {
+        "fromBlockLevel": 2845173,
+        "contractBoost": {
+          "type": "tzkt"
+        },
+        "contracts": [
+          {
+            "name": "fxhash",
+            "addresses": [
+              "KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE"
+            ]
+          },
+          {
+            "name": "hicetniuc",
+            "addresses": [
+              "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton"
+            ]
+          },
+          {
+            "name": "versum",
+            "addresses": [
+              "KT1LjmAdYQCLBjwv4S2oFkEzyHVkomAf5MrW"
+            ]
+          },
+          {
+            "name": "fxhashv2",
+            "addresses": [
+              "KT1U6EHmNxJTkvaWJ4ThczG4FSDaHC21ssvi"
+            ]
+          }
+        ]
+      },
+      "tezosNode": {
+        "url": "https://mainnet-tezos.autonomy.io"
+      }
     }

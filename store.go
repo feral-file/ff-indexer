@@ -199,7 +199,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 			continue
 		}
 
-		if token.Balance == 0 {
+		if assetUpdates.Source != SourceFeralFile && token.Balance == 0 {
 			logrus.WithField("token_id", token.ID).Warn("ignore zero balance update")
 			continue
 		}
