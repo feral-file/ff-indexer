@@ -3,6 +3,7 @@ package indexer
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -25,7 +26,7 @@ func TestIndexTezosTokenOwnersWithNFT(t *testing.T) {
 
 func TestGetTezosTokenByOwner(t *testing.T) {
 	engine := New("", nil, tzkt.New(""), nil, nil)
-	owners, err := engine.GetTezosTokenByOwner(context.Background(), "tz1YiYx6TwBnsAgEnXSyhFiM9bqFD54QVhy4", 0) // incorrect metadata format case
+	owners, err := engine.GetTezosTokenByOwner(context.Background(), "tz1YiYx6TwBnsAgEnXSyhFiM9bqFD54QVhy4", time.Time{}, 0) // incorrect metadata format case
 	assert.NoError(t, err)
 	assert.NotEmpty(t, owners)
 }
