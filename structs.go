@@ -45,6 +45,7 @@ type Token struct {
 	OwnersArray     []string         `json:"-" bson:"ownersArray"`
 	AssetID         string           `json:"-" bson:"assetID"`
 	OriginTokenInfo []BaseTokenInfo  `json:"originTokenInfo" bson:"originTokenInfo"`
+	IsDemo          bool             `json:"-" bson:"isDemo"`
 
 	IndexID           string       `json:"indexID" bson:"indexID"`
 	Source            string       `json:"source" bson:"source"`

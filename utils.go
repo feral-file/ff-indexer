@@ -100,3 +100,7 @@ func ParseIndexID(indexID string) (string, string, string, error) {
 	}
 	return v[0], v[1], v[2], nil
 }
+
+func DemoTokenPrefix(indexID string) string {
+	return fmt.Sprintf("demo%s", indexID)
+}
