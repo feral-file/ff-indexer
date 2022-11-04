@@ -9,6 +9,7 @@ network:
 server:
   port: :8089
   api_token: api_token
+  admin_api_token:
 
 store:
   db_uri: mongodb://localhost:27017/
