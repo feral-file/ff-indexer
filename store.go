@@ -1314,12 +1314,12 @@ func (s *MongodbIndexerStore) IndexDemoTokens(ctx context.Context, owner string,
 				token.OwnersArray = []string{owner}
 				token.Owners[owner] = 1
 				if _, err := s.tokenCollection.InsertOne(ctx, token); err != nil {
-					logrus.WithField("indexID", demoIndexID).Error("error while inserting demo tokens")
+					logrus.WithField("indexID", demoIndexID).WithError(err).Error("error while inserting demo tokens")
 					return err
 				}
 				logrus.WithField("indexID", demoIndexID).Debug("demo token is indexed")
 			} else {
-				logrus.WithField("demoIndexID", demoIndexID).Error("error while finding demoIndexID in the database")
+				logrus.WithField("demoIndexID", demoIndexID).WithError(err).Error("error while finding demoIndexID in the database")
 				return err
 			}
 		} else {
