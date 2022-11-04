@@ -142,8 +142,9 @@ type Token struct {
 }
 
 type OwnedToken struct {
-	Token   Token `json:"token"`
-	Balance int64 `json:"balance,string"`
+	Token    Token     `json:"token"`
+	Balance  int64     `json:"balance,string"`
+	LastTime time.Time `json:"lastTime"`
 }
 
 type TokenMetadata struct {
@@ -231,20 +232,24 @@ func (c *TZKT) GetContractToken(contract, tokenID string) (Token, error) {
 
 // RetrieveTokens returns OwnedToken for a specific token. The OwnedToken object includes
 // both balance and token information
-func (c *TZKT) RetrieveTokens(owner string, offset int) ([]OwnedToken, error) {
+func (c *TZKT) RetrieveTokens(owner string, lastTime time.Time, offset int) ([]OwnedToken, error) {
 	v := url.Values{
 		"account":        []string{owner},
 		"limit":          []string{"50"},
 		"offset":         []string{fmt.Sprintf("%d", offset)},
-		"balance.gt":     []string{"0"},
+		"balance.ge":     []string{"0"},
 		"token.standard": []string{"fa2"},
+		"sort":           []string{"lastTime"},
 	}
+
+	// prevent QueryEscape for colons in time
+	rawQuery := v.Encode() + "&lastTime.gt=" + lastTime.UTC().Format(time.RFC3339)
 
 	u := url.URL{
 		Scheme:   "https",
 		Host:     c.endpoint,
 		Path:     "/v1/tokens/balances",
-		RawQuery: v.Encode(),
+		RawQuery: rawQuery,
 	}
 	var ownedTokens []OwnedToken
 

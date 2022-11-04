@@ -26,7 +26,7 @@ func TestGetContractToken(t *testing.T) {
 func TestRetrieveTokens(t *testing.T) {
 	tc := New("")
 
-	ownedTokens, err := tc.RetrieveTokens("tz1RBi5DCVBYh1EGrcoJszkte1hDjrFfXm5C", 0)
+	ownedTokens, err := tc.RetrieveTokens("tz1RBi5DCVBYh1EGrcoJszkte1hDjrFfXm5C", time.Time{}, 0)
 	assert.NoError(t, err)
 	assert.GreaterOrEqual(t, len(ownedTokens), 1)
 	assert.GreaterOrEqual(t, ownedTokens[0].Balance, int64(1))
