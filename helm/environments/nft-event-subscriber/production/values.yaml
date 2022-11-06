@@ -2,20 +2,19 @@ replicaCount: 1
 
 image:
   tags:
-    eventSubscriber: "event-subscriber-0.0.16-6"
-    tezosMarketplaceIndexer: tezos-marketplace-indexer-0.0.1-5
-    tezosFeralfileIndexer: tezos-feralfile-indexer-0.0.1-11
+    eventSubscriber: "event-subscriber-7eefb51c928825526f46afaa21e142bddeaed9ce"
+    tezosMarketplaceIndexer: tezos-marketplace-indexer-2.0.0-6
+    tezosFeralfileIndexer: tezos-feralfile-indexer-2.0.0-6
 
 serviceConfig:
   tezosNodeRPCURL: https://mainnet-tezos.autonomy.io
   cadence_hostport: cadenceau-frontend.cadenceau.svc.cluster.local:7933
-  contractAddress: [
-    "KT1QWATcHYpBVDxvNoxw5CbkaMGpjm4SxXa2",
+  contractAddresses: [
+    "KT1EyVFCmLFqzgwSBNbdnwfqGeCPRWPvH9QF", # test contract on production
     "KT1RnhKKsAD7ScFi3Nb7HKK2hnPCqXcbNG3k",
     "KT1U1KFWkAR8ea9GUi8fAH1jPKRMmAHJLhpN",
     "KT1WgvCKC8vvjbAYEgaXHo9A6GprKDyaw7N3",
     "KT1GbUx4MFBWHi3YhofDDvDYyeDeqahpKAGD",
-    "KT1EyVFCmLFqzgwSBNbdnwfqGeCPRWPvH9QF", # test contract
     "KT1Q4SBM941oAeu69v8LsrfwSiEkhMWJiVrp",
     "KT1Mkhkz1XLSAxdadViQCjnaRLpWzfdxyWHM", # airdrop 1
     "KT1TNsJJKYqxdVAwcZKXzgypGU2kainW3gJm"  # airdrop MoMA

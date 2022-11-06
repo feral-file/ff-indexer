@@ -45,6 +45,7 @@ type Token struct {
 	OwnersArray     []string         `json:"-" bson:"ownersArray"`
 	AssetID         string           `json:"-" bson:"assetID"`
 	OriginTokenInfo []BaseTokenInfo  `json:"originTokenInfo" bson:"originTokenInfo"`
+	IsDemo          bool             `json:"-" bson:"isDemo"`
 
 	IndexID           string       `json:"indexID" bson:"indexID"`
 	Source            string       `json:"source" bson:"source"`
@@ -129,9 +130,10 @@ type DetailedToken struct {
 }
 
 type Account struct {
-	Account         string    `json:"account" bson:"account"`
-	Blockchain      string    `json:"blockchain" bson:"blockchain"`
-	LastUpdatedTime time.Time `json:"lastUpdateTime" bson:"lastUpdateTime"`
+	Account          string    `json:"account" bson:"account"`
+	Blockchain       string    `json:"blockchain" bson:"blockchain"`
+	LastUpdatedTime  time.Time `json:"lastUpdateTime" bson:"lastUpdateTime"`
+	LastActivityTime time.Time `json:"lastActivityTime" bson:"lastActivityTime"`
 }
 
 type AccountToken struct {
@@ -141,7 +143,6 @@ type AccountToken struct {
 	Balance           int64            `json:"balance" bson:"balance"`
 	LastActivityTime  time.Time        `json:"lastActivityTime" bson:"lastActivityTime"`
 	LastRefreshedTime time.Time        `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
-	RunID             string           `json:"-" bson:"runID"`
 	LastPendingTime   []time.Time      `json:"-" bson:"lastPendingTime"`
 	PendingTxs        []string         `json:"pendingTxs" bson:"pendingTxs"`
 }

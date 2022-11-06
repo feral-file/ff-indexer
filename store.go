@@ -54,11 +54,12 @@ type IndexerStore interface {
 
 	IndexAccount(ctx context.Context, account Account) error
 	IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error
-	CleanupAccountTokens(ctx context.Context, runID, owner string) error
 	GetAccount(ctx context.Context, owner string) (Account, error)
 	GetAccountTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]AccountToken, error)
 	UpdateAccountTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error
 	GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
+	IndexDemoTokens(ctx context.Context, owner string, indexIDs []string) error
+	DeleteDemoTokens(ctx context.Context, owner string) error
 }
 
 type FilterParameter struct {
@@ -197,7 +198,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 			continue
 		}
 
-		if token.Balance == 0 {
+		if assetUpdates.Source != SourceFeralFile && token.Balance == 0 {
 			logrus.WithField("token_id", token.ID).Warn("ignore zero balance update")
 			continue
 		}
@@ -1117,33 +1118,29 @@ func (s *MongodbIndexerStore) IndexAccount(ctx context.Context, account Account)
 
 // IndexAccountTokens indexes the account tokens by inputs
 func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error {
-	indexIDs := make([]string, 0, len(accountTokens))
-
 	for _, accountToken := range accountTokens {
-		r, err := s.accountTokenCollection.UpdateOne(ctx,
-			bson.M{"indexID": accountToken.IndexID, "ownerAccount": owner},
-			bson.M{"$set": accountToken},
-			options.Update().SetUpsert(true),
-		)
+		if accountToken.Balance > 0 {
+			r, err := s.accountTokenCollection.UpdateOne(ctx,
+				bson.M{"indexID": accountToken.IndexID, "ownerAccount": owner},
+				bson.M{"$set": accountToken},
+				options.Update().SetUpsert(true),
+			)
 
-		if err != nil {
-			return err
+			if err != nil {
+				return err
+			}
+			if r.MatchedCount == 0 && r.UpsertedCount == 0 {
+				logrus.WithField("token_id", accountToken.ID).Warn("account token is not added or updated")
+			}
+		} else {
+			_, err := s.accountTokenCollection.DeleteOne(ctx, bson.M{"ownerAccount": owner, "indexID": accountToken.IndexID})
+			if err != nil {
+				return err
+			}
 		}
-		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-			logrus.WithField("token_id", accountToken.ID).Warn("account token is not added or updated")
-		}
-
-		indexIDs = append(indexIDs, accountToken.IndexID)
 	}
 
 	return nil
-}
-
-// Cleanup unowned account token
-func (s *MongodbIndexerStore) CleanupAccountTokens(ctx context.Context, runID, owner string) error {
-	_, err := s.accountTokenCollection.DeleteMany(ctx, bson.M{"ownerAccount": bson.M{"$eq": owner}, "runID": bson.M{"$ne": runID}})
-
-	return err
 }
 
 // GetAccount returns an account by a given address
@@ -1281,4 +1278,93 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwner(ctx context.Contex
 	}
 
 	return assets, nil
+}
+
+// IndexDemoTokens copies  existent tokens in the db but change the blockchain name to "demo" and modify owner
+// Before indexing new demo tokens, all of the old ones of the same owner need to be deleted.
+func (s *MongodbIndexerStore) IndexDemoTokens(ctx context.Context, owner string, indexIDs []string) error {
+	if err := s.DeleteDemoTokens(ctx, owner); err != nil {
+		return err
+	}
+
+	for _, indexID := range indexIDs {
+		demoIndexID := DemoTokenPrefix(indexID)
+
+		r := s.tokenCollection.FindOne(ctx, bson.M{"isDemo": true, "indexID": demoIndexID})
+		if err := r.Err(); err != nil {
+			if err == mongo.ErrNoDocuments {
+				// Create a new demo token if it does not exist
+				r := s.tokenCollection.FindOne(ctx, bson.M{"indexID": indexID})
+				if err := r.Err(); err != nil {
+					return err
+				}
+
+				var token Token
+				if err := r.Decode(&token); err != nil {
+					return err
+				}
+
+				token.IndexID = demoIndexID
+				token.IsDemo = true
+				token.OwnersArray = []string{owner}
+				token.Owners[owner] = 1
+				if _, err := s.tokenCollection.InsertOne(ctx, token); err != nil {
+					logrus.WithField("indexID", demoIndexID).WithError(err).Error("error while inserting demo tokens")
+					return err
+				}
+				logrus.WithField("indexID", demoIndexID).Debug("demo token is indexed")
+			} else {
+				logrus.WithField("demoIndexID", demoIndexID).WithError(err).Error("error while finding demoIndexID in the database")
+				return err
+			}
+		} else {
+			// Add a new owner to the demo tokens which already exist
+			if _, err := s.tokenCollection.UpdateOne(ctx,
+				bson.M{"isDemo": true, "indexID": demoIndexID, "ownersArray": bson.M{"$nin": bson.A{owner}}},
+				bson.M{
+					"$push": bson.M{"ownersArray": owner},
+					"$set":  bson.M{fmt.Sprintf("owners.%s", owner): int64(1)},
+				}); err != nil {
+				return err
+			}
+			logrus.WithField("indexID", demoIndexID).Debug("demo token is updated")
+		}
+	}
+
+	return nil
+}
+
+// DeleteDemoTokens deletes demo tokens which exclusively belong to an owner and updates demo tokens if they are related to other owners
+func (s *MongodbIndexerStore) DeleteDemoTokens(ctx context.Context, owner string) error {
+	// delete demo tokens that exclusively belong to the owner
+	_, err := s.tokenCollection.DeleteMany(ctx, bson.M{
+		"isDemo":      true,
+		"ownersArray": bson.M{"$eq": bson.A{owner}},
+		"indexID":     bson.M{"$regex": "^demo"}},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	// remove the owners in the demo tokens if the tokens belong to other owners
+	_, err = s.tokenCollection.UpdateMany(ctx,
+		bson.M{
+			"isDemo":      true,
+			"ownersArray": bson.M{"$in": bson.A{owner}},
+			"indexID":     bson.M{"$regex": "^demo"},
+		},
+		bson.M{
+			"$pull": bson.M{
+				"ownersArray": owner,
+			},
+			"$unset": bson.M{
+				fmt.Sprintf("owners.%s", owner): bson.M{"$gte": 1},
+			},
+		})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

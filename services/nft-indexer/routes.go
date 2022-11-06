@@ -31,6 +31,7 @@ func (s *NFTIndexerServer) SetupRoute() {
 	s.route.GET("/nft", s.ListNFTs)
 	s.route.POST("/nft/pending", s.SetTokenPending)
 	s.route.GET("/v1/nft", s.GetAccountNFTs)
+	s.route.POST("/v1/demo-tokens/", s.CreateDemoTokens)
 
 	s.route.POST("/nft/index_one", s.IndexOneNFT)
 	s.route.POST("/nft/index_owner", s.IndexNFTByOwner)
