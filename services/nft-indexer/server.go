@@ -11,8 +11,9 @@ import (
 )
 
 type NFTIndexerServer struct {
-	apiToken string
-	route    *gin.Engine
+	apiToken      string
+	adminApiToken string
+	route         *gin.Engine
 
 	ensClient     *ens.ENS
 	tezosDomain   *tezosDomain.TezosDomainAPI
@@ -28,12 +29,14 @@ func NewNFTIndexerServer(cadenceWorker *cadence.CadenceWorkerClient,
 	feralfileClient *feralfile.Feralfile,
 	indexerStore indexer.IndexerStore,
 	indexerEngine *indexer.IndexEngine,
-	apiToken string) *NFTIndexerServer {
+	apiToken string,
+	adminApiToken string) *NFTIndexerServer {
 	r := gin.New()
 
 	return &NFTIndexerServer{
-		apiToken: apiToken,
-		route:    r,
+		apiToken:      apiToken,
+		adminApiToken: adminApiToken,
+		route:         r,
 
 		ensClient:     ensClient,
 		tezosDomain:   tezosDomain,
