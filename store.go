@@ -199,6 +199,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		if !(currentToken.Source == SourceFeralFile && assetUpdates.Source != SourceFeralFile) {
 			updateSet["fungible"] = token.Fungible
 			updateSet["assetID"] = id
+			updateSet["editionName"] = token.EditionName
 			currentToken.Fungible = token.Fungible
 		}
 
