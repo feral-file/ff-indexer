@@ -488,9 +488,9 @@ func (w *NFTIndexerWorker) UpdateAccountTokens(ctx context.Context) error {
 
 	delay := time.Hour
 	for _, pendingAccountToken := range pendingAccountTokens {
-		for idx, pendingTx := range pendingAccountToken.PendingTx {
+		for idx, pendingTx := range pendingAccountToken.PendingTxs {
 			if pendingAccountToken.LastPendingTime[idx].Unix() < time.Now().Add(-delay).Unix() {
-				log.WithField("pendingTx", pendingAccountToken.PendingTx).Warn("pending too long")
+				log.WithField("pendingTxs", pendingAccountToken.PendingTxs).Warn("pending too long")
 				w.indexerStore.DeletePendingFieldsAccountToken(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID, pendingTx, pendingAccountToken.LastPendingTime[idx])
 				continue
 			}

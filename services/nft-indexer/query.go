@@ -387,7 +387,9 @@ func (s *NFTIndexerServer) SetTokenPending(c *gin.Context) {
 	}
 	log.WithField("pendingTx", reqParams.PendingTx).Debug("a pending account token is added")
 
-	c.JSON(http.StatusOK, 1)
+	c.JSON(http.StatusOK, gin.H{
+		"ok": 1,
+	})
 }
 
 func (s *NFTIndexerServer) GetAccountNFTs(c *gin.Context) {
