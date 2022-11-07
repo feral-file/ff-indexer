@@ -94,3 +94,17 @@ func TestGetArtworkMIMEType(t *testing.T) {
 
 	assert.Equal(t, mimeType, "image/jpeg")
 }
+
+func TestHugeAmount(t *testing.T) {
+	tc := New("")
+
+	accountTokenTime, err := time.Parse(time.RFC3339, "2022-10-01T09:00:00Z")
+	assert.NoError(t, err)
+
+	_, err = tc.RetrieveTokens("tz1LiKcgzMA8E75vHtrr3wLk5Sx7r3GyMDNe", accountTokenTime, 0)
+	assert.NoError(t, err)
+
+	token, err := tc.GetContractToken("KT1F8gkt9o4a2DKwHVsZv9akrF7ZbaYBHpMy", "0")
+	assert.NoError(t, err)
+	assert.Equal(t, int64(token.TotalSupply), int64(-1))
+}

@@ -11,8 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bitmark-inc/nft-indexer/traceutils"
 	"github.com/sirupsen/logrus"
+
+	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
 
 var ErrTooManyRequest = fmt.Errorf("too many requests")
@@ -23,6 +24,8 @@ type TZKT struct {
 
 	client *http.Client
 }
+
+type NullableInt int64
 
 func New(network string) *TZKT {
 	endpoint := "api.mainnet.tzkt.io"
@@ -52,6 +55,21 @@ type FileFormat struct {
 }
 
 type FileFormats []FileFormat
+
+func (t *NullableInt) UnmarshalJSON(data []byte) error {
+	var num int64
+
+	err := json.Unmarshal(data, &num)
+	if err != nil {
+		*t = NullableInt(-1)
+
+		return nil
+	}
+
+	*t = NullableInt(num)
+
+	return nil
+}
 
 func (f *FileFormats) UnmarshalJSON(data []byte) error {
 	type formats FileFormats
@@ -136,15 +154,15 @@ type Token struct {
 	Contract    Account       `json:"contract"`
 	ID          TokenID       `json:"tokenId"`
 	Standard    string        `json:"standard"`
-	TotalSupply int64         `json:"totalSupply,string"`
+	TotalSupply NullableInt   `json:"totalSupply,string"`
 	Timestamp   time.Time     `json:"firstTime"`
 	Metadata    TokenMetadata `json:"metadata"`
 }
 
 type OwnedToken struct {
-	Token    Token     `json:"token"`
-	Balance  int64     `json:"balance,string"`
-	LastTime time.Time `json:"lastTime"`
+	Token    Token       `json:"token"`
+	Balance  NullableInt `json:"balance,string"`
+	LastTime time.Time   `json:"lastTime"`
 }
 
 type TokenMetadata struct {

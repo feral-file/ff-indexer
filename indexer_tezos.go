@@ -54,7 +54,7 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 	tokenUpdates := make([]AssetUpdates, 0, len(ownedTokens))
 
 	for _, t := range ownedTokens {
-		update, err := e.indexTezosToken(ctx, t.Token, owner, t.Balance)
+		update, err := e.indexTezosToken(ctx, t.Token, owner, int64(t.Balance))
 		if err != nil {
 			log.WithError(err).Error("fail to index a tezos token")
 			continue

@@ -154,7 +154,7 @@ func (detail *AssetMetadataDetail) FromTZKT(t tzkt.Token) {
 		detail.ArtistURL = fmt.Sprintf("https://objkt.com/profile/%s", t.Metadata.Creators[0])
 	}
 
-	detail.MaxEdition = t.TotalSupply
+	detail.MaxEdition = int64(t.TotalSupply)
 
 	var optimizedFileSize = 0
 	var optimizedDisplayURI string
