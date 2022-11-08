@@ -37,6 +37,10 @@ func TokenIndexID(blockchainType, contractAddress, id string) string {
 		blockchainAlias = "undefined"
 	}
 
+	if blockchainType == EthereumBlockchain {
+		contractAddress = EthereumChecksumAddress(contractAddress)
+	}
+
 	return fmt.Sprintf("%s-%s-%s", blockchainAlias, contractAddress, id)
 }
 
