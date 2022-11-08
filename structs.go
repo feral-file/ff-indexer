@@ -38,6 +38,7 @@ type BaseTokenInfo struct {
 type Token struct {
 	BaseTokenInfo   `bson:",inline"` // the latest token info
 	Edition         int64            `json:"edition" bson:"edition"`
+	EditionName     string           `json:"editionName" bson:"editionName"`
 	MintAt          time.Time        `json:"mintedAt" bson:"mintedAt"`
 	Balance         int64            `json:"balance" bson:"-"` // a temporarily state of balance for a specific owner
 	Owner           string           `json:"owner" bson:"owner"`
