@@ -128,7 +128,7 @@ func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, owner str
 		return false, err
 	}
 
-	if err := w.indexTezosAccountTokens(ctx, owner, accountTokens); err != nil {
+	if err := w.IndexTezosAccountTokens(ctx, owner, accountTokens); err != nil {
 		return false, err
 	}
 
@@ -172,8 +172,8 @@ func (w *NFTIndexerWorker) indexTezosAccount(ctx context.Context, owner string, 
 	return w.indexerStore.IndexAccount(ctx, account)
 }
 
-// indexTezosAccountTokens saves tezos account tokens data into indexer's storage
-func (w *NFTIndexerWorker) indexTezosAccountTokens(ctx context.Context, owner string, accountTokens []indexer.AccountToken) error {
+// IndexTezosAccountTokens saves tezos account tokens data into indexer's storage
+func (w *NFTIndexerWorker) IndexTezosAccountTokens(ctx context.Context, owner string, accountTokens []indexer.AccountToken) error {
 	return w.indexerStore.IndexAccountTokens(ctx, owner, accountTokens)
 }
 

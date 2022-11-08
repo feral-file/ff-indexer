@@ -166,6 +166,21 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 		return err
 	}
 
+	accountTokens := []indexer.AccountToken{
+		{
+			BaseTokenInfo:     update.Tokens[0].BaseTokenInfo,
+			IndexID:           update.Tokens[0].IndexID,
+			OwnerAccount:      update.Tokens[0].Owner,
+			Balance:           update.Tokens[0].Balance,
+			LastActivityTime:  update.Tokens[0].LastActivityTime,
+			LastRefreshedTime: update.Tokens[0].LastRefreshedTime,
+		}}
+
+	if err := workflow.ExecuteActivity(ctx, w.IndexTezosAccountTokens, owner, accountTokens).Get(ctx, nil); err != nil {
+		sentry.CaptureException(err)
+		return err
+	}
+
 	if indexPreview {
 		if err := workflow.ExecuteActivity(ctx, w.CacheIPFSArtifactInS3, update.ProjectMetadata.PreviewURL).Get(ctx, nil); err != nil {
 			sentry.CaptureException(err)
@@ -195,7 +210,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenanceWorkflow(ctx workflow.Context, 
 
 	err := workflow.ExecuteActivity(ctx, w.RefreshTokenProvenance, indexIDs, delay).Get(ctx, nil)
 	if err != nil {
-		log.Error("fail to refresh procenance for indexIDs", zap.Any("indexIDs", indexIDs))
+		log.Error("fail to refresh provenance for indexIDs", zap.Any("indexIDs", indexIDs))
 	}
 
 	return err

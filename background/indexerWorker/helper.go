@@ -88,7 +88,7 @@ func StartUpdateAccountTokensWorkflow(c context.Context, client *cadence.Cadence
 
 	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.UpdateAccountTokensWorkflow, delay)
 	if err != nil {
-		log.WithError(err).Error("fail to start refreshing provenance workflow")
+		log.WithError(err).Error("fail to start updating account token workflow")
 	} else {
 		log.WithField("workflow_id", workflow.ID).Debug("start workflow for updating pending account tokens")
 	}
