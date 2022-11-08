@@ -159,15 +159,16 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 			token.IndexID = TokenIndexID(token.Blockchain, token.ContractAddress, token.ID)
 		}
 
+		if assetUpdates.Source == SourceFeralFile {
+			token.Source = SourceFeralFile
+		}
+
 		tokenResult := s.tokenCollection.FindOne(ctx, bson.M{"indexID": token.IndexID})
 		if err := tokenResult.Err(); err != nil {
 			if err == mongo.ErrNoDocuments {
 				// If a token is not found, insert a new token
 				logrus.WithField("token_id", token.ID).Warn("token is not found")
 
-				if assetUpdates.Source == SourceFeralFile {
-					token.Source = SourceFeralFile
-				}
 				token.LastActivityTime = token.MintAt // set LastActivityTime to default token minted time
 				token.OwnersArray = []string{token.Owner}
 				_, err := s.tokenCollection.InsertOne(ctx, token)
@@ -198,6 +199,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		updateSet := bson.M{}
 		if !(currentToken.Source == SourceFeralFile && assetUpdates.Source != SourceFeralFile) {
 			updateSet["fungible"] = token.Fungible
+			updateSet["source"] = token.Source
 			updateSet["assetID"] = id
 			updateSet["editionName"] = token.EditionName
 			currentToken.Fungible = token.Fungible
