@@ -2,6 +2,8 @@ package indexer
 
 import (
 	"context"
+	"github.com/bitmark-inc/nft-indexer/externals/objkt"
+	"strings"
 	"testing"
 	"time"
 
@@ -36,4 +38,11 @@ func TestIndexTezosTokenOwnersFT(t *testing.T) {
 	owners, err := engine.IndexTezosTokenOwners(context.Background(), "KT1LjmAdYQCLBjwv4S2oFkEzyHVkomAf5MrW", "24216")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, owners)
+}
+
+func TestIndexTezosToken(t *testing.T) {
+	engine := New("", nil, tzkt.New(""), nil, objkt.New("https://data.objkt.com/v3/graphql"))
+	assetUpdates, err := engine.IndexTezosToken(context.Background(), "tz1TQcXkpNSFoQHX86WuNmTqJmwDwg2cAjhx", "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton", "3659")
+	assert.NoError(t, err)
+	assert.Equal(t, strings.Contains(assetUpdates.ProjectMetadata.PreviewURL, "https://assets.objkt.media/file/assets-003/"), true)
 }
