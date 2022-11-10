@@ -82,7 +82,7 @@ func main() {
 	activity.Register(worker.RefreshTokenProvenance)
 
 	// index account tokens
-	activity.Register(worker.IndexTezosAccountTokens)
+	activity.Register(worker.IndexAccountTokens)
 
 	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)
 	workerLogger := cadence.BuildCadenceLogger(logLevel)

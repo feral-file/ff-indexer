@@ -176,7 +176,7 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 			LastRefreshedTime: update.Tokens[0].LastRefreshedTime,
 		}}
 
-	if err := workflow.ExecuteActivity(ctx, w.IndexTezosAccountTokens, owner, accountTokens).Get(ctx, nil); err != nil {
+	if err := workflow.ExecuteActivity(ctx, w.IndexAccountTokens, owner, accountTokens).Get(ctx, nil); err != nil {
 		sentry.CaptureException(err)
 		return err
 	}
