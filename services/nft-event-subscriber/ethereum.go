@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"math/big"
+	"time"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
@@ -19,19 +20,21 @@ import (
 func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 	s.ethLogChan = make(chan types.Log, 100)
 
-	subscription, err := s.wsClient.SubscribeFilterLogs(ctx, goethereum.FilterQuery{Topics: [][]common.Hash{
-		{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")}, // transfer event
-	}}, s.ethLogChan)
-	if err != nil {
-		return err
-	}
-
-	s.ethSubscription = &subscription
-
 	go func() {
-		err := <-subscription.Err()
-		logrus.WithError(err).Error("subscription failed")
-		close(s.ethLogChan)
+		for {
+			subscription, err := s.wsClient.SubscribeFilterLogs(ctx, goethereum.FilterQuery{Topics: [][]common.Hash{
+				{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")}, // transfer event
+			}}, s.ethLogChan)
+			if err != nil {
+				logrus.WithError(err).Error("fail to start subscription connection")
+				time.Sleep(time.Second)
+				continue
+			}
+
+			s.ethSubscription = &subscription
+			err = <-subscription.Err()
+			logrus.WithError(err).Error("subscription stopped with failure")
+		}
 	}()
 
 	logrus.Info("start watching blockchain events")
@@ -74,11 +77,11 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 
 				if toAddress == indexer.EthereumZeroAddress {
 					if err := s.feedServer.SendBurn(indexer.EthereumBlockchain, contractAddress, tokenIDHash.Big().Text(10)); err != nil {
-						logrus.WithError(err).Error("fail to push event to feed server")
+						logrus.WithError(err).Debug("fail to push event to feed server")
 					}
 				} else {
 					if err := s.feedServer.SendEvent(indexer.EthereumBlockchain, contractAddress, tokenIDHash.Big().Text(10), toAddress, mintType, viper.GetString("network.ethereum") == "testnet"); err != nil {
-						logrus.WithError(err).Error("fail to push event to feed server")
+						logrus.WithError(err).Debug("fail to push event to feed server")
 					}
 				}
 
