@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"net/url"
 	"time"
 
@@ -37,10 +38,6 @@ func (e *IndexEngine) GetTezosTokenByOwner(ctx context.Context, owner string, la
 	return tokens, nil
 }
 
-func (e *IndexEngine) PrepareTezosTokenFullData(ctx context.Context, token tzkt.Token, owner string, balance int64) (*AssetUpdates, error) {
-	return e.indexTezosToken(ctx, token, owner, balance)
-}
-
 // IndexTezosTokenByOwner indexes all tokens owned by a specific tezos address
 func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, lastTime time.Time, offset int) ([]AssetUpdates, time.Time, error) {
 	var newLastTime = time.Time{}
@@ -54,7 +51,12 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 	tokenUpdates := make([]AssetUpdates, 0, len(ownedTokens))
 
 	for _, t := range ownedTokens {
-		update, err := e.indexTezosToken(ctx, t.Token, owner, int64(t.Balance))
+		objktToken, err := e.objkt.GetObjectToken(t.Token.Contract.Address, t.Token.ID.Int.String())
+		if err != nil {
+			return nil, newLastTime, err
+		}
+
+		update, err := e.indexTezosToken(ctx, t.Token, objktToken, owner, int64(t.Balance))
 		if err != nil {
 			log.WithError(err).Error("fail to index a tezos token")
 			continue
@@ -74,7 +76,12 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 
 // IndexTezosToken indexes a Tezos token with a specific contract and ID
 func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, tokenID string) (*AssetUpdates, error) {
-	t, err := e.tzkt.GetContractToken(contract, tokenID)
+	tzktToken, err := e.tzkt.GetContractToken(contract, tokenID)
+	if err != nil {
+		return nil, err
+	}
+
+	objktToken, err := e.objkt.GetObjectToken(contract, tokenID)
 	if err != nil {
 		return nil, err
 	}
@@ -84,32 +91,27 @@ func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, toke
 		return nil, err
 	}
 
-	return e.indexTezosToken(ctx, t, owner, balance)
+	return e.indexTezosToken(ctx, tzktToken, objktToken, owner, balance)
 }
 
 // indexTezosToken prepares indexing data for a tezos token using the
 // source API token object. It currently uses token objects from tzkt api
-func (e *IndexEngine) indexTezosToken(ctx context.Context, t tzkt.Token, owner string, balance int64) (*AssetUpdates, error) {
-	log.WithField("token", t).Debug("index tezos token")
+func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token, objktToken objkt.Token, owner string, balance int64) (*AssetUpdates, error) {
+	log.WithField("token", tzktToken).Debug("index tezos token")
 
-	t, err := e.tzkt.GetContractToken(t.Contract.Address, t.ID.String())
-	if err != nil {
-		log.WithError(err).Error("can not index token: fail to get metadata for the token")
-		return nil, err
-	}
-
-	assetIDBytes := sha3.Sum256([]byte(fmt.Sprintf("%s-%s", t.Contract.Address, t.ID.String())))
+	assetIDBytes := sha3.Sum256([]byte(fmt.Sprintf("%s-%s", tzktToken.Contract.Address, tzktToken.ID.String())))
 	assetID := hex.EncodeToString(assetIDBytes[:])
 
 	metadataDetail := NewAssetMetadataDetail(assetID)
-	metadataDetail.FromTZKT(t)
+	metadataDetail.FromTZKT(tzktToken)
+	metadataDetail.FromObjkt(objktToken)
 
 	tokenDetail := TokenDetail{
-		MintedAt: t.Timestamp,
+		MintedAt: tzktToken.Timestamp,
 	}
 
 	if e.environment != "development" {
-		switch t.Contract.Address {
+		switch tzktToken.Contract.Address {
 		case KALAMContractAddress, TezDaoContractAddress, TezosDNSContractAddress:
 			return nil, nil
 
@@ -118,12 +120,12 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, t tzkt.Token, owner s
 				MarketplaceProfile{
 					"fxhash",
 					"https://www.fxhash.xyz",
-					fmt.Sprintf("https://www.fxhash.xyz/gentk/%s", t.ID.String()),
+					fmt.Sprintf("https://www.fxhash.xyz/gentk/%s", tzktToken.ID.String()),
 				},
 			)
 			metadataDetail.SetMedium(MediumSoftware)
 
-			if detail, err := e.fxhash.GetObjectDetail(ctx, t.ID.Int); err != nil {
+			if detail, err := e.fxhash.GetObjectDetail(ctx, tzktToken.ID.Int); err != nil {
 				log.WithError(err).Error("fail to get token detail from fxhash")
 			} else {
 				metadataDetail.FromFxhashObject(detail)
@@ -133,7 +135,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, t tzkt.Token, owner s
 		case VersumContractAddress:
 			tokenDetail.Fungible = true
 			metadataDetail.SetMarketplace(MarketplaceProfile{"versum", "https://versum.xyz",
-				fmt.Sprintf("https://versum.xyz/token/versum/%s", t.ID.String())},
+				fmt.Sprintf("https://versum.xyz/token/versum/%s", tzktToken.ID.String())},
 			)
 
 			metadataDetail.ArtistURL = fmt.Sprintf("https://versum.xyz/user/%s", metadataDetail.ArtistName)
@@ -142,21 +144,21 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, t tzkt.Token, owner s
 			tokenDetail.Fungible = true
 			// hicetnunc is down. We now fallback the source url and asset url to objkt.com
 			metadataDetail.SetMarketplace(MarketplaceProfile{"hic et nunc", "https://objkt.com",
-				fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract.Address, t.ID.String())},
+				fmt.Sprintf("https://objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())},
 			)
 		default:
 			tokenDetail.Fungible = true
 			// fallback marketplace
 			metadataDetail.SetMarketplace(MarketplaceProfile{"unknown", "https://objkt.com",
-				fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract.Address, t.ID.String())},
+				fmt.Sprintf("https://objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())},
 			)
 
-			if t.Metadata.Symbol == "OBJKTCOM" {
+			if tzktToken.Metadata.Symbol == "OBJKTCOM" {
 				metadataDetail.SetMarketplace(MarketplaceProfile{"objkt", "https://objkt.com",
-					fmt.Sprintf("https://objkt.com/asset/%s/%s", t.Contract.Address, t.ID.String())},
+					fmt.Sprintf("https://objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())},
 				)
 			}
-			// if detail, err := e.objkt.GetObjktDetailed(ctx, t.ID.Text(10), t.Contract.Address); err != nil {
+			// if detail, err := e.objkt.GetObjktDetailed(ctx, tzktToken.ID.Text(10), tzktToken.Contract.Address); err != nil {
 			// 	log.WithError(err).Error("fail to get token detail from objkt")
 			// } else {
 
@@ -196,13 +198,13 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, t tzkt.Token, owner s
 		Tokens: []Token{
 			{
 				BaseTokenInfo: BaseTokenInfo{
-					ID:              t.ID.String(),
+					ID:              tzktToken.ID.String(),
 					Blockchain:      TezosBlockchain,
 					Fungible:        tokenDetail.Fungible,
-					ContractType:    t.Standard,
-					ContractAddress: t.Contract.Address,
+					ContractType:    tzktToken.Standard,
+					ContractAddress: tzktToken.Contract.Address,
 				},
-				IndexID:           TokenIndexID(TezosBlockchain, t.Contract.Address, t.ID.String()),
+				IndexID:           TokenIndexID(TezosBlockchain, tzktToken.Contract.Address, tzktToken.ID.String()),
 				Owner:             owner,
 				Balance:           balance,
 				Owners:            map[string]int64{owner: balance},
@@ -214,7 +216,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, t tzkt.Token, owner s
 	}
 
 	log.WithField("blockchain", TezosBlockchain).
-		WithField("id", TokenIndexID(TezosBlockchain, t.Contract.Address, t.ID.String())).
+		WithField("id", TokenIndexID(TezosBlockchain, tzktToken.Contract.Address, tzktToken.ID.String())).
 		WithField("tokenUpdate", tokenUpdate).
 		Trace("asset updating data prepared")
 
