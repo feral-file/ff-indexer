@@ -96,6 +96,12 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 		if token.Fungible {
 			indexerWorker.StartRefreshTokenOwnershipWorkflow(c, &api.subscriber.Worker, "subscriber", indexID, 0)
 		} else {
+			if err := api.subscriber.UpdateOwner(c, indexID, req.To, req.Timestamp); err != nil {
+				logrus.
+					WithField("indexID", indexID).WithError(err).
+					WithField("from", req.From).WithField("to", req.To).
+					Error("fail to update the token ownership")
+			}
 			indexerWorker.StartRefreshTokenProvenanceWorkflow(c, &api.subscriber.Worker, "subscriber", indexID, 0)
 		}
 	} else {

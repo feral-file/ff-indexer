@@ -425,8 +425,7 @@ func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParam
 	return tokens, nil
 }
 
-// FIXME: update using multiple owner pattern
-// UpdateOwner updates owner for a specific token (single owner)
+// UpdateOwner updates owner for a specific non-fungible token
 func (s *MongodbIndexerStore) UpdateOwner(ctx context.Context, indexID string, owner string, updatedAt time.Time) error {
 	if owner == "" {
 		logrus.WithField("indexID", indexID).Warn("ignore update empty owner")
@@ -436,11 +435,14 @@ func (s *MongodbIndexerStore) UpdateOwner(ctx context.Context, indexID string, o
 	// update provenance only for non-burned tokens
 	_, err := s.tokenCollection.UpdateOne(ctx, bson.M{
 		"indexID":          indexID,
+		"fungible":         false,
 		"burned":           bson.M{"$ne": true},
-		"lastActivityTime": bson.M{"$lte": updatedAt},
+		"lastActivityTime": bson.M{"$lt": updatedAt},
 	}, bson.M{
 		"$set": bson.M{
 			"owner":             owner,
+			"owners":            map[string]int64{owner: 1},
+			"ownersArray":       []string{owner},
 			"lastActivityTime":  updatedAt,
 			"lastRefreshedTime": time.Now(),
 		},

@@ -140,6 +140,13 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 						TxURL:       indexer.TxURL(indexer.EthereumBlockchain, s.environment, txID),
 					}); err != nil {
 						logrus.WithError(err).Warn("unable to push provenance, will trigger a full provenance refresh")
+						if err := s.UpdateOwner(ctx, indexID, toAddress, timestamp); err != nil {
+							logrus.
+								WithField("indexID", indexID).WithError(err).
+								WithField("from", fromAddress).WithField("to", toAddress).
+								Error("fail to update the token owner for the event")
+						}
+
 						go indexerWorker.StartRefreshTokenProvenanceWorkflow(ctx, &s.Worker, "subscriber", indexID, 0)
 					}
 				}
