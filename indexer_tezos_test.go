@@ -42,7 +42,8 @@ func TestIndexTezosTokenOwnersFT(t *testing.T) {
 
 func TestIndexTezosToken(t *testing.T) {
 	engine := New("", nil, tzkt.New(""), nil, objkt.New("https://data.objkt.com/v3/graphql"))
-	assetUpdates, err := engine.IndexTezosToken(context.Background(), "tz1TQcXkpNSFoQHX86WuNmTqJmwDwg2cAjhx", "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton", "3659")
+	assetUpdates, err := engine.IndexTezosToken(context.Background(), "tz1gCnW1fBa8ghpwg4yAWnAdpcEdFQey6dMo", "KT1Nnyq1nzC5sCNHpXUydBvqP2JyaR6gkxY9", "0")
 	assert.NoError(t, err)
 	assert.Equal(t, strings.Contains(assetUpdates.ProjectMetadata.PreviewURL, "https://assets.objkt.media/file/assets-003/"), true)
+	assert.Equal(t, assetUpdates.ProjectMetadata.Title == "", false)
 }
