@@ -2,7 +2,6 @@ package objkt
 
 import (
 	"context"
-	"errors"
 	"github.com/hasura/go-graphql-client"
 	"net/http"
 	"time"
@@ -31,7 +30,13 @@ type SliceToken []struct {
 }
 
 type Token struct {
-	Creators []Creators
+	Name          string
+	Description   string
+	Mime          string
+	Display_uri   string
+	Thumbnail_uri string
+	Artifact_uri  string
+	Creators      []Creators
 }
 
 type Creators struct {
@@ -65,7 +70,7 @@ func (g *ObjktAPI) GetObjectToken(contract string, token_id string) (Token, erro
 
 	err := g.Client.Query(context.Background(), &query, variables)
 	if err != nil {
-		return Token{}, errors.New("can not get Objkt Token")
+		return Token{}, err
 	}
 
 	return query.SliceToken[0].Token, nil

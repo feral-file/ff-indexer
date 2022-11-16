@@ -138,26 +138,34 @@ func (detail *AssetMetadataDetail) SetMedium(m Medium) {
 
 // FromTZKT reads asset detail from tzkt API object
 func (detail *AssetMetadataDetail) FromTZKT(t tzkt.Token) {
+	detail.MaxEdition = int64(t.TotalSupply)
+
+	detail.UpdateMetadataFromTZKT(t.Metadata)
+}
+
+// UpdateMetadataFromTZKT update TZKT token metadata to AssetMetadataDetail
+func (detail *AssetMetadataDetail) UpdateMetadataFromTZKT(md tzkt.TokenMetadata) {
 	var mimeType string
-	for _, f := range t.Metadata.Formats {
-		if f.URI == t.Metadata.ArtifactURI {
+
+	for _, f := range md.Formats {
+		if f.URI == md.ArtifactURI {
 			mimeType = f.MIMEType
 			break
 		}
 	}
 
-	detail.Name = t.Metadata.Name
-	detail.Description = t.Metadata.Description
+	detail.Name = md.Name
+	detail.Description = md.Description
 	detail.MIMEType = mimeType
 	detail.Medium = mediumByMIMEType(mimeType)
 
-	detail.MaxEdition = int64(t.TotalSupply)
-
+	var optimizedFileSize = 0
 	var optimizedDisplayURI string
 
-	for _, format := range t.Metadata.Formats {
-		if strings.Contains(format.MIMEType, "image") {
+	for _, format := range md.Formats {
+		if strings.Contains(format.MIMEType, "image") && format.FileSize > optimizedFileSize {
 			optimizedDisplayURI = format.URI
+			optimizedFileSize = format.FileSize
 		}
 	}
 
@@ -165,16 +173,16 @@ func (detail *AssetMetadataDetail) FromTZKT(t tzkt.Token) {
 
 	if optimizedDisplayURI != "" {
 		displayURI = optimizedDisplayURI
-	} else if t.Metadata.DisplayURI != "" {
-		displayURI = t.Metadata.DisplayURI
-	} else if t.Metadata.ThumbnailURI != "" {
-		displayURI = t.Metadata.ThumbnailURI
+	} else if md.DisplayURI != "" {
+		displayURI = md.DisplayURI
+	} else if md.ThumbnailURI != "" {
+		displayURI = md.ThumbnailURI
 	} else {
 		displayURI = DEFAULT_DISPLAY_URI
 	}
 
-	if t.Metadata.ArtifactURI != "" {
-		previewURI = t.Metadata.ArtifactURI
+	if md.ArtifactURI != "" {
+		previewURI = md.ArtifactURI
 	} else {
 		previewURI = displayURI
 	}
@@ -264,6 +272,8 @@ func (e *IndexEngine) GetTransactionDetailsByPendingTx(pendingTx string) ([]tzkt
 
 // FromObjkt reads asset detail from Objkt API object
 func (d *AssetMetadataDetail) FromObjkt(objktToken objkt.Token) {
+	d.UpdateMetadataFromObjkt(objktToken)
+
 	for _, assetType := range ObjktCDNTypes {
 		d.ReplaceIPFSURIByObjktCDNURI(assetType)
 	}
@@ -273,7 +283,32 @@ func (d *AssetMetadataDetail) FromObjkt(objktToken objkt.Token) {
 		d.ArtistName = objktToken.Creators[0].Holder.Alias
 		d.ArtistURL = getArtistURL(objktToken.Creators[0].Holder)
 	}
+}
 
+// UpdateMetadataFromObjkt update Objkt metadata to AssetMetadataDetail
+func (d *AssetMetadataDetail) UpdateMetadataFromObjkt(token objkt.Token) {
+	if d.Name == "" && d.Description == "" {
+		d.Name = token.Name
+		d.Description = token.Description
+		d.MIMEType = token.Mime
+		d.Medium = mediumByMIMEType(token.Mime)
+
+		if token.Thumbnail_uri != "" {
+			d.DisplayURI = token.Thumbnail_uri
+		} else if token.Display_uri != "" {
+			d.DisplayURI = token.Display_uri
+		} else {
+			d.DisplayURI = DEFAULT_DISPLAY_URI
+		}
+
+		if token.Artifact_uri != "" {
+			d.PreviewURI = token.Artifact_uri
+		} else {
+			d.PreviewURI = DEFAULT_DISPLAY_URI
+		}
+	}
+
+	return
 }
 
 // getArtistURL get social media url of Artist from Objkt api
