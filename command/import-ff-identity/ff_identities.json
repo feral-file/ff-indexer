@@ -1,0 +1,866 @@
+[
+  {
+    "alias": "Vadim Epstein",
+    "tezos": "tz1aeSt6RZPzzKatLNwT2HT4QjJiJAe6PbXC",
+    "bitmark": "a7N3bPnWnjAc56QP85yUUVtzBLWSkewnyTSvHVdz4dHQpYpewd",
+    "ethereum": "0x612440fc7f7dC261610555BBFAe80500BA4f6A81"
+  },
+  {
+    "alias": "Raven Kwok",
+    "tezos": "tz1Nkm18rgBnrhFgfjoFyMrSE9SHECC7M1py",
+    "bitmark": "aYsbxnmq7C4hesfDcicXRkcFb3Pw9fniuk7H3XMKgLVRP5wNcQ",
+    "ethereum": "0x19f695A7E7f63014989e0dd89790094A763BFc15"
+  },
+  {
+    "alias": "Frederik Vanhoutte",
+    "tezos": "tz1gnXkRm3jr44cR7Y3JJkrrf4uxeBMjCbBc",
+    "bitmark": "aNncbvVaLDNTvYq6XW9U9spb2HnbPz3e5vhfeh7a5uqV6ns53v",
+    "ethereum": "0xC3Fd4bE0C748354BC085143C185017BBE076Ee8E"
+  },
+  {
+    "alias": "Auriea Harvey",
+    "tezos": "tz1P5dLS9fTZkRkruK8Rn5pZ8zax9q3qqinG",
+    "bitmark": "awbjKsED2faQuwtykwLQHyD1NSmGQJv6YXaJAefXzxvZh6EZjp",
+    "ethereum": "0xc60854b637A5C27810410cFF85c2b0272cE9bbb8"
+  },
+  {
+    "alias": "John Gerrard",
+    "tezos": "tz1Qb8za81yCaXkKer9rhnx8xoq6b6T1ezqg",
+    "bitmark": "ahzVEE2o3fdeQKVR7KbJhCM3uqXmPo9L6s4vTgFGaczA96bQVJ",
+    "ethereum": "0x71F15dFB042FEE261683DA90712b1D7156134C2a"
+  },
+  {
+    "alias": "Qianqian Ye",
+    "tezos": "tz1XTU66faCKMGGQyofFnRyrKiBC5iE4JftB",
+    "bitmark": "bcVmAX2Ykjy63VNf4PZo8nSe7K83mb2nWUZ2XUerHvQQfp5NNk",
+    "ethereum": "0x9912dfbE3d8DfD9a65d9FDe788CBc3eeA534c142"
+  },
+  {
+    "alias": "Gene Kogan",
+    "tezos": "tz1gC1Z8azoVToKEChNmegCGNiYfiKBacSAu",
+    "bitmark": "axwAaTBPmFMqqjqRY2iigXfsBqa326yDCLf9YC3YXPkDRSJqsD",
+    "ethereum": "0x91b40A519C0180eF28e15DbdD68650E17A0dAf85"
+  },
+  {
+    "alias": "Behnaz Farahi",
+    "tezos": "tz1eMv6SPzxczve3zZFeFqNPprG6VCRhDjXn",
+    "bitmark": "bRn4WzZErkUBC1HjA4XPywTWiDgfctx7hNVFPHFA5a4NzbsK2i",
+    "ethereum": "0xe274b0ae504c5Afcf2D509cE2e51D36d92F69Aa5"
+  },
+  {
+    "alias": "Jakob Kudsk Steensen",
+    "tezos": "tz1ZH9cwkz87kaEzcimco1v1vkBcpS4QXEiC",
+    "bitmark": "bKR7RT5ePKe586jhXRCGhud8wGqtmRiuFCPtJv5XUmBoXNEYfR",
+    "ethereum": "0x0b6B6513bDF656dc3753da281329AF016368685F"
+  },
+  {
+    "alias": "Iannis Bardakos",
+    "tezos": "tz1dSxBQa7q6SbMczowa2co1ocxGS6CkjDNG",
+    "bitmark": "aVfTXAaeMbyhLWRNeFxcaLtJoriEwmTv3jY3aSzhkan5kFn24d",
+    "ethereum": "0x5A0c724C9dae90acb4CB1D3d2fA731D0874dFdbD"
+  },
+  {
+    "alias": "Feral File Publisher",
+    "tezos": "tz1cjeybiRty6pTaUshfoiPEuak7HuVFZsj6",
+    "bitmark": "abM91tkNVb4tKLfQfQV1gBAm7xRrRjNq46zWdaGpWGWXrXvM5e",
+    "ethereum": "0x582A2b168A579f9DdEE44b9783824379598F7Ff8"
+  },
+  {
+    "alias": "Maya Man",
+    "tezos": "tz1MRog7kiZYjGovpq2ReEKpUhVyitbu1ypw",
+    "bitmark": "anu4pQXQEneovWrLzVfXUma5ntm8GMaB8Y8QaW93aDwS8VD3V6",
+    "ethereum": "0x2a4Df6cea873d4E534aECA2bac84B265e5c97d44"
+  },
+  {
+    "alias": "James Merrill",
+    "tezos": "tz1WZvKspHKPbd83hJ5Spu7MsiUcxwa7X4NB",
+    "bitmark": "atp62d2oegd21rws1tNUGLqs3e2efPhLqUJoL8AskmGkKSranb",
+    "ethereum": "0xFDB504AD813d2B8A01ae5F2327252259e297fBE6"
+  },
+  {
+    "alias": "Andrew Benson",
+    "tezos": "tz1ewJ3y8rGkRv9iVh9BSFHmp8sJ4fbtSuhr",
+    "bitmark": "aDNJUTVzn2iJfdLBXwB7EDz3Z8juu5mTqu3kfGR7YT6swn11Ht",
+    "ethereum": "0xb0ecA930411414f438aB4b358f729d6Fb490e805"
+  },
+  {
+    "alias": "ORLAN",
+    "tezos": "tz1LaRQbspm72LAAtEuzCjAVHU31qQsqYrfy",
+    "bitmark": "be18RCXRSQVtVrrQGDt9dYxSZzZF2ZQSakTsfssMEnGXBho8BU",
+    "ethereum": "0x2A2D420D0564DA0BbbB9aa91EAf2dA2c6430a7EB"
+  },
+  {
+    "alias": "Carla Gannis",
+    "tezos": "tz1LXsitxiredShpMKiahK2L3yMBXq1mncKC",
+    "bitmark": "apTBqfHV9QX9mwjxM7qgLfALntU3gdanUu9K3SDSvfmYc5rarb",
+    "ethereum": "0xb06aE9456ee023F70e843b4947Ca8d91Bf6C9721"
+  },
+  {
+    "alias": "LIA",
+    "tezos": "tz1e9z4dga8VBeM4Eyyd9efVsRa6BPskwCGx",
+    "bitmark": "ahUYo4cxtFeG4RUn1nAdEZoBDVkpHPC4zvUej6avZTfGavgj9z",
+    "ethereum": "0xfd0AE0963B83547DEaA2EE45b52F11860da32396"
+  },
+  {
+    "alias": "Émilie Brout & Maxime Marion",
+    "tezos": "tz1do6J9bMMDmxwRnW9QcZaAMhAVDmUxjdsT",
+    "bitmark": "bYLRCjteQgA54SRQKfPeoheTiuLn4RJ6mU53NBtKTWkqYWdhgm",
+    "ethereum": "0x99CC4e4ddb1e89Ee39031611e68Ef835c31C942e"
+  },
+  {
+    "alias": "Matthew D. Gantt",
+    "tezos": "tz1b7o3E6ym2bYyUoqSvLZmiDArgHTSoRoX7",
+    "bitmark": "bDJWZSyY4ggfQX4HnNLodKczEPpssoEBDPMJ7gYxxXyDET2mLn",
+    "ethereum": "0x2F44F2083FC4815b5e85EDBc1Cbd2F7B4e7CdA8e"
+  },
+  {
+    "alias": "Sara Bezovšek",
+    "tezos": "tz1N1D6Gc6Tq6mcBiuMuFv5qzPANDLPboo2b",
+    "bitmark": "aa9rACW8wtxqEsXY5rmTJUgeMoQq1oC2axLedjDStCz8Gzd6Lc",
+    "ethereum": "0x0F87a52B2561479cbA05D1cc83332F2124119045"
+  },
+  {
+    "alias": "Petros Moris",
+    "tezos": "tz1Z4zUzVC5am4BhmXhZgDQsVUeaKikWfD6S",
+    "bitmark": "bt9TZpHWTR8CZo7mUwn2QfokXRaKi3yNG6HQeQudSuzDbp9AHE",
+    "ethereum": "0xC3f2B5Fd508c5D733c9Fd48343b4f4D0A186e45b"
+  },
+  {
+    "alias": "Thierry Fournier",
+    "tezos": "tz1ecHpdHd4RRaZSTukZA6EN8ceGYRwqKbJ9",
+    "bitmark": "amVhtpmud82XgjMD5Cs7RjUjHTk61XeaZQSVaDUMHQUQWMDH4q",
+    "ethereum": "0x83B39Ee3e74119F6817fCAf31ff46a73d1D9c572"
+  },
+  {
+    "alias": "Solimán López",
+    "tezos": "tz1T2uUpUy5R6c15AT1ms1FV7rJVnAxveRQc",
+    "bitmark": "bZqvgX7jV1sG3M1xS4A13QfqntxmFrJU67TD3CQJ9SrW8TzDHY",
+    "ethereum": "0x015D895d68f4F94c445a42AD9c7535ee50acC030"
+  },
+  {
+    "alias": "Antoine Schmitt",
+    "tezos": "tz1b79y54N5PBbjKJZJ1v86WgDU1qQPp5Qow",
+    "bitmark": "be1XJqSPTvCE6sdUU1myiEP3sgoACfVJXMVi8CW4zeGawe8ApR",
+    "ethereum": "0xA80A7352733E6b44D536d041595ea1381DC6AC4A"
+  },
+  {
+    "alias": "Irma Marco",
+    "tezos": "tz1Nf1MdeAuu64gdrQ8xmDEF7baEe8zpBysc",
+    "bitmark": "aXBf8FBWhwWKvE4XjXRoFxF3Z1aANtF4oimXLbpKcUrZ1um4kj",
+    "ethereum": "0x2d9249938193F5F9fC465D8524969E57EA65e4cF"
+  },
+  {
+    "alias": "Joana Moll",
+    "tezos": "tz1XdcJdxrn55xvQwo8yaYkTuo4ZthWkjZbJ",
+    "bitmark": "bYrUKypeTqceDcKmMiazbnCwS4sKajgaLkrgJpAYN7AzWcxcuo",
+    "ethereum": "0x8BBFDd2a540BF495e5EEc0CE7f32dE1b76ec7715"
+  },
+  {
+    "alias": "Skawennati",
+    "tezos": "tz1PcsSV6J5bU48p3cgCugbq8sQCBFh9NNmn",
+    "bitmark": "awsrYe5emJgrF7hvo3VQHnSShkuAFBY3qUgAyXvgKUZgWPbuG6",
+    "ethereum": "0xD9C01B7E5bbF9405F3e49dFB0fCE7fC15D03C02F"
+  },
+  {
+    "alias": "Ilya Shkipin",
+    "tezos": "tz1NoaFQMgNXFPiWA9rTdf6xtxKYZ2WotTWs",
+    "bitmark": "agDz3aEMXd5kfZG6mye6tTrcVthTP8RZNohbGvhp5p6Rr41X95",
+    "ethereum": "0xe72f83A8cF4E4F1B67e340DB1F7cea717B2B17E0"
+  },
+  {
+    "alias": "Rosa Menkman",
+    "tezos": "tz1MGgUp6hrQME7XDXGhLwrHvckSdQSxU3tz",
+    "bitmark": "aMbRHdc4ZKPvn8eqGYJkik1EMco5t5MRiEaHMBcf6Nr9S75RWE",
+    "ethereum": "0x30DF61f931b1596f877E685F3cB571E9e5063598"
+  },
+  {
+    "alias": "Sara Ludy",
+    "tezos": "tz1WceSNDpyCpS2oKvo9LZ4FSbZ9FBk4P1fE",
+    "bitmark": "bqACpHuKJenkzZJUPPiNR5GbESdZFXbB1cTqvb5MAs7xh7BRaA",
+    "ethereum": "0x5f666f4aD91601e464F3d3af6f209686e6950710"
+  },
+  {
+    "alias": "Lev Manovich",
+    "tezos": "tz1SG5KXhLeTo8epJFrYWwgqJo7Jb6r8trfn",
+    "bitmark": "aTZvbpGS3gHasycyAfUckd4BXSGcnmgjnNemgzR4tft4MHtmDu",
+    "ethereum": "0x3b1F4e29E7Cc74aD27994031f77535FA3C351BEC"
+  },
+  {
+    "alias": "ertdfgcvb",
+    "tezos": "tz1hvm6ds3m3Fr3cFxsjuSFgq4F1tWLPK7oo",
+    "bitmark": "bvU4HYvdQmwfq1oSS5Y3LDD5XTsS8Lq6DrJ8LzhkDt7qJpzMrn",
+    "ethereum": "0x805869abd2b650A4c521557C414f118d1a32c346"
+  },
+  {
+    "alias": "Shi Zheng",
+    "tezos": "tz1cJvSa8toeGBGCqx46GeyfYZsStf7FLeax",
+    "bitmark": "bRvn7ZFGCjcRxf9ABJ7dzK9hP5vBT4CMMJZQQp9Giv13J8E2xN",
+    "ethereum": "0x32AD66e811C512d8adfA5597F3fa3261c38AE316"
+  },
+  {
+    "alias": "Martin John Callanan",
+    "tezos": "tz1W5Nxkppw9W9oB1DQXB4ScEKzwBYrmXzMK",
+    "bitmark": "bdxTNoaBL77dJN3HkeLbFMTr81TB59YrqEeRXhcY3znPiLMFUB",
+    "ethereum": "0x47a59C5623E8B47e19e39be5d2FB1770CF6963B2"
+  },
+  {
+    "alias": "Nicolas Sassoon",
+    "tezos": "tz1QH9a63d5r2NP8unL4ZiPACZbrwYhpUfLu",
+    "bitmark": "aDJnBndykUEhuo76Ao1sEAfCoLevXYhkkUVBVA9DigyUgCmkue",
+    "ethereum": "0x534460b9De99622FbF84EEA65aaFe36c534E8482"
+  },
+  {
+    "alias": "Theodoros Giannakis",
+    "tezos": "tz1L2puPfM5ETN5Au8C2REcADWrnka5Tu3qK",
+    "bitmark": "ayHbyg2UmBXaNcv2Jh5myfb8EhEpbjadWMWUBLmR7unm6du5ND",
+    "ethereum": "0x11658A7fCD4963ca2e76364F1B20Dff5B5c6278D"
+  },
+  {
+    "alias": "Whistlegraph",
+    "tezos": "tz1Xbr5QbKe9Wr3xEw5qMh87Xcv53Z1KDk9A",
+    "bitmark": "bGpNQe6gs4wV6zS35QNokXPZdLrWanLGnXruiTZFmt7hLDhvCb",
+    "ethereum": "0xB78C465D6B9520a213525e23119615ABAeF9b769"
+  },
+  {
+    "alias": "Yuma Kishi",
+    "tezos": "tz1fxmMhf4wrnGZtcdxB9eNytAFWNq6KdWh8",
+    "bitmark": "bRe255UYT8NP67Uc3vM81cESqM5ckmkWbgmNBXggBGgLNDWDgW",
+    "ethereum": "0x6E9774D1Dd919e83977BD912D08382344DAfA485"
+  },
+  {
+    "alias": "Jake Elwes",
+    "tezos": "tz1iBnBa1CPtCNqK58NeRrRdpgoUAg6LMtF5",
+    "bitmark": "aYRJPCQRhZNPwY571t2eBK1hrQp1QbjC6oS7wRX92e6sZ8KTJs",
+    "ethereum": "0x2451Ac4FDEd12Ea08BacF9A3267E75C7A1EBFEcA"
+  },
+  {
+    "alias": "Sophie Kahn",
+    "tezos": "tz1M6dMBLKrzdgj9gT249xAxmBYWdhuRnBzw",
+    "bitmark": "a4beqLYWYhPcKLLCeiMr2mfmU6D27R8uRaHFWHK9LKZjt5J6zp",
+    "ethereum": "0xa7F1B5a7f7284C0F85C8104f052B830C8063275A"
+  },
+  {
+    "alias": "Jan St. Werner",
+    "tezos": "tz1ey34KXCkQHmE6YwGpz9mDUjjsEFV3Kuib",
+    "bitmark": "b6hDkT6RLbFiJsijqax2GgSVyzeGM2nrfBtzZvRF6ykwYTAVSH",
+    "ethereum": "0xD1f5193E79F60b25cb74D557Ed89C2101003fCbe"
+  },
+  {
+    "alias": "Dave Whyte",
+    "tezos": "tz1QzgM6RiuFqEfykF5uuaXhhWnNcxzCU9pS",
+    "bitmark": "aXgQDb9fBqvYyWBxgutagEHAF1nVEXezUqdcKbEXhD5h4sgRHP",
+    "ethereum": "0xE247176F7d242904d5Bc24700f65903453b17700"
+  },
+  {
+    "alias": "LaTurbo Avedon",
+    "tezos": "tz1ZJEEatKsJ7Hz6bSHiP4C8bDpUgRgtRMbY",
+    "bitmark": "bT4zxgmitazZ8txVW1W9qa72iYPxAsZ4PJPsb2m8sZEGsqGsxY",
+    "ethereum": "0x5a5874B7f7C6C1454E47920BE8cd77458081615b"
+  },
+  {
+    "alias": "John F. Simon Jr.",
+    "tezos": "tz1YampMMZTFimQVHFASvE7bCW3A26xPfYP9",
+    "bitmark": "b7jSigRGpoTyeSp2jBUog2B2XX8eQ54y3QfBvu2pLBntnf94e8",
+    "ethereum": "0x267d3F857082fE0C84f4Fa354a717E11382dC440"
+  },
+  {
+    "alias": "Famous New Media Artist Jeremy Bailey",
+    "tezos": "tz1Lmfz5iwtJZvydLWZYk6L67p2XU9jNRd8T",
+    "bitmark": "bFwtF5UniRZDF7X7zTwAfP5U5w4md4S9f3AJ3SPUXqKnTvM7rK",
+    "ethereum": "0xC0a6b18e87C80e5073732764BcfA56743aF5ff0B"
+  },
+  {
+    "alias": "Mal Som",
+    "tezos": "tz1gGg8NmB74ZGP87fgBzSiyh9BQzQBRhaNp",
+    "bitmark": "bvR78JL8V8eFhGyj4ad6Fx6rwmHUVs2wNHGiMqWShsYbdRmfQD",
+    "ethereum": "0x061E1C5461d941CF29c9bf4EF7c90990b3965F0c"
+  },
+  {
+    "alias": "Matthew Plummer-Fernández",
+    "tezos": "tz1XCrTB1trppAA6TGV6awAcynkMLRt4HqvF",
+    "bitmark": "bYXeDTiuBfXhkyjXteNRVFkLpAN5dXhK9AkBM4cRP8UNBYPJBN",
+    "ethereum": "0x7c40FbB85D170CDF0B80d8640676C0714b132D34"
+  },
+  {
+    "alias": "Refik Anadol",
+    "tezos": "tz1W7uqWmuxEziRswfKZNEk5B2xAJ97bNLCK",
+    "bitmark": "bh67uosVu5TsTFRYDbZ9EaJCWXC8E2TBuP2fNxV1ut4k8vpq6P",
+    "ethereum": "0xdcca3fb9bE6028CE512b09ee464Eb78e04500C60"
+  },
+  {
+    "alias": "Mitchell F. Chan",
+    "tezos": "tz1itYpbiaLLXBHQhzugsrFXBRNC4Ed1oES9",
+    "bitmark": "bnophRXzRucXdv2UnKc4bACV74eTJhvB3sY19QWCumSKXtEAXj",
+    "ethereum": "0x63ff78eff5CF6a1eF2d275182C1e4681f07578C4"
+  },
+  {
+    "alias": "Guido Segni",
+    "tezos": "tz1e51ZxkUjCeWURHGDsUKoYQbmMBQoUQF5n",
+    "bitmark": "bYwwRBNt8ZU1T5Aj4qM6V31h7etazZLyMFBpyKZAm2BoG9XPrT",
+    "ethereum": "0xcA972669B318Fd3fAa9006E5dc6428c0E9d295C3"
+  },
+  {
+    "alias": "Primavera De Filippi & Wolfgang Natlacen",
+    "tezos": "tz1bcFw6qLYc8qDa5gvTQxJsbgphK5VbXbqq",
+    "bitmark": "aq96knU1TiopGnyj75kSA3Qw4Uyrf4C1sSEC3Y9FMrpoX5TQLT",
+    "ethereum": "0x154Da5F0eC4C9E44F8F4b9704D7c3e7b4Caf1693"
+  },
+  {
+    "alias": "Ix Shells",
+    "tezos": "tz1VVifqXHuq122X4s7njgs7ez15N8zAcGyT",
+    "bitmark": "as4N6vNfL4kjRjj2HvbLuCwLsdi1j2nMrQkKqMRFExSWHm2utk",
+    "ethereum": "0x613ffD7dc8bc2220F8cC578179a65c95847671bd"
+  },
+  {
+    "alias": "Pinar Yoldas",
+    "tezos": "tz1VXGSgrjAUDHJzW6KxJ7ZfkPnfFF6ci9Mz",
+    "bitmark": "bqNJWCZQpK5Dos6Tvf4dkGGAqZTKXmPTfutSGaBBaWboT5XvG6",
+    "ethereum": "0x7a1355b13B5492AB1b400497A50c4222831602a3"
+  },
+  {
+    "alias": "Zach Blas",
+    "tezos": "tz1aTA7duCEsuYKJmfjY9mVp885fFq9iCtV7",
+    "bitmark": "b6nkGP1VrFGAxNRGHgFxZoih8E6WkyXsA5Suk4T4RXvSzndfHE",
+    "ethereum": "0x6BFC9684bfaE8f02127330B201DFc0F729190773"
+  },
+  {
+    "alias": "p1xelfool",
+    "tezos": "tz1fZ6p2qduG4ZQ8a6B5D66Qy9yh9g2rkvpf",
+    "bitmark": "aoaW7ZH3R4LYr5VuiZgXchdnQcoAgapTfssDU7LQCk8QsYMFyk",
+    "ethereum": "0x240A4283b5c2B77ca054741B717450bB4c5e0d5C"
+  },
+  {
+    "alias": "Jared S Tarbell",
+    "tezos": "tz1NAYnjRNPiKjypME3wjZadCh3JojeJCaeL",
+    "bitmark": "aXCTczBTzuZKNMBqqwK3mZrky1uk6WZsHoFh6FqshLwMGuXoBw",
+    "ethereum": "0x3a75A29189f4E5F0bF76Ac54a65CCeCe9c82D813"
+  },
+  {
+    "alias": "Aleksandra Jovanić",
+    "tezos": "tz1UyphXqweLyC3hxpjHd1Y2xiXZ1r6aF5jz",
+    "bitmark": "bKBF2Yy71ntgbBeXyt3EkBwLNfLs8rLDJW9mxGhfJX9nnJGT6Y",
+    "ethereum": "0x13bA5fD80483E4cD36c46A02D2Dc676fa9367F05"
+  },
+  {
+    "alias": "Scott Eaton",
+    "tezos": "tz1cjbaFfVNHwfQv7p2SB68LiiZ31L5hj5yY",
+    "bitmark": "ainxgTpGiVd4CnSB4WWDV1C6eLRZDS1AVttprvNYA9GLBEmFgw",
+    "ethereum": "0x5747fEC5478F5a4f1812399D611A6d18267b3Bea"
+  },
+  {
+    "alias": "Terence Broad",
+    "tezos": "tz1csXhRWiMbb2pJKVjMjUNhVseFYbk41b59",
+    "bitmark": "bsUZkjiL16uRqvPDaVxoHNuGHDJoceufc6QsWhFk8bdTnp9pr9",
+    "ethereum": "0xf9f292614e7D33855E65D38f7931973c33B87196"
+  },
+  {
+    "alias": "Morehshin Allahyari",
+    "tezos": "tz1XWrDe3wJM8pyHu9qM56QZuUqM8QsoGEbF",
+    "bitmark": "aDZyD3gUNnLD5ViVVqGq3MPV2EmaxBjijYbaf87Ru6KYu1xNcD",
+    "ethereum": "0x72F094B508Fa7f1e7Cc9Ce1dD2a4B399470A1c9e"
+  },
+  {
+    "alias": "Kim Laughton",
+    "tezos": "tz1Uhd2zeXKEDsx7A74a9zPswwVwVgTsGrKU",
+    "bitmark": "beYuroEPfq414dQ5bWXVgmC5ut3mKYgBSNXazdbVtW7FTrVKiQ",
+    "ethereum": "0x64d372d36F2101F0824A32A76A7f6A4506a3a695"
+  },
+  {
+    "alias": "Wiena Lin",
+    "tezos": "tz1cZbfLQQFWQyzjeAWFwGJJegRUDbyPNGgF",
+    "bitmark": "bvbP1vSNhAzvi2LizdoUDH5sjD4QCJNAk5FVsJutNeG42bSUHd",
+    "ethereum": "0xe0aF16e566c33A7509D257070766A922Abe68cbC"
+  },
+  {
+    "alias": "Danielle Brathwaite-Shirley",
+    "tezos": "tz1bpQ9m5rKASrVDX5jmQbdjiZw6xjFSXyt5",
+    "bitmark": "b5vFew7f1qY8APu3DXBStUtAmttrWHccoaUXmMzXTeASMU3aaT",
+    "ethereum": "0x7bc72780549602ade4a7766308eE05bD1342925D"
+  },
+  {
+    "alias": "Martina Menegon",
+    "tezos": "tz1hwsH66VjkWGxC129iqKfXzFQWhtNTtBG8",
+    "bitmark": "ajDw4fe4UtjY26tyh8kFBJfFVBGzEgHdwsetFYWNzi7HBkGdxc",
+    "ethereum": "0x8853265881b3FE948b7177AcDB8bace8a697Bb39"
+  },
+  {
+    "alias": "Laleh Mehran",
+    "tezos": "tz1fGCS6XYajaG9NPjDyoBY7xXJYAaSysvqR",
+    "bitmark": "bcnxHmKjc119FeZidA2FsFFVZNbXozgJ82DhbmrHqGWfthbvtB",
+    "ethereum": "0xfFC2286f97279261cdF6fa20abeaAA102E354e8a"
+  },
+  {
+    "alias": "Nancy Baker Cahill",
+    "tezos": "tz1YGesHuMK5PXRFLU9AodRmdcJLtcFAD1JT",
+    "bitmark": "aaaRDvupM2vmNky74WxzHjr1qy9q5EBS7SrtKNq7dmmwKDq8xA",
+    "ethereum": "0x2aCc19c1Cb414D94FD16673f06A84147f1D68094"
+  },
+  {
+    "alias": "Iskra Velitchkova",
+    "tezos": "tz1gF51cNXQLzFAQEtRmjHdxNxZGLjWLjTtm",
+    "bitmark": "aWDT2s4Lba3rrBtqLghY61PLr2gLZuvSy9uvXRmwLmhAixXuNa",
+    "ethereum": "0xe65BF5e9641552b22b1281e5772Da3B94bEaC82e"
+  },
+  {
+    "alias": "Sage Jenson",
+    "tezos": "tz1QV65qQDctfPNyqzKJgZSFeCYnedS4aeQ7",
+    "bitmark": "aZ9TPTco6w76swbqJVWsvxEgWGWFEZ253pcLud47BgYwX7iaL5",
+    "ethereum": "0x3c9764C8cb65d13DFcdfb2d30cfdBd8c6ddB8056"
+  },
+  {
+    "alias": "Jonas Lund",
+    "tezos": "tz1LvvXVSSb7kfNjNXvJYvzjbJKJBQEjKtqm",
+    "bitmark": "aDADzvsfKdAA4fSoAh9sBFcVzAgbiaGbrTJkS5SMpT8zfza7SD",
+    "ethereum": "0x1af29A404A0D7A397B765f3D2D25f4e697DA3730"
+  },
+  {
+    "alias": "Petra Cortright",
+    "tezos": "tz1iCWhDtn9GeAPq2cxED2PdWz5hQ8h3ubxj",
+    "bitmark": "bdJTD9BA12HCYckZZV8hjXRLySgW2ABTcbbqr5WKLTsJaWQKfM",
+    "ethereum": "0x8f1BC45B999170B75ddBB51ae260F210B3B60c3b"
+  },
+  {
+    "alias": "Kamilia Kard",
+    "tezos": "tz1iy63Ps9b69eCCoc2CBAVT1GSUrnQLLBPk",
+    "bitmark": "aq665buCphKEpuDq2BTa181fCPjWrAFTBUk5BhD4UdxJM8RVFz",
+    "ethereum": "0x9D279cFcE84a3AB3f0d1B0531515eC239cd4339f"
+  },
+  {
+    "alias": "Jon Rafman",
+    "tezos": "tz1TxDMKojNtKjwtoLc46s7jZmzkje2NbgWa",
+    "bitmark": "bvWQrBWrXZsh4BfNAq47t3KqveZwa97twPb9L7avUiyj4JCJdd",
+    "ethereum": "0xBe6aab5B391C4eCed4b40C8bC394C83a646da1D8"
+  },
+  {
+    "alias": "Simon Denny",
+    "tezos": "tz1dUNBa3vPLtm83pwUy58QM89F1BX65VhNK",
+    "bitmark": "bRWoM3DydgehiceFYqF6vgNHnAU75ydbmHMCiHpJfyksWgEd3v",
+    "ethereum": "0xf3a3147d275A234B8bB4B465d32d2289B2B9B4f3"
+  },
+  {
+    "alias": "Sarah Friend",
+    "tezos": "tz1KpT7Ex9fJG3D8rUCsC5SwnCrawFdUobHM",
+    "bitmark": "ahEaXTsiMJuBmWx1U6oZ3TRovvxaiKS7TRxcavYFyDDK39V1cf",
+    "ethereum": "0xBaE58DAF7d8750C5Bf3411D4e0F8561B1e7298A1"
+  },
+  {
+    "alias": "Tina Rivers Ryan",
+    "tezos": "tz1VagJHSqVNcm8KMnjSJp374FTez4SrmHbT",
+    "bitmark": "aDWwBk6zWA1LBzzroBJhyRrPgmo1bNkG76Q8SiL5UGMKQgcNVx",
+    "ethereum": "0x6928d14894DEde08B4b7509aF5772D0480c48251"
+  },
+  {
+    "alias": "Kalen Iwamoto",
+    "tezos": "tz1dJnmsR5v4WrjynHLFMdcpkVvL5uw3QrzV",
+    "bitmark": "aLctkgeqqE1dmPznJjt7UMSCFwEmtKpeUekL1TNZojAaHmLxbL",
+    "ethereum": "0x308e5ED9D5612B21D37B55149dfAe1CbA93c8E7e"
+  },
+  {
+    "alias": "Lauren Lee McCarthy",
+    "tezos": "tz1YaLFqbEzi7KhkfrxXPzujn6KeA3gBfHHL",
+    "bitmark": "ayHQbpa6NY16fnMVrmFbpUw7Sv5QG2p2toYmNw17RJofjywQ4i",
+    "ethereum": "0xc7F9214BBf8F7Ce474E6ed18BbEeAF561902E6d3"
+  },
+  {
+    "alias": "Molly Soda",
+    "tezos": "tz1VUonAFrN4f9UVW5cWDSG5qVHQsrjYts1K",
+    "bitmark": "a7BiyA9WPtP58wBJ3nTTKJjU3xnhxw6G7MtGHRhVg42tT3p6vk",
+    "ethereum": "0xBbD20B04093580278DDF3e8Ae56E09315680225E"
+  },
+  {
+    "alias": "Cao Shu",
+    "tezos": "tz1dw8rGGLKjL6MAFssY1kUFy9dHhVZ936z5",
+    "bitmark": "bjRixssHkTPCvSHZgCYzQnfjyFDHc9UbvJjCf9sRhGhwpnDJRS",
+    "ethereum": "0xd4bA424712D32B998917053769Fd4928c8675142"
+  },
+  {
+    "alias": "Ido Radon",
+    "tezos": "tz1M5nCXPS5inpEbjXyhNNDkZ3ugDg6wKmJs",
+    "bitmark": "boUM8LaTTj67yBdHAXrZXUKAfsPigEPKNeJgZGajDY5MBweWRu",
+    "ethereum": "0xe9c03557E87eB1C7ef67922f6447975785D750eD"
+  },
+  {
+    "alias": "Andrew Thomas Huang",
+    "tezos": "tz1SwsQ5xiVAqCWphVWU1t7yRUBsS8EYH2wr",
+    "bitmark": "b89Z5fFSa21kATk39jXvFKUrZofuULQoZMQzZhcXkwijAo7n6A",
+    "ethereum": "0xdD6321603DE2C25b50C27BE325F72a02F446Fb64"
+  },
+  {
+    "alias": "Brandon Blommaert",
+    "tezos": "tz1SvbzSzaWfobcQipywD2n7BLTQ8qBBsvF4",
+    "bitmark": "bfbh9kHUrQ8rBH7tGPQnjQhzTuTSGB6ER7r8YdPF6fWS6L77wF",
+    "ethereum": "0x19C2Bea4B493C711B343C22C3998ee21ECa4B6B1"
+  },
+  {
+    "alias": "Licia He",
+    "tezos": "tz1RDh1N7qmnJC2Q4SZEjufwMPbCw4cWp5HM",
+    "bitmark": "bikqNhiVpWkiTQvLUX2L3KCnNyy7hYqD2WNKwFZCtnenPGV9GX",
+    "ethereum": "0x7FA7Ae6a3346B45C86e13e1b959F4599A8C9E1DF"
+  },
+  {
+    "alias": "kyttenjanae",
+    "tezos": "tz1i2g9EfKvVEtPp2qiicg7Vf5zetmKwrjGm",
+    "bitmark": "bLBC6jqb2fMVe2Gda9PFPgG4C5WAVGHWKnsFGC7Vk2eXBns6dB",
+    "ethereum": "0x526669fAe7d43Dc433018B0F49486ec06aD841FD"
+  },
+  {
+    "alias": "Nate Boyce",
+    "tezos": "tz1QkUFY8M5C1JgKGwEpfWphcZkyqEGvNQy1",
+    "bitmark": "bbxYTYDU4ezR5nHcMSE4tmHg8zDGHMvSQByiAddVtXDP6iMTfE",
+    "ethereum": "0x3319a9Df7de90aA85B16777b8804Fe1AeF9E34b3"
+  },
+  {
+    "alias": "Saskia Freeke",
+    "tezos": "tz1gKoNVApAdpDAcws8rWMhHLBko2YRMLjt9",
+    "bitmark": "bNSghTxNsChCRSfsacrrzEmN8s1HT8HhhpD5yckohMuwzKBPth",
+    "ethereum": "0xB848B1147976D5616fD77EFD788f1e2e841b21Ec"
+  },
+  {
+    "alias": "Anna Carreras",
+    "tezos": "tz1eCXDD2kfTjeYPADbeAE6zmfQ3wdSsDaAp",
+    "bitmark": "b4SnpxtHwS1ThPGvaECZSc8dUYbCP1wSQqaCsr3jgCMme4YMUX",
+    "ethereum": "0xEC65B37def9681A238a66F72aCbDb8fB562B3584"
+  },
+  {
+    "alias": "Sabrina Ratté",
+    "tezos": "tz1g9mAGfn5CihwZcwRABgBQz5DtbiWhfgVp",
+    "bitmark": "ah7gg7XTJWWpwUo4ZP3g1VwBPzirnmuGLRNaY5Xik97f7bfQ1N",
+    "ethereum": "0xbD2B39452C499851Be359459Bfd8532329020eCE"
+  },
+  {
+    "alias": "Varvara & Mar",
+    "tezos": "tz1XQaeBjhcQmADRqP4ZMncgCyAJ9eFhyyJy",
+    "bitmark": "bg1UU1oVajntCDXFwMPAdqQiLu4UMriHFtNjZU7pKYdzVs3pQp",
+    "ethereum": "0x86B9b7f24c6625A6E486EAb2C578C481a94e45b3"
+  },
+  {
+    "alias": "Lawrence Lek",
+    "tezos": "tz1NXs5oxjrigbzuAnpa6k7EBTiPPVnyKueh",
+    "bitmark": "aTBN9DbQ8KsJJwK2HKi2XmmVMov1pUggqqeXMAfMe6eHn7k2HA",
+    "ethereum": "0xb31bC32CA69872888136E1df30F93250Ec381d18"
+  },
+  {
+    "alias": "Rujunko Pugh (Syberweerd)",
+    "tezos": "tz1duPY7G7osxPXoeFC2brsaPn526PCwLWGJ",
+    "bitmark": "b2UqKGG98nNYTwqpVXVu29jKcz8uc7W9PTNtLrZxqBCGBck3N3",
+    "ethereum": "0x0a175d957106b7658a827fba6eb193db73b8ffB3"
+  },
+  {
+    "alias": "Rhea Myers",
+    "tezos": "tz1Np8PNq4yPH6EUs6AJpQw3JZCW2z6ELRRo",
+    "bitmark": "atCAwxApkAdMynWonKkXQWadJvcaZkEbhuigqdEXE7gCMjiiQb",
+    "ethereum": "0x8B1f23AB828804216B836366A101D87c234671E8"
+  },
+  {
+    "alias": "Rodell Warner",
+    "tezos": "tz1XarnnH6MCXnErRfJy2Q5GZRehSRgF34Cw",
+    "bitmark": "ajewewEHn7Pq7K3RD1FCCdKQeRsHKUvQdQRZbAy8JBikWybzo5",
+    "ethereum": "0x90b96dc49d456ABfA77123aebFc2e67E0018DA11"
+  },
+  {
+    "alias": "Osinachi",
+    "tezos": "tz1Nu8m2PLSsUHzPy7NMpUDLYzXaWwwWfGKS",
+    "bitmark": "aFSUKHv8hT9BPQxjPn7CwGULyeh6pGZgoKMGPPg5CZGENHECsL",
+    "ethereum": "0xbd1AA51c9a4e25FA004cf2b4E8dd060a12b8Aa26"
+  },
+  {
+    "alias": "aurèce vettier",
+    "tezos": "tz1a7Fd4TUFZhBQco3Ktd2s9mmRJKjuGvTZr",
+    "bitmark": "acWykSKd2s7B4b1YNX35tvn12G3B3Kx2PSkcpWdQPLJHTtq723",
+    "ethereum": "0x35E2f06156c7Ec4600b99F74dAf75D2AA8Ff3332"
+  },
+  {
+    "alias": "Peter Burr",
+    "tezos": "tz1QchdcUesJmzmCmbZNaQcBUAdoYQb9s8tb",
+    "bitmark": "aoEqKB3ZwJ3zMkcAa9YvD2jUAZpwHjGnJc69odCahPi3S5XHpu",
+    "ethereum": "0xD8600e4C8dDCA0b0bc86AE62eF7DB3c34f5994DA"
+  },
+  {
+    "alias": "Anne Spalter",
+    "tezos": "tz1caDBtkCQAWKeHb8qCZHzYWKMAkU3bwpnX",
+    "bitmark": "ahyJUKrQUTZkY4tAJLEnuwjga6fFL9wyQukqyXrNp43ixLL1yT",
+    "ethereum": "0x6B14D48fca18818ebf3B1e11E876bF73ff341C9e"
+  },
+  {
+    "alias": "Entangled Others",
+    "tezos": "tz1PxVMrm8CVk6Sp5n7Qo4mxfSupf436dhZD",
+    "bitmark": "bkAggTXk8Kn9bZmVZ1Xj5KUC68iJ3A36jeKb6LBqsdcBDzktCY",
+    "ethereum": "0x64a257c3f0DD22Cf4BD5A67DE7706c84BeB4bA2f"
+  },
+  {
+    "alias": "Francoise Gamma",
+    "tezos": "tz1dg8UZUUREHRZHk8ZchbhbYGmJTXFXaGPv",
+    "bitmark": "bAoE2CXGG48ckeGfyejKkifqdZBe9v91uAnQruvwTavEifjAuv",
+    "ethereum": "0x3c1B9F78bb5b481E1d2c1cebD9Ab70ea4A730DAe"
+  },
+  {
+    "alias": "harm",
+    "tezos": "tz1YFnEhWGJv31deoB165DJijHcuwQGtZcT2",
+    "bitmark": "bFg6hvzVaXzDxiWz7ZWB6nCSChU8d2vywtGX8hzMu6y9Cwvfak",
+    "ethereum": "0x3c6719b41bad5617247e74459c86ddb840FB470f"
+  },
+  {
+    "alias": "jenstark",
+    "tezos": "tz1giXY6dC5mPbt7y8GCH2i1qvMMN9L6AQoE",
+    "bitmark": "aKuu3UNKAVJFK8FknoagCLwBatkYpv3z7PvnZmkgjNGPGLziSA",
+    "ethereum": "0xe5cDf57CB3d96671b051e7f14b4f1d1851c2DfE8"
+  },
+  {
+    "alias": "VNS Matrix",
+    "tezos": "tz1inHNcviGVXoKsP581fm7HQM68QgVX8Vmp",
+    "bitmark": "aF2np35YbjYAz6W97nm5wNEKcHCj7KVYSXXXcDFyWVgkfw7X2z",
+    "ethereum": "0x45D559BE1F8B3144A08BbD80f11d819313475aFF"
+  },
+  {
+    "alias": "Stephanie Dinkins",
+    "tezos": "tz1eqQs3f8rjToRU8yuanhdcenUNDwZtYvpa",
+    "bitmark": "bFNZrBAmuRDTATQx7mFcXyRtgQzgewuCyxkrtPEoaDqM7SAWsX",
+    "ethereum": "0xb5c163E93Aa58b46b3eC9891896cAC2dE36571BF"
+  },
+  {
+    "alias": "Dmitri Cherniak",
+    "tezos": "tz1VL4rJgJuGySRimBRLPsdTNMzZhUmzeqb5",
+    "bitmark": "a84FEV9oLHusZJVcnsHaPgR3uCg65MWH8TbT6LmQaz1hNuyuAJ",
+    "ethereum": "0xE9CaC267449BF80904E5BF58150366DD1b5A3738"
+  },
+  {
+    "alias": "Raquel Meyers",
+    "tezos": "tz1Mg14cRQ1PpaTBmFAyPjuThwohJv9dveec",
+    "bitmark": "aiggxjVcfhYoZU7aoniabWdfB77QxoVtjvaHQbrvXJaWtDwPB2",
+    "ethereum": "0xfC7c05aEC4EcaD6E9bd5BE325B9fCBaAD9CE22F8"
+  },
+  {
+    "alias": "Manolo Gamboa Naon",
+    "tezos": "tz1VjPdgjzKhmgkcZmAdQPh5pvxBUDK8crfr",
+    "bitmark": "aejHFmBxuu1t7dRz1LJkBRKKiuRpiNEcYwFH8xHAMm1upmJczg",
+    "ethereum": "0x92890B31bbcefBead21Df07231465442aa2d7Ad9"
+  },
+  {
+    "alias": "He Zike",
+    "tezos": "tz1enEjvpTkuY294WjvAcKFoagifcGriKs36",
+    "bitmark": "aY9XCa4s2fvsQdyUAq8tdviuExDRwrvgC5jMSX12hsdpHqheeL",
+    "ethereum": "0x0780c233D0BE52F67Fd1716EF2c30224aF5Fc070"
+  },
+  {
+    "alias": "In_K",
+    "tezos": "tz1fKBwa5es37pnJeuojWj839BXcTHkUL8Yv",
+    "bitmark": "aGpHMWuiaoAqzAFi2axD9Gy1JxpoZyqnw8LE8441ox1rUPeKXE",
+    "ethereum": "0x4B04f9891f77369c9Ddab81CCAe2A9dC6e869C7e"
+  },
+  {
+    "alias": "Studio Above&Below",
+    "tezos": "tz1b5JvAqkubLUtHbhK8nMmXaHnBUtabwBkm",
+    "bitmark": "aHTQ7ieKRbTo2BkE5frQpoogkZiekSeFoJNV5LAztCSRH5RM5D",
+    "ethereum": "0x5Bcc9DDa746Ca408c0f0903Bd1458778d116D264"
+  },
+  {
+    "alias": "Helena Sarin",
+    "tezos": "tz1RiZVcNXeRAXi1ZqAQmssqVmJkcPnCaLQa",
+    "bitmark": "bUHUXJiy42fXWUg5nuCJr12kbYh4mFe1z7W1EWHUEyyneS91KD",
+    "ethereum": "0x97097505805494f6B82584cdD8Ddc9fE34Ccd63C"
+  },
+  {
+    "alias": "Amir H. Fallah",
+    "tezos": "tz1S3kEFCn7MrWDdqby6RuhXue3v8XDmbfYu",
+    "bitmark": "avdSmQL4aihQQqQneV9XwxCMxD2Uv6uJrHQxUKn6ifg25YtAne",
+    "ethereum": "0xed58F3bf07cE00b77444CA8954ffD01625726378"
+  },
+  {
+    "alias": "Casey Reas",
+    "tezos": "tz1U7cYFuWCiMyatCxoacfhsfk1Y9dSTCAFn",
+    "bitmark": "aZziQHXp7ZUc42w14q6sfhVtunw4JF6RaNE6yAdHWXGawoPxHS",
+    "ethereum": "0xD14efC237082b1e6b040dA5D76C32ccc76628F77"
+  },
+  {
+    "alias": "Katja Novitskova",
+    "tezos": "tz1dTBcHKA6t4bir9o9jF93hvBFy4WVMqowD",
+    "bitmark": "ae8GSMANTHmkKbXj1hX7HgV8n4bcYFUj16M6b5qXS8x9Z8npb8",
+    "ethereum": "0xf22697AcC807e0651DFA8D0877301C0beb23416D"
+  },
+  {
+    "alias": "Guo Cheng & Weihao Qiu",
+    "tezos": "tz1TjE7cp4tZLVjDy2eQ7JKEZxxBbLY9GPUM",
+    "bitmark": "brenMuTWDEvmaqMpNN9HVKLA7pRKqxeneKwBVAXp52VhQ8MjXv",
+    "ethereum": "0xb05F6C0ee074B3242243a14b76d5Ab6e6F8b7d1d"
+  },
+  {
+    "alias": "Sarah Zucker",
+    "tezos": "tz1RAwjfoGQHYxE2UNYpPhz57jVmaDgwDYoG",
+    "bitmark": "b2vaJxyGiBM4pw4gxkLAWFFMDHUjrT1oZbXTYcYBeDiQUCAqj8",
+    "ethereum": "0xFfAAF237C83Ff96CB62aC8F521Df09EeB7CA11A5"
+  },
+  {
+    "alias": "Tyler Hobbs",
+    "tezos": "tz1gQSuTnoKBtU6kgUfaT6MG2UnjQhbxjHQn",
+    "bitmark": "afKfbG9xnYD1UfBtJBZdjDLARkZjWJownh7f5KJw8iYFr9qMmA",
+    "ethereum": "0x64573f00d5a52bCd447D15C55cbAfa9B9db9674f"
+  },
+  {
+    "alias": "Lin Ke",
+    "tezos": "tz1Qb9B5XNFAdu4aRXaGsi5dK6mWkTEKVapm",
+    "bitmark": "bqgeSRVVex1XWk6zXFTh8LKEh9VLEP67hjRVeupgwxgxkGa6RD",
+    "ethereum": "0x65AefFE4514fD68318fAFebA4C44Cf7c67032e1b"
+  },
+  {
+    "alias": "Alba G. Corral",
+    "tezos": "tz1hqecxrnpqMervb5Nh8MzEbm3zt8iUxS4v",
+    "bitmark": "aQVBMEhV2A7wXukcu2nLrtzn6FZh4zWG4s7uBhGFBwBtZfkmq5",
+    "ethereum": "0xF6A928c5Fd49B4D9736B19532D88ea4462b92DC5"
+  },
+  {
+    "alias": "Disnovation.org",
+    "tezos": "tz1Nj6iw9RCDykP3P7PX9vqo56eDFDif1Ysy",
+    "bitmark": "bpQj86XWpVxdJ3oDJeWm4mwdkb9MocptfQbrjqHjDjgnYRiCvR",
+    "ethereum": "0x4c70CB94Cd11a3064A8626eFC4D692cCB3273c3b"
+  },
+  {
+    "alias": "*particle group*",
+    "tezos": "tz1SxcCwmLpw5fWeUUdsDws2QvbAo8MY9u6M",
+    "bitmark": "aFVmBDndXu3T5TCHryiAyLQzTLgXg4UfJKmk2EGteeHYCE6tUD",
+    "ethereum": "0x82625410179A8A65406172a6bE135691d066d7e0"
+  },
+  {
+    "alias": "Anna Ridler & Caroline Sinders",
+    "tezos": "tz1PnhKLTkZSxAXxLkZbUhDZiK4Czx3cCCBg",
+    "bitmark": "bSF84Fx6jSYv15bA3EaZqRWKThXgVkucFZZ476R2nG53fTGbmV",
+    "ethereum": "0x21DC46b3825b421b68657d640251383be305CF08"
+  },
+  {
+    "alias": "Cornelia Sollfrank",
+    "tezos": "tz1U1VzpZ1V1RPzHzKFNXZcRWKQ4uhBLd4uy",
+    "bitmark": "btNKk3zXe4qEQPhBAuWqaJzLBb3fxSWVNRmcvKw6f4VoYCvQ8t",
+    "ethereum": "0xA697284B2aaA37c11114E554B61Bb591d02501a0"
+  },
+  {
+    "alias": "Libby Heaney",
+    "tezos": "tz1SCZQC49f2WaTfLhPgcMBMUqFjasFmSSBr",
+    "bitmark": "a7sGhhDA5tgm4QrqaVFQrdXPMJuJP56LvmGjKBdGPEp9hDLTes",
+    "ethereum": "0x02a96CD24477f1A32982e77B7CdeEc63a9DA7a22"
+  },
+  {
+    "alias": "0xDEAFBEEF",
+    "tezos": "tz1TV7oTzyPyzPVfLbrBEByRfq6dgCW7isjd",
+    "bitmark": "aZMiP3rTiFAYqWscCWPG4VdTYvRb4AW3yJnoE4ATGHmTp3zmK9",
+    "ethereum": "0xEFe93a8CA9C2B2c13eABd8B6866f28114cDF1D04"
+  },
+  {
+    "alias": "Golan Levin",
+    "tezos": "tz1MPTm4gfJrqnEEpmJmzsDuCEbjM26iZ4RH",
+    "bitmark": "aZETGqAxQxPBej9LGscJ6pmhhED5uQA45NQGf4Axc6GtiRbWUB",
+    "ethereum": "0x797c61f9A628f06df3943fcE402e329E37d0D56d"
+  },
+  {
+    "alias": "Sasha Belitskaja",
+    "tezos": "tz1TaznhEeDZjFo4VTkYT4Sshva6sAjachFp",
+    "bitmark": "a99JtXop9zpvGccy7PxVEsbgXU64pumwWZp3NFs2YAEB2Ehuz2",
+    "ethereum": "0xd374CAe6F02946652e05861dB1B1c3410f01557A"
+  },
+  {
+    "alias": "Sofia Crespo",
+    "tezos": "tz1QFRmiS2Uz7cRDYS564djW57tjwZh6exrr",
+    "bitmark": "airFryqMcKpRuU7KLHierKRUPDjAPYpALyxMyxMnYt9bvsrBje",
+    "ethereum": "0xe5d256B989c48E5f83089Be3A48639352f031C8F"
+  },
+  {
+    "alias": "Daniel Ambrosi",
+    "tezos": "tz1Md5TxBDo1j7VM1qX4A7bdcNC6wxGtWK26",
+    "bitmark": "bbZdbfTuHKZjMMWuFJuzXctLmGCwEe4crUbvkwMd1d5GZx2ZFf",
+    "ethereum": "0x001D49C286327Eef7e70c1E9f8811cA40efF820f"
+  },
+  {
+    "alias": "Alida Sun",
+    "tezos": "tz1TMevRUtv8ybSaTKeEPW4zRFJu6wYpzrok",
+    "bitmark": "b3yhP532Ts2x1Csgm3gqd17JypSazXbLhc92GqKy7jvhYPbnUg",
+    "ethereum": "0x332b8aF4A0C6BD3C08C2c7AaF7077c6E6102c241"
+  },
+  {
+    "alias": "Mimi Onuoha",
+    "tezos": "tz1hu1fKoMNY582onjs73ZckBXXxdJ325RTi",
+    "bitmark": "bUDdJJgvHRcJanmKwJYKVoM3GfxNmPUkb1uce5vpHxinWfBhsv",
+    "ethereum": "0xB1e4312396e06Cb3a17164ee27fE17A522C384c3"
+  },
+  {
+    "alias": "David OReilly",
+    "tezos": "tz1iep2W3PmzUW1zqWnhoxShTiQ8zodPsqfZ",
+    "bitmark": "bq38YQLYVsyyBihSGaDtodifh5dP3maNTk9PGbEzyFRfGbMxJp",
+    "ethereum": "0x1264C9bA654bf5Ad38456388cf80f5Cf2607C9d7"
+  },
+  {
+    "alias": "Reeps One",
+    "tezos": "tz1hXts3P6PjHSPGLZdhzEYTLpMfNtTfQPwo",
+    "bitmark": "aPS1TQ9UGbtqs7QmQqZTfcJ7UH6XrXTyLDwfgMRSJnDQ4Dqr9H",
+    "ethereum": "0x36E2CA0565Ae56d5769EA6A6f2Dd539BaB1eA10a"
+  },
+  {
+    "alias": "Monica Rizzolli",
+    "tezos": "tz1fR1hDkDiHAsqkKwWsczE1t9jrpPFXDznR",
+    "bitmark": "bGzzoceX2arzmJmyR6wAr98rXYn1H9bkZLT9gYy69XwRrjZ6f4",
+    "ethereum": "0xeE1ed38577d196c5Ac7F61089bb096a89F88e6F3"
+  },
+  {
+    "alias": "Rachel Rossin",
+    "tezos": "tz1Ni2vHYn3m1xd19G3Q9FR4gpYdGRA8eEk4",
+    "bitmark": "bg67csSgEaZBAjSjSWcPa5DVWg5uC1iCh4Sx8YHv7BEDEpvqut",
+    "ethereum": "0xcc0cA94177F5B029B6cF86A66FfC29fA6DCDf1a5"
+  },
+  {
+    "alias": "Botto",
+    "tezos": "tz1T9sV8pnX1VeTv8MzywynWKeUWBY3PrHht",
+    "bitmark": "bUtuEu8Ddd14gX8d1mtL3tyLDHQSE97Mx2VrzfcY29e5EFCbEJ",
+    "ethereum": "0x1d2f4CdC00B3f2e1011874FEAfb88056901E91D4"
+  },
+  {
+    "alias": "Julien Gachadoat",
+    "tezos": "tz1e841AjFNRpiRsNvAbx8eNbotSZxjzVTAu",
+    "bitmark": "a6K176vapwTAcWu1aqTtRLW1uKBpXUAb2QfarAMfK2453BJVDw",
+    "ethereum": "0x1Cee9b2Cc7daD4c8c43DA13d5fB09c61C6bbf783"
+  },
+  {
+    "alias": "Prema Murthy",
+    "tezos": "tz1MuaVXtQVQWSY5bhDc7PcAcDMujvjPNXzk",
+    "bitmark": "az2BAtp19xucKbcJDCHJ9WCnbeSFLAUtS7Tf1hy7NZSruqEhBe",
+    "ethereum": "0xFc9b15d1857414aA6a6958C582429960456d8137"
+  },
+  {
+    "alias": "Mary Maggic",
+    "tezos": "tz1W7YX4hLba3fGDLMeuLjrhC8RWiJBbYpQm",
+    "bitmark": "arLjDhnZVPvGvqk1TBXdPFL6HfFnsTAeLMi2Jv1bijChEEDBHn",
+    "ethereum": "0x15aFBb8A43D6ac99F2571EA2b1d984E7dff21261"
+  },
+  {
+    "alias": "Linda Dement",
+    "tezos": "tz1L5TeFN14J9pdfgemZwpVkCaiLS4L3mTRG",
+    "bitmark": "aWJeypeEDfrCx8JuLbPVD16H8i8NdtLhFbAYnPykQkpPuf5ppZ",
+    "ethereum": "0x92471bc05BEee1b81F5D6E89F92a156C7Ab87b0c"
+  },
+  {
+    "alias": "Shu Lea Cheang",
+    "tezos": "tz1bzZaiarYJGwSAG38qJBZfGHQvaiudJ1AV",
+    "bitmark": "bfRBpr7ZcnCAyW6qwpZj3PVc8XkdXRFP3S2PVffHdnGtGXg96c",
+    "ethereum": "0xC8B8bef9f4bb133e95E45EcAd6C771b7b00b5234"
+  },
+  {
+    "alias": "Mario Klingemann",
+    "tezos": "tz1Ssoav2TccdpUpwSTSXA3zQtZRGotbrocb",
+    "bitmark": "a7mLEU9wCacHYXG4edrfV72YJQrnXo1GEyPuXAYFBpZEKHFUNH",
+    "ethereum": "0x7c5304cEE4cE25728604c056CdD43000E94a7e7B"
+  },
+  {
+    "alias": "Alix Desaubliaux",
+    "tezos": "tz1YagKdCMP82iTbKsR9gMFKB38iAPDC2paa",
+    "bitmark": "aHfbMj3iCFz1TnZc6w2sZyLtJFY95vPVY1yZZzsDGvNbNBXkpt",
+    "ethereum": "0xFCf2f6FEC4A66481BB4AcDd6eaf2330323A2a1D6"
+  },
+  {
+    "alias": "Rafaël Rozendaal",
+    "tezos": "tz1QQaFVqQCp3VHugu1fwqo1dkVkVB5ZpSNT",
+    "bitmark": "badfGui1FVXgMMJT1BKfyhzLQZ6sQzPdDsYQX7ikPaiwKDwwmw",
+    "ethereum": "0x2550A17C67f47EC6f512274483b0F699F3b06736"
+  },
+  {
+    "alias": "Claudia Hart",
+    "tezos": "tz1WJ7fgxFYxuhiuctq5YsraVP6XtjL24kzE",
+    "bitmark": "at1dKPauje5Tw7E41YQqbuCzqVbGWGbX8wwfzM8qmwGDdf13Qa",
+    "ethereum": "0xAAe82019695b254B089EFC7021BAf7BDCfA34265"
+  }
+]
