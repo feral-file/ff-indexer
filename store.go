@@ -17,6 +17,7 @@ const (
 	assetCollectionName        = "assets"
 	tokenCollectionName        = "tokens"
 	identityCollectionName     = "identities"
+	ffIdentityCollectionName   = "ff_identities"
 	accountCollectionName      = "accounts"
 	accountTokenCollectionName = "account_tokens"
 )
@@ -77,6 +78,7 @@ func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*Mo
 	tokenCollection := db.Collection(tokenCollectionName)
 	assetCollection := db.Collection(assetCollectionName)
 	identityCollection := db.Collection(identityCollectionName)
+	ffIdentityCollection := db.Collection(ffIdentityCollectionName)
 	accountCollection := db.Collection(accountCollectionName)
 	accountTokenCollection := db.Collection(accountTokenCollectionName)
 
@@ -86,6 +88,7 @@ func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*Mo
 		tokenCollection:        tokenCollection,
 		assetCollection:        assetCollection,
 		identityCollection:     identityCollection,
+		ffIdentityCollection:   ffIdentityCollection,
 		accountCollection:      accountCollection,
 		accountTokenCollection: accountTokenCollection,
 	}, nil
@@ -97,6 +100,7 @@ type MongodbIndexerStore struct {
 	tokenCollection        *mongo.Collection
 	assetCollection        *mongo.Collection
 	identityCollection     *mongo.Collection
+	ffIdentityCollection   *mongo.Collection
 	accountCollection      *mongo.Collection
 	accountTokenCollection *mongo.Collection
 }
@@ -840,15 +844,29 @@ func (s *MongodbIndexerStore) GetIdentity(ctx context.Context, accountNumber str
 		bson.M{"accountNumber": accountNumber},
 	)
 	if err := r.Err(); err != nil {
-		if err == mongo.ErrNoDocuments {
-			return identity, nil
-		} else {
+		if err != mongo.ErrNoDocuments {
+			return identity, err
+		}
+	} else {
+		if err := r.Decode(&identity); err != nil {
 			return identity, err
 		}
 	}
 
-	if err := r.Decode(&identity); err != nil {
-		return identity, err
+	if identity.Name == "" {
+		// fallback to check ff identities if not found
+		r := s.ffIdentityCollection.FindOne(ctx,
+			bson.M{"accountNumber": accountNumber},
+		)
+		if err := r.Err(); err != nil {
+			if err == mongo.ErrNoDocuments {
+				return identity, nil
+			}
+		} else {
+			if err := r.Decode(&identity); err != nil {
+				return identity, err
+			}
+		}
 	}
 
 	return identity, nil
@@ -858,19 +876,41 @@ func (s *MongodbIndexerStore) GetIdentity(ctx context.Context, accountNumber str
 func (s *MongodbIndexerStore) GetIdentities(ctx context.Context, accountNumbers []string) (map[string]AccountIdentity, error) {
 	identities := map[string]AccountIdentity{}
 
-	c, err := s.identityCollection.Find(ctx,
-		bson.M{"accountNumber": bson.M{"$in": accountNumbers}},
-	)
-	if err != nil {
-		return identities, err
-	}
-
-	for c.Next(ctx) {
-		var identity AccountIdentity
-		if err := c.Decode(&identity); err != nil {
+	{
+		c, err := s.identityCollection.Find(ctx,
+			bson.M{"accountNumber": bson.M{"$in": accountNumbers}},
+		)
+		if err != nil {
 			return identities, err
 		}
-		identities[identity.AccountNumber] = identity
+
+		for c.Next(ctx) {
+			var identity AccountIdentity
+			if err := c.Decode(&identity); err != nil {
+				return identities, err
+			}
+			identities[identity.AccountNumber] = identity
+		}
+	}
+
+	// FIXME: this is a quick fix and do not de-dup for accounts already found in previous query
+	{
+		c, err := s.ffIdentityCollection.Find(ctx,
+			bson.M{"accountNumber": bson.M{"$in": accountNumbers}},
+		)
+		if err != nil {
+			return identities, err
+		}
+		for c.Next(ctx) {
+			var identity AccountIdentity
+			if err := c.Decode(&identity); err != nil {
+				return identities, err
+			}
+			// update identity for the with FF identity if the blockchain identity is not found
+			if id, ok := identities[identity.AccountNumber]; !ok || id.Name == "" {
+				identities[identity.AccountNumber] = identity
+			}
+		}
 	}
 
 	return identities, nil
