@@ -103,7 +103,7 @@ func main() {
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 	)
 
-	feed := NewFeedClient(viper.GetString("feed.endpoint"), viper.GetString("feed.api_token"))
+	feed := NewFeedClient(viper.GetString("feed.endpoint"), viper.GetString("feed.api_token"), viper.GetBool("feed.debug"))
 
 	service := New(w, environment, wsClient,
 		indexerStore, engine,

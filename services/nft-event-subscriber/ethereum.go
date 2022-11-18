@@ -47,15 +47,22 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 			}
 
 			if topicLen := len(log.Topics); topicLen == 4 {
-				if log.Topics[1].Big().Cmp(big.NewInt(0)) == 0 {
-					// ignore minting events
-					continue
-				}
 
 				fromAddress := indexer.EthereumChecksumAddress(log.Topics[1].Hex())
 				toAddress := indexer.EthereumChecksumAddress(log.Topics[2].Hex())
 				contractAddress := indexer.EthereumChecksumAddress(log.Address.String())
 				tokenIDHash := log.Topics[3]
+
+				logrus.WithField("from", fromAddress).
+					WithField("to", toAddress).
+					WithField("contractAddress", contractAddress).
+					WithField("tokenIDHash", tokenIDHash).
+					Debug("receive transfer event on ethereum")
+
+				if log.Topics[1].Big().Cmp(big.NewInt(0)) == 0 {
+					// ignore minting events
+					continue
+				}
 
 				indexID := indexer.TokenIndexID(indexer.EthereumBlockchain, contractAddress, tokenIDHash.Big().Text(10))
 				// Flow:
@@ -77,11 +84,11 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 
 				if toAddress == indexer.EthereumZeroAddress {
 					if err := s.feedServer.SendBurn(indexer.EthereumBlockchain, contractAddress, tokenIDHash.Big().Text(10)); err != nil {
-						logrus.WithError(err).Debug("fail to push event to feed server")
+						logrus.WithError(err).Trace("fail to push event to feed server")
 					}
 				} else {
 					if err := s.feedServer.SendEvent(indexer.EthereumBlockchain, contractAddress, tokenIDHash.Big().Text(10), toAddress, mintType, viper.GetString("network.ethereum") == "testnet"); err != nil {
-						logrus.WithError(err).Debug("fail to push event to feed server")
+						logrus.WithError(err).Trace("fail to push event to feed server")
 					}
 				}
 
