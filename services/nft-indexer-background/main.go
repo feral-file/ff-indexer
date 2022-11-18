@@ -81,6 +81,9 @@ func main() {
 	activity.Register(worker.GetOutdatedTokensByOwner)
 	activity.Register(worker.RefreshTokenProvenance)
 
+	// index account tokens
+	activity.Register(worker.IndexAccountTokens)
+
 	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)
 	workerLogger := cadence.BuildCadenceLogger(logLevel)
 	cadence.StartWorker(workerLogger, workerServiceClient, viper.GetString("cadence.domain"), indexerWorker.TaskListName)

@@ -6,7 +6,6 @@ import (
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/getsentry/sentry-go"
-	"github.com/google/uuid"
 	cadenceClient "go.uber.org/cadence/client"
 	"go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
@@ -125,22 +124,21 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 		w.triggerIndexOutdatedTokenWorkflow(ctx, tokenOwner, ownedFungibleToken, ownedNonFungibleToken)
 	}
 
-	var offset = 0
-	runID := uuid.New().String()
+	var isFirstPage = true
 	for {
-		var updateCounts int
+		var shouldContinue bool
 
-		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx), w.IndexTezosTokenByOwner, runID, tokenOwner, offset).Get(ctx, &updateCounts); err != nil {
+		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx), w.IndexTezosTokenByOwner, tokenOwner, isFirstPage).Get(ctx, &shouldContinue); err != nil {
 			sentry.CaptureException(err)
 			return err
 		}
 
-		if updateCounts == 0 {
-			log.Debug("[loop] no token found from tezos", zap.String("owner", tokenOwner), zap.Int("offset", offset))
+		if !shouldContinue {
+			log.Debug("[loop] no token found from tezos", zap.String("owner", tokenOwner))
 			break
 		}
 
-		offset += updateCounts
+		isFirstPage = false
 	}
 	log.Info("TEZOS tokens indexed", zap.String("owner", tokenOwner))
 	return nil
@@ -168,9 +166,25 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 		return err
 	}
 
+	accountTokens := []indexer.AccountToken{
+		{
+			BaseTokenInfo:     update.Tokens[0].BaseTokenInfo,
+			IndexID:           update.Tokens[0].IndexID,
+			OwnerAccount:      update.Tokens[0].Owner,
+			Balance:           update.Tokens[0].Balance,
+			LastActivityTime:  update.Tokens[0].LastActivityTime,
+			LastRefreshedTime: update.Tokens[0].LastRefreshedTime,
+		}}
+
+	if err := workflow.ExecuteActivity(ctx, w.IndexAccountTokens, owner, accountTokens).Get(ctx, nil); err != nil {
+		sentry.CaptureException(err)
+		return err
+	}
+
 	if indexPreview {
 		if err := workflow.ExecuteActivity(ctx, w.CacheIPFSArtifactInS3, update.ProjectMetadata.PreviewURL).Get(ctx, nil); err != nil {
 			sentry.CaptureException(err)
+			return fmt.Errorf("IndexTokenWorkflow-preview: %w", err)
 		}
 	}
 
@@ -196,7 +210,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenanceWorkflow(ctx workflow.Context, 
 
 	err := workflow.ExecuteActivity(ctx, w.RefreshTokenProvenance, indexIDs, delay).Get(ctx, nil)
 	if err != nil {
-		log.Error("fail to refresh procenance for indexIDs", zap.Any("indexIDs", indexIDs))
+		log.Error("fail to refresh provenance for indexIDs", zap.Any("indexIDs", indexIDs))
 	}
 
 	return err
@@ -242,4 +256,31 @@ func (w *NFTIndexerWorker) CacheIPFSArtifactWorkflow(ctx workflow.Context, fullD
 	}
 
 	return nil
+}
+
+// UpdateAccountTokenWorkflow is a workflow to refresh provenance for a specific token
+func (w *NFTIndexerWorker) UpdateAccountTokensWorkflow(ctx workflow.Context, delay time.Duration) error {
+	var err error
+	for {
+		ao := workflow.ActivityOptions{
+			TaskList:               w.AccountTokenTaskListName,
+			ScheduleToStartTimeout: 10 * time.Minute,
+			StartToCloseTimeout:    time.Hour,
+		}
+
+		log := workflow.GetLogger(ctx)
+
+		ctx = workflow.WithActivityOptions(ctx, ao)
+
+		log.Debug("start UpdateAccountTokensWorkflow")
+
+		err = workflow.ExecuteActivity(ctx, w.UpdateAccountTokens).Get(ctx, nil)
+		if err != nil {
+			log.Error("fail to update account tokens")
+			return err
+		}
+
+		workflow.Sleep(ctx, 1*time.Minute)
+	}
+
 }

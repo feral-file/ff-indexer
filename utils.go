@@ -37,6 +37,10 @@ func TokenIndexID(blockchainType, contractAddress, id string) string {
 		blockchainAlias = "undefined"
 	}
 
+	if blockchainType == EthereumBlockchain {
+		contractAddress = EthereumChecksumAddress(contractAddress)
+	}
+
 	return fmt.Sprintf("%s-%s-%s", blockchainAlias, contractAddress, id)
 }
 
@@ -99,4 +103,8 @@ func ParseIndexID(indexID string) (string, string, string, error) {
 		return "", "", "", fmt.Errorf("error while parsing indexID: %v", indexID)
 	}
 	return v[0], v[1], v[2], nil
+}
+
+func DemoTokenPrefix(indexID string) string {
+	return fmt.Sprintf("demo%s", indexID)
 }

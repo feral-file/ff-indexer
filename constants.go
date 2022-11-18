@@ -37,3 +37,16 @@ var BlockchainAlias = map[string]string{
 	EthereumBlockchain: "eth",
 	TezosBlockchain:    "tez",
 }
+
+const (
+	ObjktCDNDisplayType   = "display"
+	ObjktCDNArtifactType  = "artifact"
+	ObjktCDNThumbnailType = "thumbnail"
+	ObjktCDNURL           = "https://assets.objkt.media/file/assets-003/"
+)
+
+var ObjktCDNTypes = []string{
+	ObjktCDNDisplayType,
+	ObjktCDNArtifactType,
+	ObjktCDNThumbnailType,
+}

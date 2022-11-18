@@ -3,27 +3,31 @@ package main
 import (
 	"context"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/getsentry/sentry-go"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"go.uber.org/cadence/activity"
+	"go.uber.org/cadence/workflow"
 
 	"github.com/bitmark-inc/config-loader"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
 	"github.com/bitmark-inc/nft-indexer/cadence"
-	"github.com/bitmark-inc/nft-indexer/externals/ens"
-	"github.com/bitmark-inc/nft-indexer/externals/feralfile"
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
-	tezosDomain "github.com/bitmark-inc/nft-indexer/externals/tezos-domain"
 	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 )
 
-func main() {
-	ctx := context.Background()
+var CadenceService = "cadence-frontend"
 
+func main() {
 	config.LoadConfig("NFT_INDEXER")
+
+	hostPort := viper.GetString("cadence.host_port")
+	logLevel := viper.GetInt("cadence.log_level")
 
 	environment := viper.GetString("environment")
 
@@ -34,19 +38,14 @@ func main() {
 		log.WithError(err).Panic("Sentry initialization failed")
 	}
 
+	ctx := context.Background()
+
 	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
 	if err != nil {
 		log.WithError(err).Panic("fail to initiate indexer store")
 	}
 
-	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
-	cadenceClient.AddService(indexerWorker.ClientName)
-
-	ensClient := ens.New(viper.GetString("ens.rpc_url"))
-	tezosDomain := tezosDomain.New(viper.GetString("tezos.domain_api_url"))
-	feralfileClient := feralfile.New(viper.GetString("feralfile.api_url"))
-
-	engine := indexer.New(
+	indexerEngine := indexer.New(
 		environment,
 		opensea.New(viper.GetString("network.ethereum"), viper.GetString("opensea.api_key"), viper.GetInt("opensea.ratelimit")),
 		tzkt.New(viper.GetString("network.tezos")),
@@ -54,9 +53,25 @@ func main() {
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 	)
 
-	s := NewNFTIndexerServer(cadenceClient, ensClient, tezosDomain, feralfileClient, indexerStore, engine, viper.GetString("server.api_token"), viper.GetString("server.admin_api_token"))
-	s.SetupRoute()
-	if err := s.Run(viper.GetString("server.port")); err != nil {
-		log.WithError(err).Panic("server interrupted")
-	}
+	awsSession := session.Must(session.NewSession(&aws.Config{
+		Region: aws.String(viper.GetString("aws.region")),
+	}))
+
+	worker := indexerWorker.New(environment, indexerEngine, awsSession, indexerStore)
+
+	// workflows
+	workflow.Register(worker.UpdateAccountTokensWorkflow)
+
+	// activities
+	activity.Register(worker.UpdateAccountTokens)
+
+	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)
+	workerLogger := cadence.BuildCadenceLogger(logLevel)
+
+	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
+	cadenceClient.AddService(indexerWorker.ClientName)
+
+	indexerWorker.StartUpdateAccountTokensWorkflow(ctx, cadenceClient, 0)
+
+	cadence.StartWorker(workerLogger, workerServiceClient, viper.GetString("cadence.domain"), indexerWorker.AccountTokenTaskListName)
 }

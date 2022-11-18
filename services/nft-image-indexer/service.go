@@ -8,12 +8,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/customErrors"
 	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/imageStore"
 )
 
@@ -62,6 +64,9 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 					if errors.Is(err, imageStore.ErrUnsupportImageType) {
 						logrus.WithField("indexID", asset.IndexID).Warn("unsupported image type")
 						// let the image id remain empty string
+					} else if _, ok := err.(*customErrors.UnsupportedSVG); ok {
+						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
+						sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
 					} else {
 						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
 					}

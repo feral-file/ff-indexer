@@ -2,7 +2,10 @@ package indexer
 
 import (
 	"context"
+	"github.com/bitmark-inc/nft-indexer/externals/objkt"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -25,7 +28,7 @@ func TestIndexTezosTokenOwnersWithNFT(t *testing.T) {
 
 func TestGetTezosTokenByOwner(t *testing.T) {
 	engine := New("", nil, tzkt.New(""), nil, nil)
-	owners, err := engine.GetTezosTokenByOwner(context.Background(), "tz1YiYx6TwBnsAgEnXSyhFiM9bqFD54QVhy4", 0) // incorrect metadata format case
+	owners, err := engine.GetTezosTokenByOwner(context.Background(), "tz1YiYx6TwBnsAgEnXSyhFiM9bqFD54QVhy4", time.Time{}, 0) // incorrect metadata format case
 	assert.NoError(t, err)
 	assert.NotEmpty(t, owners)
 }
@@ -35,4 +38,12 @@ func TestIndexTezosTokenOwnersFT(t *testing.T) {
 	owners, err := engine.IndexTezosTokenOwners(context.Background(), "KT1LjmAdYQCLBjwv4S2oFkEzyHVkomAf5MrW", "24216")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, owners)
+}
+
+func TestIndexTezosToken(t *testing.T) {
+	engine := New("", nil, tzkt.New(""), nil, objkt.New("https://data.objkt.com/v3/graphql"))
+	assetUpdates, err := engine.IndexTezosToken(context.Background(), "tz1gCnW1fBa8ghpwg4yAWnAdpcEdFQey6dMo", "KT1Nnyq1nzC5sCNHpXUydBvqP2JyaR6gkxY9", "0")
+	assert.NoError(t, err)
+	assert.Equal(t, strings.Contains(assetUpdates.ProjectMetadata.PreviewURL, "https://assets.objkt.media/file/assets-003/"), true)
+	assert.Equal(t, assetUpdates.ProjectMetadata.Title == "", false)
 }

@@ -38,6 +38,15 @@ func (s *NFTIndexerServer) IndexAsset(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": 1})
 }
 
+type PendingTxParams struct {
+	IndexID         string `json:"indexID"`
+	Blockchain      string `json:"blockchain"`
+	ID              string `json:"id"`
+	ContractAddress string `json:"contractAddress"`
+	OwnerAccount    string `json:"ownerAccount"`
+	PendingTx       string `json:"pendingTx"`
+}
+
 type NFTQueryParams struct {
 	// global
 	Offset int64  `form:"offset"`
@@ -168,7 +177,8 @@ func (s *NFTIndexerServer) IndexNFTByOwner(c *gin.Context) {
 		}
 	case indexer.TezosBlockchain:
 		ownerIndexFunc = func(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
-			return s.indexerEngine.IndexTezosTokenByOwner(c, owner, offset)
+			assetUpdates, _, err := s.indexerEngine.IndexTezosTokenByOwner(c, owner, time.Time{}, offset)
+			return assetUpdates, err
 		}
 	default:
 		abortWithError(c, http.StatusBadRequest, "unsupported blockchain", nil)

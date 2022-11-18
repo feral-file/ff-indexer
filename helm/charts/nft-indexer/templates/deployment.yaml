@@ -52,6 +52,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-indexer.fullname" . }}
                   key: server_api_token
+            - name: NFT_INDEXER_SERVER_ADMIN_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: server_admin_api_token
             - name: NFT_INDEXER_ENS_RPC_URL
               valueFrom:
                 secretKeyRef:
@@ -230,6 +235,108 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
           - /nft-provenance-indexer
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: aws_access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: aws_secret_access_key
+            - name: NFT_INDEXER_STORE_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: store_db_uri
+            - name: NFT_INDEXER_STORE_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: store_db_name
+            - name: NFT_INDEXER_ETHEREUM_RPC_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: ethereum_rpc_url
+            - name: NFT_INDEXER_ETHEREUM_WORKER_ACCOUNT_MNEMONIC
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: ethereum_worker_account_mnemonic
+            - name: NFT_INDEXER_OPENSEA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: opensea_api_key
+            - name: NFT_INDEXER_SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: sentry_dsn
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+          - name: config
+            mountPath: "/.config"
+            readOnly: true
+      volumes:
+      # You set volumes at the Pod level, then mount them into containers inside that Pod
+      - name: config
+        configMap:
+          name: {{ include "nft-indexer.fullname" . }}
+          items:
+          - key: "background.yaml"
+            path: "config.yaml"
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nft-indexer.fullname" . }}-account-token-indexer
+  labels:
+    {{- include "nft-indexer.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "nft-indexer.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        {{- include "nft-indexer.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tags.account_token_indexer }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+          - /nft-account-token-indexer
           env:
             - name: AWS_ACCESS_KEY_ID
               valueFrom:

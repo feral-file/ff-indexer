@@ -4,7 +4,7 @@ image:
   tags:
     eventSubscriber: "event-subscriber-0.0.16-6"
     tezosMarketplaceIndexer:
-    tezosFeralfileIndexer: tezos-feralfile-indexer-0.0.1-11
+    tezosFeralfileIndexer: tezos-feralfile-indexer-2.0.0-6
 
 serviceConfig:
   tezosNodeRPCURL: https://rpc.kathmandu.tzstats.com

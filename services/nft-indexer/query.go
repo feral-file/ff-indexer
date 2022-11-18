@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -146,7 +145,7 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParamsIDs []str
 
 			owner, err := s.indexerEngine.GetTokenOwnerAddress(contract, tokenId)
 			if err != nil {
-				logrus.
+				log.
 					WithField("contract", contract).
 					WithField("tokenId", tokenId).
 					WithError(err).
@@ -357,6 +356,42 @@ func (s *NFTIndexerServer) GetIdentities(c *gin.Context) {
 	c.JSON(200, ids)
 }
 
+func (s *NFTIndexerServer) SetTokenPending(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "TokenPending")
+
+	var reqParams PendingTxParams
+
+	if err := c.BindQuery(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if err := c.Bind(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if reqParams.PendingTx == "" {
+		abortWithError(c, http.StatusBadRequest, "invalid parameter", fmt.Errorf("pendingTx is required"))
+		return
+	}
+
+	if len(strings.Split(reqParams.IndexID, "-")) != 3 {
+		abortWithError(c, http.StatusBadRequest, "invalid parameter", fmt.Errorf("indexID structure is not correct"))
+		return
+	}
+
+	if err := s.indexerStore.AddPendingTxToAccountToken(c, reqParams.OwnerAccount, reqParams.IndexID, reqParams.PendingTx); err != nil {
+		log.WithField("error", err).Warn("error while adding pending accountToken")
+		return
+	}
+	log.WithField("pendingTx", reqParams.PendingTx).Debug("a pending account token is added")
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok": 1,
+	})
+}
+
 func (s *NFTIndexerServer) GetAccountNFTs(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "GetNewAccountTokens")
 
@@ -401,4 +436,53 @@ func (s *NFTIndexerServer) GetAccountNFTs(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, tokensInfo)
+}
+
+func (s *NFTIndexerServer) CreateDemoTokens(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "CreateDemoTokens")
+
+	var reqParams = NFTQueryParams{
+		Offset: 0,
+		Size:   50,
+	}
+
+	if err := c.BindQuery(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if err := c.Bind(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	owner := reqParams.Owner
+
+	if owner == "" {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("owner is required"))
+		return
+	}
+
+	if len(reqParams.IDs) == 0 {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("IDs are required"))
+		return
+	}
+
+	for _, indexID := range reqParams.IDs {
+		if len(strings.Split(indexID, "-")) != 3 {
+			abortWithError(c, http.StatusBadRequest, "invalid parameter", fmt.Errorf("indexID structure is not correct"))
+			return
+		}
+	}
+
+	err := s.indexerStore.IndexDemoTokens(c, owner, reqParams.IDs)
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to index all demo tokens", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok":      1,
+		"message": "tokens in the system are added",
+	})
 }

@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
+	"strings"
 	"time"
 
 	goethereum "github.com/ethereum/go-ethereum"
@@ -79,38 +81,37 @@ func (w *NFTIndexerWorker) IndexETHTokenByOwner(ctx context.Context, owner strin
 }
 
 // IndexTezosTokenByOwner indexes Tezos token data for an owner into the format of AssetUpdates
-func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, runID string, owner string, offset int) (int, error) {
-	if offset == 0 {
+func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, owner string, isFirstPage bool) (bool, error) {
+	account, err := w.indexerStore.GetAccount(ctx, owner)
+
+	if err != nil {
+		return false, err
+	}
+
+	if isFirstPage {
 		delay := time.Minute
-		account, err := w.indexerStore.GetAccount(ctx, owner)
-
-		if err != nil {
-			return 0, err
-		}
-
 		if account.LastUpdatedTime.Unix() > time.Now().Add(-delay).Unix() {
 			log.WithField("lastUpdatedTime", account.LastUpdatedTime.Unix()).
 				WithField("now", time.Now().Add(-delay).Unix()).
 				WithField("owner", account.Account).Trace("owner refresh too frequently")
-			return 0, nil
+			return false, nil
 		}
 	}
 
-	updates, err := w.indexerEngine.IndexTezosTokenByOwner(ctx, owner, offset)
+	updates, newLastTime, err := w.indexerEngine.IndexTezosTokenByOwner(ctx, owner, account.LastActivityTime, 0)
 	if err != nil {
-		return 0, err
+		return false, err
 	}
 
 	if len(updates) == 0 {
-		err := w.indexerStore.CleanupAccountTokens(ctx, runID, owner)
-		return 0, err
+		return false, err
 	}
 
 	accountTokens := []indexer.AccountToken{}
 
 	for _, update := range updates {
 		if err := w.indexerStore.IndexAsset(ctx, update.ID, update); err != nil {
-			return 0, err
+			return false, err
 		}
 
 		accountTokens = append(accountTokens, indexer.AccountToken{
@@ -120,19 +121,18 @@ func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, runID str
 			Balance:           update.Tokens[0].Balance,
 			LastActivityTime:  update.Tokens[0].LastActivityTime,
 			LastRefreshedTime: update.Tokens[0].LastRefreshedTime,
-			RunID:             runID,
 		})
 	}
 
-	if err := w.indexTezosAccount(ctx, owner); err != nil {
-		return 0, err
+	if err := w.indexTezosAccount(ctx, owner, newLastTime); err != nil {
+		return false, err
 	}
 
-	if err := w.indexTezosAccountTokens(ctx, owner, accountTokens); err != nil {
-		return 0, err
+	if err := w.IndexAccountTokens(ctx, owner, accountTokens); err != nil {
+		return false, err
 	}
 
-	return len(updates), nil
+	return true, nil
 }
 
 type TezosTokenRawData struct {
@@ -162,17 +162,18 @@ func (w *NFTIndexerWorker) IndexAsset(ctx context.Context, updates indexer.Asset
 }
 
 // indexTezosAccount saves tezos account data into indexer's storage
-func (w *NFTIndexerWorker) indexTezosAccount(ctx context.Context, owner string) error {
+func (w *NFTIndexerWorker) indexTezosAccount(ctx context.Context, owner string, lastActivityTime time.Time) error {
 	account := indexer.Account{
-		Account:         owner,
-		Blockchain:      "tezos",
-		LastUpdatedTime: time.Now(),
+		Account:          owner,
+		Blockchain:       "tezos",
+		LastUpdatedTime:  time.Now(),
+		LastActivityTime: lastActivityTime,
 	}
 	return w.indexerStore.IndexAccount(ctx, account)
 }
 
-// indexTezosAccountTokens saves tezos account tokens data into indexer's storage
-func (w *NFTIndexerWorker) indexTezosAccountTokens(ctx context.Context, owner string, accountTokens []indexer.AccountToken) error {
+// IndexAccountTokens saves account tokens data into indexer's storage
+func (w *NFTIndexerWorker) IndexAccountTokens(ctx context.Context, owner string, accountTokens []indexer.AccountToken) error {
 	return w.indexerStore.IndexAccountTokens(ctx, owner, accountTokens)
 }
 
@@ -375,6 +376,13 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 		if err := w.indexerStore.UpdateTokenProvenance(ctx, token.IndexID, totalProvenances); err != nil {
 			return err
 		}
+
+		if len(totalProvenances) != 0 {
+			owner := map[string]int64{totalProvenances[0].Owner: 1}
+			if err := w.indexerStore.UpdateAccountTokenOwners(ctx, token.IndexID, totalProvenances[0].Timestamp, owner); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
@@ -475,4 +483,79 @@ func (w *NFTIndexerWorker) RefreshTezosTokenOwnership(ctx context.Context, index
 		}
 	}
 	return nil
+}
+
+// UpdateAccountTokens updates all pending account tokens
+func (w *NFTIndexerWorker) UpdateAccountTokens(ctx context.Context) error {
+	pendingAccountTokens, err := w.indexerStore.GetPendingAccountTokens(ctx)
+	if err != nil {
+		log.Warn("errors in the pending account tokens")
+		return err
+	}
+
+	delay := time.Hour
+	for _, pendingAccountToken := range pendingAccountTokens {
+		for idx, pendingTx := range pendingAccountToken.PendingTxs {
+			if pendingAccountToken.LastPendingTime[idx].Unix() < time.Now().Add(-delay).Unix() {
+				log.WithField("pendingTxs", pendingAccountToken.PendingTxs).Warn("pending too long")
+				w.indexerStore.DeletePendingFieldsAccountToken(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID, pendingTx, pendingAccountToken.LastPendingTime[idx])
+				continue
+			}
+
+			transactionDetails, err := w.indexerEngine.GetTransactionDetailsByPendingTx(pendingTx)
+			if err != nil || len(transactionDetails) == 0 {
+				continue
+			}
+
+			accountTokens, err := w.GetBalanceDiffFromTransaction(ctx, transactionDetails[0], pendingAccountToken)
+			if err != nil {
+				w.indexerStore.DeletePendingFieldsAccountToken(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID, pendingTx, pendingAccountToken.LastPendingTime[idx])
+				continue
+			}
+			for _, accountToken := range accountTokens {
+				if accountToken.Balance < 0 {
+					w.indexerStore.UpdatePendingAccountToken(ctx, accountToken.OwnerAccount, accountToken.IndexID, accountToken.Balance, transactionDetails[0].Timestamp, pendingTx, pendingAccountToken.LastPendingTime[idx])
+				} else {
+					w.indexerStore.UpdateReceivedAccountToken(ctx, accountToken.OwnerAccount, accountToken.IndexID, accountToken.Balance, transactionDetails[0].Timestamp)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// GetBalanceDiffFromTransaction gets the balance difference of account tokens in a transaction.
+func (w *NFTIndexerWorker) GetBalanceDiffFromTransaction(ctx context.Context, transactionDetails tzkt.TransactionDetails, accountToken indexer.AccountToken) ([]indexer.AccountToken, error) {
+	if accountToken.OwnerAccount != transactionDetails.Parameter.Value[0].From_ {
+		return nil, fmt.Errorf("owner account is not the sender")
+	}
+
+	var updatedAccountTokens = []indexer.AccountToken{}
+	var totalTransferredBalance = int64(0)
+
+	for _, txs := range transactionDetails.Parameter.Value[0].Txs {
+		if txs.TokenID == strings.Split(accountToken.IndexID, "-")[2] {
+			balance, err := strconv.ParseInt(txs.Amount, 10, 64)
+			if err != nil {
+				continue
+			}
+
+			receiverAccountToken := indexer.AccountToken{
+				IndexID:      accountToken.IndexID,
+				OwnerAccount: txs.To_,
+				Balance:      balance,
+			}
+
+			updatedAccountTokens = append(updatedAccountTokens, receiverAccountToken)
+			totalTransferredBalance += balance
+		}
+	}
+	senderAccountToken := indexer.AccountToken{
+		IndexID:      accountToken.IndexID,
+		OwnerAccount: accountToken.OwnerAccount,
+		Balance:      -totalTransferredBalance,
+	}
+
+	updatedAccountTokens = append(updatedAccountTokens, senderAccountToken)
+	return updatedAccountTokens, nil
 }

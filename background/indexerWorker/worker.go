@@ -14,6 +14,7 @@ import (
 var ClientName = "nft-indexer-worker"
 var TaskListName = "nft-indexer"
 var ProvenanceTaskListName = "nft-provenance-indexer"
+var AccountTokenTaskListName = "nft-account-token-indexer"
 
 type NFTIndexerWorker struct {
 	http       *http.Client
@@ -28,9 +29,10 @@ type NFTIndexerWorker struct {
 	bitmarkZeroAddress string
 	bitmarkAPIEndpoint string
 
-	Environment            string
-	TaskListName           string
-	ProvenanceTaskListName string
+	Environment              string
+	TaskListName             string
+	ProvenanceTaskListName   string
+	AccountTokenTaskListName string
 }
 
 func New(environment string,
@@ -70,8 +72,9 @@ func New(environment string,
 		bitmarkZeroAddress: bitmarkZeroAddress,
 		bitmarkAPIEndpoint: bitmarkAPIEndpoint,
 
-		Environment:            environment,
-		TaskListName:           TaskListName,
-		ProvenanceTaskListName: ProvenanceTaskListName,
+		Environment:              environment,
+		TaskListName:             TaskListName,
+		ProvenanceTaskListName:   ProvenanceTaskListName,
+		AccountTokenTaskListName: AccountTokenTaskListName,
 	}
 }

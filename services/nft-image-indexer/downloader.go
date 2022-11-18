@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"strings"
 
+	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/utils"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/sirupsen/logrus"
 )
@@ -25,9 +27,16 @@ func DownloadFile(url string) (io.Reader, string, error) {
 
 	mimeType := mimetype.Detect(fileHeader).String()
 
-	file := bytes.NewBuffer(fileHeader)
-	if _, err := io.Copy(file, resp.Body); err != nil {
-		return nil, "", err
+	file := new(bytes.Buffer)
+	if strings.HasPrefix(mimeType, "image/svg") {
+		if file, err = utils.ConvertSVGToPNG(url); err != nil {
+			return nil, "", err
+		}
+	} else {
+		file = bytes.NewBuffer(fileHeader)
+		if _, err := io.Copy(file, resp.Body); err != nil {
+			return nil, "", err
+		}
 	}
 
 	logrus.WithField("file_size", file.Len()).Debug("file downloaded")

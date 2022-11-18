@@ -11,8 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bitmark-inc/nft-indexer/traceutils"
 	"github.com/sirupsen/logrus"
+
+	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
 
 var ErrTooManyRequest = fmt.Errorf("too many requests")
@@ -23,6 +24,8 @@ type TZKT struct {
 
 	client *http.Client
 }
+
+type NullableInt int64
 
 func New(network string) *TZKT {
 	endpoint := "api.mainnet.tzkt.io"
@@ -52,6 +55,21 @@ type FileFormat struct {
 }
 
 type FileFormats []FileFormat
+
+func (t *NullableInt) UnmarshalJSON(data []byte) error {
+	var num int64
+
+	err := json.Unmarshal(data, &num)
+	if err != nil {
+		*t = NullableInt(-1)
+
+		return nil
+	}
+
+	*t = NullableInt(num)
+
+	return nil
+}
 
 func (f *FileFormats) UnmarshalJSON(data []byte) error {
 	type formats FileFormats
@@ -136,14 +154,15 @@ type Token struct {
 	Contract    Account       `json:"contract"`
 	ID          TokenID       `json:"tokenId"`
 	Standard    string        `json:"standard"`
-	TotalSupply int64         `json:"totalSupply,string"`
+	TotalSupply NullableInt   `json:"totalSupply,string"`
 	Timestamp   time.Time     `json:"firstTime"`
 	Metadata    TokenMetadata `json:"metadata"`
 }
 
 type OwnedToken struct {
-	Token   Token `json:"token"`
-	Balance int64 `json:"balance,string"`
+	Token    Token       `json:"token"`
+	Balance  NullableInt `json:"balance,string"`
+	LastTime time.Time   `json:"lastTime"`
 }
 
 type TokenMetadata struct {
@@ -231,20 +250,24 @@ func (c *TZKT) GetContractToken(contract, tokenID string) (Token, error) {
 
 // RetrieveTokens returns OwnedToken for a specific token. The OwnedToken object includes
 // both balance and token information
-func (c *TZKT) RetrieveTokens(owner string, offset int) ([]OwnedToken, error) {
+func (c *TZKT) RetrieveTokens(owner string, lastTime time.Time, offset int) ([]OwnedToken, error) {
 	v := url.Values{
 		"account":        []string{owner},
 		"limit":          []string{"50"},
 		"offset":         []string{fmt.Sprintf("%d", offset)},
-		"balance.gt":     []string{"0"},
+		"balance.ge":     []string{"0"},
 		"token.standard": []string{"fa2"},
+		"sort":           []string{"lastTime"},
 	}
+
+	// prevent QueryEscape for colons in time
+	rawQuery := v.Encode() + "&lastTime.gt=" + lastTime.UTC().Format(time.RFC3339)
 
 	u := url.URL{
 		Scheme:   "https",
 		Host:     c.endpoint,
 		Path:     "/v1/tokens/balances",
-		RawQuery: v.Encode(),
+		RawQuery: rawQuery,
 	}
 	var ownedTokens []OwnedToken
 
@@ -422,4 +445,50 @@ func (c *TZKT) GetTokenBalanceForOwner(contract, tokenID, owner string) (int64, 
 	}
 
 	return owners[0].Balance, nil
+}
+
+type TransactionDetails struct {
+	Block     string               `json:"block"`
+	Parameter TransactionParameter `json:"parameter"`
+	Target    Account              `json:"target"`
+	Timestamp time.Time            `json:"timestamp" bson:"timestamp"`
+}
+
+type TransactionParameter struct {
+	EntryPoint string            `json:"entrypoint"`
+	Value      []ParametersValue `json:"value"`
+}
+
+type ParametersValue struct {
+	From_ string      `json:"from_"`
+	Txs   []TxsFormat `json:"txs`
+}
+
+type TxsFormat struct {
+	To_     string `json:"to_"`
+	Amount  string `json:"amount"`
+	TokenID string `json:"token_id"`
+}
+
+// GetTransactionByTx gets transaction details from a specific Tx
+func (c *TZKT) GetTransactionByTx(hash string) ([]TransactionDetails, error) {
+	u := url.URL{
+		Scheme: "https",
+		Host:   c.endpoint,
+		Path:   fmt.Sprintf("%s/%s", "/v1/operations/transactions", hash),
+	}
+
+	var transactionDetails []TransactionDetails
+
+	resp, err := c.client.Get(u.String())
+	if err != nil {
+		return transactionDetails, err
+	}
+	defer resp.Body.Close()
+
+	if err := json.NewDecoder(resp.Body).Decode(&transactionDetails); err != nil {
+		return transactionDetails, err
+	}
+
+	return transactionDetails, nil
 }

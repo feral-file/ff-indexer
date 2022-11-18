@@ -68,7 +68,7 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 	// FIXME: we do not have mint event as this moment.
 
 	if err := api.feedServer.SendEvent(tokenBlockchain, req.Contract, req.TokenID, req.To, mintType, req.IsTestnet); err != nil {
-		logrus.WithError(err).Error("fail to push event to feed server")
+		logrus.WithError(err).Debug("fail to push event to feed server")
 	}
 
 	// TODO: do we need to move this account specific function out of this service
@@ -96,6 +96,12 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 		if token.Fungible {
 			indexerWorker.StartRefreshTokenOwnershipWorkflow(c, &api.subscriber.Worker, "subscriber", indexID, 0)
 		} else {
+			if err := api.subscriber.UpdateOwner(c, indexID, req.To, req.Timestamp); err != nil {
+				logrus.
+					WithField("indexID", indexID).WithError(err).
+					WithField("from", req.From).WithField("to", req.To).
+					Error("fail to update the token ownership")
+			}
 			indexerWorker.StartRefreshTokenProvenanceWorkflow(c, &api.subscriber.Worker, "subscriber", indexID, 0)
 		}
 	} else {
