@@ -183,6 +183,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 
 				token.LastActivityTime = token.MintAt // set LastActivityTime to default token minted time
 				token.OwnersArray = []string{token.Owner}
+				token.Owners = map[string]int64{token.Owner: 1}
 				_, err := s.tokenCollection.InsertOne(ctx, token)
 				if err != nil {
 					return err
