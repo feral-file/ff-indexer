@@ -67,9 +67,11 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 	mintType := "transfer"
 	// FIXME: we do not have mint event as this moment.
 
-	if err := api.feedServer.SendEvent(tokenBlockchain, req.Contract, req.TokenID, req.To, mintType, req.IsTestnet); err != nil {
-		logrus.WithError(err).Trace("fail to push event to feed server")
-	}
+	go func() {
+		if err := api.feedServer.SendEvent(tokenBlockchain, req.Contract, req.TokenID, req.To, mintType, req.IsTestnet); err != nil {
+			logrus.WithError(err).Debug("fail to push event to feed server")
+		}
+	}()
 
 	// TODO: do we need to move this account specific function out of this service
 	accounts, err := api.subscriber.GetAccountIDByAddress(req.To)
