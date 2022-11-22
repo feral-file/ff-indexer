@@ -51,7 +51,7 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 	tokenUpdates := make([]AssetUpdates, 0, len(ownedTokens))
 
 	for _, t := range ownedTokens {
-		objktToken, err := e.objkt.GetObjectToken(t.Token.Contract.Address, t.Token.ID.Int.String())
+		objktToken, err := e.getObjktToken(t.Token.Contract.Address, t.Token.ID.Int.String())
 		if err != nil {
 			return nil, newLastTime, err
 		}
@@ -81,7 +81,7 @@ func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, toke
 		return nil, err
 	}
 
-	objktToken, err := e.objkt.GetObjectToken(contract, tokenID)
+	objktToken, err := e.getObjktToken(contract, tokenID)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		MintedAt: tzktToken.Timestamp,
 	}
 
-	if e.environment != "development" {
+	if e.environment != DevelopEnv {
 		switch tzktToken.Contract.Address {
 		case KALAMContractAddress, TezDaoContractAddress, TezosDNSContractAddress:
 			return nil, nil
@@ -158,13 +158,6 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 					fmt.Sprintf("https://objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())},
 				)
 			}
-			// if detail, err := e.objkt.GetObjktDetailed(ctx, tzktToken.ID.Text(10), tzktToken.Contract.Address); err != nil {
-			// 	log.WithError(err).Error("fail to get token detail from objkt")
-			// } else {
-
-			// 	metadataDetail.FromObjktObject(detail)
-			// 	tokenDetail.MintedAt = detail.MintedAt
-			// }
 		}
 	}
 
@@ -288,4 +281,17 @@ func (e *IndexEngine) IndexTezosTokenOwners(ctx context.Context, contract, token
 	}
 
 	return ownersMap, nil
+}
+
+func (e *IndexEngine) getObjktToken(contract, tokenID string) (objkt.Token, error) {
+	if e.environment == DevelopEnv {
+		return objkt.Token{}, nil
+	}
+
+	objktToken, err := e.objkt.GetObjectToken(contract, tokenID)
+	if err != nil {
+		return objkt.Token{}, err
+	}
+
+	return objktToken, nil
 }
