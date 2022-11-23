@@ -11,6 +11,7 @@ serviceConfig:
   contractAddresses: [
     "KT1Ca3Bpug7mZaQ2YQvVYzu4Byx7V28nNrat",
   ]
+  contractBoostUrl: "https://api.kathmandunet.tzkt.io/"
   environment: development
   network:
     tezos: testnet
