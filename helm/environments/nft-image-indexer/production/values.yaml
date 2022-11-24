@@ -1,4 +1,4 @@
 replicaCount: 1
 
 image:
-  tag: "image-indexer-0.0.10"
+  tag: "image-indexer-07930973f2792f4e20370d06bdbbbe7c7726035d"

@@ -13,10 +13,10 @@ image:
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tags:
-    api: "api-0.0.16-26"
-    background: "background-0.0.16-26"
-    provenance_indexer: "nft-provenance-indexer-0.0.16-27"
-    account_token_indexer: "nft-account-token-update-0.0.17"
+    api: "api-07930973f2792f4e20370d06bdbbbe7c7726035d"
+    background: "background-07930973f2792f4e20370d06bdbbbe7c7726035d"
+    provenance_indexer: "provenance-indexer-07930973f2792f4e20370d06bdbbbe7c7726035d"
+    account_token_indexer: "account-token-indexer-07930973f2792f4e20370d06bdbbbe7c7726035d"
 
 serviceConfig:
   cadence_hostport: cadence-frontend.cadence.svc.cluster.local:7933
