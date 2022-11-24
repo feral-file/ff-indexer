@@ -45,7 +45,7 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 				WithField("logIndex", eLog.Index).
 				WithField("time", paringStartTime).
 				Debug("start processing ethereum log")
-			timestamp, err := getBlockTime(ctx, s.wallet.RPCClient(), eLog.BlockHash)
+			timestamp, err := indexer.GetETHBlockTime(ctx, s.wallet.RPCClient(), eLog.BlockHash)
 			logrus.WithField("txHash", eLog.TxHash).
 				WithField("logIndex", eLog.Index).
 				WithField("delay", time.Since(paringStartTime)).Debug("get block time")
