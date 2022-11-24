@@ -51,12 +51,12 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 	tokenUpdates := make([]AssetUpdates, 0, len(ownedTokens))
 
 	for _, t := range ownedTokens {
-		objktToken, err := e.getObjktToken(t.Token.Contract.Address, t.Token.ID.Int.String())
+		creatorInfo, err := e.tzkt.GetCreatorInfo(t.Token)
 		if err != nil {
 			return nil, newLastTime, err
 		}
 
-		update, err := e.indexTezosToken(ctx, t.Token, objktToken, owner, int64(t.Balance))
+		update, err := e.indexTezosToken(ctx, t.Token, owner, int64(t.Balance), t.Token.Contract.Address, t.Token.ID.Int.String(), creatorInfo)
 		if err != nil {
 			log.WithError(err).Error("fail to index a tezos token")
 			continue
@@ -81,7 +81,7 @@ func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, toke
 		return nil, err
 	}
 
-	objktToken, err := e.getObjktToken(contract, tokenID)
+	creatorInfo, err := e.tzkt.GetCreatorInfo(tzktToken)
 	if err != nil {
 		return nil, err
 	}
@@ -91,20 +91,30 @@ func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, toke
 		return nil, err
 	}
 
-	return e.indexTezosToken(ctx, tzktToken, objktToken, owner, balance)
+	return e.indexTezosToken(ctx, tzktToken, owner, balance, contract, tokenID, creatorInfo)
 }
 
 // indexTezosToken prepares indexing data for a tezos token using the
 // source API token object. It currently uses token objects from tzkt api
-func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token, objktToken objkt.Token, owner string, balance int64) (*AssetUpdates, error) {
+func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token, owner string, balance int64, contract string, tokenID string, creatorInfo tzkt.UserInfo) (*AssetUpdates, error) {
 	log.WithField("token", tzktToken).Debug("index tezos token")
 
 	assetIDBytes := sha3.Sum256([]byte(fmt.Sprintf("%s-%s", tzktToken.Contract.Address, tzktToken.ID.String())))
 	assetID := hex.EncodeToString(assetIDBytes[:])
 
 	metadataDetail := NewAssetMetadataDetail(assetID)
-	metadataDetail.FromTZKT(tzktToken)
-	metadataDetail.FromObjkt(objktToken)
+	metadataDetail.FromTZKT(tzktToken, creatorInfo)
+
+	// get Objkt token metadata if TZKT does not have good metadata
+	if !metadataDetail.CheckDataIsEnough() {
+		objktToken, err := e.getObjktToken(contract, tokenID)
+
+		if err == nil {
+			metadataDetail.FromObjkt(objktToken)
+		}
+	} else {
+		metadataDetail.GetCDNURLFromObjkt()
+	}
 
 	tokenDetail := TokenDetail{
 		MintedAt: tzktToken.Timestamp,

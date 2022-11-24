@@ -177,6 +177,23 @@ type TokenMetadata struct {
 	Formats      FileFormats  `json:"formats"`
 }
 
+type UserInfo struct {
+	Address  string
+	Alias    string
+	Metadata AccountMetadata
+}
+
+type AccountMetadata struct {
+	Site      string
+	Facebook  string
+	Instagram string
+	Medium    string
+	Reddit    string
+	Twitter   string
+	Github    string
+	Gitlab    string
+}
+
 func (c *TZKT) Debug() *TZKT {
 	c.debug = true
 	return c
@@ -221,6 +238,28 @@ func (c *TZKT) request(req *http.Request, responseData interface{}) error {
 	}
 
 	return err
+}
+
+func (c *TZKT) GetCreatorInfo(token Token) (UserInfo, error) {
+	creator := UserInfo{}
+
+	if len(token.Metadata.Creators) > 0 {
+		u := url.URL{
+			Scheme: "https",
+			Host:   c.endpoint,
+			Path:   "/v1/accounts/" + token.Metadata.Creators[0],
+			RawQuery: url.Values{
+				"metadata": []string{"true"},
+			}.Encode(),
+		}
+
+		req, _ := http.NewRequest("GET", u.String(), nil)
+		if err := c.request(req, &creator); err != nil {
+			return UserInfo{}, err
+		}
+	}
+
+	return creator, nil
 }
 
 func (c *TZKT) GetContractToken(contract, tokenID string) (Token, error) {

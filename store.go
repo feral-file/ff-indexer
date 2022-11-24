@@ -133,8 +133,8 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		}
 	}
 
-	// update an existent asset
-	if !assetCreated {
+	// if statement prevent update data when tzkt not have metadata and this time we can not get objkt api
+	if !assetCreated && assetUpdates.ProjectMetadata.Title != "" && assetUpdates.ProjectMetadata.Description != "" {
 		var a struct {
 			Source          string                   `json:"source" bson:"source"`
 			ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`

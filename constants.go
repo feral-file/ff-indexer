@@ -52,3 +52,13 @@ var ObjktCDNTypes = []string{
 }
 
 const DevelopEnv = "development"
+
+var SocialMediaLink = map[string]string{
+	"Instagram": "https://www.instagram.com/",
+	"Medium":    "https://medium.com/",
+	"Twitter":   "https://twitter.com/",
+	"Facebook":  "https://www.facebook.com/",
+	"Reddit":    "https://www.reddit.com/",
+	"Github":    "https://github.com/",
+	"Gitlab":    "https://gitlab.com/",
+}

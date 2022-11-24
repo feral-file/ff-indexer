@@ -47,3 +47,9 @@ func TestIndexTezosToken(t *testing.T) {
 	assert.Equal(t, strings.Contains(assetUpdates.ProjectMetadata.PreviewURL, "https://assets.objkt.media/file/assets-003/"), true)
 	assert.Equal(t, assetUpdates.ProjectMetadata.Title == "", false)
 }
+
+func TestIndexTezosTokenByOwner(t *testing.T) {
+	engine := New("", nil, tzkt.New(""), nil, objkt.New("https://data.objkt.com/v3/graphql"))
+	_, _, err := engine.IndexTezosTokenByOwner(context.Background(), "tz1ZMDCUyEvsQykWuxTkBzVDcTzMtUEwTeiw", time.Time{}, 0)
+	assert.NoError(t, err)
+}
