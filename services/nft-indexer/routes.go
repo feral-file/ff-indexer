@@ -25,13 +25,10 @@ func (s *NFTIndexerServer) SetupRoute() {
 	s.route.POST("/nft/:token_id/provenance", s.RefreshProvenance)
 
 	s.route.POST("/nft/query", s.QueryNFTs)
-	s.route.POST("/v1/nft/query", s.QueryNFTsV1)
 	s.route.GET("/nft/search", s.SearchNFTs)
 	s.route.GET("/nft/owned", s.OwnedNFTIDs)
 	s.route.GET("/nft", s.ListNFTs)
 	s.route.POST("/nft/pending", s.SetTokenPending)
-	s.route.GET("/v1/nft", s.GetAccountNFTs)
-	s.route.POST("/v1/admin/demo-tokens/", TokenAuthenticate("API-TOKEN", s.adminApiToken), s.CreateDemoTokens)
 
 	s.route.POST("/nft/index_one", s.IndexOneNFT)
 	s.route.POST("/nft/index_owner", s.IndexNFTByOwner)
@@ -41,6 +38,18 @@ func (s *NFTIndexerServer) SetupRoute() {
 
 	s.route.POST("/nft/swap", TokenAuthenticate("API-TOKEN", s.apiToken), s.SwapNFT)
 	s.route.PUT("/asset/:asset_id", TokenAuthenticate("API-TOKEN", s.apiToken), s.IndexAsset)
+
+	v1 := s.route.Group("/v1")
+	v1NFT := v1.Group("/nft")
+	v1NFT.GET("", s.GetAccountNFTs)
+	v1NFT.POST("/query", s.QueryNFTsV1)
+
+	v1.POST("/admin/demo-tokens/", TokenAuthenticate("API-TOKEN", s.adminApiToken), s.CreateDemoTokens)
+
+	feralfileAPI := v1.Group("/feralfile", TokenAuthenticate("API-TOKEN", s.apiToken))
+	feralfileAPI.POST("/nft/:token_id/provenance", s.RefreshProvenanceWithOwner)
+	feralfileAPI.POST("/nft/swap", s.SwapNFT)
+	feralfileAPI.PUT("/asset/:asset_id", s.IndexAsset)
 
 	s.route.NoRoute(func(c *gin.Context) {
 		c.JSON(404, gin.H{

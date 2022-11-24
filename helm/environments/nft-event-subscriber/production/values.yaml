@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   tags:
-    eventSubscriber: "event-subscriber-7eefb51c928825526f46afaa21e142bddeaed9ce"
+    eventSubscriber: "event-subscriber-07930973f2792f4e20370d06bdbbbe7c7726035d"
     tezosMarketplaceIndexer: tezos-marketplace-indexer-2.0.0-6
     tezosFeralfileIndexer: tezos-feralfile-indexer-2.0.0-6
 

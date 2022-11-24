@@ -20,6 +20,7 @@ serviceConfig:
   feedEndpoint: http://autonomy-event-feed.autonomy.svc.cluster.local:80
   tezosNodeRPCURL: https://rpc.ghost.tzstats.com
   contractAddresses: []
+  contractBoostUrl: "https://api.tzkt.io/"
 
 imagePullSecrets: []
 nameOverride: ""

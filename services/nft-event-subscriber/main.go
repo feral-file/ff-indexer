@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -25,24 +24,6 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 )
-
-// FIXME: prevent the map from increasing infinitely
-var blockTimes = map[string]time.Time{}
-
-func getBlockTime(ctx context.Context, rpcClient *ethclient.Client, hash common.Hash) (time.Time, error) {
-	if blockTime, ok := blockTimes[hash.Hex()]; ok {
-		return blockTime, nil
-	} else {
-		block, err := rpcClient.BlockByHash(ctx, hash)
-		if err != nil {
-			return time.Time{}, err
-		}
-		logrus.WithField("blockNumber", block.NumberU64()).Debug("set new block")
-		blockTimes[hash.Hex()] = time.Unix(int64(block.Time()), 0)
-
-		return blockTimes[hash.Hex()], nil
-	}
-}
 
 func main() {
 	config.LoadConfig("NFT_INDEXER")
@@ -103,7 +84,7 @@ func main() {
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 	)
 
-	feed := NewFeedClient(viper.GetString("feed.endpoint"), viper.GetString("feed.api_token"))
+	feed := NewFeedClient(viper.GetString("feed.endpoint"), viper.GetString("feed.api_token"), viper.GetBool("feed.debug"))
 
 	service := New(w, environment, wsClient,
 		indexerStore, engine,

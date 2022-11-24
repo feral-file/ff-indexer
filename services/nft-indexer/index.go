@@ -16,28 +16,6 @@ import (
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
 
-// IndexAsset indexes the data of assets and tokens
-func (s *NFTIndexerServer) IndexAsset(c *gin.Context) {
-	traceutils.SetHandlerTag(c, "IndexAsset")
-	assetID := c.Param("asset_id")
-	var input indexer.AssetUpdates
-	if err := c.Bind(&input); err != nil {
-		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
-		return
-	}
-
-	if input.Source == "" {
-		input.Source = indexer.SourceFeralFile
-	}
-
-	if err := s.indexerStore.IndexAsset(c, assetID, input); err != nil {
-		abortWithError(c, http.StatusInternalServerError, "unable to update asset data", err)
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"ok": 1})
-}
-
 type PendingTxParams struct {
 	IndexID         string `json:"indexID"`
 	Blockchain      string `json:"blockchain"`

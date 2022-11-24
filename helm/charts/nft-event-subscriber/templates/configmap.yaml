@@ -36,7 +36,8 @@ data:
       "indexing": {
         "fromBlockLevel": 2845033,
         "contractBoost": {
-          "type": "tzkt"
+          "type": "tzkt",
+          "apiUrl": "{{ .Values.serviceConfig.contractBoostUrl }}"
         },
         "contracts": [
           {

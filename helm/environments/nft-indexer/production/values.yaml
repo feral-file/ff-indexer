@@ -13,10 +13,10 @@ image:
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tags:
-    api: "api-3a10ba0011dde27491a1bcff045c833b34a327d7"
-    background: "background-3a10ba0011dde27491a1bcff045c833b34a327d7"
-    provenance_indexer: "provenance-indexer-3a10ba0011dde27491a1bcff045c833b34a327d7"
-    account_token_indexer: "account-token-indexer-3a10ba0011dde27491a1bcff045c833b34a327d7"
+    api: "api-07930973f2792f4e20370d06bdbbbe7c7726035d"
+    background: "background-07930973f2792f4e20370d06bdbbbe7c7726035d"
+    provenance_indexer: "provenance-indexer-07930973f2792f4e20370d06bdbbbe7c7726035d"
+    account_token_indexer: "account-token-indexer-07930973f2792f4e20370d06bdbbbe7c7726035d"
 
 serviceConfig:
   cadence_hostport: cadenceau-frontend.cadenceau.svc.cluster.local:7933

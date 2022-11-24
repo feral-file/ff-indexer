@@ -183,6 +183,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 
 				token.LastActivityTime = token.MintAt // set LastActivityTime to default token minted time
 				token.OwnersArray = []string{token.Owner}
+				token.Owners = map[string]int64{token.Owner: 1}
 				_, err := s.tokenCollection.InsertOne(ctx, token)
 				if err != nil {
 					return err
@@ -1278,7 +1279,7 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 
 // GetDetailedAccountTokensByOwner returns a list of DetailedToken by account owner
 func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error) {
-	findOptions := options.Find().SetSort(bson.D{{"lastActivityTime", -1}}).SetLimit(size).SetSkip(offset)
+	findOptions := options.Find().SetSort(bson.D{{"lastActivityTime", -1}, {"_id", -1}}).SetLimit(size).SetSkip(offset)
 
 	logrus.
 		WithField("filterParameter", filterParameter).
