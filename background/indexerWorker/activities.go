@@ -271,11 +271,10 @@ func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID,
 			txType = "mint"
 		}
 
-		block, err := w.wallet.RPCClient().BlockByHash(ctx, l.BlockHash)
+		txTime, err := indexer.GetETHBlockTime(ctx, w.wallet.RPCClient(), l.BlockHash)
 		if err != nil {
 			return nil, err
 		}
-		txTime := time.Unix(int64(block.Time()), 0)
 
 		provenances = append(provenances, indexer.Provenance{
 			Timestamp:  txTime,

@@ -43,15 +43,17 @@ func (s *NFTEventSubscriber) WatchBitmarkEvent(ctx context.Context) error {
 					if t.BitmarkID == t.ID {
 						action = "mint"
 					}
-					if t.Owner == indexer.LivenetZeroAddress || t.Owner == indexer.TestnetZeroAddress {
-						if err := s.feedServer.SendBurn(indexer.BitmarkBlockchain, "", t.BitmarkID); err != nil {
-							logrus.WithError(err).Debug("fail to push event to feed server")
+					go func() {
+						if t.Owner == indexer.LivenetZeroAddress || t.Owner == indexer.TestnetZeroAddress {
+							if err := s.feedServer.SendBurn(indexer.BitmarkBlockchain, "", t.BitmarkID); err != nil {
+								logrus.WithError(err).Trace("fail to push event to feed server")
+							}
+						} else {
+							if err := s.feedServer.SendEvent(indexer.BitmarkBlockchain, "", t.BitmarkID, t.Owner, action, viper.GetString("network.bitmark") == "testnet"); err != nil {
+								logrus.WithError(err).Trace("fail to push event to feed server")
+							}
 						}
-					} else {
-						if err := s.feedServer.SendEvent(indexer.BitmarkBlockchain, "", t.BitmarkID, t.Owner, action, viper.GetString("network.bitmark") == "testnet"); err != nil {
-							logrus.WithError(err).Debug("fail to push event to feed server")
-						}
-					}
+					}()
 
 					indexID := indexer.TokenIndexID(indexer.BitmarkBlockchain, "", t.BitmarkID)
 

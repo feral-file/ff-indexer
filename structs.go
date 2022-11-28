@@ -80,6 +80,9 @@ type ProjectMetadata struct {
 	AssetData           string `json:"assetData" bson:"assetData"`                     // null,
 	AssetURL            string `json:"assetURL" bson:"assetURL"`                       // <permalink>
 
+	// artwork metadata from source. currently on for Feral File
+	ArtworkMetadata map[string]interface{} `json:"artworkMetadata" bson:"artworkMetadata"`
+
 	// Operation attributes
 	LastUpdatedAt time.Time `json:"lastUpdatedAt" bson:"lastUpdatedAt"`
 

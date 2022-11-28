@@ -2,7 +2,11 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-replicaCount: 1
+replicaCounts:
+  api: 1
+  background: 1
+  provenance_indexer: 1
+  account_token_indexer: 1
 
 image:
   repository: 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer

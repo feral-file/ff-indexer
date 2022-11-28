@@ -17,15 +17,17 @@ type FeedClient struct {
 	client   *http.Client
 	endpoint string
 	apiToken string
+	isDebug  bool
 }
 
-func NewFeedClient(endpoint, apiToken string) *FeedClient {
+func NewFeedClient(endpoint, apiToken string, isDebug bool) *FeedClient {
 	return &FeedClient{
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
 		endpoint: strings.TrimSuffix(endpoint, "/"),
 		apiToken: apiToken,
+		isDebug:  isDebug,
 	}
 }
 
@@ -63,18 +65,22 @@ func (f *FeedClient) SendEvent(blockchain, contract, tokenID, owner, action stri
 
 	resp, err := f.client.Do(req)
 	if err != nil {
-		logrus.
-			WithError(err).
-			WithField("req_dump", traceutils.DumpRequest(req)).
-			Error("fail to submit event to feed server")
+		if f.isDebug {
+			logrus.
+				WithError(err).
+				WithField("req_dump", traceutils.DumpRequest(req)).
+				Debug("fail to submit event to feed server")
+		}
 		return err
 	}
 
 	if resp.StatusCode != 200 {
-		logrus.
-			WithField("req_dump", traceutils.DumpRequest(req)).
-			WithField("resp_dump", traceutils.DumpResponse(resp)).
-			Error("fail to submit event to feed server")
+		if f.isDebug {
+			logrus.
+				WithField("req_dump", traceutils.DumpRequest(req)).
+				WithField("resp_dump", traceutils.DumpResponse(resp)).
+				Debug("fail to submit event to feed server")
+		}
 		return fmt.Errorf("fail to submit event to feed server")
 	}
 
@@ -103,18 +109,22 @@ func (f *FeedClient) SendBurn(blockchain, contract, tokenID string) error {
 
 	resp, err := f.client.Do(req)
 	if err != nil {
-		logrus.
-			WithField("req_dump", traceutils.DumpRequest(req)).
-			WithField("resp_dump", traceutils.DumpResponse(resp)).
-			Error("fail to submit event to feed server")
+		if f.isDebug {
+			logrus.
+				WithField("req_dump", traceutils.DumpRequest(req)).
+				WithField("resp_dump", traceutils.DumpResponse(resp)).
+				Debug("fail to submit event to feed server")
+		}
 		return err
 	}
 
 	if resp.StatusCode != 200 {
-		logrus.
-			WithField("req_dump", traceutils.DumpRequest(req)).
-			WithField("resp_dump", traceutils.DumpResponse(resp)).
-			Error("fail to submit event to feed server")
+		if f.isDebug {
+			logrus.
+				WithField("req_dump", traceutils.DumpRequest(req)).
+				WithField("resp_dump", traceutils.DumpResponse(resp)).
+				Debug("fail to submit event to feed server")
+		}
 		return fmt.Errorf("fail to submit event to feed server")
 	}
 
