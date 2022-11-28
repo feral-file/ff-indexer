@@ -10,7 +10,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
 
-	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 )
 
@@ -133,8 +132,8 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		default:
 			// fallback marketplace
 			tokenDetail.Fungible = true
+			objktToken, err := e.objkt.GetObjectToken(tzktToken.Contract.Address, tzktToken.ID.String())
 
-			objktToken, err := e.getObjktToken(tzktToken.Contract.Address, tzktToken.ID.String())
 			if err != nil {
 				log.WithError(err).Error("fail to get token detail from objkt")
 			} else {
@@ -273,17 +272,4 @@ func (e *IndexEngine) IndexTezosTokenOwners(ctx context.Context, contract, token
 	}
 
 	return ownersMap, nil
-}
-
-func (e *IndexEngine) getObjktToken(contract, tokenID string) (objkt.Token, error) {
-	if e.environment == DevelopEnv {
-		return objkt.Token{}, nil
-	}
-
-	objktToken, err := e.objkt.GetObjectToken(contract, tokenID)
-	if err != nil {
-		return objkt.Token{}, err
-	}
-
-	return objktToken, nil
 }
