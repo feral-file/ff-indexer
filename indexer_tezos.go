@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"net/url"
 	"time"
 
@@ -46,17 +45,13 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 		return nil, newLastTime, err
 	}
 
-	log.WithField("tokens", ownedTokens).WithField("owner", owner).Debug("retrive tokens for owner")
+	log.WithField("tokens", ownedTokens).WithField("owner", owner).Debug("retrieve tokens for owner")
 
 	tokenUpdates := make([]AssetUpdates, 0, len(ownedTokens))
 
 	for _, t := range ownedTokens {
-		objktToken, err := e.objkt.GetObjectToken(t.Token.Contract.Address, t.Token.ID.Int.String())
-		if err != nil {
-			return nil, newLastTime, err
-		}
 
-		update, err := e.indexTezosToken(ctx, t.Token, objktToken, owner, int64(t.Balance))
+		update, err := e.indexTezosToken(ctx, t.Token, owner, int64(t.Balance))
 		if err != nil {
 			log.WithError(err).Error("fail to index a tezos token")
 			continue
@@ -81,22 +76,17 @@ func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, toke
 		return nil, err
 	}
 
-	objktToken, err := e.objkt.GetObjectToken(contract, tokenID)
-	if err != nil {
-		return nil, err
-	}
-
 	balance, err := e.tzkt.GetTokenBalanceForOwner(contract, tokenID, owner)
 	if err != nil {
 		return nil, err
 	}
 
-	return e.indexTezosToken(ctx, tzktToken, objktToken, owner, balance)
+	return e.indexTezosToken(ctx, tzktToken, owner, balance)
 }
 
 // indexTezosToken prepares indexing data for a tezos token using the
 // source API token object. It currently uses token objects from tzkt api
-func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token, objktToken objkt.Token, owner string, balance int64) (*AssetUpdates, error) {
+func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token, owner string, balance int64) (*AssetUpdates, error) {
 	log.WithField("token", tzktToken).Debug("index tezos token")
 
 	assetIDBytes := sha3.Sum256([]byte(fmt.Sprintf("%s-%s", tzktToken.Contract.Address, tzktToken.ID.String())))
@@ -104,13 +94,12 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 
 	metadataDetail := NewAssetMetadataDetail(assetID)
 	metadataDetail.FromTZKT(tzktToken)
-	metadataDetail.FromObjkt(objktToken)
 
 	tokenDetail := TokenDetail{
 		MintedAt: tzktToken.Timestamp,
 	}
 
-	if e.environment != "development" {
+	if e.environment != DevelopEnv {
 		switch tzktToken.Contract.Address {
 		case KALAMContractAddress, TezDaoContractAddress, TezosDNSContractAddress:
 			return nil, nil
@@ -140,31 +129,26 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 
 			metadataDetail.ArtistURL = fmt.Sprintf("https://versum.xyz/user/%s", metadataDetail.ArtistName)
 
-		case HicEtNuncContractAddress:
-			tokenDetail.Fungible = true
-			// hicetnunc is down. We now fallback the source url and asset url to objkt.com
-			metadataDetail.SetMarketplace(MarketplaceProfile{"hic et nunc", "https://objkt.com",
-				fmt.Sprintf("https://objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())},
-			)
 		default:
-			tokenDetail.Fungible = true
 			// fallback marketplace
-			metadataDetail.SetMarketplace(MarketplaceProfile{"unknown", "https://objkt.com",
-				fmt.Sprintf("https://objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())},
-			)
+			tokenDetail.Fungible = true
+			objktToken, err := e.objkt.GetObjectToken(tzktToken.Contract.Address, tzktToken.ID.String())
 
-			if tzktToken.Metadata.Symbol == "OBJKTCOM" {
-				metadataDetail.SetMarketplace(MarketplaceProfile{"objkt", "https://objkt.com",
-					fmt.Sprintf("https://objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())},
-				)
+			if err != nil {
+				log.WithError(err).Error("fail to get token detail from objkt")
+			} else {
+				metadataDetail.FromObjkt(objktToken)
 			}
-			// if detail, err := e.objkt.GetObjktDetailed(ctx, tzktToken.ID.Text(10), tzktToken.Contract.Address); err != nil {
-			// 	log.WithError(err).Error("fail to get token detail from objkt")
-			// } else {
 
-			// 	metadataDetail.FromObjktObject(detail)
-			// 	tokenDetail.MintedAt = detail.MintedAt
-			// }
+			assetURL := fmt.Sprintf("https://objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())
+			switch tzktToken.Metadata.Symbol {
+			case "OBJKTCOM":
+				metadataDetail.SetMarketplace(MarketplaceProfile{"objkt", "https://objkt.com", assetURL})
+			case "OBJKT":
+				metadataDetail.SetMarketplace(MarketplaceProfile{"hic et nunc", "https://objkt.com", assetURL})
+			default:
+				metadataDetail.SetMarketplace(MarketplaceProfile{"unknown", "https://objkt.com", assetURL})
+			}
 		}
 	}
 
