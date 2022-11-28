@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"net/url"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
 
+	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 )
 
@@ -51,12 +51,8 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 	tokenUpdates := make([]AssetUpdates, 0, len(ownedTokens))
 
 	for _, t := range ownedTokens {
-		objktToken, err := e.getObjktToken(t.Token.Contract.Address, t.Token.ID.Int.String())
-		if err != nil {
-			return nil, newLastTime, err
-		}
 
-		update, err := e.indexTezosToken(ctx, t.Token, objktToken, owner, int64(t.Balance))
+		update, err := e.indexTezosToken(ctx, t.Token, owner, int64(t.Balance))
 		if err != nil {
 			log.WithError(err).Error("fail to index a tezos token")
 			continue
@@ -81,22 +77,17 @@ func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, toke
 		return nil, err
 	}
 
-	objktToken, err := e.getObjktToken(contract, tokenID)
-	if err != nil {
-		return nil, err
-	}
-
 	balance, err := e.tzkt.GetTokenBalanceForOwner(contract, tokenID, owner)
 	if err != nil {
 		return nil, err
 	}
 
-	return e.indexTezosToken(ctx, tzktToken, objktToken, owner, balance)
+	return e.indexTezosToken(ctx, tzktToken, owner, balance)
 }
 
 // indexTezosToken prepares indexing data for a tezos token using the
 // source API token object. It currently uses token objects from tzkt api
-func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token, objktToken objkt.Token, owner string, balance int64) (*AssetUpdates, error) {
+func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token, owner string, balance int64) (*AssetUpdates, error) {
 	log.WithField("token", tzktToken).Debug("index tezos token")
 
 	assetIDBytes := sha3.Sum256([]byte(fmt.Sprintf("%s-%s", tzktToken.Contract.Address, tzktToken.ID.String())))
@@ -104,7 +95,6 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 
 	metadataDetail := NewAssetMetadataDetail(assetID)
 	metadataDetail.FromTZKT(tzktToken)
-	metadataDetail.FromObjkt(objktToken)
 
 	tokenDetail := TokenDetail{
 		MintedAt: tzktToken.Timestamp,
@@ -140,23 +130,25 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 
 			metadataDetail.ArtistURL = fmt.Sprintf("https://versum.xyz/user/%s", metadataDetail.ArtistName)
 
-		case HicEtNuncContractAddress:
-			tokenDetail.Fungible = true
-			// hicetnunc is down. We now fallback the source url and asset url to objkt.com
-			metadataDetail.SetMarketplace(MarketplaceProfile{"hic et nunc", "https://objkt.com",
-				fmt.Sprintf("https://objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())},
-			)
 		default:
-			tokenDetail.Fungible = true
 			// fallback marketplace
-			metadataDetail.SetMarketplace(MarketplaceProfile{"unknown", "https://objkt.com",
-				fmt.Sprintf("https://objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())},
-			)
+			tokenDetail.Fungible = true
 
-			if tzktToken.Metadata.Symbol == "OBJKTCOM" {
-				metadataDetail.SetMarketplace(MarketplaceProfile{"objkt", "https://objkt.com",
-					fmt.Sprintf("https://objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())},
-				)
+			objktToken, err := e.getObjktToken(tzktToken.Contract.Address, tzktToken.ID.String())
+			if err != nil {
+				log.WithError(err).Error("fail to get token detail from objkt")
+			} else {
+				metadataDetail.FromObjkt(objktToken)
+			}
+
+			assetURL := fmt.Sprintf("https://objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())
+			switch tzktToken.Metadata.Symbol {
+			case "OBJKTCOM":
+				metadataDetail.SetMarketplace(MarketplaceProfile{"objkt", "https://objkt.com", assetURL})
+			case "OBJKT":
+				metadataDetail.SetMarketplace(MarketplaceProfile{"hic et nunc", "https://objkt.com", assetURL})
+			default:
+				metadataDetail.SetMarketplace(MarketplaceProfile{"unknown", "https://objkt.com", assetURL})
 			}
 		}
 	}

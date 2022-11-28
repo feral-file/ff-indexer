@@ -2,9 +2,10 @@ package objkt
 
 import (
 	"context"
-	"github.com/hasura/go-graphql-client"
 	"net/http"
 	"time"
+
+	"github.com/hasura/go-graphql-client"
 )
 
 type ObjktAPI struct {
