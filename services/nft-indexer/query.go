@@ -95,7 +95,7 @@ func (s *NFTIndexerServer) QueryNFTsV1(c *gin.Context) {
 	c.JSON(http.StatusOK, tokenInfo)
 }
 
-// PreprocessTokens takes an array of token ids and return an arrary formatted token ids
+// PreprocessTokens takes an array of token ids and return an array formatted token ids
 // which includes formatting ethereum address and converting token id from hex to decimal if
 // isConvertToDecimal is set to true. NOTE: There is no error return in this call.
 func PreprocessTokens(indexIDs []string, isConvertToDecimal bool) []string {
