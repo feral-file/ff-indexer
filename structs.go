@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -13,6 +14,27 @@ const (
 	MediumSoftware = "software"
 	MediumOther    = "other"
 )
+
+// BlockchainAddress is a type of blockchain addresses supported in indexer
+type BlockchainAddress string
+
+func (a *BlockchainAddress) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+
+	switch GetBlockchainByAddress(s) {
+	case EthereumBlockchain:
+		s = EthereumChecksumAddress(s)
+	case UnknownBlockchain:
+		return ErrUnsupportedBlockchain
+	}
+
+	*a = BlockchainAddress(s)
+
+	return nil
+}
 
 type Provenance struct {
 	// this field is only for ownership validating
