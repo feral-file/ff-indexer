@@ -87,12 +87,21 @@ func TestGetArtworkMIMEType(t *testing.T) {
 	var mimeType string
 	for _, f := range token.Metadata.Formats {
 		if f.URI == token.Metadata.ArtifactURI {
-			mimeType = f.MIMEType
+			mimeType = string(f.MIMEType)
 			break
 		}
 	}
 
 	assert.Equal(t, mimeType, "image/jpeg")
+}
+func TestGetMIMETypeInArrayFormat(t *testing.T) {
+	tc := New("")
+
+	token, err := tc.GetContractToken("KT1Q4SBM941oAeu69v8LsrfwSiEkhMWJiVrp", "105353509316641797498497312618436889009736347208140239997663486800489418099672")
+	assert.NoError(t, err)
+	assert.Len(t, token.Metadata.Formats, 3)
+	assert.Equal(t, "video/mp4", string(token.Metadata.Formats[0].MIMEType))
+	assert.Equal(t, "image/jpeg", string(token.Metadata.Formats[1].MIMEType))
 }
 
 func TestHugeAmount(t *testing.T) {

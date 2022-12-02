@@ -150,7 +150,7 @@ func (detail *AssetMetadataDetail) UpdateMetadataFromTZKT(md tzkt.TokenMetadata)
 
 	for _, f := range md.Formats {
 		if f.URI == md.ArtifactURI {
-			mimeType = f.MIMEType
+			mimeType = string(f.MIMEType)
 			break
 		}
 	}
@@ -164,7 +164,7 @@ func (detail *AssetMetadataDetail) UpdateMetadataFromTZKT(md tzkt.TokenMetadata)
 	var optimizedDisplayURI string
 
 	for _, format := range md.Formats {
-		if strings.Contains(format.MIMEType, "image") && format.FileSize > optimizedFileSize {
+		if strings.Contains(string(format.MIMEType), "image") && format.FileSize > optimizedFileSize {
 			optimizedDisplayURI = format.URI
 			optimizedFileSize = format.FileSize
 		}
