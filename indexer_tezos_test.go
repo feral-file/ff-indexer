@@ -2,13 +2,13 @@ package indexer
 
 import (
 	"context"
-	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 )
 
@@ -37,7 +37,14 @@ func TestIndexTezosTokenOwnersFT(t *testing.T) {
 	engine := New("", nil, tzkt.New(""), nil, nil)
 	owners, err := engine.IndexTezosTokenOwners(context.Background(), "KT1LjmAdYQCLBjwv4S2oFkEzyHVkomAf5MrW", "24216")
 	assert.NoError(t, err)
-	assert.NotEmpty(t, owners)
+	assert.Len(t, owners, 13)
+}
+
+func TestIndexTezosTokenOwnersWithNFTOwnByManyAddress(t *testing.T) {
+	engine := New("", nil, tzkt.New(""), nil, nil)
+	owners, err := engine.IndexTezosTokenOwners(context.Background(), "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton", "784317")
+	assert.NoError(t, err)
+	assert.Len(t, owners, 262)
 }
 
 func TestIndexTezosToken(t *testing.T) {
