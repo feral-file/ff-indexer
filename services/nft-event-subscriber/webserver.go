@@ -42,7 +42,7 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 		return
 	}
 
-	tokenBlockchain := indexer.DetectContractBlockchain(req.Contract)
+	tokenBlockchain := indexer.GetBlockchainByAddress(req.Contract)
 
 	if tokenBlockchain == indexer.UnknownBlockchain {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{

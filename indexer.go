@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/fatih/structs"
 	"net/http"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/fatih/structs"
 
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
@@ -31,7 +32,7 @@ var ErrUnsupportedBlockchain = fmt.Errorf("unsupported blockchain")
 
 // getTokenSourceByContract token source name by inspecting a contract address
 func getTokenSourceByContract(contractAddress string) string {
-	switch DetectContractBlockchain(contractAddress) {
+	switch GetBlockchainByAddress(contractAddress) {
 	case EthereumBlockchain:
 		if _, ok := artblocksContracts[contractAddress]; ok {
 			return "Art Blocks"
@@ -216,7 +217,7 @@ func (e *IndexEngine) GetTokenOwnerAddress(contract, tokenID string) (string, er
 		return "", fmt.Errorf("contract must not be empty")
 	}
 
-	switch DetectContractBlockchain(contract) {
+	switch GetBlockchainByAddress(contract) {
 	case TezosBlockchain:
 		tokenOwners, err := e.tzkt.GetTokenOwners(contract, tokenID)
 		if err != nil {
@@ -251,7 +252,7 @@ func (e *IndexEngine) GetTokenOwnerAddress(contract, tokenID string) (string, er
 }
 
 func (e *IndexEngine) IndexToken(c context.Context, owner, contract, tokenID string) (*AssetUpdates, error) {
-	switch DetectContractBlockchain(contract) {
+	switch GetBlockchainByAddress(contract) {
 	case EthereumBlockchain:
 		return e.IndexETHToken(c, owner, contract, tokenID)
 	case TezosBlockchain:

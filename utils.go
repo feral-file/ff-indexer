@@ -44,28 +44,32 @@ func TokenIndexID(blockchainType, contractAddress, id string) string {
 	return fmt.Sprintf("%s-%s-%s", blockchainAlias, contractAddress, id)
 }
 
-// DetectAccountBlockchain returns underlying blockchain of a given account number
-func DetectAccountBlockchain(accountNumber string) string {
-	if strings.HasPrefix(accountNumber, "0x") {
+// ParseTokenIndexID return blockchainType, contractAddress and token id for
+// a given indexID
+func ParseTokenIndexID(indexID string) (string, string, string, error) {
+	v := strings.Split(indexID, "-")
+	if len(v) != 3 {
+		return "", "", "", fmt.Errorf("error while parsing indexID: %v", indexID)
+	}
+
+	if v[0] == BlockchainAlias[EthereumBlockchain] {
+		v[1] = EthereumChecksumAddress(v[1])
+	}
+
+	return v[0], v[1], v[2], nil
+}
+
+// GetBlockchainByAddress returns underlying blockchain of a given address
+func GetBlockchainByAddress(address string) string {
+	if strings.HasPrefix(address, "0x") {
 		return EthereumBlockchain
-	} else if len(accountNumber) == 50 {
+	} else if len(address) == 50 {
 		return BitmarkBlockchain
-	} else if strings.HasPrefix(accountNumber, "tz") {
+	} else if strings.HasPrefix(address, "tz") || strings.HasPrefix(address, "KT1") {
 		return TezosBlockchain
 	}
 
 	return UnknownBlockchain
-}
-
-// DetectContractBlockchain returns underlying blockchain of a given contract address
-func DetectContractBlockchain(contractAddress string) string {
-	if strings.HasPrefix(contractAddress, "0x") {
-		return EthereumBlockchain
-	} else if strings.HasPrefix(contractAddress, "KT1") {
-		return TezosBlockchain
-	}
-
-	return ""
 }
 
 // TxURL returns corresponded blockchain transaction URL
@@ -95,14 +99,6 @@ func SleepWithContext(ctx context.Context, d time.Duration) bool {
 	case <-ctx.Done():
 		return true
 	}
-}
-
-func ParseIndexID(indexID string) (string, string, string, error) {
-	v := strings.Split(indexID, "-")
-	if len(v) != 3 {
-		return "", "", "", fmt.Errorf("error while parsing indexID: %v", indexID)
-	}
-	return v[0], v[1], v[2], nil
 }
 
 func DemoTokenPrefix(indexID string) string {

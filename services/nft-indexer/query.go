@@ -95,28 +95,27 @@ func (s *NFTIndexerServer) QueryNFTsV1(c *gin.Context) {
 	c.JSON(http.StatusOK, tokenInfo)
 }
 
-func PreprocessTokens(addresses []string, isConvertToDecimal bool) []string {
+// PreprocessTokens takes an array of token ids and return an array formatted token ids
+// which includes formatting ethereum address and converting token id from hex to decimal if
+// isConvertToDecimal is set to true. NOTE: There is no error return in this call.
+func PreprocessTokens(indexIDs []string, isConvertToDecimal bool) []string {
 	var processedAddresses = []string{}
-	for _, address := range addresses {
-		blockchain, contractAddress, tokenID, err := indexer.ParseIndexID(address)
+	for _, indexID := range indexIDs {
+		blockchain, contractAddress, tokenID, err := indexer.ParseTokenIndexID(indexID)
 		if err != nil {
 			continue
 		}
 
-		if blockchain == "eth" {
-			if isConvertToDecimal {
-				decimalTokenID, ok := big.NewInt(0).SetString(tokenID, 16)
-				if !ok {
-					continue
-				}
-				processedAddresses = append(processedAddresses, fmt.Sprintf("%s-%s-%s", blockchain, indexer.EthereumChecksumAddress(contractAddress), decimalTokenID.String()))
-			} else {
-				processedAddresses = append(processedAddresses, fmt.Sprintf("%s-%s-%s", blockchain, indexer.EthereumChecksumAddress(contractAddress), tokenID))
+		if isConvertToDecimal && blockchain == indexer.BlockchainAlias[indexer.EthereumBlockchain] {
+			decimalTokenID, ok := big.NewInt(0).SetString(tokenID, 16)
+			if !ok {
+				continue
 			}
 
-		} else {
-			processedAddresses = append(processedAddresses, address)
+			indexID = fmt.Sprintf("%s-%s-%s", blockchain, contractAddress, decimalTokenID.String())
 		}
+
+		processedAddresses = append(processedAddresses, indexID)
 	}
 	return processedAddresses
 }
@@ -138,7 +137,7 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParamsIDs []str
 
 		// index redundant reqParams.IDs
 		for redundantID := range m {
-			_, contract, tokenId, err := indexer.ParseIndexID(redundantID)
+			_, contract, tokenId, err := indexer.ParseTokenIndexID(redundantID)
 			if err != nil {
 				continue
 			}
@@ -248,7 +247,7 @@ func (s *NFTIndexerServer) SearchNFTs(c *gin.Context) {
 
 // fetchIdentity collects information from the blockchains and returns an identity object
 func (s *NFTIndexerServer) fetchIdentity(c context.Context, accountNumber string) (*indexer.AccountIdentity, error) {
-	blockchain := indexer.DetectAccountBlockchain(accountNumber)
+	blockchain := indexer.GetBlockchainByAddress(accountNumber)
 
 	id := indexer.AccountIdentity{
 		AccountNumber: accountNumber,
@@ -415,7 +414,7 @@ func (s *NFTIndexerServer) GetAccountNFTs(c *gin.Context) {
 	var tokensInfo []indexer.DetailedToken
 	var err error
 
-	switch indexer.DetectAccountBlockchain(owner) {
+	switch indexer.GetBlockchainByAddress(owner) {
 	case indexer.TezosBlockchain:
 		tokensInfo, err = s.indexerStore.GetDetailedAccountTokensByOwner(c, owner,
 			indexer.FilterParameter{
