@@ -42,9 +42,11 @@ const (
 	ObjktCDNDisplayType   = "display"
 	ObjktCDNArtifactType  = "artifact"
 	ObjktCDNThumbnailType = "thumbnail"
-	ObjktCDNURL           = "https://assets.objkt.media/file/assets-003/"
+	ObjktCDNBasePath      = "/file/assets-003/"
+	ObjktCDNHost          = "assets.objkt.media"
 )
 
+// ObjktCDNTypes should be in order, make sure ObjktCDNThumbnailType stand behind ObjktCDNArtifactType
 var ObjktCDNTypes = []string{
 	ObjktCDNDisplayType,
 	ObjktCDNArtifactType,

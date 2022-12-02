@@ -31,13 +31,13 @@ type SliceToken []struct {
 }
 
 type Token struct {
-	Name          string
-	Description   string
-	Mime          string
-	Display_uri   string
-	Thumbnail_uri string
-	Artifact_uri  string
-	Creators      []Creators
+	Name         string
+	Description  string
+	Mime         string
+	DisplayUri   string `graphql:"display_uri"`
+	ThumbnailUri string `graphql:"thumbnail_uri"`
+	ArtifactUri  string `graphql:"artifact_uri"`
+	Creators     []Creators
 }
 
 type Creators struct {

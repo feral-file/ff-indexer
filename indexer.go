@@ -2,9 +2,8 @@ package indexer
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
@@ -32,7 +31,7 @@ var ErrUnsupportedBlockchain = fmt.Errorf("unsupported blockchain")
 
 // getTokenSourceByContract token source name by inspecting a contract address
 func getTokenSourceByContract(contractAddress string) string {
-	switch DetectContractBlockchain(contractAddress) {
+	switch GetBlockchainByAddress(contractAddress) {
 	case EthereumBlockchain:
 		if _, ok := artblocksContracts[contractAddress]; ok {
 			return "Art Blocks"
@@ -217,7 +216,7 @@ func (e *IndexEngine) GetTokenOwnerAddress(contract, tokenID string) (string, er
 		return "", fmt.Errorf("contract must not be empty")
 	}
 
-	switch DetectContractBlockchain(contract) {
+	switch GetBlockchainByAddress(contract) {
 	case TezosBlockchain:
 		tokenOwners, err := e.tzkt.GetTokenOwners(contract, tokenID)
 		if err != nil {
@@ -252,7 +251,7 @@ func (e *IndexEngine) GetTokenOwnerAddress(contract, tokenID string) (string, er
 }
 
 func (e *IndexEngine) IndexToken(c context.Context, owner, contract, tokenID string) (*AssetUpdates, error) {
-	switch DetectContractBlockchain(contract) {
+	switch GetBlockchainByAddress(contract) {
 	case EthereumBlockchain:
 		return e.IndexETHToken(c, owner, contract, tokenID)
 	case TezosBlockchain:
@@ -275,10 +274,6 @@ func (e *IndexEngine) GetTransactionDetailsByPendingTx(pendingTx string) ([]tzkt
 func (d *AssetMetadataDetail) FromObjkt(objktToken objkt.Token) {
 	d.UpdateMetadataFromObjkt(objktToken)
 
-	for _, assetType := range ObjktCDNTypes {
-		d.ReplaceIPFSURIByObjktCDNURI(assetType)
-	}
-
 	if len(objktToken.Creators) > 0 {
 		d.ArtistID = objktToken.Creators[0].Holder.Address
 		d.ArtistName = objktToken.Creators[0].Holder.Alias
@@ -288,25 +283,23 @@ func (d *AssetMetadataDetail) FromObjkt(objktToken objkt.Token) {
 
 // UpdateMetadataFromObjkt update Objkt metadata to AssetMetadataDetail
 func (d *AssetMetadataDetail) UpdateMetadataFromObjkt(token objkt.Token) {
-	if d.Name == "" && d.Description == "" {
-		d.Name = token.Name
-		d.Description = token.Description
-		d.MIMEType = token.Mime
-		d.Medium = mediumByMIMEType(token.Mime)
+	d.Name = token.Name
+	d.Description = token.Description
+	d.MIMEType = token.Mime
+	d.Medium = mediumByMIMEType(token.Mime)
 
-		if token.Thumbnail_uri != "" {
-			d.DisplayURI = token.Thumbnail_uri
-		} else if token.Display_uri != "" {
-			d.DisplayURI = token.Display_uri
-		} else {
-			d.DisplayURI = DEFAULT_DISPLAY_URI
-		}
+	if token.DisplayUri != "" {
+		d.DisplayURI = d.ReplaceIPFSURIByObjktCDNURI(ObjktCDNDisplayType, token.DisplayUri)
+	} else if token.ThumbnailUri != "" {
+		d.DisplayURI = d.ReplaceIPFSURIByObjktCDNURI(ObjktCDNThumbnailType, token.ThumbnailUri)
+	} else {
+		d.DisplayURI = defaultIPFSLink(DEFAULT_DISPLAY_URI)
+	}
 
-		if token.Artifact_uri != "" {
-			d.PreviewURI = token.Artifact_uri
-		} else {
-			d.PreviewURI = DEFAULT_DISPLAY_URI
-		}
+	if token.ArtifactUri != "" {
+		d.PreviewURI = d.ReplaceIPFSURIByObjktCDNURI(ObjktCDNArtifactType, token.ArtifactUri)
+	} else {
+		d.PreviewURI = defaultIPFSLink(DEFAULT_DISPLAY_URI)
 	}
 }
 
@@ -326,48 +319,59 @@ func getArtistURL(h objkt.Holder) string {
 	return fmt.Sprintf("https://objkt.com/profile/%s", h.Address)
 }
 
-// ReplaceIPFSURIByObjktCDNURI get cid from IPFS uri and make Objkt CND uri
-func (d *AssetMetadataDetail) ReplaceIPFSURIByObjktCDNURI(assetType string) {
-	if assetType == ObjktCDNDisplayType || assetType == ObjktCDNThumbnailType {
-		if strings.Contains(d.DisplayURI, "assets.objkt.media/file/assets-003") {
-			return
-		}
-
-		uri, err := MakeCDNURIFromIPFSURI(d.DisplayURI, assetType)
-
-		if err == nil {
-			d.DisplayURI = uri
-		} else {
-			d.DisplayURI = defaultIPFSLink(d.DisplayURI)
-		}
-
-		return
+// ReplaceIPFSURIByObjktCDNURI return CDN uri if exist, if not this function will return ipfs link
+func (d *AssetMetadataDetail) ReplaceIPFSURIByObjktCDNURI(assetType string, assetUri string) string {
+	if !strings.HasPrefix(assetUri, "ipfs://") {
+		return assetUri
 	}
 
-	if assetType == ObjktCDNArtifactType {
-		uri, err := MakeCDNURIFromIPFSURI(d.PreviewURI, assetType)
+	uri, err := MakeCDNURIFromIPFSURI(assetUri, assetType)
 
-		if err == nil {
-			d.PreviewURI = uri
-		} else {
-			d.PreviewURI = defaultIPFSLink(d.PreviewURI)
-		}
-
-		return
+	if err == nil {
+		return uri
 	}
+
+	return assetUri
 }
 
 // MakeCDNURIFromIPFSURI create Objkt CDN uri from IPFS Uri(extract cid)
-func MakeCDNURIFromIPFSURI(sURI string, assetType string) (string, error) {
-	splitUri := strings.Split(sURI, "/")
-	cid := splitUri[len(splitUri)-1]
+func MakeCDNURIFromIPFSURI(assetURI string, assetType string) (string, error) {
+	var uri string
+	var cid string
 
-	url := ObjktCDNURL + cid + "/" + assetType
-	res, err := http.Get(url)
-
-	if err == nil && res.StatusCode >= 200 && res.StatusCode < 400 {
-		return url, nil
+	urlParsed, err := url.Parse(assetURI)
+	if err != nil {
+		return "", err
 	}
 
-	return "", errors.New("can not reach CDN url")
+	cid = urlParsed.Host
+
+	urlParsed.Scheme = "https"
+	urlParsed.Host = ObjktCDNHost
+
+	urlParsed.Path, err = url.JoinPath(ObjktCDNBasePath, cid, assetType)
+	if err != nil {
+		return "", err
+	}
+
+	if assetType == ObjktCDNArtifactType && urlParsed.RawQuery != "" {
+		urlParsed.Path, err = url.JoinPath(urlParsed.Path, "/index.html")
+		if err != nil {
+			return "", err
+		}
+	}
+
+	uri = urlParsed.String()
+
+	if CheckCDNURLIsExist(uri) {
+		return uri, nil
+	} else if assetType == ObjktCDNArtifactType && urlParsed.RawQuery == "" {
+		uri = uri + "/index.html"
+
+		if CheckCDNURLIsExist(uri) {
+			return uri, nil
+		}
+	}
+
+	return assetURI, nil
 }
