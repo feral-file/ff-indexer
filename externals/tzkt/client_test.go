@@ -87,7 +87,7 @@ func TestGetArtworkMIMEType(t *testing.T) {
 	var mimeType string
 	for _, f := range token.Metadata.Formats {
 		if f.URI == token.Metadata.ArtifactURI {
-			mimeType = f.MIMEType
+			mimeType = string(f.MIMEType)
 			break
 		}
 	}

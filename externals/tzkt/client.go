@@ -50,8 +50,23 @@ type FileFormat struct {
 	URI        string           `json:"uri"`
 	FileName   string           `json:"fileName,omitempty"`
 	FileSize   int              `json:"fileSize,string"`
-	MIMEType   string           `json:"mimeType"`
+	MIMEType   MIMEFormat       `json:"mimeType"`
 	Dimensions FormatDimensions `json:"dimensions,omitempty"`
+}
+
+type MIMEFormat string
+
+func (m *MIMEFormat) UnmarshalJSON(data []byte) error {
+	type mime MIMEFormat
+
+	if data[0] == 91 {
+		data = bytes.Trim(data, "[]")
+	}
+
+	if err := json.Unmarshal(data, (*mime)(m)); err != nil {
+		return err
+	}
+	return nil
 }
 
 type FileFormats []FileFormat
@@ -261,7 +276,7 @@ func (c *TZKT) RetrieveTokens(owner string, lastTime time.Time, offset int) ([]O
 	}
 
 	// prevent QueryEscape for colons in time
-	rawQuery := v.Encode() + "&lastTime.gt=" + lastTime.UTC().Format(time.RFC3339)
+	rawQuery := v.Encode() // + "&lastTime.gt=" + lastTime.UTC().Format(time.RFC3339)
 
 	u := url.URL{
 		Scheme:   "https",
