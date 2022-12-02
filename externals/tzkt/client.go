@@ -474,7 +474,7 @@ type TransactionParameter struct {
 
 type ParametersValue struct {
 	From_ string      `json:"from_"`
-	Txs   []TxsFormat `json:"txs`
+	Txs   []TxsFormat `json:"txs"`
 }
 
 type TxsFormat struct {
