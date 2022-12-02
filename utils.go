@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"net/http"
 	"strings"
 	"time"
 
@@ -103,4 +104,24 @@ func SleepWithContext(ctx context.Context, d time.Duration) bool {
 
 func DemoTokenPrefix(indexID string) string {
 	return fmt.Sprintf("demo%s", indexID)
+}
+
+// CheckCDNURLIsExist check whether CDN URL exist or not
+func CheckCDNURLIsExist(url string) bool {
+	client := http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	res, err := client.Head(url)
+	if err != nil {
+		return false
+	}
+
+	defer res.Body.Close()
+
+	if res.StatusCode >= 200 && res.StatusCode < 400 {
+		return true
+	}
+
+	return false
 }
