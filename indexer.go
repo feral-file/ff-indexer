@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/fatih/structs"
 	"net/http"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/fatih/structs"
 
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
@@ -307,8 +308,6 @@ func (d *AssetMetadataDetail) UpdateMetadataFromObjkt(token objkt.Token) {
 			d.PreviewURI = DEFAULT_DISPLAY_URI
 		}
 	}
-
-	return
 }
 
 // getArtistURL get social media url of Artist from Objkt api

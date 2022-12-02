@@ -23,10 +23,7 @@ type ImageDownloader interface {
 
 // isSupportedImageType validates if an image is supported
 func isSupportedImageType(mimeType string) bool {
-	if !strings.HasPrefix(mimeType, "image/") {
-		return false
-	}
-	return true
+	return strings.HasPrefix(mimeType, "image/")
 }
 
 type ImageStore struct {
@@ -157,7 +154,10 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 	// It can not 100% ensure the file is cleaned up due to service broken
 	if err != nil && cloudflareImageID != "" {
 		logrus.WithField("assetID", assetID).Warn("clean uploaded file due to rollback")
-		s.cloudflareAPI.DeleteImage(ctx, s.cloudflareAccountID, cloudflareImageID)
+		err = s.cloudflareAPI.DeleteImage(ctx, s.cloudflareAccountID, cloudflareImageID)
+		if err != nil {
+			logrus.WithField("cloudflareImageID", cloudflareImageID).Warn("fail to clean uploaded file")
+		}
 	}
 
 	return image, err

@@ -34,7 +34,8 @@ func ScreenShoot(url string, selector string) []byte {
 	)
 	defer cancel()
 
-	ctx2, _ := context.WithTimeout(ctx, CropImageTimeout)
+	ctx2, cancel := context.WithTimeout(ctx, CropImageTimeout)
+	defer cancel()
 
 	var screenshotTask = chromedp.Tasks{
 		chromedp.Navigate(url),

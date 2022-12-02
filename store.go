@@ -144,23 +144,26 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 			return err
 		}
 
-		// igonre update when the original source is feralfile but the incoming source is not
+		// ignore update when the original source is feralfile but the incoming source is not
 		if !(a.Source == SourceFeralFile && assetUpdates.Source != SourceFeralFile) {
 			// TODO: check whether to remove the thumbnail cache when the thumbnail data is updated.
-			updates := bson.D{{"$set", bson.D{{"projectMetadata.latest", assetUpdates.ProjectMetadata}}}}
+			updates := bson.D{{Key: "$set", Value: bson.D{{Key: "projectMetadata.latest", Value: assetUpdates.ProjectMetadata}}}}
 			if a.ProjectMetadata.Latest.ThumbnailURL != assetUpdates.ProjectMetadata.ThumbnailURL {
 				logrus.
 					WithField("old", a.ProjectMetadata.Latest.ThumbnailURL).
 					WithField("new", assetUpdates.ProjectMetadata.ThumbnailURL).
 					Debug("image cache need to be reset")
-				updates = append(updates, bson.E{"$unset", bson.M{"thumbnailID": ""}})
+				updates = append(updates, bson.E{Key: "$unset", Value: bson.M{"thumbnailID": ""}})
 			}
 
-			s.assetCollection.UpdateOne(
+			_, err := s.assetCollection.UpdateOne(
 				ctx,
 				bson.M{"indexID": indexID},
 				updates,
 			)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -668,7 +671,7 @@ func (s *MongodbIndexerStore) getTokensByAggregationForOwner(ctx context.Context
 		{
 			"$match": matchQuery,
 		},
-		{"$sort": bson.D{{"lastActivityTime", -1}, {"_id", -1}}},
+		{"$sort": bson.D{{Key: "lastActivityTime", Value: -1}, {Key: "_id", Value: -1}}},
 		{"$addFields": bson.M{"balance": fmt.Sprintf("$owners.%s", owner)}},
 		// lookup performs a cross blockchain join between tokens and assets collections
 		{
@@ -721,7 +724,7 @@ func (s *MongodbIndexerStore) getTokensByAggregation(ctx context.Context, owners
 				"burned": bson.M{"$ne": true},
 			},
 		},
-		{"$sort": bson.D{{"lastActivityTime", -1}, {"_id", -1}}},
+		{"$sort": bson.D{{Key: "lastActivityTime", Value: -1}, {Key: "_id", Value: -1}}},
 		// lookup performs a cross blockchain join between tokens and assets collections
 		{
 			"$lookup": bson.M{
@@ -1218,7 +1221,7 @@ func (s *MongodbIndexerStore) GetAccountTokensByIndexIDs(ctx context.Context, in
 
 	c, err := s.accountTokenCollection.Aggregate(ctx, []bson.M{
 		{"$match": bson.M{"indexID": bson.M{"$in": indexIDs}}},
-		{"$sort": bson.D{{"lastActivityTime", 1}}},
+		{"$sort": bson.D{{Key: "lastActivityTime", Value: 1}}},
 		{
 			"$group": bson.M{
 				"_id":    "$indexID",
@@ -1263,11 +1266,14 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 		tokenUpdate.Balance = balance
 		tokenUpdate.LastActivityTime = lastActivityTime
 		tokenUpdate.LastRefreshedTime = time.Now()
-		s.accountTokenCollection.UpdateOne(ctx,
+		_, err := s.accountTokenCollection.UpdateOne(ctx,
 			bson.M{"indexID": indexID, "ownerAccount": owner},
 			bson.M{"$set": tokenUpdate},
 			options.Update().SetUpsert(true),
 		)
+		if err != nil {
+			continue
+		}
 
 		ownerList = append(ownerList, owner)
 	}
@@ -1279,7 +1285,7 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 
 // GetDetailedAccountTokensByOwner returns a list of DetailedToken by account owner
 func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error) {
-	findOptions := options.Find().SetSort(bson.D{{"lastActivityTime", -1}, {"_id", -1}}).SetLimit(size).SetSkip(offset)
+	findOptions := options.Find().SetSort(bson.D{{Key: "lastActivityTime", Value: -1}, {Key: "_id", Value: -1}}).SetLimit(size).SetSkip(offset)
 
 	logrus.
 		WithField("filterParameter", filterParameter).

@@ -280,7 +280,10 @@ func (w *NFTIndexerWorker) UpdateAccountTokensWorkflow(ctx workflow.Context, del
 			return err
 		}
 
-		workflow.Sleep(ctx, 1*time.Minute)
+		err = workflow.Sleep(ctx, 1*time.Minute)
+		if err != nil {
+			log.Error("fail to sleep")
+			return err
+		}
 	}
-
 }

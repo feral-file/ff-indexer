@@ -497,7 +497,7 @@ func (w *NFTIndexerWorker) UpdateAccountTokens(ctx context.Context) error {
 		for idx, pendingTx := range pendingAccountToken.PendingTxs {
 			if pendingAccountToken.LastPendingTime[idx].Unix() < time.Now().Add(-delay).Unix() {
 				log.WithField("pendingTxs", pendingAccountToken.PendingTxs).Warn("pending too long")
-				w.indexerStore.DeletePendingFieldsAccountToken(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID, pendingTx, pendingAccountToken.LastPendingTime[idx])
+				_ = w.indexerStore.DeletePendingFieldsAccountToken(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID, pendingTx, pendingAccountToken.LastPendingTime[idx])
 				continue
 			}
 
@@ -508,14 +508,18 @@ func (w *NFTIndexerWorker) UpdateAccountTokens(ctx context.Context) error {
 
 			accountTokens, err := w.GetBalanceDiffFromTransaction(ctx, transactionDetails[0], pendingAccountToken)
 			if err != nil {
-				w.indexerStore.DeletePendingFieldsAccountToken(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID, pendingTx, pendingAccountToken.LastPendingTime[idx])
+				_ = w.indexerStore.DeletePendingFieldsAccountToken(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID, pendingTx, pendingAccountToken.LastPendingTime[idx])
 				continue
 			}
 			for _, accountToken := range accountTokens {
 				if accountToken.Balance < 0 {
-					w.indexerStore.UpdatePendingAccountToken(ctx, accountToken.OwnerAccount, accountToken.IndexID, accountToken.Balance, transactionDetails[0].Timestamp, pendingTx, pendingAccountToken.LastPendingTime[idx])
+					err = w.indexerStore.UpdatePendingAccountToken(ctx, accountToken.OwnerAccount, accountToken.IndexID, accountToken.Balance, transactionDetails[0].Timestamp, pendingTx, pendingAccountToken.LastPendingTime[idx])
 				} else {
-					w.indexerStore.UpdateReceivedAccountToken(ctx, accountToken.OwnerAccount, accountToken.IndexID, accountToken.Balance, transactionDetails[0].Timestamp)
+					err = w.indexerStore.UpdateReceivedAccountToken(ctx, accountToken.OwnerAccount, accountToken.IndexID, accountToken.Balance, transactionDetails[0].Timestamp)
+				}
+
+				if err != nil {
+					continue
 				}
 			}
 		}
