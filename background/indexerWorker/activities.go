@@ -98,6 +98,9 @@ func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, owner str
 		}
 	}
 
+	// FIXME: currently both account_tokens and tokens rely on this activity to be done correctly
+	// It would be better the separate the token indexing and account_tokens indexing since
+	// account_tokens is for what you own and token is for what it is
 	updates, newLastTime, err := w.indexerEngine.IndexTezosTokenByOwner(ctx, owner, account.LastActivityTime, 0)
 	if err != nil {
 		return false, err
