@@ -108,3 +108,26 @@ func TestHugeAmount(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(token.TotalSupply), int64(-1))
 }
+
+func TestGetTokenOwners(t *testing.T) {
+	tc := New("")
+
+	var startTime time.Time
+	var querLimit = 50
+
+	owners, err := tc.GetTokenOwners("KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton", "784317", querLimit, startTime)
+	assert.NoError(t, err)
+	assert.Len(t, owners, querLimit)
+	assert.Equal(t, owners[querLimit-1].Address, "tz1ZMDCUyEvsQykWuxTkBzVDcTzMtUEwTeiw")
+	assert.Equal(t, owners[querLimit-1].LastTime.Format(time.RFC3339), "2022-10-01T21:24:59Z")
+}
+
+func TestGetTokenOwnersNow(t *testing.T) {
+	tc := New("")
+
+	var querLimit = 50
+
+	owners, err := tc.GetTokenOwners("KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton", "784317", querLimit, time.Now().Add(-time.Hour))
+	assert.NoError(t, err)
+	assert.Len(t, owners, 0)
+}

@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/fatih/structs"
 	"net/http"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/fatih/structs"
 
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
@@ -218,7 +219,7 @@ func (e *IndexEngine) GetTokenOwnerAddress(contract, tokenID string) (string, er
 
 	switch DetectContractBlockchain(contract) {
 	case TezosBlockchain:
-		tokenOwners, err := e.tzkt.GetTokenOwners(contract, tokenID)
+		tokenOwners, err := e.tzkt.GetTokenOwners(contract, tokenID, 1, time.Time{})
 		if err != nil {
 			return "", err
 		}

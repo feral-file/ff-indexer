@@ -73,11 +73,15 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, tokenID string) (*AssetUpdates, error) {
 	tzktToken, err := e.tzkt.GetContractToken(contract, tokenID)
 	if err != nil {
+		log.WithError(err).WithField("contract", contract).
+			WithField("tokenID", tokenID).Trace("GetContractToken")
 		return nil, err
 	}
 
 	balance, err := e.tzkt.GetTokenBalanceForOwner(contract, tokenID, owner)
 	if err != nil {
+		log.WithError(err).WithField("contract", contract).
+			WithField("tokenID", tokenID).Trace("GetTokenBalanceForOwner")
 		return nil, err
 	}
 
@@ -260,15 +264,27 @@ func (e *IndexEngine) IndexTezosTokenOwners(ctx context.Context, contract, token
 		WithField("contract", contract).WithField("tokenID", tokenID).
 		Trace("index tezos token owners")
 
-	owners, err := e.tzkt.GetTokenOwners(contract, tokenID)
-	if err != nil {
-		return nil, err
-	}
-
+	var lastTime time.Time
+	var querLimit = 50
 	ownersMap := map[string]int64{}
+	for {
+		owners, err := e.tzkt.GetTokenOwners(contract, tokenID, querLimit, lastTime)
+		if err != nil {
+			return nil, err
+		}
 
-	for _, o := range owners {
-		ownersMap[o.Address] = o.Balance
+		ownersLen := len(owners)
+
+		for i, o := range owners {
+			ownersMap[o.Address] = o.Balance
+			if i == ownersLen-1 {
+				lastTime = o.LastTime
+			}
+		}
+
+		if ownersLen < querLimit {
+			break
+		}
 	}
 
 	return ownersMap, nil
