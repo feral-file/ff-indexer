@@ -63,7 +63,7 @@ func (m *MIMEFormat) UnmarshalJSON(data []byte) error {
 		data = bytes.Trim(data, "[]")
 	}
 
-	if err := json.Unmarshal(data, (*mime)(m)); err != nil {
+	if err := json.Unmarshal(data, (*string)(m)); err != nil {
 		return err
 	}
 	return nil
