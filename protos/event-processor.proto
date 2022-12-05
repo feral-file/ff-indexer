@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option go_package = "./processor";
+
+
+service EventProcessor {
+  rpc PushEvent(EventInput) returns (EventOutput);
+}
+
+message EventInput {
+  string EventType = 1;
+  string Blockchain = 2;
+  string Contract = 3;
+  string From = 4;
+  string To = 5;
+  string TokenID = 6;
+}
+
+message EventOutput {
+  string Result = 1;
+  int32 status = 2;
+}
