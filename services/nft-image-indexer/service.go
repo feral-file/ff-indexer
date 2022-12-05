@@ -127,16 +127,41 @@ func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) 
 	var asset NFTAsset
 	r := s.nftAssets.FindOneAndUpdate(ctx,
 		bson.M{
-			"source":                              "tzkt",
-			"thumbnailID":                         bson.M{"$exists": false},
-			"projectMetadata.latest.source":       bson.M{"$nin": []string{"fxhash"}},
-			"projectMetadata.latest.thumbnailURL": bson.M{"$ne": ""},
-			"$or": bson.A{
+			"$and": bson.A{
+				// thumbnailLastCheck helps filter out assets that have already processed recently.
 				bson.M{
-					"thumbnailLastCheck": bson.M{"$exists": false},
+					"$or": bson.A{
+						bson.M{
+							"thumbnailLastCheck": bson.M{"$exists": false},
+						},
+						bson.M{
+							"thumbnailLastCheck": bson.M{"$lt": time.Now().Add(-10 * time.Minute)},
+						},
+					},
 				},
 				bson.M{
-					"thumbnailLastCheck": bson.M{"$lt": time.Now().Add(-10 * time.Minute)},
+					"$or": bson.A{
+						// For tezos tokens, it parses tokens that starts with `https://ipfs.` which means
+						// all token that is uploaded to IPFS but is not cached by objkt.
+						bson.M{
+							"source":                              "tzkt",
+							"thumbnailID":                         bson.M{"$exists": false},
+							"projectMetadata.latest.source":       bson.M{"$nin": []string{"fxhash"}},
+							"projectMetadata.latest.thumbnailURL": bson.M{"$regex": "^https://ipfs"}, // either ipfs.io or ipfs.bitmark
+						},
+						// For get all tokens that with the mime-type SVG and the URL starts with https
+						bson.M{
+							"projectMetadata.latest.mimeType":     "image/svg+xml",
+							"projectMetadata.latest.thumbnailURL": bson.M{"$regex": "^https://"},
+						},
+						// For opensea tokens, it only parses SVG
+						bson.M{
+							"source": "opensea",
+							"projectMetadata.latest.thumbnailURL": bson.M{
+								"$regex": ".svg$",
+							},
+						},
+					},
 				},
 			},
 		},
