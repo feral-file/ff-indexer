@@ -127,6 +127,8 @@ func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) 
 	var asset NFTAsset
 	r := s.nftAssets.FindOneAndUpdate(ctx,
 		bson.M{
+			// check only for items has been viewed in the past 7 days
+			"projectMetadata.latest.lastUpdatedAt": bson.M{"$gt": time.Now().Add(-168 * time.Hour)},
 			"$and": bson.A{
 				// thumbnailLastCheck helps filter out assets that have already processed recently.
 				bson.M{
@@ -135,7 +137,7 @@ func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) 
 							"thumbnailLastCheck": bson.M{"$exists": false},
 						},
 						bson.M{
-							"thumbnailLastCheck": bson.M{"$lt": time.Now().Add(-10 * time.Minute)},
+							"thumbnailLastCheck": bson.M{"$lt": time.Now().Add(-time.Hour)},
 						},
 					},
 				},
@@ -166,9 +168,9 @@ func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) 
 			},
 		},
 		bson.M{"$set": bson.M{"thumbnailLastCheck": time.Now()}},
-		options.FindOneAndUpdate().SetProjection(
-			bson.M{"indexID": 1, "projectMetadata.latest.thumbnailURL": 1},
-		),
+		options.FindOneAndUpdate().
+			SetSort(bson.D{{Key: "thumbnailLastCheck", Value: 1}}).
+			SetProjection(bson.M{"indexID": 1, "projectMetadata.latest.thumbnailURL": 1}),
 	)
 
 	if err := r.Err(); err != nil {
