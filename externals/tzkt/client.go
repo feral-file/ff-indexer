@@ -50,8 +50,21 @@ type FileFormat struct {
 	URI        string           `json:"uri"`
 	FileName   string           `json:"fileName,omitempty"`
 	FileSize   int              `json:"fileSize,string"`
-	MIMEType   string           `json:"mimeType"`
+	MIMEType   MIMEFormat       `json:"mimeType"`
 	Dimensions FormatDimensions `json:"dimensions,omitempty"`
+}
+
+type MIMEFormat string
+
+func (m *MIMEFormat) UnmarshalJSON(data []byte) error {
+	if data[0] == 91 {
+		data = bytes.Trim(data, "[]")
+	}
+
+	if err := json.Unmarshal(data, (*string)(m)); err != nil {
+		return err
+	}
+	return nil
 }
 
 type FileFormats []FileFormat
@@ -461,7 +474,7 @@ type TransactionParameter struct {
 
 type ParametersValue struct {
 	From_ string      `json:"from_"`
-	Txs   []TxsFormat `json:"txs`
+	Txs   []TxsFormat `json:"txs"`
 }
 
 type TxsFormat struct {
