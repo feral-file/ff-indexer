@@ -27,7 +27,7 @@ func DownloadFile(url string) (io.Reader, string, error) {
 
 	mimeType := mimetype.Detect(fileHeader).String()
 
-	file := new(bytes.Buffer)
+	var file *bytes.Buffer
 	if strings.HasPrefix(mimeType, "image/svg") {
 		if file, err = utils.ConvertSVGToPNG(url); err != nil {
 			return nil, "", err

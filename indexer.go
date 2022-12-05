@@ -301,8 +301,6 @@ func (d *AssetMetadataDetail) UpdateMetadataFromObjkt(token objkt.Token) {
 	} else {
 		d.PreviewURI = defaultIPFSLink(DEFAULT_DISPLAY_URI)
 	}
-
-	return
 }
 
 // getArtistURL get social media url of Artist from Objkt api

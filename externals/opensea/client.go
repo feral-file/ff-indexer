@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -174,7 +173,7 @@ func (c *OpenseaClient) makeRequest(method, url string, body io.Reader) (*http.R
 			return nil, ErrTooManyRequest
 		}
 
-		errResp, err := ioutil.ReadAll(resp.Body)
+		errResp, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return nil, err
 		}

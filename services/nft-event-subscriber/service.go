@@ -10,7 +10,6 @@ import (
 	notification "github.com/bitmark-inc/autonomy-notification/sdk"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/cadence"
-	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 )
 
 type NFTEventSubscriber struct {
@@ -20,7 +19,6 @@ type NFTEventSubscriber struct {
 	wsClient     *ethclient.Client
 	store        indexer.IndexerStore
 	Engine       *indexer.IndexEngine
-	opensea      *opensea.OpenseaClient
 	accountStore *storage.AccountInformationStorage
 	notification *notification.NotificationClient
 	feedServer   *FeedClient

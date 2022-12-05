@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"net/http"
 	"net/url"
@@ -204,7 +204,7 @@ func (c *TZKT) request(req *http.Request, responseData interface{}) error {
 			return ErrTooManyRequest
 		}
 
-		errResp, err := ioutil.ReadAll(resp.Body)
+		errResp, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return err
 		}
@@ -461,7 +461,7 @@ type TransactionParameter struct {
 
 type ParametersValue struct {
 	From_ string      `json:"from_"`
-	Txs   []TxsFormat `json:"txs`
+	Txs   []TxsFormat `json:"txs"`
 }
 
 type TxsFormat struct {
