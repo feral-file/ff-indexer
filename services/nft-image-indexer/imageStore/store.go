@@ -21,8 +21,8 @@ type ImageDownloader interface {
 	Download() (io.Reader, string, error)
 }
 
-// isSupportedImageType validates if an image is supported
-func isSupportedImageType(mimeType string) bool {
+// IsSupportedImageType validates if an image is supported
+func IsSupportedImageType(mimeType string) bool {
 	return strings.HasPrefix(mimeType, "image/")
 }
 
@@ -117,7 +117,7 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 			return err
 		}
 
-		if !isSupportedImageType(mimeType) {
+		if !IsSupportedImageType(mimeType) {
 			return ErrUnsupportImageType
 		}
 
