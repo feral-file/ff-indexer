@@ -294,6 +294,7 @@ func (c *TZKT) RetrieveTokens(owner string, lastTime time.Time, offset int) ([]O
 
 type TokenTransfer struct {
 	Timestamp     time.Time `json:"timestamp"`
+	Level         uint64    `json:"level"`
 	TransactionID uint64    `json:"transactionId"`
 	From          *Account  `json:"from"`
 	To            Account   `json:"to"`
@@ -304,7 +305,7 @@ func (c *TZKT) GetTokenTransfers(contract, tokenID string) ([]TokenTransfer, err
 		"token.contract": []string{contract},
 		"token.tokenId":  []string{tokenID},
 		"token.standard": []string{"fa2"},
-		"select":         []string{"timestamp,from,to,transactionId"},
+		"select":         []string{"timestamp,from,to,transactionId,level"},
 	}
 
 	u := url.URL{

@@ -189,14 +189,15 @@ type Provenance struct {
 
 // Bitmark is the response structure of bitmark registry
 type Bitmark struct {
-	Id         string       `json:"id"`
-	HeadId     string       `json:"head_id"`
-	Owner      string       `json:"owner"`
-	AssetId    string       `json:"asset_id"`
-	Issuer     string       `json:"issuer"`
-	Head       string       `json:"head"`
-	Status     string       `json:"status"`
-	Provenance []Provenance `json:"provenance"`
+	Id               string       `json:"id"`
+	HeadId           string       `json:"head_id"`
+	Owner            string       `json:"owner"`
+	AssetId          string       `json:"asset_id"`
+	Issuer           string       `json:"issuer"`
+	Head             string       `json:"head"`
+	Status           string       `json:"status"`
+	IssueBlockNumber int64        `json:"issue_block_number"`
+	Provenance       []Provenance `json:"provenance"`
 }
 
 // fetchBitmarkProvenance reads bitmark provenances through bitmark api
@@ -280,12 +281,13 @@ func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID,
 		}
 
 		provenances = append(provenances, indexer.Provenance{
-			Timestamp:  txTime,
-			Type:       txType,
-			Owner:      indexer.EthereumChecksumAddress(toAccountHash.Hex()),
-			Blockchain: indexer.EthereumBlockchain,
-			TxID:       l.TxHash.Hex(),
-			TxURL:      indexer.TxURL(indexer.EthereumBlockchain, w.Environment, l.TxHash.Hex()),
+			Timestamp:   txTime,
+			Type:        txType,
+			Owner:       indexer.EthereumChecksumAddress(toAccountHash.Hex()),
+			Blockchain:  indexer.EthereumBlockchain,
+			BlockNumber: &l.BlockNumber,
+			TxID:        l.TxHash.Hex(),
+			TxURL:       indexer.TxURL(indexer.EthereumBlockchain, w.Environment, l.TxHash.Hex()),
 		})
 	}
 

@@ -241,12 +241,13 @@ func (e *IndexEngine) IndexTezosTokenProvenance(ctx context.Context, contract, t
 		}
 
 		provenances = append(provenances, Provenance{
-			Type:       txType,
-			Owner:      t.To.Address,
-			Blockchain: TezosBlockchain,
-			Timestamp:  t.Timestamp,
-			TxID:       tx.Hash,
-			TxURL:      fmt.Sprintf("https://tzkt.io/%s", tx.Hash),
+			Type:        txType,
+			Owner:       t.To.Address,
+			Blockchain:  TezosBlockchain,
+			BlockNumber: &t.Level,
+			Timestamp:   t.Timestamp,
+			TxID:        tx.Hash,
+			TxURL:       fmt.Sprintf("https://tzkt.io/%s", tx.Hash),
 		})
 	}
 
