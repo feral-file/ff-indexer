@@ -1,9 +1,7 @@
 package indexer
 
 import (
-	"bytes"
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
@@ -17,7 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"golang.org/x/crypto/sha3"
 )
 
 func EthereumChecksumAddress(address string) string {
@@ -151,18 +148,6 @@ func IsTimeInRange(actual, target time.Time, deviationInMinutes float64) bool {
 	return math.Abs(duration.Minutes()) < deviationInMinutes
 }
 
-// PublicKeyBytesToAddress
-func ETHPublicKeyBytesToAddress(publicKey []byte) common.Address {
-	var buf []byte
-
-	hash := sha3.NewLegacyKeccak256()
-	hash.Write(publicKey[1:]) // remove EC prefix 04
-	buf = hash.Sum(nil)
-	address := buf[12:]
-
-	return common.HexToAddress(hex.EncodeToString(address))
-}
-
 // VerifyETHPersonalSignature
 func VerifyETHPersonalSignature(message, signature, address string) (bool, error) {
 	hash := accounts.TextHash([]byte(message))
@@ -177,35 +162,24 @@ func VerifyETHPersonalSignature(message, signature, address string) (bool, error
 		signatureBytes[64] -= 27
 	}
 
-	sigPublicKey, err := crypto.Ecrecover(hash, signatureBytes)
-	if err != nil {
-		return false, err
-	}
-
-	// check for address match
-	sigAddressKey := ETHPublicKeyBytesToAddress(sigPublicKey)
-	sigAddress := sigAddressKey.String()
-	if sigAddress != address {
-		fmt.Println(sigAddress)
-		fmt.Println(address)
-		return false, fmt.Errorf("address doesn't match with signature's")
-	}
-
-	// verify ecdsa public key
+	// get ecdsa public key
 	sigPublicKeyECDSA, err := crypto.SigToPub(hash, signatureBytes)
 	if err != nil {
 		return false, err
 	}
 
-	sigPublicKeyBytes := crypto.FromECDSAPub(sigPublicKeyECDSA)
-	if !bytes.Equal(sigPublicKeyBytes, sigPublicKey) {
-		return false, fmt.Errorf("public key doesn't match with signature's")
+	// check for address match
+	sigAddress := crypto.PubkeyToAddress(*sigPublicKeyECDSA)
+	if sigAddress.String() != address {
+		return false, fmt.Errorf("address doesn't match with signature's")
 	}
+
+	sigPublicKeyBytes := crypto.FromECDSAPub(sigPublicKeyECDSA)
 
 	// verify signature
 	signatureNoRecoverID := signatureBytes[:len(signatureBytes)-1] // remove recovery id
 
-	if valid := crypto.VerifySignature(sigPublicKey, hash, signatureNoRecoverID); !valid {
+	if valid := crypto.VerifySignature(sigPublicKeyBytes, hash, signatureNoRecoverID); !valid {
 		return false, fmt.Errorf("failed to verify signature via crypto.VerifySignature")
 	}
 
