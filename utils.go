@@ -1,14 +1,23 @@
 package indexer
 
 import (
+	"bytes"
 	"context"
+	"encoding/hex"
+	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
+	"blockwatch.cc/tzgo/tezos"
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	"golang.org/x/crypto/sha3"
 )
 
 func EthereumChecksumAddress(address string) string {
@@ -124,4 +133,106 @@ func CheckCDNURLIsExist(url string) bool {
 	}
 
 	return false
+}
+
+// EpochStringToTime returns the time object of a milliseconds epoch time string
+func EpochStringToTime(ts string) (time.Time, error) {
+	t, err := strconv.ParseInt(ts, 10, 64)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return time.Unix(0, t*1000000), nil
+}
+
+// IsTimeInRange ensures a given timestamp is within a range of a target time
+func IsTimeInRange(actual, target time.Time, deviationInMinutes float64) bool {
+	duration := target.Sub(actual)
+	return math.Abs(duration.Minutes()) < deviationInMinutes
+}
+
+// PublicKeyBytesToAddress
+func ETHPublicKeyBytesToAddress(publicKey []byte) common.Address {
+	var buf []byte
+
+	hash := sha3.NewLegacyKeccak256()
+	hash.Write(publicKey[1:]) // remove EC prefix 04
+	buf = hash.Sum(nil)
+	address := buf[12:]
+
+	return common.HexToAddress(hex.EncodeToString(address))
+}
+
+// VerifyETHPersonalSignature
+func VerifyETHPersonalSignature(message, signature, address string) (bool, error) {
+	hash := accounts.TextHash([]byte(message))
+	signatureBytes := common.FromHex(signature)
+
+	if len(signatureBytes) != 65 {
+		return false, fmt.Errorf("signature must be 65 bytes long")
+	}
+
+	// see crypto.Ecrecover description
+	if signatureBytes[64] == 27 || signatureBytes[64] == 28 {
+		signatureBytes[64] -= 27
+	}
+
+	sigPublicKey, err := crypto.Ecrecover(hash, signatureBytes)
+	if err != nil {
+		return false, err
+	}
+
+	// check for address match
+	sigAddressKey := ETHPublicKeyBytesToAddress(sigPublicKey)
+	sigAddress := sigAddressKey.String()
+	if sigAddress != address {
+		fmt.Println(sigAddress)
+		fmt.Println(address)
+		return false, fmt.Errorf("address doesn't match with signature's")
+	}
+
+	// verify ecdsa public key
+	sigPublicKeyECDSA, err := crypto.SigToPub(hash, signatureBytes)
+	if err != nil {
+		return false, err
+	}
+
+	sigPublicKeyBytes := crypto.FromECDSAPub(sigPublicKeyECDSA)
+	if !bytes.Equal(sigPublicKeyBytes, sigPublicKey) {
+		return false, fmt.Errorf("public key doesn't match with signature's")
+	}
+
+	// verify signature
+	signatureNoRecoverID := signatureBytes[:len(signatureBytes)-1] // remove recovery id
+
+	if valid := crypto.VerifySignature(sigPublicKey, hash, signatureNoRecoverID); !valid {
+		return false, fmt.Errorf("failed to verify signature via crypto.VerifySignature")
+	}
+
+	return true, nil
+}
+
+// VerifyTezosSignature
+func VerifyTezosSignature(message, signature, address, publicKey string) (bool, error) {
+	ta, err := tezos.ParseAddress(address)
+	if err != nil {
+		return false, err
+	}
+	pk, err := tezos.ParseKey(publicKey)
+	if err != nil {
+		return false, err
+	}
+	if pk.Address().String() != ta.String() {
+		return false, errors.New("publicKey address is different from provided address")
+	}
+	sig, err := tezos.ParseSignature(signature)
+	if err != nil {
+		return false, err
+	}
+	dmp := tezos.Digest([]byte(message))
+	err = pk.Verify(dmp[:], sig)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
