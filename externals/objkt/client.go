@@ -2,6 +2,7 @@ package objkt
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -72,6 +73,10 @@ func (g *ObjktAPI) GetObjectToken(contract string, token_id string) (Token, erro
 	err := g.Client.Query(context.Background(), &query, variables)
 	if err != nil {
 		return Token{}, err
+	}
+
+	if len(query.SliceToken) == 0 {
+		return Token{}, fmt.Errorf("there is no token in objkt")
 	}
 
 	return query.SliceToken[0].Token, nil

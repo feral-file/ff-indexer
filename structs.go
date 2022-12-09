@@ -83,37 +83,37 @@ type Token struct {
 
 type ProjectMetadata struct {
 	// Common attributes
-	ArtistID            string `json:"artistID" bson:"artistID"`                       // Artist blockchain address
-	ArtistName          string `json:"artistName" bson:"artistName"`                   // <creator.user.username>,
-	ArtistURL           string `json:"artistURL" bson:"artistURL"`                     // <OpenseaAPI/creator.address>,
-	AssetID             string `json:"assetID" bson:"assetID"`                         // <asset_contract.address>,
-	Title               string `json:"title" bson:"title"`                             // <name>,
-	Description         string `json:"description" bson:"description"`                 // <description>,
-	MIMEType            string `json:"mimeType" bson:"mimeType"`                       // <mime_type from file extension or metadata>,
-	Medium              Medium `json:"medium" bson:"medium"`                           // <"image" if image_url is present; "other" if animation_url is present> ,
-	MaxEdition          int64  `json:"maxEdition" bson:"maxEdition"`                   // 0,
-	BaseCurrency        string `json:"baseCurrency,omitempty" bson:"baseCurrency"`     // null,
-	BasePrice           int64  `json:"basePrice,omitempty" bson:"basePrice"`           // null,
-	Source              string `json:"source" bson:"source"`                           // <Opeasea/Artblock>,
-	SourceURL           string `json:"sourceURL" bson:"sourceURL"`                     // <linktoSourceWebsite>,
-	PreviewURL          string `json:"previewURL" bson:"previewURL"`                   // <image_url or animation_url>,
-	ThumbnailURL        string `json:"thumbnailURL" bson:"thumbnailURL"`               // <image_thumbnail_url>,
-	GalleryThumbnailURL string `json:"galleryThumbnailURL" bson:"galleryThumbnailURL"` // <image_thumbnail_url>,
-	AssetData           string `json:"assetData" bson:"assetData"`                     // null,
-	AssetURL            string `json:"assetURL" bson:"assetURL"`                       // <permalink>
+	ArtistID            string `json:"artistID" structs:"artistID" bson:"artistID"`                                  // Artist blockchain address
+	ArtistName          string `json:"artistName" structs:"artistName" bson:"artistName"`                            // <creator.user.username>,
+	ArtistURL           string `json:"artistURL" structs:"artistURL" bson:"artistURL"`                               // <OpenseaAPI/creator.address>,
+	AssetID             string `json:"assetID" structs:"assetID" bson:"assetID"`                                     // <asset_contract.address>,
+	Title               string `json:"title" structs:"title" bson:"title"`                                           // <name>,
+	Description         string `json:"description" structs:"description" bson:"description"`                         // <description>,
+	MIMEType            string `json:"mimeType" structs:"mimeType" bson:"mimeType"`                                  // <mime_type from file extension or metadata>,
+	Medium              Medium `json:"medium" structs:"medium" bson:"medium"`                                        // <"image" if image_url is present; "other" if animation_url is present> ,
+	MaxEdition          int64  `json:"maxEdition" structs:"maxEdition" bson:"maxEdition"`                            // 0,
+	BaseCurrency        string `json:"baseCurrency,omitempty" structs:"baseCurrency" bson:"baseCurrency"`            // null,
+	BasePrice           int64  `json:"basePrice,omitempty" structs:"basePrice" bson:"basePrice"`                     // null,
+	Source              string `json:"source" structs:"source" bson:"source"`                                        // <Opeasea/Artblock>,
+	SourceURL           string `json:"sourceURL" structs:"sourceURL" bson:"sourceURL"`                               // <linktoSourceWebsite>,
+	PreviewURL          string `json:"previewURL" structs:"previewURL" bson:"previewURL"`                            // <image_url or animation_url>,
+	ThumbnailURL        string `json:"thumbnailURL" structs:"thumbnailURL" bson:"thumbnailURL"`                      // <image_thumbnail_url>,
+	GalleryThumbnailURL string `json:"galleryThumbnailURL" structs:"galleryThumbnailURL" bson:"galleryThumbnailURL"` // <image_thumbnail_url>,
+	AssetData           string `json:"assetData" structs:"assetData" bson:"assetData"`                               // null,
+	AssetURL            string `json:"assetURL" structs:"assetURL" bson:"assetURL"`                                  // <permalink>
 
 	// artwork metadata from source. currently on for Feral File
-	ArtworkMetadata map[string]interface{} `json:"artworkMetadata" bson:"artworkMetadata"`
+	ArtworkMetadata map[string]interface{} `json:"artworkMetadata" structs:"artworkMetadata" bson:"artworkMetadata"`
 
 	// Operation attributes
-	LastUpdatedAt time.Time `json:"lastUpdatedAt" bson:"lastUpdatedAt"`
+	LastUpdatedAt time.Time `json:"lastUpdatedAt" structs:"lastUpdatedAt" bson:"lastUpdatedAt"`
 
 	// Feral File attributes
-	InitialSaleModel string `json:"initialSaleModel" bson:"initialSaleModel"` // airdrop|fix-price|highest-bid-auction|group-auction
+	InitialSaleModel string `json:"initialSaleModel" structs:"initialSaleModel" bson:"initialSaleModel"` // airdrop|fix-price|highest-bid-auction|group-auction
 
 	// Deprecated attributes
-	OriginalFileURL string `json:"originalFileURL" bson:"-"`
-	FirstMintedAt   string `json:"firstMintedAt" bson:"-"`
+	OriginalFileURL string `json:"originalFileURL" structs:"-" bson:"-"`
+	FirstMintedAt   string `json:"firstMintedAt" structs:"-" bson:"-"`
 }
 
 // AssetUpdates is the inputs payload of IndexAsset. It includes project metadata, blockchain metadata and
@@ -142,8 +142,8 @@ type SwapUpdate struct {
 // VersionedProjectMetadata is a structure that manages different versions of project metadata.
 // Currently, it maintains two version: the original one and the latest one.
 type VersionedProjectMetadata struct {
-	Origin ProjectMetadata `json:"origin" bson:"origin"`
-	Latest ProjectMetadata `json:"latest" bson:"latest"`
+	Origin ProjectMetadata `json:"origin" structs:"origin" bson:"origin"`
+	Latest ProjectMetadata `json:"latest" structs:"latest" bson:"latest"`
 }
 
 // DetailedToken is the summarized information of a token. It includes asset information

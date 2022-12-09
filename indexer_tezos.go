@@ -46,7 +46,7 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 		return nil, newLastTime, err
 	}
 
-	log.WithField("tokens", ownedTokens).WithField("owner", owner).Debug("retrive tokens for owner")
+	log.WithField("tokens", ownedTokens).WithField("owner", owner).Debug("retrieve tokens for owner")
 
 	tokenUpdates := make([]AssetUpdates, 0, len(ownedTokens))
 

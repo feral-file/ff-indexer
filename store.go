@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatih/structs"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -105,6 +106,18 @@ type MongodbIndexerStore struct {
 	accountTokenCollection *mongo.Collection
 }
 
+type UpdateSet struct {
+	ID                 string                   `structs:"id,omitempty"`
+	IndexID            string                   `structs:"indexID,omitempty"`
+	Source             string                   `structs:"source,omitempty"`
+	BlockchainMetadata interface{}              `structs:"blockchainMetadata,omitempty"`
+	ProjectMetadata    VersionedProjectMetadata `structs:"projectMetadata,omitempty"`
+	Fungible           bool                     `structs:"fungible,omitempty"`
+	AssetID            string                   `structs:"assetID,omitempty"`
+	Edition            int64                    `structs:"edition,omitempty"`
+	EditionName        string                   `structs:"editionName,omitempty"`
+}
+
 // IndexAsset creates an asset and its corresponded tokens by inputs
 func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUpdates AssetUpdates) error {
 	assetCreated := false
@@ -115,16 +128,18 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 	if err := r.Err(); err != nil {
 		if r.Err() == mongo.ErrNoDocuments {
 			// Create a new asset if it is not added
-			if _, err := s.assetCollection.InsertOne(ctx, bson.M{
-				"id":                 id,
-				"indexID":            indexID,
-				"source":             assetUpdates.Source,
-				"blockchainMetadata": assetUpdates.BlockchainMetadata,
-				"projectMetadata": bson.M{
-					"origin": assetUpdates.ProjectMetadata,
-					"latest": assetUpdates.ProjectMetadata,
+			assetUpdateSet := UpdateSet{
+				ID:                 id,
+				IndexID:            indexID,
+				Source:             assetUpdates.Source,
+				BlockchainMetadata: assetUpdates.BlockchainMetadata,
+				ProjectMetadata: VersionedProjectMetadata{
+					Origin: assetUpdates.ProjectMetadata,
+					Latest: assetUpdates.ProjectMetadata,
 				},
-			}); err != nil {
+			}
+
+			if _, err := s.assetCollection.InsertOne(ctx, structs.Map(assetUpdateSet)); err != nil {
 				return err
 			}
 			assetCreated = true
@@ -144,8 +159,8 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 			return err
 		}
 
-		// ignore update when the original source is feralfile but the incoming source is not
-		if !(a.Source == SourceFeralFile && assetUpdates.Source != SourceFeralFile) {
+		// update asset if its source and upcoming update's source are not Feralfile or upcoming update's source is Feralfile
+		if (assetUpdates.Source != SourceFeralFile && a.Source != SourceFeralFile) || assetUpdates.Source == SourceFeralFile {
 			// TODO: check whether to remove the thumbnail cache when the thumbnail data is updated.
 			updates := bson.D{{Key: "$set", Value: bson.D{{Key: "projectMetadata.latest", Value: assetUpdates.ProjectMetadata}}}}
 			if a.ProjectMetadata.Latest.ThumbnailURL != assetUpdates.ProjectMetadata.ThumbnailURL {
@@ -207,46 +222,27 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 			continue
 		}
 
-		if assetUpdates.Source != SourceFeralFile && token.Balance == 0 {
-			logrus.WithField("token_id", token.ID).Warn("ignore zero balance update")
+		if assetUpdates.Source != SourceFeralFile && (token.Balance == 0 || currentToken.Source == SourceFeralFile) {
 			continue
 		}
 
-		updateSet := bson.M{}
-		if !(currentToken.Source == SourceFeralFile && assetUpdates.Source != SourceFeralFile) {
-			updateSet["fungible"] = token.Fungible
-			updateSet["source"] = token.Source
-			updateSet["assetID"] = id
-			updateSet["edition"] = token.Edition
-			updateSet["editionName"] = token.EditionName
-			currentToken.Fungible = token.Fungible
+		tokenUpdateSet := UpdateSet{
+			Fungible:    token.Fungible,
+			Source:      token.Source,
+			AssetID:     id,
+			Edition:     token.Edition,
+			EditionName: token.EditionName,
 		}
 
-		var addToSet bson.M
-		if token.Source != SourceFeralFile {
-			if currentToken.Fungible {
-				updateSet[fmt.Sprintf("owners.%s", token.Owner)] = token.Balance
-				addToSet = bson.M{"ownersArray": token.Owner}
-			} else {
-				updateSet["owners"] = map[string]int64{token.Owner: token.Balance}
-				updateSet["ownersArray"] = []string{token.Owner}
-			}
-		}
-
-		tokenUpdate := bson.M{"$set": updateSet}
-		if addToSet != nil {
-			tokenUpdate["$addToSet"] = addToSet
-		}
+		tokenUpdate := bson.M{"$set": structs.Map(tokenUpdateSet)}
 
 		logrus.WithField("token_id", token.ID).WithField("token", token).Debug("token data for updated")
-		r, err := s.tokenCollection.UpdateOne(ctx,
-			bson.M{"indexID": token.IndexID, "swapped": bson.M{"$ne": true}, "burned": bson.M{"$ne": true}},
-			tokenUpdate, options.Update().SetUpsert(true))
+		r, err := s.tokenCollection.UpdateOne(ctx, bson.M{"indexID": token.IndexID}, tokenUpdate)
 		if err != nil {
 			return err
 		}
-		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-			logrus.WithField("token_id", token.ID).Warn("token is not added or updated")
+		if r.MatchedCount == 0 {
+			logrus.WithField("token_id", token.ID).Warn("token is not updated")
 		}
 	}
 
