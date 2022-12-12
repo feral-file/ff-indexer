@@ -34,9 +34,15 @@ require (
 	gorm.io/gorm v1.23.3
 )
 
+require (
+	github.com/decred/dcrd/dcrec/secp256k1 v1.0.3 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v2 v2.0.0 // indirect
+)
+
 replace github.com/apache/thrift => github.com/apache/thrift v0.0.0-20190309152529-a9b748bb0e02
 
 require (
+	blockwatch.cc/tzgo v1.14.2
 	github.com/BurntSushi/toml v1.1.0 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239 // indirect
 	github.com/apache/thrift v0.0.0-20161221203622-b2a4d4ae21c7 // indirect
