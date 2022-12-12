@@ -49,7 +49,7 @@ type IndexerStore interface {
 	UpdateAccountTokenBalance(ctx context.Context, ownerAccount, indexID string, balance int64, transactionTime time.Time, pendingTx string, lastPendingTime time.Time) error
 	DeletePendingFieldsAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx string, lastPendingTime time.Time) error
 	GetPendingAccountTokens(ctx context.Context) ([]AccountToken, error)
-	AddPendingTxToAccountToken(ctx context.Context, pendingTxParams PendingTxUpdate) error
+	AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx, blockchain, ID string) error
 	DeleteFailedAccountTokens(ctx context.Context, ownerAccount, indexID string) error
 
 	IndexAccount(ctx context.Context, account Account) error
@@ -966,8 +966,8 @@ func (s *MongodbIndexerStore) UpdateAccountTokenBalance(ctx context.Context, own
 		return err
 	}
 
-	if r.MatchedCount > 0 || r.UpsertedCount > 0 {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).WithField("pendingTx", pendingTx).Debug("The account token's balance is updated/added")
+	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
+		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).WithField("pendingTx", pendingTx).Debug("the account token's balance is not updated/added")
 	}
 
 	// remove pendingTx and lastPendingTime
@@ -1014,9 +1014,9 @@ func (s *MongodbIndexerStore) DeletePendingFieldsAccountToken(ctx context.Contex
 }
 
 // AddPendingTxToAccountToken add pendingTx to a specific account token if this pendingTx does not exist
-func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, pendingTxParams PendingTxUpdate) error {
+func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx, blockchain, ID string) error {
 	r := s.accountTokenCollection.FindOne(ctx,
-		bson.M{"indexID": pendingTxParams.IndexID, "ownerAccount": pendingTxParams.OwnerAccount, "pendingTxs": bson.M{"$in": bson.A{pendingTxParams.PendingTx}}},
+		bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "pendingTxs": bson.M{"$in": bson.A{pendingTx}}},
 	)
 
 	if err := r.Err(); err != nil {
@@ -1024,15 +1024,15 @@ func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, pe
 
 			// only update account if its pendingTx is not recorded
 			r, err := s.accountTokenCollection.UpdateOne(ctx,
-				bson.M{"indexID": pendingTxParams.IndexID, "ownerAccount": pendingTxParams.OwnerAccount},
+				bson.M{"indexID": indexID, "ownerAccount": ownerAccount},
 				bson.M{
 					"$push": bson.M{
-						"pendingTxs":      pendingTxParams.PendingTx,
+						"pendingTxs":      pendingTx,
 						"lastPendingTime": time.Now(),
 					},
 					"$set": bson.M{
-						"blockchain": pendingTxParams.Blockchain,
-						"id":         pendingTxParams.ID,
+						"blockchain": blockchain,
+						"id":         ID,
 					},
 				},
 				options.Update().SetUpsert(true),
@@ -1043,13 +1043,13 @@ func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, pe
 			}
 
 			if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-				logrus.WithField("IndexID", pendingTxParams.IndexID).WithField("ownerAccount", pendingTxParams.OwnerAccount).Warn("pending token is not added")
+				logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("pending token is not added")
 			}
 		} else {
 			return err
 		}
 	} else {
-		logrus.WithField("IndexID", pendingTxParams.IndexID).WithField("ownerAccount", pendingTxParams.OwnerAccount).Debug("pending token is already added")
+		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Debug("pending token is already added")
 		return nil
 	}
 	return nil

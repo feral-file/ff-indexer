@@ -384,7 +384,7 @@ func (s *NFTIndexerServer) SetTokenPending(c *gin.Context) {
 		reqParams.IndexID = fmt.Sprintf("%s-%s-%s", indexer.BlockchainAlias[reqParams.Blockchain], reqParams.ContractAddress, reqParams.ID)
 	}
 
-	if err := s.indexerStore.AddPendingTxToAccountToken(c, reqParams); err != nil {
+	if err := s.indexerStore.AddPendingTxToAccountToken(c, string(reqParams.OwnerAccount), reqParams.IndexID, reqParams.PendingTx, reqParams.Blockchain, reqParams.ID); err != nil {
 		log.WithField("error", err).Warn("error while adding pending accountToken")
 		return
 	}
@@ -452,7 +452,7 @@ func (s *NFTIndexerServer) SetTokenPendingV1(c *gin.Context) {
 
 	indexID := indexer.TokenIndexID(reqParams.Blockchain, reqParams.ContractAddress, reqParams.ID)
 
-	if err := s.indexerStore.AddPendingTxToAccountToken(c, reqParams.OwnerAccount, indexID, reqParams.PendingTx); err != nil {
+	if err := s.indexerStore.AddPendingTxToAccountToken(c, reqParams.OwnerAccount, indexID, reqParams.PendingTx, reqParams.Blockchain, reqParams.ID); err != nil {
 		log.WithField("error", err).Warn("error while adding pending accountToken")
 		return
 	}
