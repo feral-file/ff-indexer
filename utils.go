@@ -174,15 +174,6 @@ func VerifyETHPersonalSignature(message, signature, address string) (bool, error
 		return false, fmt.Errorf("address doesn't match with signature's")
 	}
 
-	sigPublicKeyBytes := crypto.FromECDSAPub(sigPublicKeyECDSA)
-
-	// verify signature
-	signatureNoRecoverID := signatureBytes[:len(signatureBytes)-1] // remove recovery id
-
-	if valid := crypto.VerifySignature(sigPublicKeyBytes, hash, signatureNoRecoverID); !valid {
-		return false, fmt.Errorf("failed to verify signature via crypto.VerifySignature")
-	}
-
 	return true, nil
 }
 
