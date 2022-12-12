@@ -43,6 +43,7 @@ func (s *NFTIndexerServer) SetupRoute() {
 	v1NFT := v1.Group("/nft")
 	v1NFT.GET("", s.GetAccountNFTs)
 	v1NFT.POST("/query", s.QueryNFTsV1)
+	v1NFT.POST("/pending", s.SetTokenPendingV1)
 
 	v1.POST("/admin/demo-tokens/", TokenAuthenticate("API-TOKEN", s.adminApiToken), s.CreateDemoTokens)
 

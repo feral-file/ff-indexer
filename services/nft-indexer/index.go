@@ -25,6 +25,17 @@ type PendingTxParams struct {
 	PendingTx       string `json:"pendingTx"`
 }
 
+type PendingTxParamsV1 struct {
+	Blockchain      string `json:"blockchain"`
+	ID              string `json:"id"`
+	ContractAddress string `json:"contractAddress"`
+	OwnerAccount    string `json:"ownerAccount"`
+	PublicKey       string `json:"publicKey"`
+	Timestamp       string `json:"timestamp"`
+	Signature       string `json:"signature"`
+	PendingTx       string `json:"pendingTx"`
+}
+
 type NFTQueryParams struct {
 	// global
 	Offset int64  `form:"offset"`
