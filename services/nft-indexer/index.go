@@ -16,15 +16,6 @@ import (
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
 
-type PendingTxParams struct {
-	IndexID         string `json:"indexID"`
-	Blockchain      string `json:"blockchain"`
-	ID              string `json:"id"`
-	ContractAddress string `json:"contractAddress"`
-	OwnerAccount    string `json:"ownerAccount"`
-	PendingTx       string `json:"pendingTx"`
-}
-
 type NFTQueryParams struct {
 	// global
 	Offset int64  `form:"offset"`

@@ -7,6 +7,7 @@ const (
 
 const EthereumZeroAddress = "0x0000000000000000000000000000000000000000"
 const ENSContractAddress = "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85"
+const TransferEventSignature = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
 
 // Tezos contract addresses
 // ignored contracts

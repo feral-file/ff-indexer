@@ -358,7 +358,7 @@ func (s *NFTIndexerServer) GetIdentities(c *gin.Context) {
 func (s *NFTIndexerServer) SetTokenPending(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "TokenPending")
 
-	var reqParams PendingTxParams
+	var reqParams indexer.PendingTxUpdate
 
 	if err := c.BindQuery(&reqParams); err != nil {
 		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
@@ -380,7 +380,11 @@ func (s *NFTIndexerServer) SetTokenPending(c *gin.Context) {
 		return
 	}
 
-	if err := s.indexerStore.AddPendingTxToAccountToken(c, reqParams.OwnerAccount, reqParams.IndexID, reqParams.PendingTx); err != nil {
+	if reqParams.Blockchain == indexer.EthereumBlockchain {
+		reqParams.IndexID = fmt.Sprintf("%s-%s-%s", indexer.BlockchainAlias[reqParams.Blockchain], reqParams.ContractAddress, reqParams.ID)
+	}
+
+	if err := s.indexerStore.AddPendingTxToAccountToken(c, reqParams); err != nil {
 		log.WithField("error", err).Warn("error while adding pending accountToken")
 		return
 	}
@@ -415,6 +419,9 @@ func (s *NFTIndexerServer) GetAccountNFTs(c *gin.Context) {
 	var err error
 
 	switch indexer.GetBlockchainByAddress(owner) {
+	case indexer.EthereumBlockchain:
+		owner = indexer.EthereumChecksumAddress(owner)
+		fallthrough
 	case indexer.TezosBlockchain:
 		tokensInfo, err = s.indexerStore.GetDetailedAccountTokensByOwner(c, owner,
 			indexer.FilterParameter{
