@@ -146,12 +146,12 @@ func (w *NFTIndexerWorker) IndexToken(ctx context.Context, owner, contract, toke
 	return w.indexerEngine.IndexToken(ctx, owner, contract, tokenID)
 }
 
-// IndexAsset saves asset data into indexer's storage
+// GetTokenIDsByOwner gets tokenIDs by the given owner
 func (w *NFTIndexerWorker) GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
 	return w.indexerStore.GetTokenIDsByOwner(ctx, owner)
 }
 
-// IndexAsset saves asset data into indexer's storage
+// GetOutdatedTokensByOwner sets outdated tokens by the given owner
 func (w *NFTIndexerWorker) GetOutdatedTokensByOwner(ctx context.Context, owner string) ([]indexer.Token, error) {
 	return w.indexerStore.GetOutdatedTokensByOwner(ctx, owner)
 }
