@@ -132,7 +132,7 @@ func checkIfTokenNeedToUpdate(assetSource string, currentToken, newToken Token) 
 	} else {
 		// assetSource is not feral file
 		// only update if token source is not feral file and token balance is greater than zero.
-		if newToken.Balance >= 0 && currentToken.Source != SourceFeralFile {
+		if newToken.Balance > 0 && currentToken.Source != SourceFeralFile {
 			return true
 		}
 	}
