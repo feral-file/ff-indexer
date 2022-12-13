@@ -27,10 +27,8 @@ RUN go build -o /go/bin/nft-image-indexer ./services/nft-image-indexer
 
 # ---
 
-FROM alpine:3.14
+FROM zenika/alpine-chrome:100
 ARG dist=0.0
-
-RUN apk add --no-cache curl
 
 COPY --from=build /go/bin/nft-image-indexer /nft-image-indexer
 
