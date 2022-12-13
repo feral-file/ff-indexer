@@ -230,7 +230,7 @@ func (w *NFTIndexerWorker) RefreshTokenOwnershipWorkflow(ctx workflow.Context, i
 
 	log.Debug("start RefreshTokenOwnershipWorkflow")
 
-	err := workflow.ExecuteActivity(ctx, w.RefreshTezosTokenOwnership, indexIDs, delay).Get(ctx, nil)
+	err := workflow.ExecuteActivity(ctx, w.RefreshTokenOwnership, indexIDs, delay).Get(ctx, nil)
 	if err != nil {
 		log.Error("fail to refresh ownership for indexIDs", zap.Any("indexIDs", indexIDs))
 	}

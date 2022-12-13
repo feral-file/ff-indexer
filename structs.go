@@ -172,3 +172,12 @@ type AccountToken struct {
 	LastPendingTime   []time.Time      `json:"-" bson:"lastPendingTime"`
 	PendingTxs        []string         `json:"pendingTxs" bson:"pendingTxs"`
 }
+
+type PendingTxUpdate struct {
+	IndexID         string            `json:"indexID"`
+	Blockchain      string            `json:"blockchain"`
+	ID              string            `json:"id"`
+	ContractAddress BlockchainAddress `json:"contractAddress"`
+	OwnerAccount    BlockchainAddress `json:"ownerAccount"`
+	PendingTx       string            `json:"pendingTx"`
+}

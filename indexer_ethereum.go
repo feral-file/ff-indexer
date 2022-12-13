@@ -6,11 +6,20 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 )
+
+type TransactionDetails struct {
+	From      string
+	To        string
+	IndexID   string
+	Timestamp time.Time
+}
 
 // IndexETHTokenByOwner indexes all tokens owned by a specific ethereum address
 func (e *IndexEngine) IndexETHTokenByOwner(ctx context.Context, owner string, offset int) ([]AssetUpdates, error) {
@@ -201,4 +210,39 @@ func (e *IndexEngine) IndexETHTokenOwners(ctx context.Context, contract, tokenID
 	}
 
 	return ownersMap, nil
+}
+
+// GetETHTransactionDetailsByPendingTx gets transaction details by a specific pendingTx
+func (e *IndexEngine) GetETHTransactionDetailsByPendingTx(ctx context.Context, client *ethclient.Client, txHash common.Hash, tokenID string) ([]TransactionDetails, error) {
+	receipt, err := client.TransactionReceipt(ctx, txHash)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(receipt.Logs) == 0 || receipt.Status == 0 {
+		return nil, fmt.Errorf("the transaction is not success")
+	}
+
+	timestamp, err := GetETHBlockTime(ctx, client, receipt.BlockHash)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get transaction timestamp")
+	}
+
+	transactionDetails := []TransactionDetails{}
+	for _, log := range receipt.Logs {
+		if len(log.Topics) != 4 || log.Topics[3].Big().String() != tokenID || log.Topics[0].String() != TransferEventSignature {
+			continue
+		}
+
+		transactionDetail := TransactionDetails{
+			From:      common.HexToAddress(log.Topics[1].String()).String(),
+			To:        common.HexToAddress(log.Topics[2].String()).String(),
+			IndexID:   TokenIndexID(EthereumBlockchain, log.Address.String(), tokenID),
+			Timestamp: timestamp,
+		}
+
+		transactionDetails = append(transactionDetails, transactionDetail)
+	}
+
+	return transactionDetails, nil
 }
