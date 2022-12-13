@@ -146,6 +146,14 @@ endif
 	-t nft-indexer:image-indexer-$(dist) -f Dockerfile-image-indexer .
 	docker tag nft-indexer:image-indexer-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:image-indexer-$(dist)
 
+.PHONY: build-chromep
+build-chromep:
+ifndef dist
+	$(error dist is undefined)
+endif
+	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
+	-t nft-indexer:chromep-$(dist) -f Dockerfile-chromep .
+	docker tag nft-indexer:chromep-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:chromep-$(dist)
 
 .PHONY: image
 image: build-nft-indexer build-nft-indexer-background
