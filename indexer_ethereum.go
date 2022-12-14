@@ -161,12 +161,13 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 					ContractType:    contractType,
 					ContractAddress: contractAddress,
 				},
-				IndexID: TokenIndexID(EthereumBlockchain, contractAddress, a.TokenID),
-				Edition: 0,
-				Balance: balance,
-				Owner:   owner,
-				Owners:  map[string]int64{owner: balance},
-				MintAt:  a.AssetContract.CreatedDate.Time, // set minted_at to the contract creation time
+				IndexID:           TokenIndexID(EthereumBlockchain, contractAddress, a.TokenID),
+				Edition:           0,
+				Balance:           balance,
+				Owner:             owner,
+				Owners:            map[string]int64{owner: balance},
+				MintAt:            a.AssetContract.CreatedDate.Time, // set minted_at to the contract creation time
+				LastRefreshedTime: time.Now(),
 			},
 		},
 	}

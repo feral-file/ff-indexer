@@ -972,8 +972,8 @@ func (s *MongodbIndexerStore) UpdateAccountTokenBalance(ctx context.Context, own
 			"indexID":      indexID,
 			"ownerAccount": ownerAccount,
 			"$or": bson.A{
-				bson.M{"lastActivityTime": bson.M{"$lt": transactionTime}},
-				bson.M{"lastActivityTime": bson.M{"$exists": false}},
+				bson.M{"lastRefreshedTime": bson.M{"$lt": transactionTime}},
+				bson.M{"lastRefreshedTime": bson.M{"$exists": false}},
 			},
 		},
 		bson.M{
