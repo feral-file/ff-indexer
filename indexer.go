@@ -243,7 +243,7 @@ func (e *IndexEngine) GetTokenOwnerAddress(contract, tokenID string) (string, er
 			return "", fmt.Errorf("no token owners found")
 		}
 
-		return tokenOwners[0].Owner.Address, nil
+		return EthereumChecksumAddress(tokenOwners[0].Owner.Address), nil
 	default:
 		return "", ErrUnsupportedBlockchain
 	}
