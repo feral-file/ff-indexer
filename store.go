@@ -620,7 +620,8 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 			return nil, err
 		}
 	} else {
-		c, err = s.getTokensByAggregation(ctx, owners, filterParameter, offset, size)
+		// DEPRECATED: this condition should not use anymore
+		c, err = s.getTokensByAggregationByOwners(ctx, owners, filterParameter, offset, size)
 		if err != nil {
 			return nil, err
 		}
@@ -659,7 +660,7 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 	return tokens, nil
 }
 
-// getTokensByAggregation queries tokens by aggregation which provides a more flexible query option by mongodb
+// getTokensByAggregationForOwner queries tokens for a specific owner by aggregation
 func (s *MongodbIndexerStore) getTokensByAggregationForOwner(ctx context.Context, owner string, filterParameter FilterParameter, offset, size int64) (*mongo.Cursor, error) {
 	matchQuery := bson.M{
 		fmt.Sprintf("owners.%s", owner): bson.M{"$gte": 1},
@@ -715,8 +716,8 @@ func (s *MongodbIndexerStore) getTokensByAggregationForOwner(ctx context.Context
 	return s.tokenCollection.Aggregate(ctx, pipelines)
 }
 
-// getTokensByAggregation queries tokens by aggregation which provides a more flexible query option by mongodb
-func (s *MongodbIndexerStore) getTokensByAggregation(ctx context.Context, owners []string, filterParameter FilterParameter, offset, size int64) (*mongo.Cursor, error) {
+// DEPRECATED: getTokensByAggregationByOwners queries tokens by aggregation which provides a more flexible query option by mongodb
+func (s *MongodbIndexerStore) getTokensByAggregationByOwners(ctx context.Context, owners []string, filterParameter FilterParameter, offset, size int64) (*mongo.Cursor, error) {
 	pipelines := []bson.M{
 		{
 			"$match": bson.M{
