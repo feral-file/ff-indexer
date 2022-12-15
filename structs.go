@@ -78,7 +78,7 @@ type Token struct {
 	Burned            bool         `json:"burned" bson:"burned"`
 	Provenances       []Provenance `json:"provenance" bson:"provenance"`
 	LastActivityTime  time.Time    `json:"lastActivityTime" bson:"lastActivityTime"`
-	LastRefreshedTime time.Time    `json:"-" bson:"lastRefreshedTime"`
+	LastRefreshedTime time.Time    `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
 }
 
 type ProjectMetadata struct {
