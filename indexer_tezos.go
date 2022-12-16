@@ -103,7 +103,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		MintedAt: tzktToken.Timestamp,
 	}
 
-	if e.environment != DevelopEnv {
+	if e.environment != DevelopmentEnvironment {
 		switch tzktToken.Contract.Address {
 		case KALAMContractAddress, TezDaoContractAddress, TezosDNSContractAddress:
 			return nil, nil
