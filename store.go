@@ -216,6 +216,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 			updateSet["assetID"] = id
 			updateSet["edition"] = token.Edition
 			updateSet["editionName"] = token.EditionName
+			updateSet["contractAddress"] = token.ContractAddress
 			currentToken.Fungible = token.Fungible
 		}
 
