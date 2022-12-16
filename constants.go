@@ -54,4 +54,8 @@ var ObjktCDNTypes = []string{
 	ObjktCDNThumbnailType,
 }
 
-const DevelopEnv = "development"
+const (
+	DevelopmentEnvironment = "development"
+	StagingEnvironment     = "staging"
+	ProductiontEnvironment = "production"
+)

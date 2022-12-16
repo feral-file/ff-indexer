@@ -50,8 +50,21 @@ type FileFormat struct {
 	URI        string           `json:"uri"`
 	FileName   string           `json:"fileName,omitempty"`
 	FileSize   int              `json:"fileSize,string"`
-	MIMEType   string           `json:"mimeType"`
+	MIMEType   MIMEFormat       `json:"mimeType"`
 	Dimensions FormatDimensions `json:"dimensions,omitempty"`
+}
+
+type MIMEFormat string
+
+func (m *MIMEFormat) UnmarshalJSON(data []byte) error {
+	if data[0] == 91 {
+		data = bytes.Trim(data, "[]")
+	}
+
+	if err := json.Unmarshal(data, (*string)(m)); err != nil {
+		return err
+	}
+	return nil
 }
 
 type FileFormats []FileFormat
@@ -281,6 +294,7 @@ func (c *TZKT) RetrieveTokens(owner string, lastTime time.Time, offset int) ([]O
 
 type TokenTransfer struct {
 	Timestamp     time.Time `json:"timestamp"`
+	Level         uint64    `json:"level"`
 	TransactionID uint64    `json:"transactionId"`
 	From          *Account  `json:"from"`
 	To            Account   `json:"to"`
@@ -291,7 +305,7 @@ func (c *TZKT) GetTokenTransfers(contract, tokenID string) ([]TokenTransfer, err
 		"token.contract": []string{contract},
 		"token.tokenId":  []string{tokenID},
 		"token.standard": []string{"fa2"},
-		"select":         []string{"timestamp,from,to,transactionId"},
+		"select":         []string{"timestamp,from,to,transactionId,level"},
 	}
 
 	u := url.URL{
@@ -375,36 +389,36 @@ func (c *TZKT) GetTransaction(id uint64) (Transaction, error) {
 }
 
 type TokenOwner struct {
-	Address string `json:"address"`
-	Balance int64  `json:"balance,string"`
+	Address  string    `json:"address"`
+	Balance  int64     `json:"balance,string"`
+	LastTime time.Time `json:"lastTime"`
 }
 
 // GetTokenOwners returns a list of TokenOwner for a specific token
-func (c *TZKT) GetTokenOwners(contract, tokenID string) ([]TokenOwner, error) {
+func (c *TZKT) GetTokenOwners(contract, tokenID string, limit int, lastTime time.Time) ([]TokenOwner, error) {
 	v := url.Values{
 		"token.contract": []string{contract},
 		"token.tokenId":  []string{tokenID},
 		"balance.gt":     []string{"0"},
 		"token.standard": []string{"fa2"},
-		"select":         []string{"account.address as address,balance"},
+		"sort.asc":       []string{"lastTime"},
+		"limit":          []string{fmt.Sprintf("%d", limit)},
+		"select":         []string{"account.address as address,balance,lastTime"},
 	}
+
+	rawQuery := v.Encode() + "&lastTime.ge=" + lastTime.UTC().Format(time.RFC3339)
 
 	u := url.URL{
 		Scheme:   "https",
 		Host:     c.endpoint,
 		Path:     "/v1/tokens/balances",
-		RawQuery: v.Encode(),
+		RawQuery: rawQuery,
 	}
-
-	resp, err := c.client.Get(u.String())
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
 
 	var owners []TokenOwner
 
-	if err := json.NewDecoder(resp.Body).Decode(&owners); err != nil {
+	req, _ := http.NewRequest("GET", u.String(), nil)
+	if err := c.request(req, &owners); err != nil {
 		return nil, err
 	}
 

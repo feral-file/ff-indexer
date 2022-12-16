@@ -119,6 +119,7 @@ type UpdateSet struct {
 	AssetID            string                   `structs:"assetID,omitempty"`
 	Edition            int64                    `structs:"edition,omitempty"`
 	EditionName        string                   `structs:"editionName,omitempty"`
+	ContractAddress    string                   `structs:"contractAddress,omitempty"`
 }
 
 // checkIfTokenNeedToUpdate returns true if the new token data is suppose to be
@@ -259,11 +260,12 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 
 		if checkIfTokenNeedToUpdate(assetUpdates.Source, currentToken, token) {
 			tokenUpdateSet := UpdateSet{
-				Fungible:    token.Fungible,
-				Source:      token.Source,
-				AssetID:     id,
-				Edition:     token.Edition,
-				EditionName: token.EditionName,
+				Fungible:        token.Fungible,
+				Source:          token.Source,
+				AssetID:         id,
+				Edition:         token.Edition,
+				EditionName:     token.EditionName,
+				ContractAddress: token.ContractAddress,
 			}
 
 			tokenUpdate := bson.M{"$set": structs.Map(tokenUpdateSet)}

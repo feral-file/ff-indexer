@@ -58,7 +58,16 @@ db.assets.createIndex({
   "thumbnailID": 1
 })
 db.assets.createIndex({
+  "thumbnailLastCheck": 1
+})
+db.assets.createIndex({
   "projectMetadata.latest.source": 1
+})
+db.assets.createIndex({
+  "projectMetadata.latest.thumbnailURL": 1
+})
+db.assets.createIndex({
+  "projectMetadata.latest.lastUpdatedAt": 1
 })
 
 db.accounts.createIndex({
