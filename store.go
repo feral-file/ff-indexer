@@ -397,6 +397,15 @@ func (s *MongodbIndexerStore) getDetailedTokensByAggregation(ctx context.Context
 	return tokens, nil
 }
 
+// getPageCounts return the page counts by item length and page size
+func getPageCounts(itemLength, PageSize int) int {
+	pageCounts := itemLength / PageSize
+	if (itemLength % PageSize) != 0 {
+		pageCounts += 1
+	}
+	return pageCounts
+}
+
 // GetDetailedTokens returns a list of tokens information based on ids
 func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error) {
 	tokens := []DetailedToken{}
@@ -408,11 +417,11 @@ func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParam
 		Debug("GetDetailedTokens")
 	startTime := time.Now()
 	if length := len(filterParameter.IDs); length > 0 {
-		for i := 0; i < length/QueryPageSize+1; i++ {
+		for i := 0; i < getPageCounts(length, QueryPageSize); i++ {
+			logrus.
+				WithField("page", i).
+				Trace("doc page")
 			start := i * QueryPageSize
-			if start == length {
-				break
-			}
 			end := (i + 1) * QueryPageSize
 			if end > length {
 				end = length
