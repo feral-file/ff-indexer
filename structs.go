@@ -113,7 +113,6 @@ type ProjectMetadata struct {
 
 	// Deprecated attributes
 	OriginalFileURL string `json:"originalFileURL" structs:"-" bson:"-"`
-	FirstMintedAt   string `json:"firstMintedAt" structs:"-" bson:"-"`
 }
 
 // AssetUpdates is the inputs payload of IndexAsset. It includes project metadata, blockchain metadata and

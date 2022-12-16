@@ -677,8 +677,6 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 		}
 
 		// FIXME: hardcoded values for backward compatibility
-		a.ProjectMetadata.Latest.FirstMintedAt = "0001-01-01T00:00:00.000Z"
-		a.ProjectMetadata.Origin.FirstMintedAt = "0001-01-01T00:00:00.000Z"
 		token.ThumbnailID = a.ThumbnailID
 		token.IPFSPinned = a.IPFSPinned
 		token.ProjectMetadata = a.ProjectMetadata
