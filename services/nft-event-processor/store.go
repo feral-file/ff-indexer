@@ -32,7 +32,7 @@ type NFTEvent struct {
 type EventStore interface {
 	CreateEvent(event NFTEvent) error
 	UpdateEvent(id string, updates map[string]interface{}) error
-	GetQueuedEvent() (*NFTEvent, error)
+	GetQueueEventByStage(stage int8) (*NFTEvent, error)
 	CompleteEvent(id string) error
 }
 
@@ -54,7 +54,7 @@ func (s *PostgresEventStore) CreateEvent(event NFTEvent) error {
 
 // UpdateEvent updates attributes for a event.
 func (s *PostgresEventStore) UpdateEvent(id string, updates map[string]interface{}) error {
-	return s.db.Updates(&NFTEvent{ID: id, Status: EventStatusProcessed}).Error
+	return s.db.Model(&NFTEvent{}).Where("id = ?", id).Where("status = ?", EventStatusProcessing).Updates(updates).Error
 }
 
 // CompleteEvent marks an event to be done
@@ -62,14 +62,15 @@ func (s *PostgresEventStore) CompleteEvent(id string) error {
 	return s.db.Updates(&NFTEvent{ID: id, Status: EventStatusProcessed}).Error
 }
 
-// GetQueuedEvent returns all queued events which need to process
-func (s *PostgresEventStore) GetQueuedEvent() (*NFTEvent, error) {
+// GetQueueEventByStage returns all queued events which need to process
+func (s *PostgresEventStore) GetQueueEventByStage(stage int8) (*NFTEvent, error) {
 	var event NFTEvent
 
 	// TODO: return outdated queued events as well
 	err := s.db.Transaction(func(db *gorm.DB) error {
-		if err := db.Debug().Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where(&NFTEvent{Status: EventStatusCreated}).
+		if err := db.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("stage = ?", EventStages[stage]).
+			Where("status <> ?", EventStatusProcessed).
 			Order("created_at asc").First(&event).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return nil

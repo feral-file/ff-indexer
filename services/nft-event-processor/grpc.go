@@ -78,6 +78,7 @@ func (t *GRPCHandler) PushEvent(
 		From:       i.From,
 		To:         i.To,
 		Status:     EventStatusCreated,
+		Stage:      EventStages[1],
 	}); err != nil {
 		return nil, err
 	}
