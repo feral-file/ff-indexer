@@ -84,11 +84,11 @@ run-nft-account-token-indexer: nft-account-token-indexer
 
 .PHONY: run-nft-event-processor-ethereum-emitter
 run-nft-event-processor-ethereum-emitter: nft-event-processor-ethereum-emitter
-	./bin/nft-event-processor-ethereum-emitter -c confic.yaml
+	./bin/nft-event-processor-ethereum-emitter -c config.yaml
 
 .PHONY: run-nft-event-processor-bitmark-emitter
 run-nft-event-processor-bitmark-emitter: nft-event-processor-bitmark-emitter
-	./bin/nft-event-processor-bitmark-emitter -c confic.yaml
+	./bin/nft-event-processor-bitmark-emitter -c config.yaml
 
 .PHONY: build
 build: nft-indexer nft-indexer-background nft-event-subscriber nft-provenance-indexer nft-account-token-indexer nft-event-processor-ethereum-emitter nft-event-processor-bitmark-emitter
@@ -141,6 +141,7 @@ endif
 	docker tag nft-indexer:account-token-indexer-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:account-token-indexer-$(dist)
 
 .PHONY: build-nft-event-processor-ethereum-emitter
+build-nft-event-processor-ethereum-emitter:
 ifndef dist
 	$(error dist is undefined)
 endif
@@ -151,6 +152,7 @@ endif
 	docker tag nft-indexer:event-processor-ethereum-emitter-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:event-processor-ethereum-emitter-$(dist)
 
 .PHONY: build-nft-event-processor-bitmark-emitter
+build-nft-event-processor-bitmark-emitter:
 ifndef dist
 	$(error dist is undefined)
 endif

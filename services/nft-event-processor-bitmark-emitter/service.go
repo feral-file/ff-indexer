@@ -39,8 +39,7 @@ func (e *BitmarkEventsEmitter) Watch() error {
 }
 
 func (e *BitmarkEventsEmitter) Run(ctx context.Context) {
-	for {
-		for n := range e.bitmarkListener.Notify {
+	for n := range e.bitmarkListener.Notify {
 			logrus.WithField("event", n.Channel).WithField("transfers", n.Extra).Info("new event")
 			row := e.bitmarkListener.db.QueryRow("SELECT value FROM event WHERE id = $1", n.Extra)
 
