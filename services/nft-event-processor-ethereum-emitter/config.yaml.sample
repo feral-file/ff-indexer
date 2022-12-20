@@ -1,0 +1,8 @@
+ethereum:
+  ws_url: wss://mainnet.infura.io/ws/v3/702230643afe4f41a3ff8ed353b979dd
+
+emitter:
+  grpc_endpoint: localhost:1010
+
+log:
+  level: debug

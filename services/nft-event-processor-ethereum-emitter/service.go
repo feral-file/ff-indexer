@@ -5,8 +5,8 @@ import (
 	"math/big"
 	"time"
 
-	ethereum "github.com/bitmark-inc/account-vault-ethereum"
 	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer/emitter"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 	goethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -16,20 +16,19 @@ import (
 )
 
 type EthereumEventsEmitter struct {
-	grpcClient processor.EventProcessorClient
-	wallet     *ethereum.Wallet
-	wsClient   *ethclient.Client
+	emitter.EventsEmitter
+	wsClient *ethclient.Client
 
 	ethLogChan      chan types.Log
 	ethSubscription *goethereum.Subscription
 }
 
-func NewEthereumEventsEmitter(w *ethereum.Wallet, wsClient *ethclient.Client, grpcClient processor.EventProcessorClient) *EthereumEventsEmitter {
+func NewEthereumEventsEmitter(wsClient *ethclient.Client,
+	grpcClient processor.EventProcessorClient) *EthereumEventsEmitter {
 	return &EthereumEventsEmitter{
-		grpcClient: grpcClient,
-		wallet:     w,
-		wsClient:   wsClient,
-		ethLogChan: make(chan types.Log, 100),
+		EventsEmitter: emitter.New(grpcClient),
+		wsClient:      wsClient,
+		ethLogChan:    make(chan types.Log, 100),
 	}
 }
 
@@ -54,6 +53,8 @@ func (e *EthereumEventsEmitter) Watch(ctx context.Context) {
 }
 
 func (e *EthereumEventsEmitter) Run(ctx context.Context) {
+	go e.Watch(ctx)
+
 	for {
 		for eLog := range e.ethLogChan {
 			paringStartTime := time.Now()
@@ -87,7 +88,7 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 					eventType = "burned"
 				}
 
-				if err := indexer.PushGRPCEvent(ctx, e.grpcClient, eventType, fromAddress, toAddress, contractAddress, indexer.EthereumBlockchain, tokenIDHash.Big().Text(10)); err != nil {
+				if err := e.PushEvent(ctx, eventType, fromAddress, toAddress, contractAddress, indexer.EthereumBlockchain, tokenIDHash.Big().Text(10)); err != nil {
 					logrus.WithError(err).Error("gRPC request failed")
 					continue
 				}
