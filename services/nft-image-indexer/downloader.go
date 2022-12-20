@@ -26,20 +26,25 @@ func DownloadFile(url string) (io.Reader, string, error) {
 	}
 
 	mimeType := mimetype.Detect(fileHeader).String()
-
+	var action string
 	var file *bytes.Buffer
+
 	if strings.HasPrefix(mimeType, "image/svg") {
+		action = "chrome_screenshot"
 		if file, err = utils.ConvertSVGToPNG(url); err != nil {
 			return nil, "", err
 		}
 	} else {
+		action = "url_download"
 		file = bytes.NewBuffer(fileHeader)
 		if _, err := io.Copy(file, resp.Body); err != nil {
 			return nil, "", err
 		}
 	}
-
-	logrus.WithField("file_size", file.Len()).Debug("file downloaded")
+	logrus.
+		WithField("action", action).
+		WithField("download_url", url).
+		WithField("file_size", file.Len()).Debug("file downloaded")
 
 	return file, mimeType, err
 }

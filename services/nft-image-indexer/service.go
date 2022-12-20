@@ -25,13 +25,20 @@ type NFTAsset struct {
 type NFTContentIndexer struct {
 	wg sync.WaitGroup
 
+	thumbnailCachePeriod        time.Duration
+	thumbnailCacheRetryInterval time.Duration
+
 	db        *imageStore.ImageStore
 	ipfs      IPFSPinService
 	nftAssets *mongo.Collection
 }
 
-func NewNFTContentIndexer(db *imageStore.ImageStore, nftAssets *mongo.Collection, ipfs IPFSPinService) *NFTContentIndexer {
+func NewNFTContentIndexer(db *imageStore.ImageStore, nftAssets *mongo.Collection, ipfs IPFSPinService,
+	thumbnailCachePeriod, thumbnailCacheRetryInterval time.Duration) *NFTContentIndexer {
 	return &NFTContentIndexer{
+		thumbnailCachePeriod:        thumbnailCachePeriod,
+		thumbnailCacheRetryInterval: thumbnailCacheRetryInterval,
+
 		db:        db,
 		ipfs:      ipfs,
 		nftAssets: nftAssets,
@@ -52,6 +59,7 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 					continue
 				}
 
+				uploadImageStartTime := time.Now()
 				img, err := s.db.UploadImage(ctx, asset.IndexID, NewURLImageDownloader(asset.ProjectMetadata.Latest.ThumbnailURL),
 					map[string]interface{}{
 						"source":   asset.ProjectMetadata.Latest.Source,
@@ -69,7 +77,12 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
 					}
 				}
+				logrus.
+					WithField("duration", time.Since(uploadImageStartTime)).
+					WithField("assetID", asset.IndexID).Debug("thumbnail image uploaded")
 
+				// Update the thumbnail by image ID returned from cloudflare, it the whol process is succeed.
+				// Otherwise, it would update to an empty value
 				if err := s.updateTokenThumbnail(ctx, img.AssetID, img.ImageID); err != nil {
 					logrus.WithError(err).Error("update token thumbnail to indexer")
 				}
@@ -87,10 +100,10 @@ func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) 
 	r := s.nftAssets.FindOneAndUpdate(ctx,
 		bson.M{
 			// filter assets which have been viewed in the past 7 days.
-			"projectMetadata.latest.lastUpdatedAt": bson.M{"$gt": time.Now().Add(-168 * time.Hour)},
+			"projectMetadata.latest.lastUpdatedAt": bson.M{"$gt": time.Now().Add(-s.thumbnailCachePeriod)},
 			// filter assets which have not been processed in the last hour.
 			"thumbnailLastCheck": bson.M{
-				"$not": bson.M{"$gt": time.Now().Add(-time.Hour)},
+				"$not": bson.M{"$gt": time.Now().Add(-s.thumbnailCacheRetryInterval)},
 			},
 			// filter assets which does not have thumbnailID or the thumbnailID is empty
 			"thumbnailID": bson.M{
@@ -153,6 +166,10 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 		defer close(assets)
 
 		s.spawnThumbnailWorker(ctx, assets, 100)
+
+		logrus.WithField("thumbnailCachePeriod", s.thumbnailCachePeriod).
+			WithField("thumbnailCacheRetryInterval", s.thumbnailCacheRetryInterval).
+			Info("start the loop the get assets without thumbnail cached")
 
 	WATCH_ASSETS:
 		for {
