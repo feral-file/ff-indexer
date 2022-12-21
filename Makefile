@@ -54,6 +54,14 @@ nft-provenance-indexer:
 nft-account-token-indexer:
 	go build -o bin/nft-account-token-indexer ./services/nft-account-token-indexer
 
+.PHONY: nft-event-processor-ethereum-emitter
+nft-event-processor-ethereum-emitter:
+	go build -o bin/nft-event-processor-ethereum-emitter ./services/nft-event-processor-ethereum-emitter
+
+.PHONY: nft-event-processor-bitmark-emitter
+nft-event-processor-bitmark-emitter:
+	go build -o bin/nft-event-processor-bitmark-emitter ./services/nft-event-processor-bitmark-emitter
+
 .PHONY: run-nft-indexer
 run-nft-indexer: nft-indexer
 	./bin/nft-indexer -c config.yaml
@@ -82,12 +90,20 @@ run-nft-provenance-indexer: nft-provenance-indexer
 run-nft-account-token-indexer: nft-account-token-indexer
 	./bin/nft-account-token-indexer -c config.yaml
 
+.PHONY: run-nft-event-processor-ethereum-emitter
+run-nft-event-processor-ethereum-emitter: nft-event-processor-ethereum-emitter
+	./bin/nft-event-processor-ethereum-emitter -c config.yaml
+
+.PHONY: run-nft-event-processor-bitmark-emitter
+run-nft-event-processor-bitmark-emitter: nft-event-processor-bitmark-emitter
+	./bin/nft-event-processor-bitmark-emitter -c config.yaml
+
 .PHONY: renew-event-processor-grpc
 renew-event-processor-grpc:
 	protoc --proto_path=protos --go-grpc_out=services/nft-event-processor/ --go_out=services/nft-event-processor/ event-processor.proto
 
 .PHONY: build
-build: nft-indexer nft-indexer-background nft-event-subscriber nft-event-processor nft-provenance-indexer nft-account-token-indexer
+build: nft-indexer nft-indexer-background nft-event-subscriber nft-event-processor nft-provenance-indexer nft-account-token-indexer nft-event-processor-ethereum-emitter nft-event-processor-bitmark-emitter
 
 .PHONY: run
 run: config run-nft-indexer
@@ -135,6 +151,28 @@ endif
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t nft-indexer:account-token-indexer-$(dist) -f Dockerfile-account-token-indexer .
 	docker tag nft-indexer:account-token-indexer-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:account-token-indexer-$(dist)
+
+.PHONY: build-nft-event-processor-ethereum-emitter
+build-nft-event-processor-ethereum-emitter:
+ifndef dist
+	$(error dist is undefined)
+endif
+	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
+	--build-arg GITHUB_USER=$(GITHUB_USER) \
+	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
+	-t nft-indexer:event-processor-ethereum-emitter-$(dist) -f Dockerfile-event-processor-ethereum-emitter .
+	docker tag nft-indexer:event-processor-ethereum-emitter-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:event-processor-ethereum-emitter-$(dist)
+
+.PHONY: build-nft-event-processor-bitmark-emitter
+build-nft-event-processor-bitmark-emitter:
+ifndef dist
+	$(error dist is undefined)
+endif
+	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
+	--build-arg GITHUB_USER=$(GITHUB_USER) \
+	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
+	-t nft-indexer:event-processor-bitmark-emitter-$(dist) -f Dockerfile-event-processor-bitmark-emitter .
+	docker tag nft-indexer:event-processor-bitmark-emitter-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:event-processor-bitmark-emitter-$(dist)
 
 .PHONY: build-nft-event-subscriber
 build-nft-event-subscriber:
