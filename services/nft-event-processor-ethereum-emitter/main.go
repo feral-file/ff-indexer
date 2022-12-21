@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"log"
 
 	"github.com/bitmark-inc/config-loader"
@@ -25,8 +24,7 @@ func main() {
 	}
 
 	// connect to the processor
-	addr := flag.String("addr", viper.GetString("emitter.grpc_endpoint"), "the address to connect to")
-	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(viper.GetString("event_processor_server.address"), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}

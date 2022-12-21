@@ -16,6 +16,7 @@ import (
 )
 
 type EthereumEventsEmitter struct {
+	grpcClient processor.EventProcessorClient
 	emitter.EventsEmitter
 	wsClient *ethclient.Client
 
@@ -26,6 +27,7 @@ type EthereumEventsEmitter struct {
 func NewEthereumEventsEmitter(wsClient *ethclient.Client,
 	grpcClient processor.EventProcessorClient) *EthereumEventsEmitter {
 	return &EthereumEventsEmitter{
+		grpcClient:    grpcClient,
 		EventsEmitter: emitter.New(grpcClient),
 		wsClient:      wsClient,
 		ethLogChan:    make(chan types.Log, 100),
@@ -55,43 +57,41 @@ func (e *EthereumEventsEmitter) Watch(ctx context.Context) {
 func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 	go e.Watch(ctx)
 
-	for {
-		for eLog := range e.ethLogChan {
-			paringStartTime := time.Now()
-			logrus.WithField("txHash", eLog.TxHash).
-				WithField("logIndex", eLog.Index).
-				WithField("time", paringStartTime).
-				Debug("start processing ethereum log")
+	for eLog := range e.ethLogChan {
+		paringStartTime := time.Now()
+		logrus.WithField("txHash", eLog.TxHash).
+			WithField("logIndex", eLog.Index).
+			WithField("time", paringStartTime).
+			Debug("start processing ethereum log")
 
-			if topicLen := len(eLog.Topics); topicLen == 4 {
+		if topicLen := len(eLog.Topics); topicLen == 4 {
 
-				fromAddress := indexer.EthereumChecksumAddress(eLog.Topics[1].Hex())
-				toAddress := indexer.EthereumChecksumAddress(eLog.Topics[2].Hex())
-				contractAddress := indexer.EthereumChecksumAddress(eLog.Address.String())
-				tokenIDHash := eLog.Topics[3]
+			fromAddress := indexer.EthereumChecksumAddress(eLog.Topics[1].Hex())
+			toAddress := indexer.EthereumChecksumAddress(eLog.Topics[2].Hex())
+			contractAddress := indexer.EthereumChecksumAddress(eLog.Address.String())
+			tokenIDHash := eLog.Topics[3]
 
-				logrus.WithField("from", fromAddress).
-					WithField("to", toAddress).
-					WithField("contractAddress", contractAddress).
-					WithField("tokenIDHash", tokenIDHash).
-					Debug("receive transfer event on ethereum")
+			logrus.WithField("from", fromAddress).
+				WithField("to", toAddress).
+				WithField("contractAddress", contractAddress).
+				WithField("tokenIDHash", tokenIDHash).
+				Debug("receive transfer event on ethereum")
 
-				if eLog.Topics[1].Big().Cmp(big.NewInt(0)) == 0 {
-					// ignore minting events
-					continue
-				}
+			if eLog.Topics[1].Big().Cmp(big.NewInt(0)) == 0 {
+				// ignore minting events
+				continue
+			}
 
-				eventType := "transfer"
-				if fromAddress == indexer.EthereumZeroAddress {
-					eventType = "mint"
-				} else if toAddress == indexer.EthereumZeroAddress {
-					eventType = "burned"
-				}
+			eventType := "transfer"
+			if fromAddress == indexer.EthereumZeroAddress {
+				eventType = "mint"
+			} else if toAddress == indexer.EthereumZeroAddress {
+				eventType = "burned"
+			}
 
-				if err := e.PushEvent(ctx, eventType, fromAddress, toAddress, contractAddress, indexer.EthereumBlockchain, tokenIDHash.Big().Text(10)); err != nil {
-					logrus.WithError(err).Error("gRPC request failed")
-					continue
-				}
+			if err := e.PushEvent(ctx, eventType, fromAddress, toAddress, contractAddress, indexer.EthereumBlockchain, tokenIDHash.Big().Text(10)); err != nil {
+				logrus.WithError(err).Error("gRPC request failed")
+				continue
 			}
 		}
 	}

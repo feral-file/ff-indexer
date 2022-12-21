@@ -7,17 +7,20 @@ import (
 
 	"github.com/bitmark-inc/bitmark-sdk-go/tx"
 	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer/emitter"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 	"github.com/sirupsen/logrus"
 )
 
 type BitmarkEventsEmitter struct {
+	emitter.EventsEmitter
 	bitmarkListener *Listener
 	grpcClient      processor.EventProcessorClient
 }
 
 func New(bitmarkListener *Listener, grpcClient processor.EventProcessorClient) *BitmarkEventsEmitter {
 	return &BitmarkEventsEmitter{
+		EventsEmitter:   emitter.New(grpcClient),
 		bitmarkListener: bitmarkListener,
 		grpcClient:      grpcClient,
 	}
@@ -40,32 +43,30 @@ func (e *BitmarkEventsEmitter) Watch() error {
 
 func (e *BitmarkEventsEmitter) Run(ctx context.Context) {
 	for n := range e.bitmarkListener.Notify {
-			logrus.WithField("event", n.Channel).WithField("transfers", n.Extra).Info("new event")
-			row := e.bitmarkListener.db.QueryRow("SELECT value FROM event WHERE id = $1", n.Extra)
+		logrus.WithField("event", n.Channel).WithField("transfers", n.Extra).Info("new event")
+		row := e.bitmarkListener.db.QueryRow("SELECT value FROM event WHERE id = $1", n.Extra)
 
-			var txIDs string
-			err := row.Scan(&txIDs)
-			if err != nil {
-				logrus.WithField("event_id", n.Extra).WithError(err).Error("fail to get transaction ids")
-				continue
-			}
+		var txIDs string
+		err := row.Scan(&txIDs)
+		if err != nil {
+			logrus.WithField("event_id", n.Extra).WithError(err).Error("fail to get transaction ids")
+			continue
+		}
 
-			for _, txID := range strings.Split(txIDs, ",") {
-				if t, err := tx.Get(txID); err == nil {
-					eventType := "transfer"
-					if t.BitmarkID == t.ID {
-						eventType = "mint"
-					}
-
-					if err = indexer.PushGRPCEvent(ctx, e.grpcClient, eventType, t.PreviousOwner, t.Owner, "", indexer.BitmarkBlockchain, t.BitmarkID); err != nil {
-						logrus.WithError(err).WithField("txID", txID).Error("gRPC request failed")
-					}
-
-				} else {
-					logrus.WithError(err).WithField("txID", txID).Error("fail to get transaction detail")
+		for _, txID := range strings.Split(txIDs, ",") {
+			if t, err := tx.Get(txID); err == nil {
+				eventType := "transfer"
+				if t.BitmarkID == t.ID {
+					eventType = "mint"
 				}
+
+				if err = e.PushEvent(ctx, eventType, t.PreviousOwner, t.Owner, "", indexer.BitmarkBlockchain, t.BitmarkID); err != nil {
+					logrus.WithError(err).WithField("txID", txID).Error("gRPC request failed")
+				}
+
+			} else {
+				logrus.WithError(err).WithField("txID", txID).Error("fail to get transaction detail")
 			}
 		}
 	}
-
 }

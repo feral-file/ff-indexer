@@ -1,8 +1,5 @@
 ethereum:
-  ws_url: wss://mainnet.infura.io/ws/v3/702230643afe4f41a3ff8ed353b979dd
+  ws_url: wss://rinkeby.infura.io/ws/v3/<project_id>
 
-emitter:
-  grpc_endpoint: localhost:1010
-
-log:
-  level: debug
+event_processor_server:
+  address: localhost:8765
