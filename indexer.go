@@ -149,7 +149,7 @@ func (detail *AssetMetadataDetail) UpdateMetadataFromTZKT(md tzkt.TokenMetadata)
 
 	for _, f := range md.Formats {
 		if f.URI == md.ArtifactURI {
-			mimeType = f.MIMEType
+			mimeType = string(f.MIMEType)
 			break
 		}
 	}
@@ -163,7 +163,7 @@ func (detail *AssetMetadataDetail) UpdateMetadataFromTZKT(md tzkt.TokenMetadata)
 	var optimizedDisplayURI string
 
 	for _, format := range md.Formats {
-		if strings.Contains(format.MIMEType, "image") && format.FileSize > optimizedFileSize {
+		if strings.Contains(string(format.MIMEType), "image") && format.FileSize > optimizedFileSize {
 			optimizedDisplayURI = format.URI
 			optimizedFileSize = format.FileSize
 		}
@@ -218,7 +218,7 @@ func (e *IndexEngine) GetTokenOwnerAddress(contract, tokenID string) (string, er
 
 	switch GetBlockchainByAddress(contract) {
 	case TezosBlockchain:
-		tokenOwners, err := e.tzkt.GetTokenOwners(contract, tokenID)
+		tokenOwners, err := e.tzkt.GetTokenOwners(contract, tokenID, 1, time.Time{})
 		if err != nil {
 			return "", err
 		}
@@ -243,7 +243,7 @@ func (e *IndexEngine) GetTokenOwnerAddress(contract, tokenID string) (string, er
 			return "", fmt.Errorf("no token owners found")
 		}
 
-		return tokenOwners[0].Owner.Address, nil
+		return EthereumChecksumAddress(tokenOwners[0].Owner.Address), nil
 	default:
 		return "", ErrUnsupportedBlockchain
 	}

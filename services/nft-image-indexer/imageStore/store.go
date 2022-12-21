@@ -112,10 +112,14 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 			}
 		}
 
+		downloadStartTime := time.Now()
 		file, mimeType, err := imageDownloader.Download()
 		if err != nil {
 			return err
 		}
+		logrus.
+			WithField("duration", time.Since(downloadStartTime)).
+			WithField("assetID", assetID).Debug("download thumbnail finished")
 
 		if !IsSupportedImageType(mimeType) {
 			return ErrUnsupportImageType

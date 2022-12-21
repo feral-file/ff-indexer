@@ -113,6 +113,9 @@ func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, owner str
 		}
 	}
 
+	// FIXME: currently both account_tokens and tokens rely on this activity to be done correctly
+	// It would be better the separate the token indexing and account_tokens indexing since
+	// account_tokens is for what you own and token is for what it is
 	updates, newLastTime, err := w.indexerEngine.IndexTezosTokenByOwner(ctx, owner, account.LastActivityTime, 0)
 	if err != nil {
 		return false, err
@@ -201,14 +204,15 @@ type Provenance struct {
 
 // Bitmark is the response structure of bitmark registry
 type Bitmark struct {
-	Id         string       `json:"id"`
-	HeadId     string       `json:"head_id"`
-	Owner      string       `json:"owner"`
-	AssetId    string       `json:"asset_id"`
-	Issuer     string       `json:"issuer"`
-	Head       string       `json:"head"`
-	Status     string       `json:"status"`
-	Provenance []Provenance `json:"provenance"`
+	Id               string       `json:"id"`
+	HeadId           string       `json:"head_id"`
+	Owner            string       `json:"owner"`
+	AssetId          string       `json:"asset_id"`
+	Issuer           string       `json:"issuer"`
+	Head             string       `json:"head"`
+	Status           string       `json:"status"`
+	IssueBlockNumber int64        `json:"issue_block_number"`
+	Provenance       []Provenance `json:"provenance"`
 }
 
 // fetchBitmarkProvenance reads bitmark provenances through bitmark api
@@ -292,12 +296,13 @@ func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID,
 		}
 
 		provenances = append(provenances, indexer.Provenance{
-			Timestamp:  txTime,
-			Type:       txType,
-			Owner:      indexer.EthereumChecksumAddress(toAccountHash.Hex()),
-			Blockchain: indexer.EthereumBlockchain,
-			TxID:       l.TxHash.Hex(),
-			TxURL:      indexer.TxURL(indexer.EthereumBlockchain, w.Environment, l.TxHash.Hex()),
+			Timestamp:   txTime,
+			Type:        txType,
+			Owner:       indexer.EthereumChecksumAddress(toAccountHash.Hex()),
+			Blockchain:  indexer.EthereumBlockchain,
+			BlockNumber: &l.BlockNumber,
+			TxID:        l.TxHash.Hex(),
+			TxURL:       indexer.TxURL(indexer.EthereumBlockchain, w.Environment, l.TxHash.Hex()),
 		})
 	}
 

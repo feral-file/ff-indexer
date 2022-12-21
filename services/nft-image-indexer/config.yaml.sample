@@ -15,3 +15,7 @@ log:
 
 pinata:
   jwt:
+
+thumbnail:
+  cache_period: 144h
+  cache_retry_interval: 24h

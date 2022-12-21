@@ -40,12 +40,13 @@ type Provenance struct {
 	// this field is only for ownership validating
 	FormerOwner *string `json:"formerOwner,omitempty" bson:"-"`
 
-	Type       string    `json:"type" bson:"type"`
-	Owner      string    `json:"owner" bson:"owner"`
-	Blockchain string    `json:"blockchain" bson:"blockchain"`
-	Timestamp  time.Time `json:"timestamp" bson:"timestamp"`
-	TxID       string    `json:"txid" bson:"txid"`
-	TxURL      string    `json:"txURL" bson:"txURL"`
+	Type        string    `json:"type" bson:"type"`
+	Owner       string    `json:"owner" bson:"owner"`
+	Blockchain  string    `json:"blockchain" bson:"blockchain"`
+	BlockNumber *uint64   `json:"blockNumber,omitempty" bson:"blockNumber,omitempty"`
+	Timestamp   time.Time `json:"timestamp" bson:"timestamp"`
+	TxID        string    `json:"txid" bson:"txid"`
+	TxURL       string    `json:"txURL" bson:"txURL"`
 }
 
 type BaseTokenInfo struct {
@@ -113,7 +114,6 @@ type ProjectMetadata struct {
 
 	// Deprecated attributes
 	OriginalFileURL string `json:"originalFileURL" structs:"-" bson:"-"`
-	FirstMintedAt   string `json:"firstMintedAt" structs:"-" bson:"-"`
 }
 
 // AssetUpdates is the inputs payload of IndexAsset. It includes project metadata, blockchain metadata and

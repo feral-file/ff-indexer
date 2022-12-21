@@ -55,7 +55,7 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 		update, err := e.indexTezosToken(ctx, t.Token, owner, int64(t.Balance))
 		if err != nil {
 			log.WithError(err).Error("fail to index a tezos token")
-			continue
+			return nil, newLastTime, err
 		}
 
 		if update != nil {
@@ -74,11 +74,15 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, tokenID string) (*AssetUpdates, error) {
 	tzktToken, err := e.tzkt.GetContractToken(contract, tokenID)
 	if err != nil {
+		log.WithError(err).WithField("contract", contract).
+			WithField("tokenID", tokenID).Trace("GetContractToken")
 		return nil, err
 	}
 
 	balance, err := e.tzkt.GetTokenBalanceForOwner(contract, tokenID, owner)
 	if err != nil {
+		log.WithError(err).WithField("contract", contract).
+			WithField("tokenID", tokenID).Trace("GetTokenBalanceForOwner")
 		return nil, err
 	}
 
@@ -100,7 +104,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		MintedAt: tzktToken.Timestamp,
 	}
 
-	if e.environment != DevelopEnv {
+	if e.environment != DevelopmentEnvironment {
 		switch tzktToken.Contract.Address {
 		case KALAMContractAddress, TezDaoContractAddress, TezosDNSContractAddress:
 			return nil, nil
@@ -133,7 +137,6 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		default:
 			// fallback marketplace
 			tokenDetail.Fungible = true
-
 			objktToken, err := e.getObjktToken(tzktToken.Contract.Address, tzktToken.ID.String())
 			if err != nil {
 				log.WithError(err).Error("fail to get token detail from objkt")
@@ -238,12 +241,13 @@ func (e *IndexEngine) IndexTezosTokenProvenance(ctx context.Context, contract, t
 		}
 
 		provenances = append(provenances, Provenance{
-			Type:       txType,
-			Owner:      t.To.Address,
-			Blockchain: TezosBlockchain,
-			Timestamp:  t.Timestamp,
-			TxID:       tx.Hash,
-			TxURL:      fmt.Sprintf("https://tzkt.io/%s", tx.Hash),
+			Type:        txType,
+			Owner:       t.To.Address,
+			Blockchain:  TezosBlockchain,
+			BlockNumber: &t.Level,
+			Timestamp:   t.Timestamp,
+			TxID:        tx.Hash,
+			TxURL:       fmt.Sprintf("https://tzkt.io/%s", tx.Hash),
 		})
 	}
 
@@ -261,22 +265,34 @@ func (e *IndexEngine) IndexTezosTokenOwners(ctx context.Context, contract, token
 		WithField("contract", contract).WithField("tokenID", tokenID).
 		Trace("index tezos token owners")
 
-	owners, err := e.tzkt.GetTokenOwners(contract, tokenID)
-	if err != nil {
-		return nil, err
-	}
-
+	var lastTime time.Time
+	var querLimit = 50
 	ownersMap := map[string]int64{}
+	for {
+		owners, err := e.tzkt.GetTokenOwners(contract, tokenID, querLimit, lastTime)
+		if err != nil {
+			return nil, err
+		}
 
-	for _, o := range owners {
-		ownersMap[o.Address] = o.Balance
+		ownersLen := len(owners)
+
+		for i, o := range owners {
+			ownersMap[o.Address] = o.Balance
+			if i == ownersLen-1 {
+				lastTime = o.LastTime
+			}
+		}
+
+		if ownersLen < querLimit {
+			break
+		}
 	}
 
 	return ownersMap, nil
 }
 
 func (e *IndexEngine) getObjktToken(contract, tokenID string) (objkt.Token, error) {
-	if e.environment == DevelopEnv {
+	if e.environment == DevelopmentEnvironment {
 		return objkt.Token{}, nil
 	}
 

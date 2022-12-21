@@ -15,6 +15,10 @@ import (
 )
 
 const (
+	QueryPageSize = 25
+)
+
+const (
 	assetCollectionName        = "assets"
 	tokenCollectionName        = "tokens"
 	identityCollectionName     = "identities"
@@ -35,6 +39,7 @@ type IndexerStore interface {
 	PushProvenance(ctx context.Context, indexID string, lockedTime time.Time, provenance Provenance) error
 
 	GetTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]Token, error)
+	GetTokensByIndexID(ctx context.Context, indexID string) (*Token, error)
 	GetOutdatedTokensByOwner(ctx context.Context, owner string) ([]Token, error)
 	GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error)
 
@@ -61,6 +66,8 @@ type IndexerStore interface {
 	GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
 	IndexDemoTokens(ctx context.Context, owner string, indexIDs []string) error
 	DeleteDemoTokens(ctx context.Context, owner string) error
+
+	UpdateOwnerForFungibleToken(ctx context.Context, indexID string, lockedTime time.Time, to string, total int64) error
 }
 
 type FilterParameter struct {
@@ -115,6 +122,7 @@ type UpdateSet struct {
 	AssetID            string                   `structs:"assetID,omitempty"`
 	Edition            int64                    `structs:"edition,omitempty"`
 	EditionName        string                   `structs:"editionName,omitempty"`
+	ContractAddress    string                   `structs:"contractAddress,omitempty"`
 }
 
 // checkIfTokenNeedToUpdate returns true if the new token data is suppose to be
@@ -255,11 +263,12 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 
 		if checkIfTokenNeedToUpdate(assetUpdates.Source, currentToken, token) {
 			tokenUpdateSet := UpdateSet{
-				Fungible:    token.Fungible,
-				Source:      token.Source,
-				AssetID:     id,
-				Edition:     token.Edition,
-				EditionName: token.EditionName,
+				Fungible:        token.Fungible,
+				Source:          token.Source,
+				AssetID:         id,
+				Edition:         token.Edition,
+				EditionName:     token.EditionName,
+				ContractAddress: token.ContractAddress,
 			}
 
 			tokenUpdate := bson.M{"$set": structs.Map(tokenUpdateSet)}
@@ -401,68 +410,68 @@ func (s *MongodbIndexerStore) GetOutdatedTokensByOwner(ctx context.Context, owne
 	return tokens, nil
 }
 
+// getDetailedTokensByAggregation returns detail tokens by mongodb aggregation
+func (s *MongodbIndexerStore) getDetailedTokensByAggregation(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error) {
+	tokens := []DetailedToken{}
+	cursor, err := s.getTokensByAggregation(ctx, filterParameter, offset, size)
+
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	if err := cursor.All(ctx, &tokens); err != nil {
+		return nil, err
+	}
+
+	return tokens, nil
+}
+
+// getPageCounts return the page counts by item length and page size
+func getPageCounts(itemLength, PageSize int) int {
+	pageCounts := itemLength / PageSize
+	if (itemLength % PageSize) != 0 {
+		pageCounts += 1
+	}
+	return pageCounts
+}
+
 // GetDetailedTokens returns a list of tokens information based on ids
 func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error) {
 	tokens := []DetailedToken{}
-
-	tokenFilter := bson.M{}
-	findOptions := options.Find().SetSort(bson.M{"_id": 1})
-
-	if len(filterParameter.IDs) > 0 {
-		tokenFilter["indexID"] = bson.M{"$in": filterParameter.IDs}
-	} else {
-		// set query limit and skip if it is about to query all tokens
-		findOptions.SetLimit(size).SetSkip(offset)
-	}
 
 	logrus.
 		WithField("filterParameter", filterParameter).
 		WithField("offset", offset).
 		WithField("size", size).
 		Debug("GetDetailedTokens")
-
-	cursor, err := s.tokenCollection.Find(ctx, tokenFilter, findOptions)
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
-	assets := map[string]struct {
-		ThumbnailID     string                   `bson:"thumbnailID"`
-		IPFSPinned      bool                     `bson:"ipfsPinned"`
-		ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
-	}{}
-	for cursor.Next(ctx) {
-		var token Token
-
-		if err := cursor.Decode(&token); err != nil {
-			return nil, err
-		}
-
-		a, assetExist := assets[token.AssetID]
-		if !assetExist {
-			assetResult := s.assetCollection.FindOne(ctx, bson.M{"id": token.AssetID})
-			if err := assetResult.Err(); err != nil {
-				return nil, err
+	startTime := time.Now()
+	if length := len(filterParameter.IDs); length > 0 {
+		for i := 0; i < getPageCounts(length, QueryPageSize); i++ {
+			logrus.
+				WithField("page", i).
+				Trace("doc page")
+			start := i * QueryPageSize
+			end := (i + 1) * QueryPageSize
+			if end > length {
+				end = length
 			}
 
-			if err := assetResult.Decode(&a); err != nil {
+			pagedTokens, err := s.getDetailedTokensByAggregation(ctx,
+				FilterParameter{IDs: filterParameter.IDs[start:end]},
+				offset, size)
+			if err != nil {
 				return nil, err
 			}
-
-			assets[token.AssetID] = a
+			tokens = append(tokens, pagedTokens...)
 		}
-
-		// FIXME: hardcoded values for backward compatibility
-		a.ProjectMetadata.Latest.FirstMintedAt = "0001-01-01T00:00:00.000Z"
-		a.ProjectMetadata.Origin.FirstMintedAt = "0001-01-01T00:00:00.000Z"
-		tokens = append(tokens, DetailedToken{
-			Token:           token,
-			ThumbnailID:     a.ThumbnailID,
-			IPFSPinned:      a.IPFSPinned,
-			ProjectMetadata: a.ProjectMetadata,
-		})
+	} else {
+		return s.getDetailedTokensByAggregation(ctx, filterParameter, offset, size)
 	}
+	logrus.
+		WithField("queryTime", time.Since(startTime)).
+		Debug("GetDetailedTokens End")
+
 	return tokens, nil
 }
 
@@ -645,7 +654,8 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 			return nil, err
 		}
 	} else {
-		c, err = s.getTokensByAggregation(ctx, owners, filterParameter, offset, size)
+		// DEPRECATED: this condition should not use anymore
+		c, err = s.getTokensByAggregationByOwners(ctx, owners, filterParameter, offset, size)
 		if err != nil {
 			return nil, err
 		}
@@ -672,8 +682,6 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 		}
 
 		// FIXME: hardcoded values for backward compatibility
-		a.ProjectMetadata.Latest.FirstMintedAt = "0001-01-01T00:00:00.000Z"
-		a.ProjectMetadata.Origin.FirstMintedAt = "0001-01-01T00:00:00.000Z"
 		token.ThumbnailID = a.ThumbnailID
 		token.IPFSPinned = a.IPFSPinned
 		token.ProjectMetadata = a.ProjectMetadata
@@ -684,7 +692,7 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 	return tokens, nil
 }
 
-// getTokensByAggregation queries tokens by aggregation which provides a more flexible query option by mongodb
+// getTokensByAggregationForOwner queries tokens for a specific owner by aggregation
 func (s *MongodbIndexerStore) getTokensByAggregationForOwner(ctx context.Context, owner string, filterParameter FilterParameter, offset, size int64) (*mongo.Cursor, error) {
 	matchQuery := bson.M{
 		fmt.Sprintf("owners.%s", owner): bson.M{"$gte": 1},
@@ -740,8 +748,8 @@ func (s *MongodbIndexerStore) getTokensByAggregationForOwner(ctx context.Context
 	return s.tokenCollection.Aggregate(ctx, pipelines)
 }
 
-// getTokensByAggregation queries tokens by aggregation which provides a more flexible query option by mongodb
-func (s *MongodbIndexerStore) getTokensByAggregation(ctx context.Context, owners []string, filterParameter FilterParameter, offset, size int64) (*mongo.Cursor, error) {
+// DEPRECATED: getTokensByAggregationByOwners queries tokens by aggregation which provides a more flexible query option by mongodb
+func (s *MongodbIndexerStore) getTokensByAggregationByOwners(ctx context.Context, owners []string, filterParameter FilterParameter, offset, size int64) (*mongo.Cursor, error) {
 	pipelines := []bson.M{
 		{
 			"$match": bson.M{
@@ -790,6 +798,81 @@ func (s *MongodbIndexerStore) getTokensByAggregation(ctx context.Context, owners
 		bson.M{"$skip": offset},
 		bson.M{"$limit": size},
 	)
+
+	return s.tokenCollection.Aggregate(ctx, pipelines)
+}
+
+// getTokensByAggregation queries tokens by aggregation which provides a more flexible query option by mongodb
+func (s *MongodbIndexerStore) getTokensByAggregation(ctx context.Context, filterParameter FilterParameter, offset, size int64) (*mongo.Cursor, error) {
+	matchQuery := bson.M{}
+
+	if len(filterParameter.IDs) > 0 {
+		matchQuery = bson.M{
+			"indexID": bson.M{"$in": filterParameter.IDs},
+			"burned":  bson.M{"$ne": true},
+		}
+	}
+
+	pipelines := []bson.M{
+		{
+			"$match": matchQuery,
+		},
+		{"$sort": bson.D{{Key: "lastActivityTime", Value: -1}, {Key: "_id", Value: -1}}},
+		// lookup performs a cross blockchain join between tokens and assets collections
+		{
+			"$lookup": bson.M{
+				"from": "assets",
+				"let": bson.M{
+					"assetID": "$assetID",
+				},
+				"pipeline": bson.A{
+					bson.M{
+						"$match": bson.M{
+							"$expr": bson.M{
+								"$eq": bson.A{
+									"$id",
+									"$$assetID",
+								},
+							},
+						},
+					},
+					bson.M{
+						"$project": bson.M{
+							"source":          1,
+							"projectMetadata": 1,
+							"thumbnailID":     1,
+							"ipfsPinned":      1,
+							"_id":             0,
+						},
+					},
+				},
+				"as": "asset",
+			},
+		},
+		{"$unwind": "$asset"},
+		{
+			"$replaceRoot": bson.M{
+				"newRoot": bson.M{
+					"$mergeObjects": bson.A{"$$ROOT", "$asset"},
+				},
+			},
+		},
+		{"$project": bson.M{"asset": 0}},
+	}
+
+	if filterParameter.Source != "" {
+		pipelines = append(pipelines, bson.M{"$match": bson.M{"asset.source": filterParameter.Source}})
+	}
+
+	if len(matchQuery) == 0 {
+		if size == 0 || size > 100 {
+			size = 100
+		}
+		pipelines = append(pipelines,
+			bson.M{"$skip": offset},
+			bson.M{"$limit": size},
+		)
+	}
 
 	return s.tokenCollection.Aggregate(ctx, pipelines)
 }
@@ -1383,4 +1466,40 @@ func (s *MongodbIndexerStore) DeleteDemoTokens(ctx context.Context, owner string
 	}
 
 	return nil
+}
+
+func (s *MongodbIndexerStore) UpdateOwnerForFungibleToken(ctx context.Context, indexID string, lockedTime time.Time, to string, total int64) error {
+	r, err := s.tokenCollection.UpdateOne(ctx,
+		bson.M{
+			"indexID":           indexID,
+			"lastRefreshedTime": lockedTime,
+		},
+		bson.M{
+			"$addToSet": bson.M{"ownersArray": to},
+			"$set":      bson.M{"owners." + to: total},
+		},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if r.MatchedCount == 0 {
+		return ErrNoRecordUpdated
+	}
+
+	return nil
+}
+
+func (s *MongodbIndexerStore) GetTokensByIndexID(ctx context.Context, indexID string) (*Token, error) {
+	tokens, err := s.GetTokensByIndexIDs(ctx, []string{indexID})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(tokens) == 0 {
+		return nil, nil
+	}
+
+	return &tokens[0], err
 }

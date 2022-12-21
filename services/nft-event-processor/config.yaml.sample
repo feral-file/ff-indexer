@@ -1,3 +1,50 @@
-event_processor_server:
+
+server:
   network: tcp
   address: localhost:8765
+
+store:
+  dsn:
+  cache_expiry: 24h
+  log_level: 2
+
+log:
+  level: debug
+
+sentry:
+  dsn:
+
+indexer_store:
+  db_uri:
+  db_name:
+
+cadence:
+  host_port:
+  domain:
+  log_level: 0
+
+feed:
+  endpoint:
+  api_token:
+  debug: true
+
+account:
+  db_uri:
+
+network:
+  tezos:
+  ethereum:
+  bitmark:
+
+opensea:
+  api_key:
+  ratelimit: 1
+
+fxhash:
+  api_endpoint:
+
+objkt:
+  api_endpoint:
+
+notification:
+  endpoint:
