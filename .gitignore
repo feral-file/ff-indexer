@@ -10,4 +10,5 @@ config.yaml
 TAGS
 postgres-data
 .idea
-docker-compose.yml
+docker-compose*.yml
+data

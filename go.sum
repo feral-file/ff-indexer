@@ -109,8 +109,8 @@ github.com/bitmark-inc/bitmark-sdk-go v0.3.0/go.mod h1:vjxY/CIfqq8kw/fvbADM5Qvgc
 github.com/bitmark-inc/bitmarkd v0.13.2 h1:038UHu41SAXojk9VZBkOBYRbt1fjAjextyWh3tyCgUw=
 github.com/bitmark-inc/bitmarkd v0.13.2/go.mod h1:DlS4996sQ5aAZUZ1nQLvEUCoVfzDA7xCulvRr0vt6nw=
 github.com/bitmark-inc/certgen v0.1.1/go.mod h1:JY1k06tM8oAysx9OHhiGrZCFjGeuH/jTTVtUXJhNo/0=
-github.com/bitmark-inc/config-loader v0.0.3 h1:FVWqNzNeDLrltqVc3nCpqsVUPIyn5tYNITrHpnXtVQ8=
-github.com/bitmark-inc/config-loader v0.0.3/go.mod h1:6qnQ5OtaTNgNK1Vd0keZdCok9JAWcPOIP/Mr+DojtJU=
+github.com/bitmark-inc/config-loader v0.0.4 h1:KvhQtBgnF+c6vLtGhQdtMnETQVPBFMBWuCgxhtw75mc=
+github.com/bitmark-inc/config-loader v0.0.4/go.mod h1:6qnQ5OtaTNgNK1Vd0keZdCok9JAWcPOIP/Mr+DojtJU=
 github.com/bitmark-inc/exitwithstatus v0.1.2/go.mod h1:CuoATnvJVpIJuW+IO17qNxUhkyumf2WKcijTwj7pt54=
 github.com/bitmark-inc/getoptions v0.1.1/go.mod h1:++zQVcw89sB6Lah2SJae420l+xKtRGkdKTxqLLeEhS4=
 github.com/bitmark-inc/go-argon2 v0.1.5/go.mod h1:K3gDyH7GzKOF9g2Lnc3q3PjHlvp2O6TlejcwpCfj5ts=

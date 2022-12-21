@@ -39,6 +39,7 @@ type IndexerStore interface {
 	PushProvenance(ctx context.Context, indexID string, lockedTime time.Time, provenance Provenance) error
 
 	GetTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]Token, error)
+	GetTokensByIndexID(ctx context.Context, indexID string) (*Token, error)
 	GetOutdatedTokensByOwner(ctx context.Context, owner string) ([]Token, error)
 	GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error)
 
@@ -65,6 +66,8 @@ type IndexerStore interface {
 	GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
 	IndexDemoTokens(ctx context.Context, owner string, indexIDs []string) error
 	DeleteDemoTokens(ctx context.Context, owner string) error
+
+	UpdateOwnerForFungibleToken(ctx context.Context, indexID string, lockedTime time.Time, to string, total int64) error
 }
 
 type FilterParameter struct {
@@ -1463,4 +1466,40 @@ func (s *MongodbIndexerStore) DeleteDemoTokens(ctx context.Context, owner string
 	}
 
 	return nil
+}
+
+func (s *MongodbIndexerStore) UpdateOwnerForFungibleToken(ctx context.Context, indexID string, lockedTime time.Time, to string, total int64) error {
+	r, err := s.tokenCollection.UpdateOne(ctx,
+		bson.M{
+			"indexID":           indexID,
+			"lastRefreshedTime": lockedTime,
+		},
+		bson.M{
+			"$addToSet": bson.M{"ownersArray": to},
+			"$set":      bson.M{"owners." + to: total},
+		},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if r.MatchedCount == 0 {
+		return ErrNoRecordUpdated
+	}
+
+	return nil
+}
+
+func (s *MongodbIndexerStore) GetTokensByIndexID(ctx context.Context, indexID string) (*Token, error) {
+	tokens, err := s.GetTokensByIndexIDs(ctx, []string{indexID})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(tokens) == 0 {
+		return nil, nil
+	}
+
+	return &tokens[0], err
 }
