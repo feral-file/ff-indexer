@@ -188,8 +188,8 @@ func (detail *AssetMetadataDetail) UpdateMetadataFromTZKT(md tzkt.TokenMetadata)
 		previewURI = displayURI
 	}
 
-	detail.DisplayURI = displayURI
-	detail.PreviewURI = previewURI
+	detail.DisplayURI = defaultIPFSLink(displayURI)
+	detail.PreviewURI = defaultIPFSLink(previewURI)
 }
 
 // FromFxhashObject reads asset detail from an fxhash API object
