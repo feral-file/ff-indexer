@@ -124,6 +124,22 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 				}
 				if len(tokens) != 0 {
 					logrus.WithField("indexID", indexID).Info("a token found for a corresponded event")
+
+					// if the new owner is not existent in our system, index a new account_token
+					if len(accounts) == 0 {
+						accountToken := indexer.AccountToken{
+							BaseTokenInfo:     tokens[0].BaseTokenInfo,
+							IndexID:           indexID,
+							OwnerAccount:      toAddress,
+							Balance:           int64(1),
+							LastActivityTime:  timestamp,
+							LastRefreshedTime: tokens[0].LastActivityTime,
+						}
+
+						if err := s.store.IndexAccountTokens(ctx, toAddress, []indexer.AccountToken{accountToken}); err != nil {
+							logrus.WithField("indexID", indexID).WithField("owner", toAddress).Error("cannot index a new account_token")
+						}
+					}
 				} else {
 					// index the new token since it is a new token for our indexer and watched by our user
 					if len(accounts) > 0 {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+
 	"github.com/bitmark-inc/autonomy-account/storage"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
@@ -9,10 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 
+	"time"
+
 	notification "github.com/bitmark-inc/autonomy-notification"
 	notificationSdk "github.com/bitmark-inc/autonomy-notification/sdk"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 type EventProcessor struct {
@@ -145,6 +147,22 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 		if token != nil {
 			// ignore the indexing process since an indexed token found
 			logrus.WithField("indexID", indexID).Debug("an indexed token found for a corresponded event")
+
+			// if the new owner is not existent in our system, index a new account_token
+			if len(accounts) == 0 {
+				accountToken := indexer.AccountToken{
+					BaseTokenInfo:     token.BaseTokenInfo,
+					IndexID:           indexID,
+					OwnerAccount:      to,
+					Balance:           int64(1),
+					LastRefreshedTime: token.LastActivityTime,
+				}
+
+				if err := e.indexerStore.IndexAccountTokens(ctx, to, []indexer.AccountToken{accountToken}); err != nil {
+					logrus.WithField("indexID", indexID).WithField("owner", to).Error("cannot index a new account_token")
+				}
+			}
+
 			if token.Fungible {
 				indexerWorker.StartRefreshTokenOwnershipWorkflow(ctx, e.worker, "processor", indexID, 0)
 			} else {
