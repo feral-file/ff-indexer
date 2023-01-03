@@ -312,8 +312,8 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 	var newTokenIndexID string
 
 	switch swap.NewBlockchain {
-	case EthereumBlockchain:
-		newTokenIndexID = TokenIndexID(EthereumBlockchain, swap.NewContractAddress, swap.NewTokenID)
+	case EthereumBlockchain, TezosBlockchain:
+		newTokenIndexID = TokenIndexID(swap.NewBlockchain, swap.NewContractAddress, swap.NewTokenID)
 	default:
 		return "", fmt.Errorf("blockchain is not supported")
 	}
