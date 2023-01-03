@@ -38,11 +38,11 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 	var req RequestNewEvent
 
 	if err := c.Bind(&req); err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		_ = c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 
-	tokenBlockchain := indexer.DetectContractBlockchain(req.Contract)
+	tokenBlockchain := indexer.GetBlockchainByAddress(req.Contract)
 
 	if tokenBlockchain == indexer.UnknownBlockchain {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -76,7 +76,7 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 	// TODO: do we need to move this account specific function out of this service
 	accounts, err := api.subscriber.GetAccountIDByAddress(req.To)
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		_ = c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 

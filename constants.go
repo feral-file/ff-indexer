@@ -7,6 +7,7 @@ const (
 
 const EthereumZeroAddress = "0x0000000000000000000000000000000000000000"
 const ENSContractAddress = "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85"
+const TransferEventSignature = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
 
 // Tezos contract addresses
 // ignored contracts
@@ -42,11 +43,19 @@ const (
 	ObjktCDNDisplayType   = "display"
 	ObjktCDNArtifactType  = "artifact"
 	ObjktCDNThumbnailType = "thumbnail"
-	ObjktCDNURL           = "https://assets.objkt.media/file/assets-003/"
+	ObjktCDNBasePath      = "/file/assets-003/"
+	ObjktCDNHost          = "assets.objkt.media"
 )
 
+// ObjktCDNTypes should be in order, make sure ObjktCDNThumbnailType stand behind ObjktCDNArtifactType
 var ObjktCDNTypes = []string{
 	ObjktCDNDisplayType,
 	ObjktCDNArtifactType,
 	ObjktCDNThumbnailType,
 }
+
+const (
+	DevelopmentEnvironment = "development"
+	StagingEnvironment     = "staging"
+	ProductiontEnvironment = "production"
+)

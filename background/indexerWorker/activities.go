@@ -71,10 +71,25 @@ func (w *NFTIndexerWorker) IndexETHTokenByOwner(ctx context.Context, owner strin
 		return 0, nil
 	}
 
+	accountTokens := []indexer.AccountToken{}
+
 	for _, update := range updates {
 		if err := w.indexerStore.IndexAsset(ctx, update.ID, update); err != nil {
 			return 0, err
 		}
+
+		accountTokens = append(accountTokens, indexer.AccountToken{
+			BaseTokenInfo:     update.Tokens[0].BaseTokenInfo,
+			IndexID:           update.Tokens[0].IndexID,
+			OwnerAccount:      update.Tokens[0].Owner,
+			Balance:           update.Tokens[0].Balance,
+			LastActivityTime:  update.Tokens[0].LastActivityTime,
+			LastRefreshedTime: update.Tokens[0].LastRefreshedTime,
+		})
+	}
+
+	if err := w.IndexAccountTokens(ctx, owner, accountTokens); err != nil {
+		return 0, err
 	}
 
 	return len(updates), nil
@@ -98,6 +113,9 @@ func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, owner str
 		}
 	}
 
+	// FIXME: currently both account_tokens and tokens rely on this activity to be done correctly
+	// It would be better the separate the token indexing and account_tokens indexing since
+	// account_tokens is for what you own and token is for what it is
 	updates, newLastTime, err := w.indexerEngine.IndexTezosTokenByOwner(ctx, owner, account.LastActivityTime, 0)
 	if err != nil {
 		return false, err
@@ -146,12 +164,12 @@ func (w *NFTIndexerWorker) IndexToken(ctx context.Context, owner, contract, toke
 	return w.indexerEngine.IndexToken(ctx, owner, contract, tokenID)
 }
 
-// IndexAsset saves asset data into indexer's storage
+// GetTokenIDsByOwner gets tokenIDs by the given owner
 func (w *NFTIndexerWorker) GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
 	return w.indexerStore.GetTokenIDsByOwner(ctx, owner)
 }
 
-// IndexAsset saves asset data into indexer's storage
+// GetOutdatedTokensByOwner sets outdated tokens by the given owner
 func (w *NFTIndexerWorker) GetOutdatedTokensByOwner(ctx context.Context, owner string) ([]indexer.Token, error) {
 	return w.indexerStore.GetOutdatedTokensByOwner(ctx, owner)
 }
@@ -186,14 +204,15 @@ type Provenance struct {
 
 // Bitmark is the response structure of bitmark registry
 type Bitmark struct {
-	Id         string       `json:"id"`
-	HeadId     string       `json:"head_id"`
-	Owner      string       `json:"owner"`
-	AssetId    string       `json:"asset_id"`
-	Issuer     string       `json:"issuer"`
-	Head       string       `json:"head"`
-	Status     string       `json:"status"`
-	Provenance []Provenance `json:"provenance"`
+	Id               string       `json:"id"`
+	HeadId           string       `json:"head_id"`
+	Owner            string       `json:"owner"`
+	AssetId          string       `json:"asset_id"`
+	Issuer           string       `json:"issuer"`
+	Head             string       `json:"head"`
+	Status           string       `json:"status"`
+	IssueBlockNumber int64        `json:"issue_block_number"`
+	Provenance       []Provenance `json:"provenance"`
 }
 
 // fetchBitmarkProvenance reads bitmark provenances through bitmark api
@@ -246,7 +265,7 @@ func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID,
 	transferLogs, err := w.wallet.RPCClient().FilterLogs(ctx, goethereum.FilterQuery{
 		Addresses: []common.Address{common.HexToAddress(contractAddress)},
 		Topics: [][]common.Hash{
-			{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")},
+			{common.HexToHash(indexer.TransferEventSignature)},
 			nil, nil,
 			{common.HexToHash(hexID)},
 		},
@@ -277,12 +296,13 @@ func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID,
 		}
 
 		provenances = append(provenances, indexer.Provenance{
-			Timestamp:  txTime,
-			Type:       txType,
-			Owner:      indexer.EthereumChecksumAddress(toAccountHash.Hex()),
-			Blockchain: indexer.EthereumBlockchain,
-			TxID:       l.TxHash.Hex(),
-			TxURL:      indexer.TxURL(indexer.EthereumBlockchain, w.Environment, l.TxHash.Hex()),
+			Timestamp:   txTime,
+			Type:        txType,
+			Owner:       indexer.EthereumChecksumAddress(toAccountHash.Hex()),
+			Blockchain:  indexer.EthereumBlockchain,
+			BlockNumber: &l.BlockNumber,
+			TxID:        l.TxHash.Hex(),
+			TxURL:       indexer.TxURL(indexer.EthereumBlockchain, w.Environment, l.TxHash.Hex()),
 		})
 	}
 
@@ -387,8 +407,8 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 	return nil
 }
 
-// RefreshTezosTokenOwnership refreshes ownership for each tokens
-func (w *NFTIndexerWorker) RefreshTezosTokenOwnership(ctx context.Context, indexIDs []string, delay time.Duration) error {
+// RefreshTokenOwnership refreshes ownership for each tokens
+func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs []string, delay time.Duration) error {
 	indexTokens := map[string]indexer.AccountToken{}
 
 	accountTokens, err := w.indexerStore.GetAccountTokensByIndexIDs(ctx, indexIDs)
@@ -497,25 +517,40 @@ func (w *NFTIndexerWorker) UpdateAccountTokens(ctx context.Context) error {
 		for idx, pendingTx := range pendingAccountToken.PendingTxs {
 			if pendingAccountToken.LastPendingTime[idx].Unix() < time.Now().Add(-delay).Unix() {
 				log.WithField("pendingTxs", pendingAccountToken.PendingTxs).Warn("pending too long")
-				w.indexerStore.DeletePendingFieldsAccountToken(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID, pendingTx, pendingAccountToken.LastPendingTime[idx])
+				_ = w.indexerStore.DeletePendingFieldsAccountToken(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID, pendingTx, pendingAccountToken.LastPendingTime[idx])
 				continue
 			}
 
-			transactionDetails, err := w.indexerEngine.GetTransactionDetailsByPendingTx(pendingTx)
-			if err != nil || len(transactionDetails) == 0 {
-				continue
+			accountTokens := []indexer.AccountToken{}
+			switch pendingAccountToken.Blockchain {
+			case indexer.TezosBlockchain:
+				transactionDetails, err := w.indexerEngine.GetTransactionDetailsByPendingTx(pendingTx)
+				if err != nil || len(transactionDetails) == 0 {
+					continue
+				}
+
+				accountTokens, err = w.GetBalanceDiffFromTezosTransaction(transactionDetails[0], pendingAccountToken)
+				if err != nil {
+					continue
+				}
+			case indexer.EthereumBlockchain:
+				txHash := common.HexToHash(pendingTx)
+				transactionDetails, err := w.indexerEngine.GetETHTransactionDetailsByPendingTx(ctx, w.wallet.RPCClient(), txHash, pendingAccountToken.ID)
+				if err != nil {
+					continue
+				}
+
+				accountTokens, err = w.GetBalanceDiffFromETHTransaction(transactionDetails)
+				if err != nil {
+					continue
+				}
 			}
 
-			accountTokens, err := w.GetBalanceDiffFromTransaction(ctx, transactionDetails[0], pendingAccountToken)
-			if err != nil {
-				w.indexerStore.DeletePendingFieldsAccountToken(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID, pendingTx, pendingAccountToken.LastPendingTime[idx])
-				continue
-			}
 			for _, accountToken := range accountTokens {
-				if accountToken.Balance < 0 {
-					w.indexerStore.UpdatePendingAccountToken(ctx, accountToken.OwnerAccount, accountToken.IndexID, accountToken.Balance, transactionDetails[0].Timestamp, pendingTx, pendingAccountToken.LastPendingTime[idx])
-				} else {
-					w.indexerStore.UpdateReceivedAccountToken(ctx, accountToken.OwnerAccount, accountToken.IndexID, accountToken.Balance, transactionDetails[0].Timestamp)
+				err = w.indexerStore.UpdateAccountTokenBalance(ctx, accountToken.OwnerAccount, accountToken.IndexID, accountToken.Balance, accountToken.LastActivityTime, pendingTx, pendingAccountToken.LastPendingTime[idx])
+
+				if err != nil {
+					continue
 				}
 			}
 		}
@@ -523,38 +558,66 @@ func (w *NFTIndexerWorker) UpdateAccountTokens(ctx context.Context) error {
 	return nil
 }
 
-// GetBalanceDiffFromTransaction gets the balance difference of account tokens in a transaction.
-func (w *NFTIndexerWorker) GetBalanceDiffFromTransaction(ctx context.Context, transactionDetails tzkt.TransactionDetails, accountToken indexer.AccountToken) ([]indexer.AccountToken, error) {
-	if accountToken.OwnerAccount != transactionDetails.Parameter.Value[0].From_ {
-		return nil, fmt.Errorf("owner account is not the sender")
-	}
-
+// GetBalanceDiffFromTezosTransaction gets the balance difference of TEZOS account tokens in a transaction.
+func (w *NFTIndexerWorker) GetBalanceDiffFromTezosTransaction(transactionDetails tzkt.TransactionDetails, accountToken indexer.AccountToken) ([]indexer.AccountToken, error) {
 	var updatedAccountTokens = []indexer.AccountToken{}
-	var totalTransferredBalance = int64(0)
+	var totalTransferredAmount = int64(0)
 
 	for _, txs := range transactionDetails.Parameter.Value[0].Txs {
 		if txs.TokenID == strings.Split(accountToken.IndexID, "-")[2] {
-			balance, err := strconv.ParseInt(txs.Amount, 10, 64)
+			amount, err := strconv.ParseInt(txs.Amount, 10, 64)
 			if err != nil {
 				continue
 			}
 
 			receiverAccountToken := indexer.AccountToken{
-				IndexID:      accountToken.IndexID,
-				OwnerAccount: txs.To_,
-				Balance:      balance,
+				IndexID:          accountToken.IndexID,
+				OwnerAccount:     txs.To_,
+				Balance:          amount,
+				LastActivityTime: transactionDetails.Timestamp,
 			}
 
 			updatedAccountTokens = append(updatedAccountTokens, receiverAccountToken)
-			totalTransferredBalance += balance
+			totalTransferredAmount += amount
 		}
 	}
 	senderAccountToken := indexer.AccountToken{
-		IndexID:      accountToken.IndexID,
-		OwnerAccount: accountToken.OwnerAccount,
-		Balance:      -totalTransferredBalance,
+		IndexID:          accountToken.IndexID,
+		OwnerAccount:     accountToken.OwnerAccount,
+		Balance:          -totalTransferredAmount,
+		LastActivityTime: transactionDetails.Timestamp,
 	}
 
 	updatedAccountTokens = append(updatedAccountTokens, senderAccountToken)
+	return updatedAccountTokens, nil
+}
+
+// GetBalanceDiffFromETHTransaction gets the balance difference of account tokens in a transaction for a specific indexID.
+func (w *NFTIndexerWorker) GetBalanceDiffFromETHTransaction(transactionDetails []indexer.TransactionDetails) ([]indexer.AccountToken, error) {
+	var updatedAccountTokens = []indexer.AccountToken{}
+
+	for _, transactionDetail := range transactionDetails {
+		if transactionDetail.To != indexer.EthereumZeroAddress {
+			receiverAccountToken := indexer.AccountToken{
+				IndexID:          transactionDetail.IndexID,
+				OwnerAccount:     transactionDetail.To,
+				Balance:          1,
+				LastActivityTime: transactionDetail.Timestamp,
+			}
+			updatedAccountTokens = append(updatedAccountTokens, receiverAccountToken)
+
+		}
+
+		if transactionDetail.From != indexer.EthereumZeroAddress {
+			senderAccountToken := indexer.AccountToken{
+				IndexID:          transactionDetail.IndexID,
+				OwnerAccount:     transactionDetail.From,
+				Balance:          -1,
+				LastActivityTime: transactionDetail.Timestamp,
+			}
+			updatedAccountTokens = append(updatedAccountTokens, senderAccountToken)
+		}
+	}
+
 	return updatedAccountTokens, nil
 }

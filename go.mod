@@ -8,7 +8,7 @@ require (
 	github.com/bitmark-inc/autonomy-account v0.0.5-1
 	github.com/bitmark-inc/autonomy-notification v0.0.3
 	github.com/bitmark-inc/bitmark-sdk-go v0.3.0
-	github.com/bitmark-inc/config-loader v0.0.3
+	github.com/bitmark-inc/config-loader v0.0.4
 	github.com/chromedp/chromedp v0.8.6
 	github.com/cloudflare/cloudflare-go v0.45.0
 	github.com/ethereum/go-ethereum v1.10.23
@@ -30,13 +30,22 @@ require (
 	go.uber.org/zap v1.17.0
 	golang.org/x/crypto v0.0.0-20220824171710-5757bc0c5503
 	golang.org/x/net v0.0.0-20220822230855-b0a4917ee28c
+	golang.org/x/sync v0.0.0-20220819030929-7fc1605a5dde
+	google.golang.org/grpc v1.46.2
+	google.golang.org/protobuf v1.28.1
 	gorm.io/driver/postgres v1.3.1
 	gorm.io/gorm v1.23.3
+)
+
+require (
+	github.com/decred/dcrd/dcrec/secp256k1 v1.0.3 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v2 v2.0.0 // indirect
 )
 
 replace github.com/apache/thrift => github.com/apache/thrift v0.0.0-20190309152529-a9b748bb0e02
 
 require (
+	blockwatch.cc/tzgo v1.14.2
 	github.com/BurntSushi/toml v1.1.0 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239 // indirect
 	github.com/apache/thrift v0.0.0-20161221203622-b2a4d4ae21c7 // indirect
@@ -154,14 +163,11 @@ require (
 	golang.org/x/exp/typeparams v0.0.0-20220613132600-b0d781184e0d // indirect
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
-	golang.org/x/sync v0.0.0-20220819030929-7fc1605a5dde // indirect
 	golang.org/x/sys v0.0.0-20220928140112-f11e5e49a4ec // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20220224211638-0e9765cccd65 // indirect
 	golang.org/x/tools v0.1.12-0.20220713141851-7464a5a40219 // indirect
 	google.golang.org/genproto v0.0.0-20220519153652-3a47de7e79bd // indirect
-	google.golang.org/grpc v1.46.2 // indirect
-	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect

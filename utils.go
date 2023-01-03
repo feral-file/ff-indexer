@@ -2,12 +2,19 @@ package indexer
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"math"
 	"math/big"
+	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
+	"blockwatch.cc/tzgo/tezos"
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func EthereumChecksumAddress(address string) string {
@@ -44,43 +51,47 @@ func TokenIndexID(blockchainType, contractAddress, id string) string {
 	return fmt.Sprintf("%s-%s-%s", blockchainAlias, contractAddress, id)
 }
 
-// DetectAccountBlockchain returns underlying blockchain of a given account number
-func DetectAccountBlockchain(accountNumber string) string {
-	if strings.HasPrefix(accountNumber, "0x") {
+// ParseTokenIndexID return blockchainType, contractAddress and token id for
+// a given indexID
+func ParseTokenIndexID(indexID string) (string, string, string, error) {
+	v := strings.Split(indexID, "-")
+	if len(v) != 3 {
+		return "", "", "", fmt.Errorf("error while parsing indexID: %v", indexID)
+	}
+
+	if v[0] == BlockchainAlias[EthereumBlockchain] {
+		v[1] = EthereumChecksumAddress(v[1])
+	}
+
+	return v[0], v[1], v[2], nil
+}
+
+// GetBlockchainByAddress returns underlying blockchain of a given address
+func GetBlockchainByAddress(address string) string {
+	if strings.HasPrefix(address, "0x") {
 		return EthereumBlockchain
-	} else if len(accountNumber) == 50 {
+	} else if len(address) == 50 {
 		return BitmarkBlockchain
-	} else if strings.HasPrefix(accountNumber, "tz") {
+	} else if strings.HasPrefix(address, "tz") || strings.HasPrefix(address, "KT1") {
 		return TezosBlockchain
 	}
 
 	return UnknownBlockchain
 }
 
-// DetectContractBlockchain returns underlying blockchain of a given contract address
-func DetectContractBlockchain(contractAddress string) string {
-	if strings.HasPrefix(contractAddress, "0x") {
-		return EthereumBlockchain
-	} else if strings.HasPrefix(contractAddress, "KT1") {
-		return TezosBlockchain
-	}
-
-	return ""
-}
-
 // TxURL returns corresponded blockchain transaction URL
 func TxURL(blockchain, environment, txID string) string {
 	switch blockchain {
 	case BitmarkBlockchain:
-		if environment == "production" {
-			return fmt.Sprintf("https://registry.bitmark.com/transaction/%s", txID)
+		if environment == DevelopmentEnvironment {
+			return fmt.Sprintf("https://registry.test.bitmark.com/transaction/%s", txID)
 		}
-		return fmt.Sprintf("https://registry.test.bitmark.com/transaction/%s", txID)
+		return fmt.Sprintf("https://registry.bitmark.com/transaction/%s", txID)
 	case EthereumBlockchain:
-		if environment == "production" {
-			return fmt.Sprintf("https://etherscan.io/tx/%s", txID)
+		if environment == DevelopmentEnvironment {
+			return fmt.Sprintf("https://goerli.etherscan.io/tx/%s", txID)
 		}
-		return fmt.Sprintf("https://goerli.etherscan.io/tx/%s", txID)
+		return fmt.Sprintf("https://etherscan.io/tx/%s", txID)
 	default:
 		return ""
 	}
@@ -97,14 +108,96 @@ func SleepWithContext(ctx context.Context, d time.Duration) bool {
 	}
 }
 
-func ParseIndexID(indexID string) (string, string, string, error) {
-	v := strings.Split(indexID, "-")
-	if len(v) != 3 {
-		return "", "", "", fmt.Errorf("error while parsing indexID: %v", indexID)
-	}
-	return v[0], v[1], v[2], nil
-}
-
 func DemoTokenPrefix(indexID string) string {
 	return fmt.Sprintf("demo%s", indexID)
+}
+
+// CheckCDNURLIsExist check whether CDN URL exist or not
+func CheckCDNURLIsExist(url string) bool {
+	client := http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	res, err := client.Head(url)
+	if err != nil {
+		return false
+	}
+
+	defer res.Body.Close()
+
+	if res.StatusCode >= 200 && res.StatusCode < 400 {
+		return true
+	}
+
+	return false
+}
+
+// EpochStringToTime returns the time object of a milliseconds epoch time string
+func EpochStringToTime(ts string) (time.Time, error) {
+	t, err := strconv.ParseInt(ts, 10, 64)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return time.Unix(0, t*1000000), nil
+}
+
+// IsTimeInRange ensures a given timestamp is within a range of a target time
+func IsTimeInRange(actual, target time.Time, deviationInMinutes float64) bool {
+	duration := target.Sub(actual)
+	return math.Abs(duration.Minutes()) < deviationInMinutes
+}
+
+// VerifyETHPersonalSignature
+func VerifyETHPersonalSignature(message, signature, address string) (bool, error) {
+	hash := accounts.TextHash([]byte(message))
+	signatureBytes := common.FromHex(signature)
+
+	if len(signatureBytes) != 65 {
+		return false, fmt.Errorf("signature must be 65 bytes long")
+	}
+
+	// see crypto.Ecrecover description
+	if signatureBytes[64] == 27 || signatureBytes[64] == 28 {
+		signatureBytes[64] -= 27
+	}
+
+	// get ecdsa public key
+	sigPublicKeyECDSA, err := crypto.SigToPub(hash, signatureBytes)
+	if err != nil {
+		return false, err
+	}
+
+	// check for address match
+	sigAddress := crypto.PubkeyToAddress(*sigPublicKeyECDSA)
+	if sigAddress.String() != address {
+		return false, fmt.Errorf("address doesn't match with signature's")
+	}
+
+	return true, nil
+}
+
+// VerifyTezosSignature
+func VerifyTezosSignature(message, signature, address, publicKey string) (bool, error) {
+	ta, err := tezos.ParseAddress(address)
+	if err != nil {
+		return false, err
+	}
+	pk, err := tezos.ParseKey(publicKey)
+	if err != nil {
+		return false, err
+	}
+	if pk.Address().String() != ta.String() {
+		return false, errors.New("publicKey address is different from provided address")
+	}
+	sig, err := tezos.ParseSignature(signature)
+	if err != nil {
+		return false, err
+	}
+	dmp := tezos.Digest([]byte(message))
+	err = pk.Verify(dmp[:], sig)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }

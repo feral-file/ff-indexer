@@ -16,12 +16,14 @@ import (
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
 
-type PendingTxParams struct {
-	IndexID         string `json:"indexID"`
+type PendingTxParamsV1 struct {
 	Blockchain      string `json:"blockchain"`
 	ID              string `json:"id"`
 	ContractAddress string `json:"contractAddress"`
 	OwnerAccount    string `json:"ownerAccount"`
+	PublicKey       string `json:"publicKey"`
+	Timestamp       string `json:"timestamp"`
+	Signature       string `json:"signature"`
 	PendingTx       string `json:"pendingTx"`
 }
 
@@ -99,8 +101,8 @@ func (s *NFTIndexerServer) RefreshProvenance(c *gin.Context) {
 func (s *NFTIndexerServer) IndexNFTs(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "IndexNFTs")
 	var req struct {
-		Owner      string `json:"owner"`
-		Blockchain string `json:"blockchain"`
+		Owner      indexer.BlockchainAddress `json:"owner"`
+		Blockchain string                    `json:"blockchain"`
 	}
 
 	if err := c.Bind(&req); err != nil {
@@ -108,23 +110,21 @@ func (s *NFTIndexerServer) IndexNFTs(c *gin.Context) {
 		return
 	}
 
-	if req.Owner == "" {
-		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("missing parameters"))
-		return
-	}
+	// FIXME: remove this addition step by replace the input of startIndexWorkflow by indexer.BlockchainAddress
+	owner := string(req.Owner)
 
 	var w indexerWorker.NFTIndexerWorker
 
 	switch req.Blockchain {
 	case "eth":
-		go s.startIndexWorkflow(c, req.Owner, req.Blockchain, w.IndexOpenseaTokenWorkflow)
+		go s.startIndexWorkflow(c, owner, req.Blockchain, w.IndexOpenseaTokenWorkflow)
 	case "tezos":
-		go s.startIndexWorkflow(c, req.Owner, req.Blockchain, w.IndexTezosTokenWorkflow)
+		go s.startIndexWorkflow(c, owner, req.Blockchain, w.IndexTezosTokenWorkflow)
 	default:
-		if strings.HasPrefix(req.Owner, "0x") {
-			go s.startIndexWorkflow(c, req.Owner, indexer.BlockchainAlias[indexer.EthereumBlockchain], w.IndexOpenseaTokenWorkflow)
-		} else if strings.HasPrefix(req.Owner, "tz") {
-			go s.startIndexWorkflow(c, req.Owner, indexer.BlockchainAlias[indexer.TezosBlockchain], w.IndexTezosTokenWorkflow)
+		if strings.HasPrefix(owner, "0x") {
+			go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[indexer.EthereumBlockchain], w.IndexOpenseaTokenWorkflow)
+		} else if strings.HasPrefix(owner, "tz") {
+			go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[indexer.TezosBlockchain], w.IndexTezosTokenWorkflow)
 		} else {
 			abortWithError(c, http.StatusInternalServerError, "owner address with unsupported blockchain", fmt.Errorf("owner address with unsupported blockchain"))
 			return
@@ -139,7 +139,7 @@ func (s *NFTIndexerServer) IndexNFTs(c *gin.Context) {
 func (s *NFTIndexerServer) IndexNFTByOwner(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "IndexNFTByOwner")
 	var req struct {
-		Owner string `json:"owner" binding:"required"`
+		Owner indexer.BlockchainAddress `json:"owner" binding:"required"`
 	}
 
 	if err := c.Bind(&req); err != nil {
@@ -147,8 +147,11 @@ func (s *NFTIndexerServer) IndexNFTByOwner(c *gin.Context) {
 		return
 	}
 
+	// FIXME: remove this addition step by replace the input of startIndexWorkflow by indexer.BlockchainAddress
+	owner := string(req.Owner)
+
 	var ownerIndexFunc func(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error)
-	switch indexer.DetectAccountBlockchain(req.Owner) {
+	switch indexer.GetBlockchainByAddress(owner) {
 	case indexer.EthereumBlockchain:
 		ownerIndexFunc = func(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
 			return s.indexerEngine.IndexETHTokenByOwner(c, owner, offset)
@@ -166,7 +169,7 @@ func (s *NFTIndexerServer) IndexNFTByOwner(c *gin.Context) {
 	var updates []indexer.AssetUpdates
 	offset := 0
 	for {
-		u, err := ownerIndexFunc(c, req.Owner, offset)
+		u, err := ownerIndexFunc(c, owner, offset)
 		if err != nil {
 			abortWithError(c, http.StatusInternalServerError, "fail to index token", err)
 			return
@@ -189,19 +192,24 @@ func (s *NFTIndexerServer) IndexNFTByOwner(c *gin.Context) {
 func (s *NFTIndexerServer) IndexOneNFT(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "IndexOneNFT")
 	var req struct {
-		Owner    string `json:"owner"`
-		Contract string `json:"contract" binding:"required"`
-		TokenID  string `json:"tokenID" binding:"required"`
-		DryRun   bool   `json:"dryrun"`
-		Preview  bool   `json:"preview"`
+		Owner    indexer.BlockchainAddress `json:"owner"`
+		Contract indexer.BlockchainAddress `json:"contract" binding:"required"`
+		TokenID  string                    `json:"tokenID" binding:"required"`
+		DryRun   bool                      `json:"dryrun"`
+		Preview  bool                      `json:"preview"`
 	}
 
 	if err := c.Bind(&req); err != nil {
 		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
 		return
 	}
+
+	// FIXME: remove this addition step by replace the input of startIndexWorkflow by indexer.BlockchainAddress
+	owner := string(req.Owner)
+	contract := string(req.Contract)
+
 	if req.DryRun {
-		u, err := s.indexerEngine.IndexToken(c, req.Owner, req.Contract, req.TokenID)
+		u, err := s.indexerEngine.IndexToken(c, owner, contract, req.TokenID)
 		if err != nil {
 			abortWithError(c, http.StatusInternalServerError, "fail to index token", err)
 			return
@@ -211,7 +219,7 @@ func (s *NFTIndexerServer) IndexOneNFT(c *gin.Context) {
 			"update": u,
 		})
 	} else {
-		indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, req.Owner, req.Contract, req.TokenID, req.Preview)
+		indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, req.TokenID, req.Preview)
 		c.JSON(200, gin.H{
 			"ok": 1,
 		})

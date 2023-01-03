@@ -7,6 +7,7 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
 // Listener is a struct of listener service
@@ -48,9 +49,7 @@ func (l *Listener) Start() {
 			case n := <-l.listener.Notify:
 				if n != nil {
 					logrus.Debugf("receive a message from sql channel: %+v", n)
-					select {
-					case l.Notify <- n:
-					}
+					l.Notify <- n
 				}
 			case <-l.closeCh:
 				logrus.Info("receive stop signal, will close channels")
@@ -70,7 +69,10 @@ func (l *Listener) Start() {
 // coming, we have to wrap it into a goroutine.
 func (l *Listener) Watch(channel string) error {
 	if l.listener != nil {
-		go l.listener.Listen(channel)
+		g := new(errgroup.Group)
+		g.Go(func() error {
+			return l.listener.Listen(channel)
+		})
 		return nil
 	}
 	return fmt.Errorf("listener is not initialised")

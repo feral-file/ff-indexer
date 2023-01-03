@@ -10,6 +10,7 @@ serviceConfig:
   tezosNodeRPCURL: https://rpc.kathmandu.tzstats.com
   contractAddresses: [
     "KT1Ca3Bpug7mZaQ2YQvVYzu4Byx7V28nNrat",
+    "KT1JwEGFHNQLtmUoUVHGHUvyJisyVTfojouU"
   ]
   contractBoostUrl: "https://api.kathmandunet.tzkt.io/"
   environment: development

@@ -14,11 +14,12 @@ var blockTimes = map[string]time.Time{}
 var getBlockHashLock sync.Mutex
 
 func GetETHBlockTime(ctx context.Context, rpcClient *ethclient.Client, hash common.Hash) (time.Time, error) {
+	getBlockHashLock.Lock()
+	defer getBlockHashLock.Unlock()
+
 	if blockTime, ok := blockTimes[hash.Hex()]; ok {
 		return blockTime, nil
 	} else {
-		getBlockHashLock.Lock()
-		defer getBlockHashLock.Unlock()
 		block, err := rpcClient.BlockByHash(ctx, hash)
 		if err != nil {
 			return time.Time{}, err

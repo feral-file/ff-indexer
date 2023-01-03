@@ -102,7 +102,7 @@ func main() {
 			ctx,
 			bson.M{"indexID": token.IndexID},
 			bson.D{
-				{"$set", bson.D{{"checked", "true"}, {"indexID", newIndexID}}},
+				{Key: "$set", Value: bson.D{{Key: "checked", Value: "true"}, {Key: "indexID", Value: newIndexID}}},
 			},
 		)
 

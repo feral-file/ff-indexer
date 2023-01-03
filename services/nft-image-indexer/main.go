@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/sirupsen/logrus"
@@ -49,7 +50,19 @@ func main() {
 	ctx, stop := signal.NotifyContext(mainCtx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	imageIndexer := NewNFTContentIndexer(store, assetCollection, pinataIPFS)
+	thumbnailCachePeriod, err := time.ParseDuration(viper.GetString("thumbnail.cache_period"))
+	if err != nil {
+		logrus.WithError(err).Error("invalid duration. use default value 72h")
+		thumbnailCachePeriod = 72 * time.Hour
+	}
+	thumbnailCacheRetryInterval, err := time.ParseDuration(viper.GetString("thumbnail.cache_retry_interval"))
+	if err != nil {
+		logrus.WithError(err).Error("invalid duration. use default value 24h")
+		thumbnailCacheRetryInterval = 24 * time.Hour
+	}
+
+	imageIndexer := NewNFTContentIndexer(store, assetCollection, pinataIPFS,
+		thumbnailCachePeriod, thumbnailCacheRetryInterval)
 	imageIndexer.Start(ctx)
 
 	logrus.Info("Content indexer terminated")

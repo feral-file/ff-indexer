@@ -6,11 +6,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatih/structs"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+const (
+	QueryPageSize = 25
 )
 
 const (
@@ -34,6 +39,7 @@ type IndexerStore interface {
 	PushProvenance(ctx context.Context, indexID string, lockedTime time.Time, provenance Provenance) error
 
 	GetTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]Token, error)
+	GetTokensByIndexID(ctx context.Context, indexID string) (*Token, error)
 	GetOutdatedTokensByOwner(ctx context.Context, owner string) ([]Token, error)
 	GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error)
 
@@ -46,11 +52,10 @@ type IndexerStore interface {
 	GetIdentities(ctx context.Context, accountNumbers []string) (map[string]AccountIdentity, error)
 	IndexIdentity(ctx context.Context, identity AccountIdentity) error
 
-	UpdatePendingAccountToken(ctx context.Context, ownerAccount, indexID string, balance int64, transactionTime time.Time, pendingTx string, lastPendingTime time.Time) error
-	UpdateReceivedAccountToken(ctx context.Context, ownerAccount, indexID string, balance int64, transactionTime time.Time) error
+	UpdateAccountTokenBalance(ctx context.Context, ownerAccount, indexID string, balance int64, transactionTime time.Time, pendingTx string, lastPendingTime time.Time) error
 	DeletePendingFieldsAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx string, lastPendingTime time.Time) error
 	GetPendingAccountTokens(ctx context.Context) ([]AccountToken, error)
-	AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx string) error
+	AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx, blockchain, ID string) error
 	DeleteFailedAccountTokens(ctx context.Context, ownerAccount, indexID string) error
 
 	IndexAccount(ctx context.Context, account Account) error
@@ -61,6 +66,8 @@ type IndexerStore interface {
 	GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
 	IndexDemoTokens(ctx context.Context, owner string, indexIDs []string) error
 	DeleteDemoTokens(ctx context.Context, owner string) error
+
+	UpdateOwnerForFungibleToken(ctx context.Context, indexID string, lockedTime time.Time, to string, total int64) error
 }
 
 type FilterParameter struct {
@@ -105,26 +112,65 @@ type MongodbIndexerStore struct {
 	accountTokenCollection *mongo.Collection
 }
 
+type UpdateSet struct {
+	ID                 string                   `structs:"id,omitempty"`
+	IndexID            string                   `structs:"indexID,omitempty"`
+	Source             string                   `structs:"source,omitempty"`
+	BlockchainMetadata interface{}              `structs:"blockchainMetadata,omitempty"`
+	ProjectMetadata    VersionedProjectMetadata `structs:"projectMetadata,omitempty"`
+	Fungible           bool                     `structs:"fungible,omitempty"`
+	AssetID            string                   `structs:"assetID,omitempty"`
+	Edition            int64                    `structs:"edition,omitempty"`
+	EditionName        string                   `structs:"editionName,omitempty"`
+	ContractAddress    string                   `structs:"contractAddress,omitempty"`
+}
+
+// checkIfTokenNeedToUpdate returns true if the new token data is suppose to be
+// better than existent one.
+func checkIfTokenNeedToUpdate(assetSource string, currentToken, newToken Token) bool {
+	// ignore updates for swapped and burned token
+	if currentToken.Swapped || currentToken.Burned {
+		return false
+	}
+
+	// check if we need to update an existent token
+	if assetSource == SourceFeralFile {
+		return true
+	} else {
+		// assetSource is not feral file
+		// only update if token source is not feral file and token balance is greater than zero.
+		if newToken.Balance > 0 && currentToken.Source != SourceFeralFile {
+			return true
+		}
+	}
+
+	return false
+}
+
 // IndexAsset creates an asset and its corresponded tokens by inputs
 func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUpdates AssetUpdates) error {
 	assetCreated := false
 
-	indexID := fmt.Sprintf("%s-%s", strings.ToLower(assetUpdates.Source), id)
+	assetIndexID := fmt.Sprintf("%s-%s", strings.ToLower(assetUpdates.Source), id)
 
-	r := s.assetCollection.FindOne(ctx, bson.M{"indexID": indexID})
-	if err := r.Err(); err != nil {
-		if r.Err() == mongo.ErrNoDocuments {
+	// insert or update an incoming asset
+	assetResult := s.assetCollection.FindOne(ctx, bson.M{"indexID": assetIndexID},
+		options.FindOne().SetProjection(bson.M{"source": 1, "projectMetadata": 1}))
+	if err := assetResult.Err(); err != nil {
+		if assetResult.Err() == mongo.ErrNoDocuments {
 			// Create a new asset if it is not added
-			if _, err := s.assetCollection.InsertOne(ctx, bson.M{
-				"id":                 id,
-				"indexID":            indexID,
-				"source":             assetUpdates.Source,
-				"blockchainMetadata": assetUpdates.BlockchainMetadata,
-				"projectMetadata": bson.M{
-					"origin": assetUpdates.ProjectMetadata,
-					"latest": assetUpdates.ProjectMetadata,
+			assetUpdateSet := UpdateSet{
+				ID:                 id,
+				IndexID:            assetIndexID,
+				Source:             assetUpdates.Source,
+				BlockchainMetadata: assetUpdates.BlockchainMetadata,
+				ProjectMetadata: VersionedProjectMetadata{
+					Origin: assetUpdates.ProjectMetadata,
+					Latest: assetUpdates.ProjectMetadata,
 				},
-			}); err != nil {
+			}
+
+			if _, err := s.assetCollection.InsertOne(ctx, structs.Map(assetUpdateSet)); err != nil {
 				return err
 			}
 			assetCreated = true
@@ -135,35 +181,51 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 
 	// update an existent asset
 	if !assetCreated {
-		var a struct {
+		var currentAsset struct {
 			Source          string                   `json:"source" bson:"source"`
 			ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
 		}
 
-		if err := r.Decode(&a); err != nil {
+		if err := assetResult.Decode(&currentAsset); err != nil {
 			return err
 		}
+		var requireUpdates bool
+		// check if we need to update an existent asset
+		// 1. the incoming update's source IS Feralfile => update
+		// 2. the incoming update's source IS NOT Feralfile AND current asset's source is not FeralFile
+		if assetUpdates.Source == SourceFeralFile {
+			requireUpdates = true
+		} else {
+			// incoming update's source IS NOT Feralfile
+			if currentAsset.Source != SourceFeralFile {
+				requireUpdates = true
+			}
+		}
 
-		// igonre update when the original source is feralfile but the incoming source is not
-		if !(a.Source == SourceFeralFile && assetUpdates.Source != SourceFeralFile) {
+		if requireUpdates {
+			updates := bson.D{{Key: "$set", Value: bson.D{{Key: "projectMetadata.latest", Value: assetUpdates.ProjectMetadata}}}}
+
 			// TODO: check whether to remove the thumbnail cache when the thumbnail data is updated.
-			updates := bson.D{{"$set", bson.D{{"projectMetadata.latest", assetUpdates.ProjectMetadata}}}}
-			if a.ProjectMetadata.Latest.ThumbnailURL != assetUpdates.ProjectMetadata.ThumbnailURL {
+			if currentAsset.ProjectMetadata.Latest.ThumbnailURL != assetUpdates.ProjectMetadata.ThumbnailURL {
 				logrus.
-					WithField("old", a.ProjectMetadata.Latest.ThumbnailURL).
+					WithField("old", currentAsset.ProjectMetadata.Latest.ThumbnailURL).
 					WithField("new", assetUpdates.ProjectMetadata.ThumbnailURL).
 					Debug("image cache need to be reset")
-				updates = append(updates, bson.E{"$unset", bson.M{"thumbnailID": ""}})
+				updates = append(updates, bson.E{Key: "$unset", Value: bson.M{"thumbnailID": ""}})
 			}
 
-			s.assetCollection.UpdateOne(
+			_, err := s.assetCollection.UpdateOne(
 				ctx,
-				bson.M{"indexID": indexID},
+				bson.M{"indexID": assetIndexID},
 				updates,
 			)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
+	// loop the attached tokens for an asset and try to insert or update
 	for _, token := range assetUpdates.Tokens {
 		token.AssetID = id
 
@@ -179,7 +241,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		if err := tokenResult.Err(); err != nil {
 			if err == mongo.ErrNoDocuments {
 				// If a token is not found, insert a new token
-				logrus.WithField("token_id", token.ID).Warn("token is not found")
+				logrus.WithField("token_id", token.ID).Info("new token found")
 
 				token.LastActivityTime = token.MintAt // set LastActivityTime to default token minted time
 				token.OwnersArray = []string{token.Owner}
@@ -199,51 +261,26 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 			return err
 		}
 
-		// ignore updates for swapped and burned token
-		if currentToken.Swapped || currentToken.Burned {
-			continue
-		}
-
-		if assetUpdates.Source != SourceFeralFile && token.Balance == 0 {
-			logrus.WithField("token_id", token.ID).Warn("ignore zero balance update")
-			continue
-		}
-
-		updateSet := bson.M{}
-		if !(currentToken.Source == SourceFeralFile && assetUpdates.Source != SourceFeralFile) {
-			updateSet["fungible"] = token.Fungible
-			updateSet["source"] = token.Source
-			updateSet["assetID"] = id
-			updateSet["edition"] = token.Edition
-			updateSet["editionName"] = token.EditionName
-			currentToken.Fungible = token.Fungible
-		}
-
-		var addToSet bson.M
-		if token.Source != SourceFeralFile {
-			if currentToken.Fungible {
-				updateSet[fmt.Sprintf("owners.%s", token.Owner)] = token.Balance
-				addToSet = bson.M{"ownersArray": token.Owner}
-			} else {
-				updateSet["owners"] = map[string]int64{token.Owner: token.Balance}
-				updateSet["ownersArray"] = []string{token.Owner}
+		if checkIfTokenNeedToUpdate(assetUpdates.Source, currentToken, token) {
+			tokenUpdateSet := UpdateSet{
+				Fungible:        token.Fungible,
+				Source:          token.Source,
+				AssetID:         id,
+				Edition:         token.Edition,
+				EditionName:     token.EditionName,
+				ContractAddress: token.ContractAddress,
 			}
-		}
 
-		tokenUpdate := bson.M{"$set": updateSet}
-		if addToSet != nil {
-			tokenUpdate["$addToSet"] = addToSet
-		}
+			tokenUpdate := bson.M{"$set": structs.Map(tokenUpdateSet)}
 
-		logrus.WithField("token_id", token.ID).WithField("token", token).Debug("token data for updated")
-		r, err := s.tokenCollection.UpdateOne(ctx,
-			bson.M{"indexID": token.IndexID, "swapped": bson.M{"$ne": true}, "burned": bson.M{"$ne": true}},
-			tokenUpdate, options.Update().SetUpsert(true))
-		if err != nil {
-			return err
-		}
-		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-			logrus.WithField("token_id", token.ID).Warn("token is not added or updated")
+			logrus.WithField("token_id", token.ID).WithField("tokenUpdate", tokenUpdate).Debug("token data for updated")
+			r, err := s.tokenCollection.UpdateOne(ctx, bson.M{"indexID": token.IndexID}, tokenUpdate)
+			if err != nil {
+				return err
+			}
+			if r.MatchedCount == 0 {
+				logrus.WithField("token_id", token.ID).Warn("token is not updated")
+			}
 		}
 	}
 
@@ -373,68 +410,68 @@ func (s *MongodbIndexerStore) GetOutdatedTokensByOwner(ctx context.Context, owne
 	return tokens, nil
 }
 
+// getDetailedTokensByAggregation returns detail tokens by mongodb aggregation
+func (s *MongodbIndexerStore) getDetailedTokensByAggregation(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error) {
+	tokens := []DetailedToken{}
+	cursor, err := s.getTokensByAggregation(ctx, filterParameter, offset, size)
+
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	if err := cursor.All(ctx, &tokens); err != nil {
+		return nil, err
+	}
+
+	return tokens, nil
+}
+
+// getPageCounts return the page counts by item length and page size
+func getPageCounts(itemLength, PageSize int) int {
+	pageCounts := itemLength / PageSize
+	if (itemLength % PageSize) != 0 {
+		pageCounts += 1
+	}
+	return pageCounts
+}
+
 // GetDetailedTokens returns a list of tokens information based on ids
 func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error) {
 	tokens := []DetailedToken{}
-
-	tokenFilter := bson.M{}
-	findOptions := options.Find().SetSort(bson.M{"_id": 1})
-
-	if len(filterParameter.IDs) > 0 {
-		tokenFilter["indexID"] = bson.M{"$in": filterParameter.IDs}
-	} else {
-		// set query limit and skip if it is about to query all tokens
-		findOptions.SetLimit(size).SetSkip(offset)
-	}
 
 	logrus.
 		WithField("filterParameter", filterParameter).
 		WithField("offset", offset).
 		WithField("size", size).
 		Debug("GetDetailedTokens")
-
-	cursor, err := s.tokenCollection.Find(ctx, tokenFilter, findOptions)
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
-	assets := map[string]struct {
-		ThumbnailID     string                   `bson:"thumbnailID"`
-		IPFSPinned      bool                     `bson:"ipfsPinned"`
-		ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
-	}{}
-	for cursor.Next(ctx) {
-		var token Token
-
-		if err := cursor.Decode(&token); err != nil {
-			return nil, err
-		}
-
-		a, assetExist := assets[token.AssetID]
-		if !assetExist {
-			assetResult := s.assetCollection.FindOne(ctx, bson.M{"id": token.AssetID})
-			if err := assetResult.Err(); err != nil {
-				return nil, err
+	startTime := time.Now()
+	if length := len(filterParameter.IDs); length > 0 {
+		for i := 0; i < getPageCounts(length, QueryPageSize); i++ {
+			logrus.
+				WithField("page", i).
+				Trace("doc page")
+			start := i * QueryPageSize
+			end := (i + 1) * QueryPageSize
+			if end > length {
+				end = length
 			}
 
-			if err := assetResult.Decode(&a); err != nil {
+			pagedTokens, err := s.getDetailedTokensByAggregation(ctx,
+				FilterParameter{IDs: filterParameter.IDs[start:end]},
+				offset, size)
+			if err != nil {
 				return nil, err
 			}
-
-			assets[token.AssetID] = a
+			tokens = append(tokens, pagedTokens...)
 		}
-
-		// FIXME: hardcoded values for backward compatibility
-		a.ProjectMetadata.Latest.FirstMintedAt = "0001-01-01T00:00:00.000Z"
-		a.ProjectMetadata.Origin.FirstMintedAt = "0001-01-01T00:00:00.000Z"
-		tokens = append(tokens, DetailedToken{
-			Token:           token,
-			ThumbnailID:     a.ThumbnailID,
-			IPFSPinned:      a.IPFSPinned,
-			ProjectMetadata: a.ProjectMetadata,
-		})
+	} else {
+		return s.getDetailedTokensByAggregation(ctx, filterParameter, offset, size)
 	}
+	logrus.
+		WithField("queryTime", time.Since(startTime)).
+		Debug("GetDetailedTokens End")
+
 	return tokens, nil
 }
 
@@ -617,7 +654,8 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 			return nil, err
 		}
 	} else {
-		c, err = s.getTokensByAggregation(ctx, owners, filterParameter, offset, size)
+		// DEPRECATED: this condition should not use anymore
+		c, err = s.getTokensByAggregationByOwners(ctx, owners, filterParameter, offset, size)
 		if err != nil {
 			return nil, err
 		}
@@ -644,8 +682,6 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 		}
 
 		// FIXME: hardcoded values for backward compatibility
-		a.ProjectMetadata.Latest.FirstMintedAt = "0001-01-01T00:00:00.000Z"
-		a.ProjectMetadata.Origin.FirstMintedAt = "0001-01-01T00:00:00.000Z"
 		token.ThumbnailID = a.ThumbnailID
 		token.IPFSPinned = a.IPFSPinned
 		token.ProjectMetadata = a.ProjectMetadata
@@ -656,7 +692,7 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 	return tokens, nil
 }
 
-// getTokensByAggregation queries tokens by aggregation which provides a more flexible query option by mongodb
+// getTokensByAggregationForOwner queries tokens for a specific owner by aggregation
 func (s *MongodbIndexerStore) getTokensByAggregationForOwner(ctx context.Context, owner string, filterParameter FilterParameter, offset, size int64) (*mongo.Cursor, error) {
 	matchQuery := bson.M{
 		fmt.Sprintf("owners.%s", owner): bson.M{"$gte": 1},
@@ -668,7 +704,7 @@ func (s *MongodbIndexerStore) getTokensByAggregationForOwner(ctx context.Context
 		{
 			"$match": matchQuery,
 		},
-		{"$sort": bson.D{{"lastActivityTime", -1}, {"_id", -1}}},
+		{"$sort": bson.D{{Key: "lastActivityTime", Value: -1}, {Key: "_id", Value: -1}}},
 		{"$addFields": bson.M{"balance": fmt.Sprintf("$owners.%s", owner)}},
 		// lookup performs a cross blockchain join between tokens and assets collections
 		{
@@ -712,8 +748,8 @@ func (s *MongodbIndexerStore) getTokensByAggregationForOwner(ctx context.Context
 	return s.tokenCollection.Aggregate(ctx, pipelines)
 }
 
-// getTokensByAggregation queries tokens by aggregation which provides a more flexible query option by mongodb
-func (s *MongodbIndexerStore) getTokensByAggregation(ctx context.Context, owners []string, filterParameter FilterParameter, offset, size int64) (*mongo.Cursor, error) {
+// DEPRECATED: getTokensByAggregationByOwners queries tokens by aggregation which provides a more flexible query option by mongodb
+func (s *MongodbIndexerStore) getTokensByAggregationByOwners(ctx context.Context, owners []string, filterParameter FilterParameter, offset, size int64) (*mongo.Cursor, error) {
 	pipelines := []bson.M{
 		{
 			"$match": bson.M{
@@ -721,7 +757,7 @@ func (s *MongodbIndexerStore) getTokensByAggregation(ctx context.Context, owners
 				"burned": bson.M{"$ne": true},
 			},
 		},
-		{"$sort": bson.D{{"lastActivityTime", -1}, {"_id", -1}}},
+		{"$sort": bson.D{{Key: "lastActivityTime", Value: -1}, {Key: "_id", Value: -1}}},
 		// lookup performs a cross blockchain join between tokens and assets collections
 		{
 			"$lookup": bson.M{
@@ -762,6 +798,81 @@ func (s *MongodbIndexerStore) getTokensByAggregation(ctx context.Context, owners
 		bson.M{"$skip": offset},
 		bson.M{"$limit": size},
 	)
+
+	return s.tokenCollection.Aggregate(ctx, pipelines)
+}
+
+// getTokensByAggregation queries tokens by aggregation which provides a more flexible query option by mongodb
+func (s *MongodbIndexerStore) getTokensByAggregation(ctx context.Context, filterParameter FilterParameter, offset, size int64) (*mongo.Cursor, error) {
+	matchQuery := bson.M{}
+
+	if len(filterParameter.IDs) > 0 {
+		matchQuery = bson.M{
+			"indexID": bson.M{"$in": filterParameter.IDs},
+			"burned":  bson.M{"$ne": true},
+		}
+	}
+
+	pipelines := []bson.M{
+		{
+			"$match": matchQuery,
+		},
+		{"$sort": bson.D{{Key: "lastActivityTime", Value: -1}, {Key: "_id", Value: -1}}},
+		// lookup performs a cross blockchain join between tokens and assets collections
+		{
+			"$lookup": bson.M{
+				"from": "assets",
+				"let": bson.M{
+					"assetID": "$assetID",
+				},
+				"pipeline": bson.A{
+					bson.M{
+						"$match": bson.M{
+							"$expr": bson.M{
+								"$eq": bson.A{
+									"$id",
+									"$$assetID",
+								},
+							},
+						},
+					},
+					bson.M{
+						"$project": bson.M{
+							"source":          1,
+							"projectMetadata": 1,
+							"thumbnailID":     1,
+							"ipfsPinned":      1,
+							"_id":             0,
+						},
+					},
+				},
+				"as": "asset",
+			},
+		},
+		{"$unwind": "$asset"},
+		{
+			"$replaceRoot": bson.M{
+				"newRoot": bson.M{
+					"$mergeObjects": bson.A{"$$ROOT", "$asset"},
+				},
+			},
+		},
+		{"$project": bson.M{"asset": 0}},
+	}
+
+	if filterParameter.Source != "" {
+		pipelines = append(pipelines, bson.M{"$match": bson.M{"asset.source": filterParameter.Source}})
+	}
+
+	if len(matchQuery) == 0 {
+		if size == 0 || size > 100 {
+			size = 100
+		}
+		pipelines = append(pipelines,
+			bson.M{"$skip": offset},
+			bson.M{"$limit": size},
+		)
+	}
 
 	return s.tokenCollection.Aggregate(ctx, pipelines)
 }
@@ -937,18 +1048,17 @@ func (s *MongodbIndexerStore) IndexIdentity(ctx context.Context, identity Accoun
 	return nil
 }
 
-// UpdatePendingAccountToken updates pending (sender) account token from transaction details
-func (s *MongodbIndexerStore) UpdatePendingAccountToken(ctx context.Context, ownerAccount, indexID string, balance int64, transactionTime time.Time, pendingTx string, lastPendingTime time.Time) error {
-	isUpdated := false
-
-	// The last update time is before the transaction time
-	// that means the balance is not updated from the transaction
+// UpdateAccountTokenBalance updates account tokens' balance from transaction details
+func (s *MongodbIndexerStore) UpdateAccountTokenBalance(ctx context.Context, ownerAccount, indexID string, balance int64, transactionTime time.Time, pendingTx string, lastPendingTime time.Time) error {
 	r, err := s.accountTokenCollection.UpdateOne(ctx,
 		bson.M{
-			"indexID": indexID, "ownerAccount": ownerAccount,
-			"pendingTxs":       bson.M{"$in": bson.A{pendingTx}},
-			"lastPendingTime":  bson.M{"$in": bson.A{lastPendingTime}},
-			"lastActivityTime": bson.M{"$not": bson.M{"$gte": transactionTime}}},
+			"indexID":      indexID,
+			"ownerAccount": ownerAccount,
+			"$or": bson.A{
+				bson.M{"lastRefreshedTime": bson.M{"$lt": transactionTime}},
+				bson.M{"lastRefreshedTime": bson.M{"$exists": false}},
+			},
+		},
 		bson.M{
 			"$set": bson.M{
 				"lastActivityTime":  transactionTime,
@@ -957,101 +1067,34 @@ func (s *MongodbIndexerStore) UpdatePendingAccountToken(ctx context.Context, own
 			"$inc": bson.M{
 				"balance": balance,
 			},
+		},
+		options.Update().SetUpsert(true),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
+		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).WithField("pendingTx", pendingTx).Debug("the account token's balance is not updated/added")
+	}
+
+	// remove pendingTx and lastPendingTime
+	_, err = s.accountTokenCollection.UpdateOne(ctx,
+		bson.M{
+			"indexID":         indexID,
+			"ownerAccount":    ownerAccount,
+			"pendingTxs":      bson.M{"$in": bson.A{pendingTx}},
+			"lastPendingTime": bson.M{"$in": bson.A{lastPendingTime}},
+		},
+		bson.M{
 			"$pull": bson.M{
 				"pendingTxs":      pendingTx,
 				"lastPendingTime": lastPendingTime,
 			},
 		},
 	)
-
-	if err != nil {
-		return err
-	}
-
-	if r.MatchedCount == 0 {
-		// The last update time is after the transaction time
-		// that means the balance is already updated from the transaction
-		r, err = s.accountTokenCollection.UpdateOne(ctx,
-			bson.M{"indexID": indexID, "ownerAccount": ownerAccount,
-				"pendingTxs":       bson.M{"$in": bson.A{pendingTx}},
-				"lastPendingTime":  bson.M{"$in": bson.A{lastPendingTime}},
-				"lastActivityTime": bson.M{"$gte": transactionTime}},
-			bson.M{
-				"$set": bson.M{
-					"lastRefreshedTime": time.Now(),
-				},
-				"$pull": bson.M{
-					"pendingTxs":      pendingTx,
-					"lastPendingTime": lastPendingTime,
-				},
-			},
-		)
-
-		if err != nil {
-			return err
-		}
-		if r.MatchedCount > 0 {
-			isUpdated = true
-		}
-	} else {
-		isUpdated = true
-	}
-
-	if isUpdated {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).WithField("pendingTx", pendingTx).Debug("Pending account token's balance is updated")
-	} else {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).WithField("pendingTx", pendingTx).Warn("Pending account token's balance is not updated")
-	}
-
-	return nil
-}
-
-// UpdateReceivedAccountToken updates received account token from transaction details
-func (s *MongodbIndexerStore) UpdateReceivedAccountToken(ctx context.Context, ownerAccount string, indexID string, balance int64, transactionTime time.Time) error {
-	isUpdated := false
-	r, err := s.accountTokenCollection.UpdateOne(ctx,
-		bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "lastActivityTime": bson.M{"$gte": transactionTime}},
-		bson.M{"$set": bson.M{
-			"lastRefreshedTime": time.Now(),
-		}},
-	)
-
-	if err != nil {
-		return err
-	}
-
-	if r.MatchedCount == 0 {
-		r, err = s.accountTokenCollection.UpdateOne(ctx,
-			bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "lastActivityTime": bson.M{"$not": bson.M{"$gte": transactionTime}}},
-			bson.M{"$set": bson.M{
-				"lastActivityTime":  transactionTime,
-				"lastRefreshedTime": time.Now(),
-			},
-				"$inc": bson.M{
-					"balance": balance,
-				},
-			},
-			options.Update().SetUpsert(true),
-		)
-
-		if err != nil {
-			return err
-		}
-
-		if r.MatchedCount > 0 || r.UpsertedCount > 0 {
-			isUpdated = true
-		}
-	} else {
-		isUpdated = true
-	}
-
-	if isUpdated {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Debug("An account token's balance is updated")
-	} else {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("An account token's balance is not updated")
-	}
-
-	return nil
+	return err
 }
 
 // DeletePendingFieldsAccountToken deletes elements in pending fields of a account token
@@ -1080,7 +1123,7 @@ func (s *MongodbIndexerStore) DeletePendingFieldsAccountToken(ctx context.Contex
 }
 
 // AddPendingTxToAccountToken add pendingTx to a specific account token if this pendingTx does not exist
-func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx string) error {
+func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx, blockchain, ID string) error {
 	r := s.accountTokenCollection.FindOne(ctx,
 		bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "pendingTxs": bson.M{"$in": bson.A{pendingTx}}},
 	)
@@ -1091,10 +1134,16 @@ func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ow
 			// only update account if its pendingTx is not recorded
 			r, err := s.accountTokenCollection.UpdateOne(ctx,
 				bson.M{"indexID": indexID, "ownerAccount": ownerAccount},
-				bson.M{"$push": bson.M{
-					"pendingTxs":      pendingTx,
-					"lastPendingTime": time.Now(),
-				}},
+				bson.M{
+					"$push": bson.M{
+						"pendingTxs":      pendingTx,
+						"lastPendingTime": time.Now(),
+					},
+					"$set": bson.M{
+						"blockchain": blockchain,
+						"id":         ID,
+					},
+				},
 				options.Update().SetUpsert(true),
 			)
 
@@ -1218,7 +1267,7 @@ func (s *MongodbIndexerStore) GetAccountTokensByIndexIDs(ctx context.Context, in
 
 	c, err := s.accountTokenCollection.Aggregate(ctx, []bson.M{
 		{"$match": bson.M{"indexID": bson.M{"$in": indexIDs}}},
-		{"$sort": bson.D{{"lastActivityTime", 1}}},
+		{"$sort": bson.D{{Key: "lastActivityTime", Value: 1}}},
 		{
 			"$group": bson.M{
 				"_id":    "$indexID",
@@ -1263,11 +1312,14 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 		tokenUpdate.Balance = balance
 		tokenUpdate.LastActivityTime = lastActivityTime
 		tokenUpdate.LastRefreshedTime = time.Now()
-		s.accountTokenCollection.UpdateOne(ctx,
+		_, err := s.accountTokenCollection.UpdateOne(ctx,
 			bson.M{"indexID": indexID, "ownerAccount": owner},
 			bson.M{"$set": tokenUpdate},
 			options.Update().SetUpsert(true),
 		)
+		if err != nil {
+			continue
+		}
 
 		ownerList = append(ownerList, owner)
 	}
@@ -1279,7 +1331,7 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 
 // GetDetailedAccountTokensByOwner returns a list of DetailedToken by account owner
 func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error) {
-	findOptions := options.Find().SetSort(bson.D{{"lastActivityTime", -1}, {"_id", -1}}).SetLimit(size).SetSkip(offset)
+	findOptions := options.Find().SetSort(bson.D{{Key: "lastActivityTime", Value: -1}, {Key: "_id", Value: -1}}).SetLimit(size).SetSkip(offset)
 
 	logrus.
 		WithField("filterParameter", filterParameter).
@@ -1414,4 +1466,40 @@ func (s *MongodbIndexerStore) DeleteDemoTokens(ctx context.Context, owner string
 	}
 
 	return nil
+}
+
+func (s *MongodbIndexerStore) UpdateOwnerForFungibleToken(ctx context.Context, indexID string, lockedTime time.Time, to string, total int64) error {
+	r, err := s.tokenCollection.UpdateOne(ctx,
+		bson.M{
+			"indexID":           indexID,
+			"lastRefreshedTime": lockedTime,
+		},
+		bson.M{
+			"$addToSet": bson.M{"ownersArray": to},
+			"$set":      bson.M{"owners." + to: total},
+		},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if r.MatchedCount == 0 {
+		return ErrNoRecordUpdated
+	}
+
+	return nil
+}
+
+func (s *MongodbIndexerStore) GetTokensByIndexID(ctx context.Context, indexID string) (*Token, error) {
+	tokens, err := s.GetTokensByIndexIDs(ctx, []string{indexID})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(tokens) == 0 {
+		return nil, nil
+	}
+
+	return &tokens[0], err
 }

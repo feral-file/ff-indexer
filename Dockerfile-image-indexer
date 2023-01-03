@@ -5,7 +5,7 @@
 # Use of this source code is governed by an ISC
 # license that can be found in the LICENSE file.
 
-FROM golang:1.18.1-alpine as build
+FROM golang:1.19.3-alpine as build
 
 RUN apk add --no-cache git gcc musl-dev
 
@@ -27,10 +27,8 @@ RUN go build -o /go/bin/nft-image-indexer ./services/nft-image-indexer
 
 # ---
 
-FROM alpine:3.14
+FROM 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:chromep-0.1.0
 ARG dist=0.0
-
-RUN apk add --no-cache curl
 
 COPY --from=build /go/bin/nft-image-indexer /nft-image-indexer
 

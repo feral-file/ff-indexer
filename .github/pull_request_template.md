@@ -1,7 +1,12 @@
 **Description**
 
 - Story link: https://github.com/bitmark-inc/autonomy/issues/<number>
-- Extra information:
+- Extra information about this PR:
+
+**Checks**
+
+- [ ] New APIs are documented in postman
+- [ ] Development development files are updated
 
 **Document of the flow design and/or figma design**
 

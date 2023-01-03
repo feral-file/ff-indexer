@@ -95,28 +95,27 @@ func (s *NFTIndexerServer) QueryNFTsV1(c *gin.Context) {
 	c.JSON(http.StatusOK, tokenInfo)
 }
 
-func PreprocessTokens(addresses []string, isConvertToDecimal bool) []string {
+// PreprocessTokens takes an array of token ids and return an array formatted token ids
+// which includes formatting ethereum address and converting token id from hex to decimal if
+// isConvertToDecimal is set to true. NOTE: There is no error return in this call.
+func PreprocessTokens(indexIDs []string, isConvertToDecimal bool) []string {
 	var processedAddresses = []string{}
-	for _, address := range addresses {
-		blockchain, contractAddress, tokenID, err := indexer.ParseIndexID(address)
+	for _, indexID := range indexIDs {
+		blockchain, contractAddress, tokenID, err := indexer.ParseTokenIndexID(indexID)
 		if err != nil {
 			continue
 		}
 
-		if blockchain == "eth" {
-			if isConvertToDecimal {
-				decimalTokenID, ok := big.NewInt(0).SetString(tokenID, 16)
-				if !ok {
-					continue
-				}
-				processedAddresses = append(processedAddresses, fmt.Sprintf("%s-%s-%s", blockchain, indexer.EthereumChecksumAddress(contractAddress), decimalTokenID.String()))
-			} else {
-				processedAddresses = append(processedAddresses, fmt.Sprintf("%s-%s-%s", blockchain, indexer.EthereumChecksumAddress(contractAddress), tokenID))
+		if isConvertToDecimal && blockchain == indexer.BlockchainAlias[indexer.EthereumBlockchain] {
+			decimalTokenID, ok := big.NewInt(0).SetString(tokenID, 16)
+			if !ok {
+				continue
 			}
 
-		} else {
-			processedAddresses = append(processedAddresses, address)
+			indexID = fmt.Sprintf("%s-%s-%s", blockchain, contractAddress, decimalTokenID.String())
 		}
+
+		processedAddresses = append(processedAddresses, indexID)
 	}
 	return processedAddresses
 }
@@ -138,7 +137,7 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParamsIDs []str
 
 		// index redundant reqParams.IDs
 		for redundantID := range m {
-			_, contract, tokenId, err := indexer.ParseIndexID(redundantID)
+			_, contract, tokenId, err := indexer.ParseTokenIndexID(redundantID)
 			if err != nil {
 				continue
 			}
@@ -248,7 +247,7 @@ func (s *NFTIndexerServer) SearchNFTs(c *gin.Context) {
 
 // fetchIdentity collects information from the blockchains and returns an identity object
 func (s *NFTIndexerServer) fetchIdentity(c context.Context, accountNumber string) (*indexer.AccountIdentity, error) {
-	blockchain := indexer.DetectAccountBlockchain(accountNumber)
+	blockchain := indexer.GetBlockchainByAddress(accountNumber)
 
 	id := indexer.AccountIdentity{
 		AccountNumber: accountNumber,
@@ -359,7 +358,7 @@ func (s *NFTIndexerServer) GetIdentities(c *gin.Context) {
 func (s *NFTIndexerServer) SetTokenPending(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "TokenPending")
 
-	var reqParams PendingTxParams
+	var reqParams indexer.PendingTxUpdate
 
 	if err := c.BindQuery(&reqParams); err != nil {
 		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
@@ -381,7 +380,79 @@ func (s *NFTIndexerServer) SetTokenPending(c *gin.Context) {
 		return
 	}
 
-	if err := s.indexerStore.AddPendingTxToAccountToken(c, reqParams.OwnerAccount, reqParams.IndexID, reqParams.PendingTx); err != nil {
+	if reqParams.Blockchain == indexer.EthereumBlockchain {
+		reqParams.IndexID = fmt.Sprintf("%s-%s-%s", indexer.BlockchainAlias[reqParams.Blockchain], reqParams.ContractAddress, reqParams.ID)
+	}
+
+	if err := s.indexerStore.AddPendingTxToAccountToken(c, string(reqParams.OwnerAccount), reqParams.IndexID, reqParams.PendingTx, reqParams.Blockchain, reqParams.ID); err != nil {
+		log.WithField("error", err).Warn("error while adding pending accountToken")
+		return
+	}
+	log.WithField("pendingTx", reqParams.PendingTx).Debug("a pending account token is added")
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok": 1,
+	})
+}
+
+func (s *NFTIndexerServer) verifyAddressOwner(blockchain, message, signature, address, publicKey string) (bool, error) {
+	switch blockchain {
+	case indexer.EthereumBlockchain:
+		return indexer.VerifyETHPersonalSignature(message, signature, address)
+	case indexer.TezosBlockchain:
+		return indexer.VerifyTezosSignature(message, signature, address, publicKey)
+	default:
+		return false, fmt.Errorf("unsupported blockchain")
+	}
+}
+
+func (s *NFTIndexerServer) SetTokenPendingV1(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "TokenPending")
+
+	var reqParams PendingTxParamsV1
+
+	if err := c.BindQuery(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if err := c.Bind(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if reqParams.PendingTx == "" {
+		abortWithError(c, http.StatusBadRequest, "invalid parameter", fmt.Errorf("pendingTx is required"))
+		return
+	}
+
+	createdAt, err := indexer.EpochStringToTime(reqParams.Timestamp)
+	if err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameter", err)
+		return
+	}
+
+	now := time.Now()
+	if !indexer.IsTimeInRange(createdAt, now, 5) {
+		abortWithError(c, http.StatusBadRequest, "invalid parameter", fmt.Errorf("request time too skewed"))
+		return
+	}
+
+	isValidAddress, err := s.verifyAddressOwner(reqParams.Blockchain, reqParams.Timestamp, reqParams.Signature, reqParams.OwnerAccount, reqParams.PublicKey)
+
+	if err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if !isValidAddress {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("invalid signature for ownerAddress"))
+		return
+	}
+
+	indexID := indexer.TokenIndexID(reqParams.Blockchain, reqParams.ContractAddress, reqParams.ID)
+
+	if err := s.indexerStore.AddPendingTxToAccountToken(c, reqParams.OwnerAccount, indexID, reqParams.PendingTx, reqParams.Blockchain, reqParams.ID); err != nil {
 		log.WithField("error", err).Warn("error while adding pending accountToken")
 		return
 	}
@@ -415,7 +486,10 @@ func (s *NFTIndexerServer) GetAccountNFTs(c *gin.Context) {
 	var tokensInfo []indexer.DetailedToken
 	var err error
 
-	switch indexer.DetectAccountBlockchain(owner) {
+	switch indexer.GetBlockchainByAddress(owner) {
+	case indexer.EthereumBlockchain:
+		owner = indexer.EthereumChecksumAddress(owner)
+		fallthrough
 	case indexer.TezosBlockchain:
 		tokensInfo, err = s.indexerStore.GetDetailedAccountTokensByOwner(c, owner,
 			indexer.FilterParameter{

@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"context"
+	"errors"
 	"time"
 
 	"github.com/chromedp/chromedp"
@@ -12,21 +13,26 @@ import (
 
 const CropImageTimeout = 5 * time.Second
 
+var SVGSupportTags = []string{
+	"rect",
+	"svg",
+}
+
 func ConvertSVGToPNG(url string) (*bytes.Buffer, error) {
-	bufRect := ScreenShoot(url, "rect")
-	if bufRect != nil {
-		return bytes.NewBuffer(bufRect), nil
-	}
+	for _, tag := range SVGSupportTags {
+		buf, err := ScreenShoot(url, tag)
 
-	bufSVG := ScreenShoot(url, "svg")
-	if bufSVG != nil {
-		return bytes.NewBuffer(bufSVG), nil
+		if err != nil && !errors.Is(err, context.DeadlineExceeded) {
+			return nil, err
+		} else if buf != nil {
+			return bytes.NewBuffer(buf), nil
+		}
 	}
-
+	
 	return nil, customErrors.NewUnsupportedSVG(url)
 }
 
-func ScreenShoot(url string, selector string) []byte {
+func ScreenShoot(url string, selector string) ([]byte, error) {
 	var buf []byte
 
 	ctx, cancel := chromedp.NewContext(
@@ -34,7 +40,8 @@ func ScreenShoot(url string, selector string) []byte {
 	)
 	defer cancel()
 
-	ctx2, _ := context.WithTimeout(ctx, CropImageTimeout)
+	ctx2, cancel := context.WithTimeout(ctx, CropImageTimeout)
+	defer cancel()
 
 	var screenshotTask = chromedp.Tasks{
 		chromedp.Navigate(url),
@@ -42,8 +49,8 @@ func ScreenShoot(url string, selector string) []byte {
 	}
 
 	if err := chromedp.Run(ctx2, screenshotTask); err != nil {
-		return nil
+		return nil, err
 	}
 
-	return buf
+	return buf, nil
 }

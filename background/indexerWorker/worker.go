@@ -51,7 +51,7 @@ func New(environment string,
 	bitmarkZeroAddress := indexer.LivenetZeroAddress
 	bitmarkAPIEndpoint := "https://api.bitmark.com"
 
-	if environment != "production" {
+	if environment == indexer.DevelopmentEnvironment {
 		// staging / development
 		bitmarkZeroAddress = indexer.TestnetZeroAddress
 		bitmarkAPIEndpoint = "https://api.test.bitmark.com"

@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -27,13 +25,20 @@ type NFTAsset struct {
 type NFTContentIndexer struct {
 	wg sync.WaitGroup
 
+	thumbnailCachePeriod        time.Duration
+	thumbnailCacheRetryInterval time.Duration
+
 	db        *imageStore.ImageStore
 	ipfs      IPFSPinService
 	nftAssets *mongo.Collection
 }
 
-func NewNFTContentIndexer(db *imageStore.ImageStore, nftAssets *mongo.Collection, ipfs IPFSPinService) *NFTContentIndexer {
+func NewNFTContentIndexer(db *imageStore.ImageStore, nftAssets *mongo.Collection, ipfs IPFSPinService,
+	thumbnailCachePeriod, thumbnailCacheRetryInterval time.Duration) *NFTContentIndexer {
 	return &NFTContentIndexer{
+		thumbnailCachePeriod:        thumbnailCachePeriod,
+		thumbnailCacheRetryInterval: thumbnailCacheRetryInterval,
+
 		db:        db,
 		ipfs:      ipfs,
 		nftAssets: nftAssets,
@@ -54,6 +59,7 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 					continue
 				}
 
+				uploadImageStartTime := time.Now()
 				img, err := s.db.UploadImage(ctx, asset.IndexID, NewURLImageDownloader(asset.ProjectMetadata.Latest.ThumbnailURL),
 					map[string]interface{}{
 						"source":   asset.ProjectMetadata.Latest.Source,
@@ -71,7 +77,12 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
 					}
 				}
+				logrus.
+					WithField("duration", time.Since(uploadImageStartTime)).
+					WithField("assetID", asset.IndexID).Debug("thumbnail image uploaded")
 
+				// Update the thumbnail by image ID returned from cloudflare, it the whol process is succeed.
+				// Otherwise, it would update to an empty value
 				if err := s.updateTokenThumbnail(ctx, img.AssetID, img.ImageID); err != nil {
 					logrus.WithError(err).Error("update token thumbnail to indexer")
 				}
@@ -83,100 +94,48 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 	}
 }
 
-// spawnIPFSPinWorker spawn worker to pin preview file of assets to IPFS
-func (s *NFTContentIndexer) spawnIPFSPinWorker(ctx context.Context, assets <-chan NFTAsset, count int) {
-	for i := 0; i < count; i++ {
-		s.wg.Add(1)
-		go func() {
-			defer s.wg.Done()
-
-			for asset := range assets {
-				previewURL := asset.ProjectMetadata.Latest.PreviewURL
-				if strings.HasPrefix(previewURL, "https://ipfs.io/ipfs/") {
-					ipfsCIDPath := strings.ReplaceAll(previewURL, "https://ipfs.io/ipfs/", "")
-
-					if ipfsCIDPath == "" {
-						logrus.WithField("previewURL", previewURL).Error("incorrect file path")
-						continue
-					}
-
-					cid := strings.Split(ipfsCIDPath, "/")[0]
-
-					if _, err := s.ipfs.Pin(cid); err != nil {
-						logrus.WithField("previewURL", previewURL).WithError(err).Error("fail to pin a file into IPFS")
-						fmt.Println("www", indexer.SleepWithContext(ctx, 30*time.Second))
-						continue
-					}
-
-					if err := s.updateTokenPinnedStatus(ctx, asset.IndexID); err != nil {
-						logrus.WithError(err).Error("fail to update pin status for a token")
-					}
-
-					logrus.WithField("indexID", asset.IndexID).Info("preview url has pinned")
-				} else {
-					logrus.WithField("previewURL", previewURL).Warn("unsupported preview url")
-				}
-			}
-			logrus.Debug("IPFSPinWorker stopped")
-		}()
-	}
-}
-
 // getAssetWithoutThumbnailCached looks up assets without thumbnail cached
 func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) (NFTAsset, error) {
 	var asset NFTAsset
 	r := s.nftAssets.FindOneAndUpdate(ctx,
 		bson.M{
-			"source":                              "tzkt",
-			"thumbnailID":                         bson.M{"$exists": false},
-			"projectMetadata.latest.source":       bson.M{"$nin": []string{"fxhash"}},
-			"projectMetadata.latest.thumbnailURL": bson.M{"$ne": ""},
+			// filter assets which have been viewed in the past 7 days.
+			"projectMetadata.latest.lastUpdatedAt": bson.M{"$gt": time.Now().Add(-s.thumbnailCachePeriod)},
+			// filter assets which have not been processed in the last hour.
+			"thumbnailLastCheck": bson.M{
+				"$not": bson.M{"$gt": time.Now().Add(-s.thumbnailCacheRetryInterval)},
+			},
+			// filter assets which does not have thumbnailID or the thumbnailID is empty
+			"thumbnailID": bson.M{
+				"$not": bson.M{"$exists": true, "$ne": ""},
+			},
+			// filter assets which are qualified to generate thumbnails in cloudflare.
 			"$or": bson.A{
+				// filter all tokens that set SVG as the mime-type and their thumbnail URLs start with https
 				bson.M{
-					"thumbnailLastCheck": bson.M{"$exists": false},
+					"projectMetadata.latest.mimeType":     "image/svg+xml",
+					"projectMetadata.latest.thumbnailURL": bson.M{"$regex": "^https://"},
 				},
+				// For tezos tokens, it parses tokens that starts with `https://ipfs.` which means
+				// all token that is uploaded to IPFS but is not cached by objkt.
 				bson.M{
-					"thumbnailLastCheck": bson.M{"$lt": time.Now().Add(-10 * time.Minute)},
+					"source":                              "tzkt",
+					"projectMetadata.latest.source":       bson.M{"$nin": []string{"fxhash"}},
+					"projectMetadata.latest.thumbnailURL": bson.M{"$regex": "^https://ipfs"}, // either ipfs.io or ipfs.bitmark
+				},
+				// For opensea tokens, we can only check the mime-type of an asset by its file extension.
+				bson.M{
+					"source": "opensea",
+					"projectMetadata.latest.thumbnailURL": bson.M{
+						"$regex": ".svg$",
+					},
 				},
 			},
 		},
 		bson.M{"$set": bson.M{"thumbnailLastCheck": time.Now()}},
-		options.FindOneAndUpdate().SetProjection(
-			bson.M{"indexID": 1, "projectMetadata.latest.thumbnailURL": 1},
-		),
-	)
-
-	if err := r.Err(); err != nil {
-		return asset, err
-	}
-
-	err := r.Decode(&asset)
-	return asset, err
-}
-
-// getAssetWithoutIPFSPinned looks up assets without ipfs pinned
-func (s *NFTContentIndexer) getAssetWithoutIPFSPinned(ctx context.Context) (NFTAsset, error) {
-	var asset NFTAsset
-	r := s.nftAssets.FindOneAndUpdate(ctx,
-		bson.M{
-			"ipfsPinned":                        bson.M{"$ne": true},
-			"source":                            indexer.SourceTZKT,
-			"projectMetadata.latest.previewURL": bson.M{"$ne": ""},
-			"projectMetadata.latest.medium":     indexer.MediumVideo,
-			"projectMetadata.latest.mimeType":   bson.M{"$in": bson.A{"video/webm", "video/quicktime", "video/ogg", "video/mp4"}},
-			"$or": bson.A{
-				bson.M{
-					"ipfsPinnedLastCheck": bson.M{"$exists": false},
-				},
-				bson.M{
-					"ipfsPinnedLastCheck": bson.M{"$lt": time.Now().Add(-1 * time.Minute)},
-				},
-			},
-		},
-		bson.M{"$set": bson.M{"ipfsPinnedLastCheck": time.Now()}},
-		options.FindOneAndUpdate().SetProjection(
-			bson.M{"indexID": 1, "projectMetadata.latest.previewURL": 1},
-		),
+		options.FindOneAndUpdate().
+			SetSort(bson.D{{Key: "projectMetadata.latest.lastUpdatedAt", Value: 1}}).
+			SetProjection(bson.M{"indexID": 1, "projectMetadata.latest.thumbnailURL": 1}),
 	)
 
 	if err := r.Err(); err != nil {
@@ -192,18 +151,7 @@ func (s *NFTContentIndexer) updateTokenThumbnail(ctx context.Context, indexID, t
 	_, err := s.nftAssets.UpdateOne(
 		ctx,
 		bson.M{"indexID": indexID},
-		bson.D{{"$set", bson.D{{"thumbnailID", thumbnailID}}}},
-	)
-
-	return err
-}
-
-// updateTokenPinnedStatus sets a specific token to be pinned
-func (s *NFTContentIndexer) updateTokenPinnedStatus(ctx context.Context, indexID string) error {
-	_, err := s.nftAssets.UpdateOne(
-		ctx,
-		bson.M{"indexID": indexID},
-		bson.D{{"$set", bson.D{{"ipfsPinned", true}}}},
+		bson.D{{Key: "$set", Value: bson.D{{Key: "thumbnailID", Value: thumbnailID}}}},
 	)
 
 	return err
@@ -218,6 +166,10 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 		defer close(assets)
 
 		s.spawnThumbnailWorker(ctx, assets, 100)
+
+		logrus.WithField("thumbnailCachePeriod", s.thumbnailCachePeriod).
+			WithField("thumbnailCacheRetryInterval", s.thumbnailCacheRetryInterval).
+			Info("start the loop the get assets without thumbnail cached")
 
 	WATCH_ASSETS:
 		for {
@@ -242,43 +194,7 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 
 }
 
-// checkIPFSPinned starts workers to check and pin files to IPFS
-func (s *NFTContentIndexer) checkIPFSPinned(ctx context.Context) {
-	s.wg.Add(1)
-	go func() {
-		defer s.wg.Done()
-
-		assets := make(chan NFTAsset, 50)
-		defer close(assets)
-
-		s.spawnIPFSPinWorker(ctx, assets, 1)
-
-	WATCH_ASSETS:
-		for {
-			asset, err := s.getAssetWithoutIPFSPinned(ctx)
-			if err != nil {
-				if errors.Is(err, mongo.ErrNoDocuments) {
-					logrus.Info("No token need to pin IPFS")
-				} else {
-					logrus.WithError(err).Error("fail to get asset")
-				}
-
-				if done := indexer.SleepWithContext(ctx, 15*time.Second); done {
-					break WATCH_ASSETS
-				}
-
-				continue
-			}
-
-			logrus.WithField("indexID", asset.IndexID).Debug("send asset to process")
-			assets <- asset
-		}
-		logrus.Debug("IPFS-pinned checker closed")
-	}()
-}
-
 func (s *NFTContentIndexer) Start(ctx context.Context) {
 	s.checkThumbnail(ctx)
-	// s.checkIPFSPinned(ctx)
 	s.wg.Wait()
 }
