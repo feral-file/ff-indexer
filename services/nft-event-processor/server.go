@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"time"
 
 	"github.com/bitmark-inc/autonomy-account/storage"
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -9,8 +10,6 @@ import (
 	"github.com/bitmark-inc/nft-indexer/cadence"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
-
-	"time"
 
 	notification "github.com/bitmark-inc/autonomy-notification"
 	notificationSdk "github.com/bitmark-inc/autonomy-notification/sdk"
