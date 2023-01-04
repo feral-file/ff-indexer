@@ -289,15 +289,19 @@ func (d *AssetMetadataDetail) UpdateMetadataFromObjkt(token objkt.Token) {
 	d.Medium = mediumByMIMEType(token.Mime)
 
 	if token.DisplayUri != "" {
-		d.DisplayURI = d.ReplaceIPFSURIByObjktCDNURI(ObjktCDNDisplayType, token.DisplayUri)
+		d.DisplayURI = d.ReplaceIPFSURIByObjktCDNURI(ObjktCDNDisplayType, token.DisplayUri, token.FaContract, token.TokenID)
+	} else if token.ThumbnailUri == hicetnuncDefaultThumbnailURL {
+		d.DisplayURI = d.ReplaceIPFSURIByObjktCDNURI(ObjktCDNArtifactThumbnailType, token.ThumbnailUri, token.FaContract, token.TokenID)
 	} else if token.ThumbnailUri != "" {
-		d.DisplayURI = d.ReplaceIPFSURIByObjktCDNURI(ObjktCDNThumbnailType, token.ThumbnailUri)
-	} else {
+		d.DisplayURI = d.ReplaceIPFSURIByObjktCDNURI(ObjktCDNThumbnailType, token.ThumbnailUri, token.FaContract, token.TokenID)
+	}
+
+	if d.DisplayURI == "" || d.DisplayURI == hicetnuncDefaultThumbnailURL {
 		d.DisplayURI = defaultIPFSLink(DEFAULT_DISPLAY_URI)
 	}
 
 	if token.ArtifactUri != "" {
-		d.PreviewURI = d.ReplaceIPFSURIByObjktCDNURI(ObjktCDNArtifactType, token.ArtifactUri)
+		d.PreviewURI = d.ReplaceIPFSURIByObjktCDNURI(ObjktCDNArtifactType, token.ArtifactUri, token.FaContract, token.TokenID)
 	} else {
 		d.PreviewURI = defaultIPFSLink(DEFAULT_DISPLAY_URI)
 	}
@@ -320,12 +324,12 @@ func getArtistURL(h objkt.Holder) string {
 }
 
 // ReplaceIPFSURIByObjktCDNURI return CDN uri if exist, if not this function will return ipfs link
-func (d *AssetMetadataDetail) ReplaceIPFSURIByObjktCDNURI(assetType string, assetUri string) string {
+func (d *AssetMetadataDetail) ReplaceIPFSURIByObjktCDNURI(assetType, assetUri, contract, tokenID string) string {
 	if !strings.HasPrefix(assetUri, "ipfs://") {
 		return assetUri
 	}
 
-	uri, err := MakeCDNURIFromIPFSURI(assetUri, assetType)
+	uri, err := MakeCDNURIFromIPFSURI(assetUri, assetType, contract, tokenID)
 
 	if err == nil {
 		return uri
@@ -335,7 +339,7 @@ func (d *AssetMetadataDetail) ReplaceIPFSURIByObjktCDNURI(assetType string, asse
 }
 
 // MakeCDNURIFromIPFSURI create Objkt CDN uri from IPFS Uri(extract cid)
-func MakeCDNURIFromIPFSURI(assetURI string, assetType string) (string, error) {
+func MakeCDNURIFromIPFSURI(assetURI, assetType, contract, tokenID string) (string, error) {
 	var uri string
 	var cid string
 
@@ -348,6 +352,21 @@ func MakeCDNURIFromIPFSURI(assetURI string, assetType string) (string, error) {
 
 	urlParsed.Scheme = "https"
 	urlParsed.Host = ObjktCDNHost
+
+	if assetType == ObjktCDNArtifactThumbnailType {
+		urlParsed.Path, err = url.JoinPath(ObjktCDNBasePath, contract, tokenID, assetType)
+		if err != nil {
+			return "", err
+		}
+
+		uri = urlParsed.String()
+
+		if CheckCDNURLIsExist(uri) {
+			return uri, nil
+		} else {
+			return "", fmt.Errorf("CDN URL is not exist")
+		}
+	}
 
 	urlParsed.Path, err = url.JoinPath(ObjktCDNBasePath, cid, assetType)
 	if err != nil {

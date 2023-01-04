@@ -38,6 +38,8 @@ type Token struct {
 	DisplayUri   string `graphql:"display_uri"`
 	ThumbnailUri string `graphql:"thumbnail_uri"`
 	ArtifactUri  string `graphql:"artifact_uri"`
+	TokenID      string `graphql:"token_id"`
+	FaContract   string `graphql:"fa_contract"`
 	Creators     []Creators
 }
 
