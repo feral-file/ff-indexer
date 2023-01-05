@@ -81,7 +81,7 @@ func StartUpdateAccountTokensWorkflow(c context.Context, client *cadence.Cadence
 	workflowContext := cadenceClient.StartWorkflowOptions{
 		ID:                           "update-account-token-helper",
 		TaskList:                     AccountTokenTaskListName,
-		ExecutionStartToCloseTimeout: time.Hour,
+		ExecutionStartToCloseTimeout: 20 * 365 * 24 * time.Hour, // fake infinite duration
 		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
 	}
 
