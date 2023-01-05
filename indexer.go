@@ -187,6 +187,11 @@ func (detail *AssetMetadataDetail) UpdateMetadataFromTZKT(md tzkt.TokenMetadata)
 		previewURI = displayURI
 	}
 
+	if len(md.Creators) > 0 {
+		detail.ArtistID = md.Creators[0]
+		detail.ArtistName = md.Creators[0]
+	}
+
 	detail.DisplayURI = defaultIPFSLink(displayURI)
 	detail.PreviewURI = defaultIPFSLink(previewURI)
 }
@@ -276,8 +281,12 @@ func (d *AssetMetadataDetail) FromObjkt(objktToken objkt.Token) {
 
 	if len(objktToken.Creators) > 0 {
 		d.ArtistID = objktToken.Creators[0].Holder.Address
-		d.ArtistName = objktToken.Creators[0].Holder.Alias
 		d.ArtistURL = getArtistURL(objktToken.Creators[0].Holder)
+		d.ArtistName = objktToken.Creators[0].Holder.Alias
+
+		if d.ArtistName == "" && d.ArtistID != "" {
+			d.ArtistName = d.ArtistID
+		}
 	}
 }
 
