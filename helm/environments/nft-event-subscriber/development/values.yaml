@@ -7,12 +7,11 @@ image:
     tezosFeralfileIndexer: tezos-feralfile-indexer-2.0.0-6
 
 serviceConfig:
-  tezosNodeRPCURL: https://rpc.kathmandu.tzstats.com
+  tezosNodeRPCURL: https://rpc.lima.tzstats.com
   contractAddresses: [
-    "KT1Ca3Bpug7mZaQ2YQvVYzu4Byx7V28nNrat",
-    "KT1JwEGFHNQLtmUoUVHGHUvyJisyVTfojouU"
+    "KT1VZ6Zkoae9DtXkbuw4wtFCg9WH8eywcvEX"
   ]
-  contractBoostUrl: "https://api.kathmandunet.tzkt.io/"
+  contractBoostUrl: "https://api.limanet.tzkt.io/"
   environment: development
   network:
     tezos: testnet
