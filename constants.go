@@ -40,11 +40,12 @@ var BlockchainAlias = map[string]string{
 }
 
 const (
-	ObjktCDNDisplayType   = "display"
-	ObjktCDNArtifactType  = "artifact"
-	ObjktCDNThumbnailType = "thumbnail"
-	ObjktCDNBasePath      = "/file/assets-003/"
-	ObjktCDNHost          = "assets.objkt.media"
+	ObjktCDNDisplayType           = "display"
+	ObjktCDNArtifactType          = "artifact"
+	ObjktCDNThumbnailType         = "thumbnail"
+	ObjktCDNArtifactThumbnailType = "thumb288"
+	ObjktCDNBasePath              = "/file/assets-003/"
+	ObjktCDNHost                  = "assets.objkt.media"
 )
 
 // ObjktCDNTypes should be in order, make sure ObjktCDNThumbnailType stand behind ObjktCDNArtifactType
@@ -59,3 +60,5 @@ const (
 	StagingEnvironment     = "staging"
 	ProductiontEnvironment = "production"
 )
+
+const hicetnuncDefaultThumbnailURL = "ipfs://QmNrhZHUaEqxhyLfqoq1mtHSipkWHeT31LNHb1QEbDHgnc"
