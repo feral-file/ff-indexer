@@ -106,13 +106,15 @@ func PreprocessTokens(indexIDs []string, isConvertToDecimal bool) []string {
 			continue
 		}
 
-		if isConvertToDecimal && blockchain == indexer.BlockchainAlias[indexer.EthereumBlockchain] {
-			decimalTokenID, ok := big.NewInt(0).SetString(tokenID, 16)
-			if !ok {
-				continue
+		if blockchain == indexer.BlockchainAlias[indexer.EthereumBlockchain] {
+			if isConvertToDecimal {
+				decimalTokenID, ok := big.NewInt(0).SetString(tokenID, 16)
+				if !ok {
+					continue
+				}
+				tokenID = decimalTokenID.String()
 			}
-
-			indexID = fmt.Sprintf("%s-%s-%s", blockchain, contractAddress, decimalTokenID.String())
+			indexID = fmt.Sprintf("%s-%s-%s", blockchain, contractAddress, tokenID)
 		}
 
 		processedAddresses = append(processedAddresses, indexID)
