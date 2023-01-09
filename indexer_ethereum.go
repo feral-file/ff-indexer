@@ -121,6 +121,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 		AssetID:             contractAddress,
 		Title:               a.Name,
 		Description:         a.Description,
+		MIMEType:            GetMIMEType(a.ImageURL),
 		Medium:              MediumUnknown,
 		Source:              source,
 		SourceURL:           sourceURL,
@@ -133,6 +134,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 
 	if a.AnimationURL != "" {
 		metadata.PreviewURL = a.AnimationURL
+		metadata.MIMEType = GetMIMEType(a.AnimationURL)
 
 		if source == "Art Blocks" {
 			metadata.Medium = MediumSoftware

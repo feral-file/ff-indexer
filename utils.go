@@ -7,6 +7,7 @@ import (
 	"math"
 	"math/big"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/gabriel-vasile/mimetype"
 )
 
 func EthereumChecksumAddress(address string) string {
@@ -200,4 +202,44 @@ func VerifyTezosSignature(message, signature, address, publicKey string) (bool, 
 		return false, err
 	}
 	return true, nil
+}
+
+// GetMIMETypeByDownloadingFile returns mimeType of a file in a specific url by downloading a file
+// This takes some time to download the file
+func GetMIMETypeByDownloadingFile(url string) (string, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	fileHeader := make([]byte, 512)
+	_, err = resp.Body.Read(fileHeader)
+	if err != nil {
+		return "", err
+	}
+
+	return mimetype.Detect(fileHeader).String(), nil
+}
+
+// GetMIMEType returns mimeType of a file based on the extension of the url
+func GetMIMEType(url string) string {
+	ext := strings.Split(filepath.Ext(url), "?")[0]
+
+	switch ext {
+	case ".svg":
+		return fmt.Sprintf("%s/%s", MediumImage, "svg+xml")
+	case ".jpg", ".jpeg":
+		return fmt.Sprintf("%s/%s", MediumImage, "jpeg")
+	case ".png", ".gif":
+		return fmt.Sprintf("%s/%s", MediumImage, strings.Split(ext, ".")[1])
+	case ".mp4", ".mov":
+		return fmt.Sprintf("%s/%s", MediumVideo, "mp4")
+	default:
+		mimetype, err := GetMIMETypeByDownloadingFile(url)
+		if err != nil {
+			return ""
+		}
+		return mimetype
+	}
 }
