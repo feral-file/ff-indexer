@@ -39,7 +39,6 @@ func main() {
 			}},
 			bson.M{"$or": bson.A{
 				bson.M{"indexID": bson.M{"$regex": "tez"}},
-				bson.M{"indexID": bson.M{"$regex": "eth"}},
 			}},
 		},
 	})
@@ -65,9 +64,7 @@ func main() {
 		s := strings.Split(indexID, "-")
 		thumbnailCDN := ad.ReplaceIPFSURIByObjktCDNURI(indexer.ObjktCDNArtifactThumbnailType, "ipfs://", s[1], s[2])
 
-		if thumbnailCDN == "" {
-			thumbnailCDN = strings.ReplaceAll(indexer.DEFAULT_DISPLAY_URI, "ipfs://", indexer.DEFAULT_IPFS_GATEWAY)
-		} else {
+		if thumbnailCDN != "ipfs://" {
 			_, err := assetsCollection.UpdateOne(
 				ctx,
 				bson.M{"indexID": bson.M{"$eq": indexID}},
