@@ -64,7 +64,9 @@ func main() {
 		s := strings.Split(indexID, "-")
 		thumbnailCDN := ad.ReplaceIPFSURIByObjktCDNURI(indexer.ObjktCDNArtifactThumbnailType, "ipfs://", s[1], s[2])
 
-		if thumbnailCDN != "ipfs://" {
+		if thumbnailCDN == "ipfs://" {
+			thumbnailCDN = strings.ReplaceAll(indexer.DEFAULT_DISPLAY_URI, "ipfs://", indexer.DEFAULT_IPFS_GATEWAY)
+		} else {
 			_, err := assetsCollection.UpdateOne(
 				ctx,
 				bson.M{"indexID": bson.M{"$eq": indexID}},
