@@ -65,11 +65,8 @@ func main() {
 
 	mongoCollection := client.Database("nft_indexer").Collection("assets")
 	cursor, err := mongoCollection.Find(ctx, bson.M{
-		"source": "opensea",
-		"$or": bson.A{
-			bson.M{"projectMetadata.origin.mimeType": ""},
-			bson.M{"projectMetadata.latest.mimeType": ""},
-		},
+		"source":                          "opensea",
+		"projectMetadata.latest.mimeType": "",
 	})
 	if err != nil {
 		panic(err)
@@ -96,11 +93,7 @@ func main() {
 		result, err := mongoCollection.UpdateOne(
 			ctx,
 			bson.M{"indexID": asset.IndexID},
-			bson.D{
-				{Key: "$set", Value: bson.D{
-					{Key: "projectMetadata.origin.mimeType", Value: mimeType},
-					{Key: "projectMetadata.latest.mimeType", Value: mimeType}}},
-			},
+			bson.M{"$set": bson.M{"projectMetadata.latest.mimeType": mimeType}},
 		)
 
 		if err != nil {

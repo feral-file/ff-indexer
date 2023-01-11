@@ -7,7 +7,6 @@ import (
 	"math"
 	"math/big"
 	"net/http"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -224,22 +223,21 @@ func GetMIMETypeByDownloadingFile(url string) (string, error) {
 
 // GetMIMEType returns mimeType of a file based on the extension of the url
 func GetMIMEType(url string) string {
-	ext := strings.Split(filepath.Ext(url), "?")[0]
+	temp := strings.Split(url, ".")
+	ext := strings.Split(temp[len(temp)-1], "?")[0]
 
 	switch ext {
-	case ".svg":
+	case "svg":
 		return fmt.Sprintf("%s/%s", MediumImage, "svg+xml")
-	case ".jpg", ".jpeg":
+	case "jpg", "jpeg":
 		return fmt.Sprintf("%s/%s", MediumImage, "jpeg")
-	case ".png", ".gif":
-		return fmt.Sprintf("%s/%s", MediumImage, strings.Split(ext, ".")[1])
-	case ".mp4", ".mov":
-		return fmt.Sprintf("%s/%s", MediumVideo, "mp4")
+	case "png", "gif":
+		return fmt.Sprintf("%s/%s", MediumImage, ext)
+	case "mp4":
+		return fmt.Sprintf("%s/%s", MediumVideo, ext)
+	case "mov":
+		return fmt.Sprintf("%s/%s", MediumVideo, "quicktime")
 	default:
-		mimetype, err := GetMIMETypeByDownloadingFile(url)
-		if err != nil {
-			return ""
-		}
-		return mimetype
+		return ""
 	}
 }
