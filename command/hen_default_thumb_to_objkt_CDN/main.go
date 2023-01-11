@@ -66,21 +66,21 @@ func main() {
 
 		if thumbnailCDN == "ipfs://" {
 			thumbnailCDN = strings.ReplaceAll(indexer.DEFAULT_DISPLAY_URI, "ipfs://", indexer.DEFAULT_IPFS_GATEWAY)
-		} else {
-			_, err := assetsCollection.UpdateOne(
-				ctx,
-				bson.M{"indexID": bson.M{"$eq": indexID}},
-				bson.M{"$set": bson.M{
-					"projectMetadata.latest.thumbnailURL":        thumbnailCDN,
-					"projectMetadata.latest.galleryThumbnailURL": thumbnailCDN,
-				}},
-			)
-
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			fmt.Println("update thumbnail for asset have indexID: ", indexID)
 		}
+
+		_, err := assetsCollection.UpdateOne(
+			ctx,
+			bson.M{"indexID": bson.M{"$eq": indexID}},
+			bson.M{"$set": bson.M{
+				"projectMetadata.latest.thumbnailURL":        thumbnailCDN,
+				"projectMetadata.latest.galleryThumbnailURL": thumbnailCDN,
+			}},
+		)
+
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println("update thumbnail for asset have indexID: ", indexID)
 	}
 }
