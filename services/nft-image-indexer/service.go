@@ -18,9 +18,8 @@ import (
 )
 
 type NFTAsset struct {
-	IndexID          string                           `bson:"indexID"`
-	ThumbnailFailure string                           `bson:"thumbnailFailure"`
-	ProjectMetadata  indexer.VersionedProjectMetadata `bson:"projectMetadata"`
+	IndexID         string                           `bson:"indexID"`
+	ProjectMetadata indexer.VersionedProjectMetadata `bson:"projectMetadata"`
 }
 
 type NFTContentIndexer struct {
@@ -69,26 +68,28 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 					},
 				)
 				if err != nil {
-					if errors.Is(err, imageStore.ErrUnsupportImageType) {
+					if errors.Is(err, imageStore.UploadErrorTypes[imageStore.ErrUnsupportImageType]) {
+						errString = imageStore.ErrUnsupportImageType
 						logrus.WithField("indexID", asset.IndexID).Warn("unsupported image type")
 						// let the image id remain empty string
 					} else if _, ok := err.(*customErrors.UnsupportedSVG); ok {
 						errString = imageStore.ErrUnsupportedSVGURL
 						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
 						sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
+					} else if errors.Is(err, imageStore.UploadErrorTypes[imageStore.ErrDownloadFileError]) {
+						errString = imageStore.ErrDownloadFileError
+						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
+						sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
+					} else if errors.Is(err, imageStore.UploadErrorTypes[imageStore.ErrSizeTooLarge]) {
+						errString = imageStore.ErrSizeTooLarge
+						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
+						sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
 					} else {
-						for errType, errValue := range imageStore.UploadErrorTypes {
-							if errors.Is(err, errValue) {
-								errString = errType
-								sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
-								break
-							}
-						}
 						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
 					}
 
 					// add failure to the asset
-					err = s.addTokenThumbnailFailure(ctx, asset.IndexID, errString)
+					err = s.markAssetThumbnailFailed(ctx, asset.IndexID, errString)
 					if err != nil {
 						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("add thumbnail failure was failed")
 					}
@@ -177,8 +178,8 @@ func (s *NFTContentIndexer) updateTokenThumbnail(ctx context.Context, indexID, t
 	return err
 }
 
-// addTokenThumbnailFailure sets thumbnail failure for a specific token
-func (s *NFTContentIndexer) addTokenThumbnailFailure(ctx context.Context, indexID, thumbnailFailure string) error {
+// markAssetThumbnailFailed sets thumbnail failure for a specific token
+func (s *NFTContentIndexer) markAssetThumbnailFailed(ctx context.Context, indexID, thumbnailFailure string) error {
 	_, err := s.nftAssets.UpdateOne(
 		ctx,
 		bson.M{"indexID": indexID},

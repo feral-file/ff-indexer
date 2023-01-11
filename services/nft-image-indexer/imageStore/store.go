@@ -123,7 +123,7 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 			WithField("assetID", assetID).Debug("download thumbnail finished")
 
 		if !IsSupportedImageType(mimeType) {
-			return ErrUnsupportImageType
+			return UploadErrorTypes[ErrUnsupportImageType]
 		}
 
 		if metadata == nil {
