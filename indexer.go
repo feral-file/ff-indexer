@@ -344,7 +344,7 @@ func (d *AssetMetadataDetail) ReplaceIPFSURIByObjktCDNURI(assetType, assetUri, c
 		return uri
 	}
 
-	return assetUri
+	return defaultIPFSLink(assetUri)
 }
 
 // MakeCDNURIFromIPFSURI create Objkt CDN uri from IPFS Uri(extract cid)
@@ -401,5 +401,5 @@ func MakeCDNURIFromIPFSURI(assetURI, assetType, contract, tokenID string) (strin
 		}
 	}
 
-	return assetURI, nil
+	return defaultIPFSLink(assetURI), nil
 }
