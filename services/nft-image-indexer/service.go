@@ -83,7 +83,7 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 
 				// Update the thumbnail by image ID returned from cloudflare, it the whol process is succeed.
 				// Otherwise, it would update to an empty value
-				if err := s.updateTokenThumbnail(ctx, img.AssetID, img.ImageID); err != nil {
+				if err := s.updateAssetThumbnail(ctx, img.AssetID, img.ImageID); err != nil {
 					logrus.WithError(err).Error("update token thumbnail to indexer")
 				}
 
@@ -146,8 +146,8 @@ func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) 
 	return asset, err
 }
 
-// updateTokenThumbnail sets the thumbnail id for a specific token
-func (s *NFTContentIndexer) updateTokenThumbnail(ctx context.Context, indexID, thumbnailID string) error {
+// updateAssetThumbnail sets the thumbnail id for a specific token
+func (s *NFTContentIndexer) updateAssetThumbnail(ctx context.Context, indexID, thumbnailID string) error {
 	_, err := s.nftAssets.UpdateOne(
 		ctx,
 		bson.M{"indexID": indexID},
