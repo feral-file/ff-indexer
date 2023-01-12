@@ -68,20 +68,12 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 					},
 				)
 				if err != nil {
-					if errors.Is(err, imageStore.UploadErrorTypes[imageStore.ErrUnsupportImageType]) {
-						errString = imageStore.ErrUnsupportImageType
-						logrus.WithField("indexID", asset.IndexID).Warn("unsupported image type")
-						// let the image id remain empty string
-					} else if _, ok := err.(*customErrors.UnsupportedSVG); ok {
-						errString = imageStore.ErrUnsupportedSVGURL
+					if _, ok := err.(*customErrors.UnsupportedSVG); ok {
+						errString = customErrors.ErrUnsupportedSVGURL
 						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
 						sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
-					} else if errors.Is(err, imageStore.UploadErrorTypes[imageStore.ErrDownloadFileError]) {
-						errString = imageStore.ErrDownloadFileError
-						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
-						sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
-					} else if errors.Is(err, imageStore.UploadErrorTypes[imageStore.ErrSizeTooLarge]) {
-						errString = imageStore.ErrSizeTooLarge
+					} else if imgCachingErr, ok := err.(*customErrors.ImageCachingError); ok {
+						errString = imgCachingErr.Name
 						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
 						sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
 					} else {
