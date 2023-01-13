@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/customErrors"
+	Errors "github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/customErrors"
 	"github.com/cloudflare/cloudflare-go"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -117,14 +117,14 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 		downloadStartTime := time.Now()
 		file, mimeType, err := imageDownloader.Download()
 		if err != nil {
-			return customErrors.NewImageCachingError(customErrors.ErrDownloadFileError)
+			return Errors.NewImageCachingError(Errors.ErrDownloadFileError)
 		}
 		logrus.
 			WithField("duration", time.Since(downloadStartTime)).
 			WithField("assetID", assetID).Debug("download thumbnail finished")
 
 		if !IsSupportedImageType(mimeType) {
-			return customErrors.NewImageCachingError(customErrors.ErrUnsupportImageType)
+			return Errors.NewImageCachingError(Errors.ErrUnsupportImageType)
 		}
 
 		if metadata == nil {
@@ -149,7 +149,7 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 		if err != nil {
 			isErrSizeTooLarge, _ := regexp.MatchString("entity.*too large", err.Error())
 			if isErrSizeTooLarge {
-				return customErrors.NewImageCachingError(customErrors.ErrSizeTooLarge)
+				return Errors.NewImageCachingError(Errors.ErrSizeTooLarge)
 			}
 			return err
 		}

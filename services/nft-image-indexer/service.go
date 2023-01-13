@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/customErrors"
+	Errors "github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/customErrors"
 	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/imageStore"
 )
 
@@ -68,17 +68,15 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 					},
 				)
 				if err != nil {
-					if _, ok := err.(*customErrors.UnsupportedSVG); ok {
-						errString = customErrors.ErrUnsupportedSVGURL
-						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
+					if _, ok := err.(*Errors.UnsupportedSVG); ok {
+						errString = Errors.ErrUnsupportedSVGURL
 						sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
-					} else if imgCachingErr, ok := err.(*customErrors.ImageCachingError); ok {
+					} else if imgCachingErr, ok := err.(*Errors.ImageCachingError); ok {
 						errString = imgCachingErr.Name
-						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
 						sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
-					} else {
-						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
 					}
+
+					logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
 
 					// add failure to the asset
 					err = s.markAssetThumbnailFailed(ctx, asset.IndexID, errString)

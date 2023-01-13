@@ -8,7 +8,7 @@ import (
 
 	"github.com/chromedp/chromedp"
 
-	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/customErrors"
+	Errors "github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/customErrors"
 )
 
 const CropImageTimeout = 5 * time.Second
@@ -28,8 +28,8 @@ func ConvertSVGToPNG(url string) (*bytes.Buffer, error) {
 			return bytes.NewBuffer(buf), nil
 		}
 	}
-	
-	return nil, customErrors.NewUnsupportedSVG(url)
+
+	return nil, Errors.NewUnsupportedSVG(url)
 }
 
 func ScreenShoot(url string, selector string) ([]byte, error) {
