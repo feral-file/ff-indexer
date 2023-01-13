@@ -8,6 +8,7 @@ import (
 
 	"github.com/fatih/structs"
 	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -19,12 +20,13 @@ const (
 )
 
 const (
-	assetCollectionName        = "assets"
-	tokenCollectionName        = "tokens"
-	identityCollectionName     = "identities"
-	ffIdentityCollectionName   = "ff_identities"
-	accountCollectionName      = "accounts"
-	accountTokenCollectionName = "account_tokens"
+	assetCollectionName         = "assets"
+	tokenCollectionName         = "tokens"
+	identityCollectionName      = "identities"
+	ffIdentityCollectionName    = "ff_identities"
+	accountCollectionName       = "accounts"
+	accountTokenCollectionName  = "account_tokens"
+	tokenFeedbackCollectionName = "token_feedbacks"
 )
 
 var ErrNoRecordUpdated = fmt.Errorf("no record updated")
@@ -68,6 +70,11 @@ type IndexerStore interface {
 	DeleteDemoTokens(ctx context.Context, owner string) error
 
 	UpdateOwnerForFungibleToken(ctx context.Context, indexID string, lockedTime time.Time, to string, total int64) error
+
+	GetAbsentMimeTypeTokens(ctx context.Context, limit int) ([]CompactedToken, error)
+	UpdateTokenFeedback(ctx context.Context, tokenFeedbacks []TokenFeedbackUpdate, userDID string) error
+	GetGrouppedTokenFeedbacks(ctx context.Context) ([]GrouppedTokenFeedback, error)
+	UpdateTokenSugesstedMimeType(ctx context.Context, indexID, mimeType string) error
 }
 
 type FilterParameter struct {
@@ -88,28 +95,31 @@ func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*Mo
 	ffIdentityCollection := db.Collection(ffIdentityCollectionName)
 	accountCollection := db.Collection(accountCollectionName)
 	accountTokenCollection := db.Collection(accountTokenCollectionName)
+	tokenFeedbackCollection := db.Collection(tokenFeedbackCollectionName)
 
 	return &MongodbIndexerStore{
-		dbName:                 dbName,
-		mongoClient:            mongoClient,
-		tokenCollection:        tokenCollection,
-		assetCollection:        assetCollection,
-		identityCollection:     identityCollection,
-		ffIdentityCollection:   ffIdentityCollection,
-		accountCollection:      accountCollection,
-		accountTokenCollection: accountTokenCollection,
+		dbName:                  dbName,
+		mongoClient:             mongoClient,
+		tokenCollection:         tokenCollection,
+		assetCollection:         assetCollection,
+		identityCollection:      identityCollection,
+		ffIdentityCollection:    ffIdentityCollection,
+		accountCollection:       accountCollection,
+		accountTokenCollection:  accountTokenCollection,
+		tokenFeedbackCollection: tokenFeedbackCollection,
 	}, nil
 }
 
 type MongodbIndexerStore struct {
-	dbName                 string
-	mongoClient            *mongo.Client
-	tokenCollection        *mongo.Collection
-	assetCollection        *mongo.Collection
-	identityCollection     *mongo.Collection
-	ffIdentityCollection   *mongo.Collection
-	accountCollection      *mongo.Collection
-	accountTokenCollection *mongo.Collection
+	dbName                  string
+	mongoClient             *mongo.Client
+	tokenCollection         *mongo.Collection
+	assetCollection         *mongo.Collection
+	identityCollection      *mongo.Collection
+	ffIdentityCollection    *mongo.Collection
+	accountCollection       *mongo.Collection
+	accountTokenCollection  *mongo.Collection
+	tokenFeedbackCollection *mongo.Collection
 }
 
 type UpdateSet struct {
@@ -1497,4 +1507,148 @@ func (s *MongodbIndexerStore) GetTokensByIndexID(ctx context.Context, indexID st
 	}
 
 	return &tokens[0], err
+}
+
+func (s *MongodbIndexerStore) GetAbsentMimeTypeTokens(ctx context.Context, limit int) ([]CompactedToken, error) {
+	compactedToken := []CompactedToken{}
+
+	var tokens []struct {
+		IndexID         string                   `bson:"indexID"`
+		ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
+	}
+	c, err := s.assetCollection.Aggregate(ctx, []bson.M{
+		{
+			"$match": bson.D{{Key: "$or", Value: []interface{}{
+				bson.D{{Key: "projectMetadata.lastest.mimeType", Value: nil}},
+				bson.D{{Key: "projectMetadata.lastest.mimeType", Value: ""}},
+				bson.D{{Key: "projectMetadata.lastest.mimeType", Value: bson.M{"$exists": false}}},
+			}}},
+		},
+		{"$sample": bson.M{"size": limit}},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := c.All(ctx, &tokens); err != nil {
+		return nil, err
+	}
+
+	for _, token := range tokens {
+		compactedToken = append(compactedToken, CompactedToken{
+			IndexID:    token.IndexID,
+			PreviewURL: token.ProjectMetadata.Latest.PreviewURL,
+		})
+	}
+
+	return compactedToken, nil
+}
+
+func (s *MongodbIndexerStore) UpdateTokenFeedback(ctx context.Context, tokenFeedbacks []TokenFeedbackUpdate, userDID string) error {
+	r := s.tokenFeedbackCollection.FindOne(ctx, bson.M{"did": userDID}, options.FindOne().SetSort(bson.M{"lastUpdatedTime": -1}))
+
+	if err := r.Err(); err != nil {
+		if err != mongo.ErrNoDocuments {
+			return err
+		}
+	}
+
+	if r.Err() == nil {
+		var lastTokenFeedback TokenFeedback
+
+		if err := r.Decode(&lastTokenFeedback); err != nil {
+			return err
+		}
+
+		delay := time.Hour
+
+		if lastTokenFeedback.LastUpdatedTime.Unix() > time.Now().Add(-delay).Unix() {
+			log.WithField("lastUpdatedTime", lastTokenFeedback.LastUpdatedTime.Unix()).
+				WithField("now", time.Now().Add(-delay).Unix()).
+				WithField("account", userDID).Trace("feedback submit too frequently")
+			return fmt.Errorf("Feedback submit too frequently!")
+		}
+	}
+
+	for _, token := range tokenFeedbacks {
+		tokenFeedback := TokenFeedback{
+			IndexID:         token.IndexID,
+			MimeType:        token.MimeType,
+			DID:             userDID,
+			LastUpdatedTime: time.Now(),
+		}
+
+		r, err := s.tokenFeedbackCollection.UpdateOne(ctx,
+			bson.M{"indexID": token.IndexID, "did": userDID},
+			bson.M{"$set": tokenFeedback},
+			options.Update().SetUpsert(true),
+		)
+
+		if err != nil {
+			return err
+		}
+
+		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
+			logrus.WithField("index_id", tokenFeedback.IndexID).WithField("did", tokenFeedback.DID).Warn("token feedback is not added or updated")
+		}
+	}
+
+	return nil
+}
+
+func (s *MongodbIndexerStore) GetGrouppedTokenFeedbacks(ctx context.Context) ([]GrouppedTokenFeedback, error) {
+	tokenFeedbacks := make([]GrouppedTokenFeedback, 0)
+
+	c, err := s.tokenFeedbackCollection.Aggregate(ctx, []bson.M{
+		{"$sort": bson.D{{Key: "lastActivityTime", Value: 1}}},
+		{
+			"$group": bson.M{
+				"_id":   bson.M{"indexID": "$indexID", "mimeType": "$mimeType"},
+				"count": bson.M{"$sum": 1},
+			},
+		},
+		{
+			"$group": bson.M{
+				"_id": "$_id.indexID",
+				"mimeTypes": bson.M{
+					"$push": bson.M{
+						"mimeType": "$_id.mimeType",
+						"count":    "$count",
+					},
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	for c.Next(ctx) {
+		var tokenFeedback GrouppedTokenFeedback
+		if err := c.Decode(&tokenFeedback); err != nil {
+			return nil, err
+		}
+
+		tokenFeedbacks = append(tokenFeedbacks, tokenFeedback)
+	}
+
+	return tokenFeedbacks, nil
+}
+
+func (s *MongodbIndexerStore) UpdateTokenSugesstedMimeType(ctx context.Context, indexID, mimeType string) error {
+	r := s.tokenCollection.FindOne(ctx, bson.M{"indexID": indexID})
+	if err := r.Err(); err != nil {
+		return err
+	}
+
+	updates := bson.D{{Key: "$set", Value: bson.D{{Key: "projectMetadata.latest.suggestionMimeType", Value: mimeType}}}}
+
+	_, err := s.assetCollection.UpdateOne(
+		ctx,
+		bson.M{"indexID": indexID},
+		updates,
+	)
+
+	return err
 }

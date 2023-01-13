@@ -61,9 +61,11 @@ func main() {
 
 	// workflows
 	workflow.Register(worker.UpdateAccountTokensWorkflow)
+	workflow.Register(worker.UpdateSuggestedMimeTypeWorkflow)
 
 	// activities
 	activity.Register(worker.UpdateAccountTokens)
+	activity.Register(worker.CalculateMimeTypeFromTokenFeedback)
 
 	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)
 	workerLogger := cadence.BuildCadenceLogger(logLevel)
@@ -72,6 +74,7 @@ func main() {
 	cadenceClient.AddService(indexerWorker.ClientName)
 
 	indexerWorker.StartUpdateAccountTokensWorkflow(ctx, cadenceClient, 0)
+	indexerWorker.StartUpdateSuggestedMimeTypeWorkflow(ctx, cadenceClient, 0)
 
 	cadence.StartWorker(workerLogger, workerServiceClient, viper.GetString("cadence.domain"), indexerWorker.AccountTokenTaskListName)
 }

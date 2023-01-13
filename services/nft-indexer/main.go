@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"io/ioutil"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/getsentry/sentry-go"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -54,7 +56,17 @@ func main() {
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 	)
 
-	s := NewNFTIndexerServer(cadenceClient, ensClient, tezosDomain, feralfileClient, indexerStore, engine, viper.GetString("server.api_token"), viper.GetString("server.admin_api_token"))
+	jwtPublicByte, err := ioutil.ReadFile(viper.GetString("jwt.pubkeyfile"))
+	if err != nil {
+		log.WithError(err).Fatal("fail to read jwt key file")
+	}
+
+	jwtPubkey, err := jwt.ParseRSAPublicKeyFromPEM(jwtPublicByte)
+	if err != nil {
+		log.WithError(err).Panic("jwt public key parsing failed")
+	}
+
+	s := NewNFTIndexerServer(cadenceClient, ensClient, tezosDomain, feralfileClient, indexerStore, engine, jwtPubkey, viper.GetString("server.api_token"), viper.GetString("server.admin_api_token"), viper.GetString("server.secret_symmetric_key"))
 	s.SetupRoute()
 	if err := s.Run(viper.GetString("server.port")); err != nil {
 		log.WithError(err).Panic("server interrupted")

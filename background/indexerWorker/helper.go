@@ -94,3 +94,22 @@ func StartUpdateAccountTokensWorkflow(c context.Context, client *cadence.Cadence
 	}
 
 }
+
+func StartUpdateSuggestedMimeTypeWorkflow(c context.Context, client *cadence.CadenceWorkerClient, delay time.Duration) {
+	workflowContext := cadenceClient.StartWorkflowOptions{
+		ID:                           fmt.Sprintf("update-token-suggested-mime-type-%s", time.Now()),
+		TaskList:                     AccountTokenTaskListName,
+		ExecutionStartToCloseTimeout: time.Hour,
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+	}
+
+	var w NFTIndexerWorker
+
+	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.UpdateSuggestedMimeTypeWorkflow, delay)
+	if err != nil {
+		log.WithError(err).Error("fail to start updating suggested mime type workflow")
+	} else {
+		log.WithField("workflow_id", workflow.ID).Debug("start workflow for updating suggested mime type")
+	}
+
+}

@@ -2,8 +2,13 @@ package indexer
 
 import (
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"math/big"
 	"net/http"
@@ -226,4 +231,59 @@ func GetMIMEType(urlString string) string {
 	default:
 		return ""
 	}
+}
+
+func AESSeal(message []byte, passphrase string) (string, error) {
+	key := []byte(passphrase)
+
+	c, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	gcm, err := cipher.NewGCM(c)
+	if err != nil {
+		return "", err
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+		return "", err
+	}
+
+	bytes := gcm.Seal(nonce, nonce, message, nil)
+
+	return hex.EncodeToString(bytes), err
+}
+
+func AESOpen(hexString string, passphrase string) ([]byte, error) {
+	ciphertext, err := hex.DecodeString(hexString)
+	if err != nil {
+		return nil, err
+	}
+
+	key := []byte(passphrase)
+
+	c, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	gcm, err := cipher.NewGCM(c)
+	if err != nil {
+		return nil, err
+	}
+
+	nonceSize := gcm.NonceSize()
+	if len(ciphertext) < nonceSize {
+		return nil, err
+	}
+
+	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
+	message, err := gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return message, nil
 }
