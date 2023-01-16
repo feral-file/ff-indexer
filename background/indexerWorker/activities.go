@@ -648,7 +648,11 @@ func (w *NFTIndexerWorker) CalculateMIMETypeFromTokenFeedback(ctx context.Contex
 		}
 
 		if max*100.0/total >= 75 {
-			w.indexerStore.UpdateTokenSugesstedMIMEType(ctx, token.IndexID, suggestedMimeType)
+			err = w.indexerStore.UpdateTokenSugesstedMIMEType(ctx, token.IndexID, suggestedMimeType)
+			if err != nil {
+				log.WithField("indexID", token.IndexID).WithField("suggestedMimeType", suggestedMimeType).Debug("failed to update token suggested MIME Type")
+				return err
+			}
 		}
 	}
 

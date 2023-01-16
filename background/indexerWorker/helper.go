@@ -95,12 +95,12 @@ func StartUpdateAccountTokensWorkflow(c context.Context, client *cadence.Cadence
 
 }
 
-func StartUpdateSuggestedMimeTypeWorkflow(c context.Context, client *cadence.CadenceWorkerClient, delay time.Duration) {
+func StartUpdateSuggestedMIMETypeCronWorkflow(c context.Context, client *cadence.CadenceWorkerClient, delay time.Duration) {
 	workflowContext := cadenceClient.StartWorkflowOptions{
 		ID:                           fmt.Sprintf("update-token-suggested-mime-type-%s", time.Now()),
 		TaskList:                     AccountTokenTaskListName,
 		ExecutionStartToCloseTimeout: time.Hour,
-		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+		CronSchedule:                 "0 * * * *", //every hour
 	}
 
 	var w NFTIndexerWorker
@@ -111,5 +111,4 @@ func StartUpdateSuggestedMimeTypeWorkflow(c context.Context, client *cadence.Cad
 	} else {
 		log.WithField("workflow_id", workflow.ID).Debug("start workflow for updating suggested mime type")
 	}
-
 }

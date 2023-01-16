@@ -74,7 +74,7 @@ func main() {
 	cadenceClient.AddService(indexerWorker.ClientName)
 
 	indexerWorker.StartUpdateAccountTokensWorkflow(ctx, cadenceClient, 0)
-	indexerWorker.StartUpdateSuggestedMimeTypeWorkflow(ctx, cadenceClient, 0)
+	indexerWorker.StartUpdateSuggestedMIMETypeCronWorkflow(ctx, cadenceClient, 0)
 
 	cadence.StartWorker(workerLogger, workerServiceClient, viper.GetString("cadence.domain"), indexerWorker.AccountTokenTaskListName)
 }

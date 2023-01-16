@@ -1509,6 +1509,7 @@ func (s *MongodbIndexerStore) GetTokensByIndexID(ctx context.Context, indexID st
 	return &tokens[0], err
 }
 
+// GetAbsentMimeTypeTokens returns list up random limit tokens that mimeType is absent
 func (s *MongodbIndexerStore) GetAbsentMimeTypeTokens(ctx context.Context, limit int) ([]AbsentMIMETypeToken, error) {
 	compactedToken := []AbsentMIMETypeToken{}
 
@@ -1543,6 +1544,7 @@ func (s *MongodbIndexerStore) GetAbsentMimeTypeTokens(ctx context.Context, limit
 	return compactedToken, nil
 }
 
+// UpdateTokenFeedback inserts or updates list of token feedback by a user.
 func (s *MongodbIndexerStore) UpdateTokenFeedback(ctx context.Context, tokenFeedbacks []TokenFeedbackUpdate, userDID string) error {
 	r := s.tokenFeedbackCollection.FindOne(ctx, bson.M{"did": userDID}, options.FindOne().SetSort(bson.M{"lastUpdatedTime": -1}))
 
@@ -1587,7 +1589,7 @@ func (s *MongodbIndexerStore) UpdateTokenFeedback(ctx context.Context, tokenFeed
 			return err
 		}
 
-		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
+		if r.ModifiedCount == 0 && r.UpsertedCount == 0 {
 			logrus.WithField("index_id", tokenFeedback.IndexID).WithField("did", tokenFeedback.DID).Warn("token feedback is not added or updated")
 		}
 	}
@@ -1595,6 +1597,7 @@ func (s *MongodbIndexerStore) UpdateTokenFeedback(ctx context.Context, tokenFeed
 	return nil
 }
 
+// GetGrouppedTokenFeedbacks returns token feedbacks that group by indexID & mimeTypes.
 func (s *MongodbIndexerStore) GetGrouppedTokenFeedbacks(ctx context.Context) ([]GrouppedTokenFeedback, error) {
 	tokenFeedbacks := make([]GrouppedTokenFeedback, 0)
 
