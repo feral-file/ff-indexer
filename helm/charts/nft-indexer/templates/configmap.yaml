@@ -23,6 +23,12 @@ data:
       domain: {{ .Values.serviceConfig.cadence_domain }}
       log_level: 0
 
+    fxhash:
+      api_endpoint: https://api.fxhash.xyz/graphql
+
+    objkt:
+      api_endpoint: https://data.objkt.com/v3/graphql
+
     opensea:
       ratelimit: {{ .Values.serviceConfig.opensea_ratelimit }}
 
