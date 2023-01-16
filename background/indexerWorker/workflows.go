@@ -6,7 +6,6 @@ import (
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/getsentry/sentry-go"
-	cadenceClient "go.uber.org/cadence/client"
 	"go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
 )
@@ -14,35 +13,35 @@ import (
 const TokenRefreshingDelay = 7 * time.Minute
 
 // triggerIndexOutdatedTokenWorkflow triggers two workflows for checking both ownership and provenance
-func (w *NFTIndexerWorker) triggerIndexOutdatedTokenWorkflow(ctx workflow.Context, owner string, ownedFungibleToken, ownedNonFungibleToken []string) {
-	log := workflow.GetLogger(ctx)
+// func (w *NFTIndexerWorker) triggerIndexOutdatedTokenWorkflow(ctx workflow.Context, owner string, ownedFungibleToken, ownedNonFungibleToken []string) {
+// 	log := workflow.GetLogger(ctx)
 
-	if len(ownedFungibleToken) > 0 {
-		log.Debug("Start child workflow to check existence token ownership", zap.String("owner", owner))
-		cwoOwnership := workflow.ChildWorkflowOptions{
-			TaskList:                     ProvenanceTaskListName,
-			WorkflowID:                   WorkflowIDIndexTokenOwnershipByOwner(owner),
-			WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-			ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-			ExecutionStartToCloseTimeout: time.Hour,
-		}
-		_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoOwnership),
-			w.RefreshTokenOwnershipWorkflow, ownedFungibleToken, TokenRefreshingDelay)
-	}
+// 	if len(ownedFungibleToken) > 0 {
+// 		log.Debug("Start child workflow to check existence token ownership", zap.String("owner", owner))
+// 		cwoOwnership := workflow.ChildWorkflowOptions{
+// 			TaskList:                     ProvenanceTaskListName,
+// 			WorkflowID:                   WorkflowIDIndexTokenOwnershipByOwner(owner),
+// 			WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+// 			ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
+// 			ExecutionStartToCloseTimeout: time.Hour,
+// 		}
+// 		_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoOwnership),
+// 			w.RefreshTokenOwnershipWorkflow, ownedFungibleToken, TokenRefreshingDelay)
+// 	}
 
-	if len(ownedNonFungibleToken) > 0 {
-		log.Debug("Start child workflow to check existence token provenance", zap.String("owner", owner))
-		cwoProvenance := workflow.ChildWorkflowOptions{
-			TaskList:                     ProvenanceTaskListName,
-			WorkflowID:                   WorkflowIDIndexTokenProvenanceByOwner(owner),
-			WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-			ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-			ExecutionStartToCloseTimeout: time.Hour,
-		}
-		_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoProvenance),
-			w.RefreshTokenProvenanceWorkflow, ownedNonFungibleToken, TokenRefreshingDelay)
-	}
-}
+// 	if len(ownedNonFungibleToken) > 0 {
+// 		log.Debug("Start child workflow to check existence token provenance", zap.String("owner", owner))
+// 		cwoProvenance := workflow.ChildWorkflowOptions{
+// 			TaskList:                     ProvenanceTaskListName,
+// 			WorkflowID:                   WorkflowIDIndexTokenProvenanceByOwner(owner),
+// 			WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+// 			ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
+// 			ExecutionStartToCloseTimeout: time.Hour,
+// 		}
+// 		_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoProvenance),
+// 			w.RefreshTokenProvenanceWorkflow, ownedNonFungibleToken, TokenRefreshingDelay)
+// 	}
+// }
 
 // IndexOpenseaTokenWorkflow is a workflow to summarize NFT data from OpenSea and save it to the storage.
 func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, tokenOwner string) error {

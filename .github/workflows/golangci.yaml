@@ -3,9 +3,13 @@ on:
   push:
     branches:
       - main
+      - develop
+      - main_hotfix
   pull_request:
     branches:
       - main
+      - main_hotfix
+      - develop
 
 jobs:
   golangci:

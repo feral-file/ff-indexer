@@ -299,7 +299,10 @@ func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 		accountToken.ID = tokenID
 
 		accountTokens = append(accountTokens, accountToken)
-		e.indexerStore.IndexAccountTokens(ctx, to, accountTokens)
+		if err := e.indexerStore.IndexAccountTokens(ctx, to, accountTokens); err != nil {
+			logrus.WithError(err).Error("fail to index account token")
+			continue
+		}
 
 		if err := e.UpdateEvent(eventID, map[string]interface{}{
 			"stage": EventStages[stage+1],
