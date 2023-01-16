@@ -7,6 +7,8 @@ import (
 	"math"
 	"math/big"
 	"net/http"
+	"net/url"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -200,4 +202,28 @@ func VerifyTezosSignature(message, signature, address, publicKey string) (bool, 
 		return false, err
 	}
 	return true, nil
+}
+
+// GetMIMEType returns mimeType of a file based on the extension of the url
+func GetMIMEType(urlString string) string {
+	u, err := url.Parse(urlString)
+	if err != nil {
+		return ""
+	}
+	ext := path.Ext(u.Path)
+
+	switch ext {
+	case ".svg":
+		return fmt.Sprintf("%s/%s", MediumImage, "svg+xml")
+	case ".jpg", ".jpeg":
+		return fmt.Sprintf("%s/%s", MediumImage, "jpeg")
+	case ".png", ".gif":
+		return fmt.Sprintf("%s/%s", MediumImage, strings.Split(ext, ".")[1])
+	case ".mp4":
+		return fmt.Sprintf("%s/%s", MediumVideo, "mp4")
+	case ".mov":
+		return fmt.Sprintf("%s/%s", MediumVideo, "quicktime")
+	default:
+		return ""
+	}
 }
