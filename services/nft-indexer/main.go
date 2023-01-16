@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
+	"os"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/getsentry/sentry-go"
@@ -56,7 +56,7 @@ func main() {
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 	)
 
-	jwtPublicByte, err := ioutil.ReadFile(viper.GetString("jwt.pubkeyfile"))
+	jwtPublicByte, err := os.ReadFile(viper.GetString("jwt.pubkeyfile"))
 	if err != nil {
 		log.WithError(err).Fatal("fail to read jwt key file")
 	}
