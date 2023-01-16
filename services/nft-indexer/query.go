@@ -575,9 +575,9 @@ func (s *NFTIndexerServer) GetAbsentMimeTypeTokens(c *gin.Context) {
 		return
 	}
 
-	tokenIDs := []string{}
+	tokenIDs := map[string]bool{}
 	for _, t := range absentMIMETypeToken {
-		tokenIDs = append(tokenIDs, t.IndexID)
+		tokenIDs[t.IndexID] = true
 	}
 
 	rq := RequestedTokenFeedback{
@@ -640,15 +640,7 @@ func (s *NFTIndexerServer) FeedbackMimeTypeTokens(c *gin.Context) {
 	}
 
 	for _, tokenFeedback := range tokenFeedbacks.Tokens {
-		contains := false
-		for _, t := range rq.Tokens {
-			if tokenFeedback.IndexID == t {
-				contains = true
-				break
-			}
-		}
-
-		if !contains {
+		if _, contains := rq.Tokens[tokenFeedback.IndexID]; !contains {
 			abortWithError(c, http.StatusBadRequest, "indexIDs mismatch", err)
 			return
 		}

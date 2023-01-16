@@ -97,7 +97,7 @@ func StartUpdateAccountTokensWorkflow(c context.Context, client *cadence.Cadence
 
 func StartUpdateSuggestedMIMETypeCronWorkflow(c context.Context, client *cadence.CadenceWorkerClient, delay time.Duration) {
 	workflowContext := cadenceClient.StartWorkflowOptions{
-		ID:                           fmt.Sprintf("update-token-suggested-mime-type-%s", time.Now()),
+		ID:                           "update-token-suggested-mime-type",
 		TaskList:                     AccountTokenTaskListName,
 		ExecutionStartToCloseTimeout: time.Hour,
 		CronSchedule:                 "0 * * * *", //every hour

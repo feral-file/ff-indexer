@@ -48,9 +48,9 @@ type TokenFeedbackParams struct {
 }
 
 type RequestedTokenFeedback struct {
-	DID       string   `json:"did"`
-	Timestamp int64    `json:"timestamp"`
-	Tokens    []string `json:"token"`
+	DID       string          `json:"did"`
+	Timestamp int64           `json:"timestamp"`
+	Tokens    map[string]bool `json:"tokens"`
 }
 
 // FIXME: remove this and merge with background / helpers
