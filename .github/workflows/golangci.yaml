@@ -3,12 +3,12 @@ on:
   push:
     branches:
       - main
+      - main-hotfix
       - develop
-      - main_hotfix
   pull_request:
     branches:
       - main
-      - main_hotfix
+      - main-hotfix
       - develop
 
 jobs:
