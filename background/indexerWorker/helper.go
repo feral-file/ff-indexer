@@ -105,7 +105,7 @@ func StartUpdateSuggestedMimeTypeWorkflow(c context.Context, client *cadence.Cad
 
 	var w NFTIndexerWorker
 
-	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.UpdateSuggestedMimeTypeWorkflow, delay)
+	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.UpdateSuggestedMIMETypeWorkflow, delay)
 	if err != nil {
 		log.WithError(err).Error("fail to start updating suggested mime type workflow")
 	} else {

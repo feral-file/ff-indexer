@@ -289,7 +289,7 @@ func (w *NFTIndexerWorker) UpdateAccountTokensWorkflow(ctx workflow.Context, del
 }
 
 // UpdateSuggestedMimeTypeWorkflow is a workflow to update suggested mimeType from token feedback
-func (w *NFTIndexerWorker) UpdateSuggestedMimeTypeWorkflow(ctx workflow.Context, delay time.Duration) error {
+func (w *NFTIndexerWorker) UpdateSuggestedMIMETypeWorkflow(ctx workflow.Context, delay time.Duration) error {
 	var err error
 	for {
 		ao := workflow.ActivityOptions{
@@ -304,7 +304,7 @@ func (w *NFTIndexerWorker) UpdateSuggestedMimeTypeWorkflow(ctx workflow.Context,
 
 		log.Debug("start UpdateSuggestedMimeTypeWorkflow")
 
-		err = workflow.ExecuteActivity(ctx, w.CalculateMimeTypeFromTokenFeedback).Get(ctx, nil)
+		err = workflow.ExecuteActivity(ctx, w.CalculateMIMETypeFromTokenFeedback).Get(ctx, nil)
 		if err != nil {
 			log.Error("fail to update suggested mimeType")
 			return err

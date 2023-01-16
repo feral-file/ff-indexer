@@ -623,7 +623,7 @@ func (w *NFTIndexerWorker) GetBalanceDiffFromETHTransaction(transactionDetails [
 }
 
 // CalculateMimeTypeFromTokenFeedback calculate mimeType from token_feeback and update into token suggestedMimeType
-func (w *NFTIndexerWorker) CalculateMimeTypeFromTokenFeedback(ctx context.Context) error {
+func (w *NFTIndexerWorker) CalculateMIMETypeFromTokenFeedback(ctx context.Context) error {
 	grouppedTokenFeedback, err := w.indexerStore.GetGrouppedTokenFeedbacks(ctx)
 
 	if err != nil {
@@ -648,7 +648,7 @@ func (w *NFTIndexerWorker) CalculateMimeTypeFromTokenFeedback(ctx context.Contex
 		}
 
 		if max*100.0/total >= 75 {
-			w.indexerStore.UpdateTokenSugesstedMimeType(ctx, token.IndexID, suggestedMimeType)
+			w.indexerStore.UpdateTokenSugesstedMIMEType(ctx, token.IndexID, suggestedMimeType)
 		}
 	}
 

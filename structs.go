@@ -151,11 +151,6 @@ type TokenFeedbackUpdate struct {
 	MimeType string `json:"mimeType"`
 }
 
-type TokenFeedbackParams struct {
-	Tokens    []TokenFeedbackUpdate `json:"tokens"`
-	Signature string                `json:"signature"`
-}
-
 // VersionedProjectMetadata is a structure that manages different versions of project metadata.
 // Currently, it maintains two version: the original one and the latest one.
 type VersionedProjectMetadata struct {
@@ -172,7 +167,7 @@ type DetailedToken struct {
 	ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
 }
 
-type CompactedToken struct {
+type AbsentMIMETypeToken struct {
 	IndexID    string `json:"indexID"`
 	PreviewURL string `json:"previewURL"`
 }
@@ -182,12 +177,6 @@ type TokenFeedback struct {
 	MimeType        string    `json:"mimeType" bson:"mimeType"`
 	LastUpdatedTime time.Time `json:"lastUpdatedTime" bson:"lastUpdatedTime"`
 	DID             string    `json:"did" bson:"did"`
-}
-
-type TokenFeedbackSignature struct {
-	DID       string   `json:"did"`
-	Timestamp int64    `json:"timestamp"`
-	Tokens    []string `json:"token"`
 }
 
 type GrouppedTokenFeedback struct {

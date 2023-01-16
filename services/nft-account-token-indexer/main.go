@@ -61,11 +61,11 @@ func main() {
 
 	// workflows
 	workflow.Register(worker.UpdateAccountTokensWorkflow)
-	workflow.Register(worker.UpdateSuggestedMimeTypeWorkflow)
+	workflow.Register(worker.UpdateSuggestedMIMETypeWorkflow)
 
 	// activities
 	activity.Register(worker.UpdateAccountTokens)
-	activity.Register(worker.CalculateMimeTypeFromTokenFeedback)
+	activity.Register(worker.CalculateMIMETypeFromTokenFeedback)
 
 	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)
 	workerLogger := cadence.BuildCadenceLogger(logLevel)

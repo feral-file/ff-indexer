@@ -71,10 +71,10 @@ type IndexerStore interface {
 
 	UpdateOwnerForFungibleToken(ctx context.Context, indexID string, lockedTime time.Time, to string, total int64) error
 
-	GetAbsentMimeTypeTokens(ctx context.Context, limit int) ([]CompactedToken, error)
+	GetAbsentMimeTypeTokens(ctx context.Context, limit int) ([]AbsentMIMETypeToken, error)
 	UpdateTokenFeedback(ctx context.Context, tokenFeedbacks []TokenFeedbackUpdate, userDID string) error
 	GetGrouppedTokenFeedbacks(ctx context.Context) ([]GrouppedTokenFeedback, error)
-	UpdateTokenSugesstedMimeType(ctx context.Context, indexID, mimeType string) error
+	UpdateTokenSugesstedMIMEType(ctx context.Context, indexID, mimeType string) error
 }
 
 type FilterParameter struct {
@@ -1509,8 +1509,8 @@ func (s *MongodbIndexerStore) GetTokensByIndexID(ctx context.Context, indexID st
 	return &tokens[0], err
 }
 
-func (s *MongodbIndexerStore) GetAbsentMimeTypeTokens(ctx context.Context, limit int) ([]CompactedToken, error) {
-	compactedToken := []CompactedToken{}
+func (s *MongodbIndexerStore) GetAbsentMimeTypeTokens(ctx context.Context, limit int) ([]AbsentMIMETypeToken, error) {
+	compactedToken := []AbsentMIMETypeToken{}
 
 	var tokens []struct {
 		IndexID         string                   `bson:"indexID"`
@@ -1519,7 +1519,6 @@ func (s *MongodbIndexerStore) GetAbsentMimeTypeTokens(ctx context.Context, limit
 	c, err := s.assetCollection.Aggregate(ctx, []bson.M{
 		{
 			"$match": bson.D{{Key: "$or", Value: []interface{}{
-				bson.D{{Key: "projectMetadata.lastest.mimeType", Value: nil}},
 				bson.D{{Key: "projectMetadata.lastest.mimeType", Value: ""}},
 				bson.D{{Key: "projectMetadata.lastest.mimeType", Value: bson.M{"$exists": false}}},
 			}}},
@@ -1535,7 +1534,7 @@ func (s *MongodbIndexerStore) GetAbsentMimeTypeTokens(ctx context.Context, limit
 	}
 
 	for _, token := range tokens {
-		compactedToken = append(compactedToken, CompactedToken{
+		compactedToken = append(compactedToken, AbsentMIMETypeToken{
 			IndexID:    token.IndexID,
 			PreviewURL: token.ProjectMetadata.Latest.PreviewURL,
 		})
@@ -1636,7 +1635,7 @@ func (s *MongodbIndexerStore) GetGrouppedTokenFeedbacks(ctx context.Context) ([]
 	return tokenFeedbacks, nil
 }
 
-func (s *MongodbIndexerStore) UpdateTokenSugesstedMimeType(ctx context.Context, indexID, mimeType string) error {
+func (s *MongodbIndexerStore) UpdateTokenSugesstedMIMEType(ctx context.Context, indexID, mimeType string) error {
 	r := s.tokenCollection.FindOne(ctx, bson.M{"indexID": indexID})
 	if err := r.Err(); err != nil {
 		return err

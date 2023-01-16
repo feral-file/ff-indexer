@@ -253,7 +253,7 @@ func AESSeal(message []byte, passphrase string) (string, error) {
 
 	bytes := gcm.Seal(nonce, nonce, message, nil)
 
-	return hex.EncodeToString(bytes), err
+	return hex.EncodeToString(bytes), nil
 }
 
 func AESOpen(hexString string, passphrase string) ([]byte, error) {

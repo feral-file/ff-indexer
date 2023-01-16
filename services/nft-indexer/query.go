@@ -569,30 +569,30 @@ func (s *NFTIndexerServer) GetAbsentMimeTypeTokens(c *gin.Context) {
 
 	userDID := c.GetString("requester")
 
-	compactedTokens, err := s.indexerStore.GetAbsentMimeTypeTokens(c, 5)
+	absentMIMETypeToken, err := s.indexerStore.GetAbsentMimeTypeTokens(c, 5)
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
 		return
 	}
 
 	tokenIDs := []string{}
-	for _, c := range compactedTokens {
-		tokenIDs = append(tokenIDs, c.IndexID)
+	for _, t := range absentMIMETypeToken {
+		tokenIDs = append(tokenIDs, t.IndexID)
 	}
 
-	t := indexer.TokenFeedbackSignature{
+	rq := RequestedTokenFeedback{
 		DID:       userDID,
 		Timestamp: time.Now().Unix(),
 		Tokens:    tokenIDs,
 	}
 
-	data, err := json.Marshal(t)
+	data, err := json.Marshal(rq)
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "fail to encode tokens", err)
 		return
 	}
 
-	sig, err := indexer.AESSeal(data, s.secretSymmetricKey)
+	sealedRequest, err := indexer.AESSeal(data, s.secretSymmetricKey)
 
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "fail to generate signature", err)
@@ -600,8 +600,8 @@ func (s *NFTIndexerServer) GetAbsentMimeTypeTokens(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"tokens":    compactedTokens,
-		"signature": sig,
+		"tokens":    absentMIMETypeToken,
+		"requestID": sealedRequest,
 	})
 }
 
@@ -610,38 +610,38 @@ func (s *NFTIndexerServer) FeedbackMimeTypeTokens(c *gin.Context) {
 
 	userDID := c.GetString("requester")
 
-	var tokenFeedbacks indexer.TokenFeedbackParams
+	var tokenFeedbacks TokenFeedbackParams
 
 	if err := c.Bind(&tokenFeedbacks); err != nil {
 		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
 		return
 	}
 
-	data, err := indexer.AESOpen(tokenFeedbacks.Signature, s.secretSymmetricKey)
+	data, err := indexer.AESOpen(tokenFeedbacks.RequestID, s.secretSymmetricKey)
 	if err != nil {
 		abortWithError(c, http.StatusBadRequest, "fail to decrypt signature", err)
 		return
 	}
 
-	var ts indexer.TokenFeedbackSignature
-	if err := json.Unmarshal(data, &ts); err != nil {
+	var rq RequestedTokenFeedback
+	if err := json.Unmarshal(data, &rq); err != nil {
 		abortWithError(c, http.StatusBadRequest, "fail to decode signature", err)
 		return
 	}
 
-	if ts.DID != userDID {
+	if rq.DID != userDID {
 		abortWithError(c, http.StatusBadRequest, "user DID mismatch", err)
 		return
 	}
 
-	if ts.Timestamp < time.Now().Add(-30*time.Minute).Unix() {
+	if rq.Timestamp < time.Now().Add(-30*time.Minute).Unix() {
 		abortWithError(c, http.StatusBadRequest, "error request time too skewed", err)
 		return
 	}
 
 	for _, tokenFeedback := range tokenFeedbacks.Tokens {
 		contains := false
-		for _, t := range ts.Tokens {
+		for _, t := range rq.Tokens {
 			if tokenFeedback.IndexID == t {
 				contains = true
 				break
