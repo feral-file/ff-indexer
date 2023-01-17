@@ -19,6 +19,11 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
+<<<<<<< HEAD
+=======
+
+	"go.uber.org/cadence/.gen/go/shared"
+>>>>>>> 3f70a6f (Update package name)
 )
 
 var CadenceService = "cadence-frontend"
