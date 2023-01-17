@@ -13,7 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
-	Errors "github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/customErrors"
 	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/imageStore"
 )
 
@@ -68,10 +67,10 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 					},
 				)
 				if err != nil {
-					if _, ok := err.(*Errors.UnsupportedSVG); ok {
-						errString = Errors.ErrUnsupportedSVGURL
+					if _, ok := err.(*imageStore.UnsupportedSVG); ok {
+						errString = imageStore.ErrUnsupportedSVGURL
 						sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
-					} else if imgCachingErr, ok := err.(*Errors.ImageCachingError); ok {
+					} else if imgCachingErr, ok := err.(*imageStore.ImageCachingError); ok {
 						errString = imgCachingErr.Name
 						sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
 					}
