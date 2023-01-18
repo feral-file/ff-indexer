@@ -40,7 +40,7 @@ import {
     Fxhashv2UpdateOperatorsParameter,
 } from './fxhashv-2-indexer-interfaces.generated';
 
-import { outputTransfer } from './callback'
+import { outputTransfer as outputTransfer } from './callback'
 
 @contractFilter({ name: 'fxhashv2' })
 export class Fxhashv2Indexer {

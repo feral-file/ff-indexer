@@ -46,7 +46,7 @@ import {
     FeralFileV1UpdateOperatorsParameter,
 } from './feral-file-v-1-indexer-interfaces.generated';
 
-import { outputTransfer } from './callback'
+import { outputTransfer as outputTransfer } from './callback'
 
 @contractFilter({ name: 'FeralFileV1' })
 export class FeralFileV1Indexer {
