@@ -4,10 +4,12 @@ image:
   tags:
     eventSubscriber: "event-subscriber-0.0.16-6"
     tezosMarketplaceIndexer:
-    tezosFeralfileIndexer: tezos-feralfile-indexer-2.0.0-6
+    tezosFeralfileIndexer: tezos-feralfile-indexer-3.0.0-2
 
 serviceConfig:
   tezosNodeRPCURL: https://rpc.lima.tzstats.com
+  eventProcessorURI:
+  eventSubscriberURL: http://localhost:8089/events
   contractAddresses: [
     "KT1VZ6Zkoae9DtXkbuw4wtFCg9WH8eywcvEX"
   ]

@@ -98,6 +98,14 @@ spec:
           env:
             - name: DEFAULT_CONFIG_PATH
               value: /.config/dappetizer.default.config.json
+{{- if ne .Values.serviceConfig.eventProcessorURI "" }}
+            - name: EVENT_PROCESSOR_URI
+              value: {{ .Values.serviceConfig.eventProcessorURI }}
+{{- end }}
+{{- if ne .Values.serviceConfig.eventSubscriberURL "" }}
+            - name: EVENT_SUBSCRIBER_URL
+              value: {{ .Values.serviceConfig.eventSubscriberURL }}
+{{- end }}
             - name: TEZOS_NODE_RPC_URL
               value: {{ .Values.serviceConfig.tezosNodeRPCURL }}
           volumeMounts:
@@ -117,6 +125,14 @@ spec:
 {{- end }}
             - name: DEFAULT_CONFIG_PATH
               value: /.config/dappetizer.default.config.json
+{{- if ne .Values.serviceConfig.eventProcessorURI "" }}
+            - name: EVENT_PROCESSOR_URI
+              value: {{ .Values.serviceConfig.eventProcessorURI }}
+{{- end }}
+{{- if ne .Values.serviceConfig.eventSubscriberURL "" }}
+            - name: EVENT_SUBSCRIBER_URL
+              value: {{ .Values.serviceConfig.eventSubscriberURL }}
+{{- end }}
             - name: TEZOS_NODE_RPC_URL
               value: {{ .Values.serviceConfig.tezosNodeRPCURL }}
           volumeMounts:

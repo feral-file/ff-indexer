@@ -27,7 +27,7 @@ interface TezosTransferParameterItem {
 
 const IS_TESTNET = <string>process.env.NETWORK == "testnet"
 
-const eventProcessorUri = <string>process.env.EVENT_PROCESSOR_URL
+const eventProcessorUri = <string>process.env.EVENT_PROCESSOR_URI
 const eventSubscriberUrl = <string>process.env.EVENT_SUBSCRIBER_URL
 
 if (!eventSubscriberUrl) {
