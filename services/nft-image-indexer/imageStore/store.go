@@ -3,6 +3,7 @@ package imageStore
 import (
 	"context"
 	"io"
+	"regexp"
 	"strings"
 	"time"
 
@@ -115,14 +116,14 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 		downloadStartTime := time.Now()
 		file, mimeType, err := imageDownloader.Download()
 		if err != nil {
-			return err
+			return NewImageCachingError(ErrDownloadFileError)
 		}
 		logrus.
 			WithField("duration", time.Since(downloadStartTime)).
 			WithField("assetID", assetID).Debug("download thumbnail finished")
 
 		if !IsSupportedImageType(mimeType) {
-			return ErrUnsupportImageType
+			return NewImageCachingError(ErrUnsupportImageType)
 		}
 
 		if metadata == nil {
@@ -145,6 +146,10 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 
 		i, err := s.cloudflareAPI.UploadImage(ctx, s.cloudflareAccountID, uploadRequest)
 		if err != nil {
+			isErrSizeTooLarge, _ := regexp.MatchString("entity.*too large", err.Error())
+			if isErrSizeTooLarge {
+				return NewImageCachingError(ErrSizeTooLarge)
+			}
 			return err
 		}
 

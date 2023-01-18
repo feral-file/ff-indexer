@@ -13,7 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/customErrors"
 	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/imageStore"
 )
 
@@ -60,6 +59,7 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 				}
 
 				uploadImageStartTime := time.Now()
+				var errString string
 				img, err := s.db.UploadImage(ctx, asset.IndexID, NewURLImageDownloader(asset.ProjectMetadata.Latest.ThumbnailURL),
 					map[string]interface{}{
 						"source":   asset.ProjectMetadata.Latest.Source,
@@ -67,14 +67,20 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 					},
 				)
 				if err != nil {
-					if errors.Is(err, imageStore.ErrUnsupportImageType) {
-						logrus.WithField("indexID", asset.IndexID).Warn("unsupported image type")
-						// let the image id remain empty string
-					} else if _, ok := err.(*customErrors.UnsupportedSVG); ok {
-						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
+					if _, ok := err.(*imageStore.UnsupportedSVG); ok {
+						errString = imageStore.ErrUnsupportedSVGURL
 						sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
-					} else {
-						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
+					} else if imgCachingErr, ok := err.(*imageStore.ImageCachingError); ok {
+						errString = imgCachingErr.Name
+						sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
+					}
+
+					logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
+
+					// add failure to the asset
+					err = s.markAssetThumbnailFailed(ctx, asset.IndexID, errString)
+					if err != nil {
+						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("add thumbnail failure was failed")
 					}
 				}
 				logrus.
@@ -107,6 +113,10 @@ func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) 
 			},
 			// filter assets which does not have thumbnailID or the thumbnailID is empty
 			"thumbnailID": bson.M{
+				"$not": bson.M{"$exists": true, "$ne": ""},
+			},
+			// filter assets which does not have thumbnailFailure or the thumbnailFailure is empty
+			"thumbnailFailure": bson.M{
 				"$not": bson.M{"$exists": true, "$ne": ""},
 			},
 			// filter assets which are qualified to generate thumbnails in cloudflare.
@@ -152,6 +162,17 @@ func (s *NFTContentIndexer) updateAssetThumbnail(ctx context.Context, indexID, t
 		ctx,
 		bson.M{"indexID": indexID},
 		bson.D{{Key: "$set", Value: bson.D{{Key: "thumbnailID", Value: thumbnailID}}}},
+	)
+
+	return err
+}
+
+// markAssetThumbnailFailed sets thumbnail failure for a specific token
+func (s *NFTContentIndexer) markAssetThumbnailFailed(ctx context.Context, indexID, thumbnailFailure string) error {
+	_, err := s.nftAssets.UpdateOne(
+		ctx,
+		bson.M{"indexID": indexID},
+		bson.D{{Key: "$set", Value: bson.D{{Key: "thumbnailFailure", Value: thumbnailFailure}}}},
 	)
 
 	return err
