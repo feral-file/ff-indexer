@@ -70,7 +70,7 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 				)
 				if err != nil {
 					if errors.Is(err, imageStore.ErrUnsupportImageType) {
-						log.Warn("unsupported image type", zap.String("indexID", asset.IndexID), log.S)
+						log.Warn("unsupported image type", zap.String("indexID", asset.IndexID), log.SourceImageCaching)
 						// let the image id remain empty string
 					} else if _, ok := err.(*customErrors.UnsupportedSVG); ok {
 						log.Error("fail to upload image", zap.Error(err), zap.String("indexID", asset.IndexID), log.SourceImageCaching)
