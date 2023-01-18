@@ -7,6 +7,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	uberCadence "go.uber.org/cadence"
+	"go.uber.org/cadence/.gen/go/shared"
 	cadenceClient "go.uber.org/cadence/client"
 
 	"github.com/bitmark-inc/nft-indexer/cadence"
@@ -95,7 +96,7 @@ func StartUpdateAccountTokensWorkflow(c context.Context, client *cadence.Cadence
 
 }
 
-func StartUpdateSuggestedMIMETypeCronWorkflow(c context.Context, client *cadence.CadenceWorkerClient, delay time.Duration) {
+func StartUpdateSuggestedMIMETypeCronWorkflow(c context.Context, client *cadence.CadenceWorkerClient, delay time.Duration) error {
 	workflowContext := cadenceClient.StartWorkflowOptions{
 		ID:                           "update-token-suggested-mime-type",
 		TaskList:                     AccountTokenTaskListName,
@@ -108,7 +109,13 @@ func StartUpdateSuggestedMIMETypeCronWorkflow(c context.Context, client *cadence
 	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.UpdateSuggestedMIMETypeWorkflow, delay)
 	if err != nil {
 		log.WithError(err).Error("fail to start updating suggested mime type workflow")
+		_, isAlreadyStartedError := err.(*shared.WorkflowExecutionAlreadyStartedError)
+		if !isAlreadyStartedError {
+			return err
+		}
 	} else {
 		log.WithField("workflow_id", workflow.ID).Debug("start workflow for updating suggested mime type")
 	}
+
+	return nil
 }
