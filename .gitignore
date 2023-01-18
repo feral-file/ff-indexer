@@ -4,7 +4,7 @@ bin
 config.yaml
 *.json
 *.db
-
+*.pub
 *.dec
 
 TAGS
@@ -12,3 +12,4 @@ postgres-data
 .idea
 docker-compose*.yml
 data
+vendor/
