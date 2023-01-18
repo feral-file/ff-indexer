@@ -42,6 +42,17 @@ type NFTQueryParams struct {
 	IDs []string `json:"ids"`
 }
 
+type TokenFeedbackParams struct {
+	Tokens    []indexer.TokenFeedbackUpdate `json:"tokens"`
+	RequestID string                        `json:"requestID"`
+}
+
+type RequestedTokenFeedback struct {
+	DID       string          `json:"did"`
+	Timestamp int64           `json:"timestamp"`
+	Tokens    map[string]bool `json:"tokens"`
+}
+
 // FIXME: remove this and merge with background / helpers
 func (s *NFTIndexerServer) startIndexWorkflow(c context.Context, owner, blockchain string, workflowFunc interface{}) {
 	workflowContext := buildIndexNFTsContext(owner, blockchain)
