@@ -38,7 +38,7 @@ func (e *IndexEngine) IndexETHTokenByOwner(ctx context.Context, owner string, of
 		// 	continue
 		// }
 		balance := int64(1) // set default balance to 1 to reduce extra call to opensea
-		log.Logger.Debug("get token balance",
+		log.Debug("get token balance",
 			zap.String("contract", a.AssetContract.Address),
 			zap.String("tokenID", a.TokenID),
 			zap.String("owner", owner),
@@ -46,7 +46,7 @@ func (e *IndexEngine) IndexETHTokenByOwner(ctx context.Context, owner string, of
 
 		update, err := e.indexETHToken(&a, owner, balance)
 		if err != nil {
-			log.Logger.Error("fail to index token data", zap.Error(err))
+			log.Error("fail to index token data", zap.Error(err))
 		}
 
 		if update != nil {
@@ -105,7 +105,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 		artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator.Address)
 	}
 
-	log.Logger.Debug("source debug", zap.String("source", source), zap.Int64("assetID", a.ID))
+	log.Debug("source debug", zap.String("source", source), zap.Int64("assetID", a.ID))
 
 	if a.Creator.Address != "" {
 		if artistName == "" {
@@ -139,7 +139,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 			metadata.Medium = MediumSoftware
 		} else {
 			medium := mediumByPreviewFileExtension(metadata.PreviewURL)
-			log.Logger.Debug("fallback medium check", zap.String("previewURL", metadata.PreviewURL), zap.Any("medium", medium))
+			log.Debug("fallback medium check", zap.String("previewURL", metadata.PreviewURL), zap.Any("medium", medium))
 			metadata.Medium = medium
 		}
 	} else if a.ImageURL != "" {
@@ -173,7 +173,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 		},
 	}
 
-	log.Logger.Debug("asset updating data prepared",
+	log.Debug("asset updating data prepared",
 		zap.String("blockchain", EthereumBlockchain),
 		zap.String("id", TokenIndexID(EthereumBlockchain, contractAddress, a.TokenID)),
 		zap.Any("tokenUpdate", tokenUpdate))
@@ -188,7 +188,7 @@ func (e *IndexEngine) IndexETHTokenLastActivityTime(ctx context.Context, contrac
 
 // IndexETHTokenOwners indexes owners of a given token
 func (e *IndexEngine) IndexETHTokenOwners(ctx context.Context, contract, tokenID string) (map[string]int64, error) {
-	log.Logger.Debug("index eth token owners",
+	log.Debug("index eth token owners",
 		zap.String("blockchain", EthereumBlockchain),
 		zap.String("contract", contract), zap.String("tokenID", tokenID))
 

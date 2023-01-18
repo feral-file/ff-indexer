@@ -16,7 +16,7 @@ type ENS struct {
 func New(rpcEndpoint string) *ENS {
 	client, err := ethclient.Dial(rpcEndpoint)
 	if err != nil {
-		log.Logger.Panic("fail to dial ethereum rpc", zap.Error(err))
+		log.Panic("fail to dial ethereum rpc", zap.Error(err))
 	}
 
 	return &ENS{

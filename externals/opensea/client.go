@@ -114,7 +114,7 @@ func (r *RateLimiter) Start() {
 			for range time.Tick(time.Second) {
 				for i := 0; i < r.rps; i++ {
 					if len(r.reqChan) < r.rps {
-						log.Logger.Debug("increase the request count")
+						log.Debug("increase the request count")
 						r.reqChan <- struct{}{}
 					}
 				}
@@ -156,11 +156,11 @@ func (c *OpenseaClient) makeRequest(method, url string, body io.Reader) (*http.R
 	}
 
 	if c.debug {
-		log.Logger.Debug("debug request", zap.String("req_dump", traceutils.DumpRequest(req)))
+		log.Debug("debug request", zap.String("req_dump", traceutils.DumpRequest(req)))
 	}
 
 	c.limiter.Request()
-	log.Logger.Debug("get a request from limiter")
+	log.Debug("get a request from limiter")
 
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -210,8 +210,8 @@ func (c *OpenseaClient) RetrieveAsset(contract, tokenID string) (*Asset, error) 
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&assetResp); err != nil {
-		log.Logger.Error("fail to read opensea response", zap.Error(err),
-			zap.String("apiSource", log.Opensea),
+		log.Error("fail to read opensea response", zap.Error(err),
+			log.SourceOpensea,
 			zap.String("resp_dump", traceutils.DumpResponse(resp)))
 		return nil, err
 	}
@@ -249,8 +249,8 @@ func (c *OpenseaClient) RetrieveAssets(owner string, offset int) ([]Asset, error
 		Assets []Asset `json:"assets"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&assetResp); err != nil {
-		log.Logger.Error("fail to read opensea response", zap.Error(err),
-			zap.String("apiSource", log.Opensea),
+		log.Error("fail to read opensea response", zap.Error(err),
+			log.SourceOpensea,
 			zap.String("resp_dump", traceutils.DumpResponse(resp)))
 		return nil, err
 	}

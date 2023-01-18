@@ -42,7 +42,7 @@ func NewGRPCServer(network, address string, queueProcessor *EventQueueProcessor)
 func (s *GRPCServer) Run() error {
 	grpcListener, err := net.Listen(s.network, s.address)
 	if err != nil {
-		log.Logger.Panic("server interrupted", zap.Error(err))
+		log.Panic("server interrupted", zap.Error(err))
 	}
 
 	err = s.server.Serve(grpcListener)
@@ -67,7 +67,7 @@ func (t *GRPCHandler) PushEvent(
 	ctx context.Context,
 	i *processor.EventInput,
 ) (*processor.EventOutput, error) {
-	log.Logger.Debug("receive event input", zap.Any("input", i))
+	log.Debug("receive event input", zap.Any("input", i))
 
 	if err := t.queueProcessor.PushEvent(NFTEvent{
 		EventType:  i.EventType,

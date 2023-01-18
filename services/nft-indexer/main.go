@@ -32,12 +32,12 @@ func main() {
 		Dsn:         viper.GetString("sentry.dsn"),
 		Environment: environment,
 	}); err != nil {
-		log.Logger.Panic("Sentry initialization failed", zap.Error(err))
+		log.Panic("Sentry initialization failed", zap.Error(err))
 	}
 
 	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
 	if err != nil {
-		log.Logger.Panic("fail to initiate indexer store", zap.Error(err))
+		log.Panic("fail to initiate indexer store", zap.Error(err))
 	}
 
 	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
@@ -58,6 +58,6 @@ func main() {
 	s := NewNFTIndexerServer(cadenceClient, ensClient, tezosDomain, feralfileClient, indexerStore, engine, viper.GetString("server.api_token"), viper.GetString("server.admin_api_token"))
 	s.SetupRoute()
 	if err := s.Run(viper.GetString("server.port")); err != nil {
-		log.Logger.Panic("server interrupted", zap.Error(err))
+		log.Panic("server interrupted", zap.Error(err))
 	}
 }

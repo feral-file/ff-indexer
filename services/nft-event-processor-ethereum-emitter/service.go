@@ -36,21 +36,21 @@ func NewEthereumEventsEmitter(wsClient *ethclient.Client,
 }
 
 func (e *EthereumEventsEmitter) Watch(ctx context.Context) {
-	log.Logger.Info("start watching Ethereum events")
+	log.Info("start watching Ethereum events")
 
 	for {
 		subscription, err := e.wsClient.SubscribeFilterLogs(ctx, goethereum.FilterQuery{Topics: [][]common.Hash{
 			{common.HexToHash(indexer.TransferEventSignature)}, // transfer event
 		}}, e.ethLogChan)
 		if err != nil {
-			log.Logger.Error("fail to start subscription connection", zap.Error(err), zap.String("apiSource", log.ETHClient))
+			log.Error("fail to start subscription connection", zap.Error(err), log.SourceETHClient)
 			time.Sleep(time.Second)
 			continue
 		}
 
 		e.ethSubscription = &subscription
 		err = <-subscription.Err()
-		log.Logger.Error("subscription stopped with failure", zap.Error(err), zap.String("apiSource", log.ETHClient))
+		log.Error("subscription stopped with failure", zap.Error(err), log.SourceETHClient)
 
 	}
 }
@@ -60,7 +60,7 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 
 	for eLog := range e.ethLogChan {
 		paringStartTime := time.Now()
-		log.Logger.Debug("start processing ethereum log",
+		log.Debug("start processing ethereum log",
 			zap.Any("txHash", eLog.TxHash),
 			zap.Uint("logIndex", eLog.Index),
 			zap.Time("time", paringStartTime))
@@ -72,7 +72,7 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 			contractAddress := indexer.EthereumChecksumAddress(eLog.Address.String())
 			tokenIDHash := eLog.Topics[3]
 
-			log.Logger.Debug("receive transfer event on ethereum",
+			log.Debug("receive transfer event on ethereum",
 				zap.String("from", fromAddress),
 				zap.String("to", toAddress),
 				zap.String("contractAddress", contractAddress),
@@ -91,7 +91,7 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 			}
 
 			if err := e.PushEvent(ctx, eventType, fromAddress, toAddress, contractAddress, indexer.EthereumBlockchain, tokenIDHash.Big().Text(10)); err != nil {
-				log.Logger.Error("gRPC request failed", zap.Error(err), zap.String("apiSource", log.GRPC))
+				log.Error("gRPC request failed", zap.Error(err), log.SourceGRPC)
 				continue
 			}
 		}

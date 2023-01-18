@@ -147,7 +147,7 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParamsIDs []str
 
 			owner, err := s.indexerEngine.GetTokenOwnerAddress(contract, tokenId)
 			if err != nil {
-				log.Logger.Warn("unexpected error while getting token owner address of the contract",
+				log.Warn("unexpected error while getting token owner address of the contract",
 					zap.String("contract", contract),
 					zap.String("tokenId", tokenId),
 					zap.Error(err))
@@ -288,12 +288,12 @@ func (s *NFTIndexerServer) refreshIdentity(accountNumber string) {
 	c := context.Background()
 	id, err := s.fetchIdentity(c, accountNumber)
 	if err != nil {
-		log.Logger.Error("fail to query account identity from blockchain", zap.Any("identity", id), zap.Error(err))
+		log.Error("fail to query account identity from blockchain", zap.Any("identity", id), zap.Error(err))
 		return
 	}
 
 	if err := s.indexerStore.IndexIdentity(c, *id); err != nil {
-		log.Logger.Error("fail to index identity to indexer store", zap.Any("identity", id), zap.Error(err))
+		log.Error("fail to index identity to indexer store", zap.Any("identity", id), zap.Error(err))
 	}
 }
 
@@ -306,7 +306,7 @@ func (s *NFTIndexerServer) GetIdentity(c *gin.Context) {
 
 	account, err := s.indexerStore.GetIdentity(c, accountNumber)
 	if err != nil {
-		log.Logger.Error("fail to get identity from indexer store", zap.Error(err))
+		log.Error("fail to get identity from indexer store", zap.Error(err))
 	}
 
 	if account.AccountNumber != "" {
@@ -329,7 +329,7 @@ func (s *NFTIndexerServer) GetIdentity(c *gin.Context) {
 	}
 
 	if err := s.indexerStore.IndexIdentity(c, *id); err != nil {
-		log.Logger.Error("fail to index identity to indexer store", zap.Any("identity", id), zap.Error(err))
+		log.Error("fail to index identity to indexer store", zap.Any("identity", id), zap.Error(err))
 	}
 
 	c.JSON(200, id)
@@ -387,10 +387,10 @@ func (s *NFTIndexerServer) SetTokenPending(c *gin.Context) {
 	}
 
 	if err := s.indexerStore.AddPendingTxToAccountToken(c, string(reqParams.OwnerAccount), reqParams.IndexID, reqParams.PendingTx, reqParams.Blockchain, reqParams.ID); err != nil {
-		log.Logger.Warn("fail to index identity to indexer store", zap.Error(err))
+		log.Warn("fail to index identity to indexer store", zap.Error(err))
 		return
 	}
-	log.Logger.Debug("a pending account token is added", zap.String("pendingTx", reqParams.PendingTx))
+	log.Debug("a pending account token is added", zap.String("pendingTx", reqParams.PendingTx))
 
 	c.JSON(http.StatusOK, gin.H{
 		"ok": 1,
@@ -455,10 +455,10 @@ func (s *NFTIndexerServer) SetTokenPendingV1(c *gin.Context) {
 	indexID := indexer.TokenIndexID(reqParams.Blockchain, reqParams.ContractAddress, reqParams.ID)
 
 	if err := s.indexerStore.AddPendingTxToAccountToken(c, reqParams.OwnerAccount, indexID, reqParams.PendingTx, reqParams.Blockchain, reqParams.ID); err != nil {
-		log.Logger.Warn("error while adding pending accountToken", zap.Error(err))
+		log.Warn("error while adding pending accountToken", zap.Error(err))
 		return
 	}
-	log.Logger.Debug("a pending account token is added", zap.String("pendingTx", reqParams.PendingTx))
+	log.Debug("a pending account token is added", zap.String("pendingTx", reqParams.PendingTx))
 
 	c.JSON(http.StatusOK, gin.H{
 		"ok": 1,

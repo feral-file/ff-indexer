@@ -27,7 +27,7 @@ func main() {
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn: viper.GetString("sentry.dsn"),
 	}); err != nil {
-		log.Logger.Panic("Sentry initialization failed", zap.Error(err))
+		log.Panic("Sentry initialization failed", zap.Error(err))
 	}
 
 	store := imageStore.New(
@@ -53,12 +53,12 @@ func main() {
 
 	thumbnailCachePeriod, err := time.ParseDuration(viper.GetString("thumbnail.cache_period"))
 	if err != nil {
-		log.Logger.Error("invalid duration. use default value 72h", zap.Error(err))
+		log.Error("invalid duration. use default value 72h", zap.Error(err))
 		thumbnailCachePeriod = 72 * time.Hour
 	}
 	thumbnailCacheRetryInterval, err := time.ParseDuration(viper.GetString("thumbnail.cache_retry_interval"))
 	if err != nil {
-		log.Logger.Error("invalid duration. use default value 24h", zap.Error(err))
+		log.Error("invalid duration. use default value 24h", zap.Error(err))
 		thumbnailCacheRetryInterval = 24 * time.Hour
 	}
 
@@ -66,5 +66,5 @@ func main() {
 		thumbnailCachePeriod, thumbnailCacheRetryInterval)
 	imageIndexer.Start(ctx)
 
-	log.Logger.Info("Content indexer terminated")
+	log.Info("Content indexer terminated")
 }

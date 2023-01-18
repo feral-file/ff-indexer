@@ -36,14 +36,14 @@ func main() {
 		Dsn:         viper.GetString("sentry.dsn"),
 		Environment: environment,
 	}); err != nil {
-		log.Logger.Panic("Sentry initialization failed", zap.Error(err))
+		log.Panic("Sentry initialization failed", zap.Error(err))
 	}
 
 	ctx := context.Background()
 
 	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
 	if err != nil {
-		log.Logger.Panic("fail to initiate indexer store", zap.Error(err))
+		log.Panic("fail to initiate indexer store", zap.Error(err))
 	}
 
 	indexerEngine := indexer.New(

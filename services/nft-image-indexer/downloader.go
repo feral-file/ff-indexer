@@ -42,7 +42,7 @@ func DownloadFile(url string) (io.Reader, string, error) {
 			return nil, "", err
 		}
 	}
-	log.Logger.Debug("file downloaded",
+	log.Debug("file downloaded",
 		zap.String("action", action),
 		zap.String("download_url", url),
 		zap.Int("file_size", file.Len()))
@@ -61,6 +61,6 @@ func NewURLImageDownloader(url string) *URLImageDownloader {
 }
 
 func (d *URLImageDownloader) Download() (io.Reader, string, error) {
-	log.Logger.Debug("download image from source", zap.String("sourceURL", d.url))
+	log.Debug("download image from source", zap.String("sourceURL", d.url))
 	return DownloadFile(d.url)
 }

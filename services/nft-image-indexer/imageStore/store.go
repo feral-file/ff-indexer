@@ -118,7 +118,7 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 		if err != nil {
 			return err
 		}
-		log.Logger.Debug("download thumbnail finished",
+		log.Debug("download thumbnail finished",
 			zap.Duration("duration", time.Since(downloadStartTime)),
 			zap.String("assetID", assetID))
 
@@ -142,7 +142,7 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 			Metadata: metadata,
 		}
 
-		log.Logger.Debug("upload image to cloudflare", zap.String("assetID", assetID))
+		log.Debug("upload image to cloudflare", zap.String("assetID", assetID))
 
 		i, err := s.cloudflareAPI.UploadImage(ctx, s.cloudflareAccountID, uploadRequest)
 		if err != nil {
@@ -158,10 +158,10 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 	// Clean up uploaded files when a transaction is failed.
 	// It can not 100% ensure the file is cleaned up due to service broken
 	if err != nil && cloudflareImageID != "" {
-		log.Logger.Warn("clean uploaded file due to rollback", zap.String("assetID", assetID))
+		log.Warn("clean uploaded file due to rollback", zap.String("assetID", assetID))
 		err = s.cloudflareAPI.DeleteImage(ctx, s.cloudflareAccountID, cloudflareImageID)
 		if err != nil {
-			log.Logger.Warn("fail to clean uploaded file", zap.String("cloudflareImageID", cloudflareImageID))
+			log.Warn("fail to clean uploaded file", zap.String("cloudflareImageID", cloudflareImageID))
 		}
 	}
 

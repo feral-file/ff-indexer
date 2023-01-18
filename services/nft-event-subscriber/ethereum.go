@@ -28,33 +28,33 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 				{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")}, // transfer event
 			}}, s.ethLogChan)
 			if err != nil {
-				log.Logger.Error("fail to start subscription connection", zap.Error(err), zap.String("apiSource", log.ETHClient))
+				log.Error("fail to start subscription connection", zap.Error(err), log.SourceETHClient)
 				time.Sleep(time.Second)
 				continue
 			}
 
 			s.ethSubscription = &subscription
 			err = <-subscription.Err()
-			log.Logger.Error("subscription stopped with failure", zap.Error(err), zap.String("apiSource", log.ETHClient))
+			log.Error("subscription stopped with failure", zap.Error(err), log.SourceETHClient)
 		}
 	}()
 
-	log.Logger.Info("start watching blockchain events")
+	log.Info("start watching blockchain events")
 	go func() {
 		for eLog := range s.ethLogChan {
 			paringStartTime := time.Now()
-			log.Logger.Debug("start processing ethereum log",
+			log.Debug("start processing ethereum log",
 				zap.Any("txHash", eLog.TxHash),
 				zap.Uint("logIndex", eLog.Index),
 				zap.Time("time", paringStartTime))
 			timestamp, err := indexer.GetETHBlockTime(ctx, s.wallet.RPCClient(), eLog.BlockHash)
-			log.Logger.Debug("get block time",
+			log.Debug("get block time",
 				zap.Any("txHash", eLog.TxHash),
 				zap.Uint("logIndex", eLog.Index),
 				zap.Duration("delay", time.Since(paringStartTime)))
 
 			if err != nil {
-				log.Logger.Error("fail to get block time", zap.Error(err))
+				log.Error("fail to get block time", zap.Error(err))
 				continue
 			}
 
@@ -65,7 +65,7 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 				contractAddress := indexer.EthereumChecksumAddress(eLog.Address.String())
 				tokenIDHash := eLog.Topics[3]
 
-				log.Logger.Debug("receive transfer event on ethereum",
+				log.Debug("receive transfer event on ethereum",
 					zap.String("from", fromAddress),
 					zap.String("to", toAddress),
 					zap.String("contractAddress", contractAddress),
@@ -97,17 +97,17 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 				go func() {
 					if toAddress == indexer.EthereumZeroAddress {
 						if err := s.feedServer.SendBurn(indexer.EthereumBlockchain, contractAddress, tokenIDHash.Big().Text(10)); err != nil {
-							log.Logger.Debug("fail to push event to feed server", zap.Error(err))
+							log.Debug("fail to push event to feed server", zap.Error(err))
 
 						}
 					} else {
 						if err := s.feedServer.SendEvent(indexer.EthereumBlockchain, contractAddress, tokenIDHash.Big().Text(10), toAddress, mintType, viper.GetString("network.ethereum") == "testnet"); err != nil {
-							log.Logger.Debug("fail to push event to feed server", zap.Error(err))
+							log.Debug("fail to push event to feed server", zap.Error(err))
 						}
 					}
 				}()
 
-				log.Logger.Debug("feed event sent",
+				log.Debug("feed event sent",
 					zap.Any("txHash", eLog.TxHash),
 					zap.Uint("logIndex", eLog.Index),
 					zap.Duration("delay", time.Since(paringStartTime)))
@@ -115,21 +115,21 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 				// TODO: do we need to move this account specific function out of this service
 				accounts, err := s.accountStore.GetAccountIDByAddress(toAddress)
 				if err != nil {
-					log.Logger.Error("fail to get accounts that watches this address", zap.Error(err))
+					log.Error("fail to get accounts that watches this address", zap.Error(err))
 					continue
 				}
 
-				log.Logger.Debug("check related account",
+				log.Debug("check related account",
 					zap.Any("txHash", eLog.TxHash),
 					zap.Uint("logIndex", eLog.Index),
 					zap.Duration("delay", time.Since(paringStartTime)))
 
 				tokens, err := s.store.GetTokensByIndexIDs(ctx, []string{indexID})
 				if err != nil {
-					log.Logger.Error("fail to get a token by index ID", zap.Error(err))
+					log.Error("fail to get a token by index ID", zap.Error(err))
 				}
 				if len(tokens) != 0 {
-					log.Logger.Info("a token found for a corresponded event", zap.String("indexID", indexID))
+					log.Info("a token found for a corresponded event", zap.String("indexID", indexID))
 
 					// if the new owner is not existent in our system, index a new account_token
 					if len(accounts) == 0 {
@@ -143,7 +143,7 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 						}
 
 						if err := s.store.IndexAccountTokens(ctx, toAddress, []indexer.AccountToken{accountToken}); err != nil {
-							log.Logger.Error("cannot index a new account_token", zap.String("indexID", indexID), zap.String("owner", toAddress))
+							log.Error("cannot index a new account_token", zap.String("indexID", indexID), zap.String("owner", toAddress))
 						}
 					}
 				} else {
@@ -151,7 +151,7 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 					if len(accounts) > 0 {
 						update, err := s.Engine.IndexETHToken(ctx, toAddress, contractAddress, tokenIDHash.Big().Text(10))
 						if err != nil {
-							log.Logger.Error("fail to generate index data", zap.Error(err))
+							log.Error("fail to generate index data", zap.Error(err))
 							continue
 						}
 
@@ -160,13 +160,13 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 						}
 
 						if err := s.store.IndexAsset(ctx, update.ID, *update); err != nil {
-							log.Logger.Error("fail to index token in to db", zap.Error(err))
+							log.Error("fail to index token in to db", zap.Error(err))
 							continue
 						}
 
 						tokens, err = s.store.GetTokensByIndexIDs(ctx, []string{indexID})
 						if err != nil || len(tokens) == 0 {
-							log.Logger.Error("token is not successfully indexed", zap.Error(err))
+							log.Error("token is not successfully indexed", zap.Error(err))
 							continue
 						}
 					} else {
@@ -187,9 +187,9 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 						TxID:        txID,
 						TxURL:       indexer.TxURL(indexer.EthereumBlockchain, s.environment, txID),
 					}); err != nil {
-						log.Logger.Warn("unable to push provenance, will trigger a full provenance refresh", zap.Error(err))
+						log.Warn("unable to push provenance, will trigger a full provenance refresh", zap.Error(err))
 						if err := s.UpdateOwner(ctx, indexID, toAddress, timestamp); err != nil {
-							log.Logger.Error("fail to update the token owner for the event",
+							log.Error("fail to update the token owner for the event",
 								zap.String("indexID", indexID), zap.Error(err),
 								zap.String("from", fromAddress), zap.String("to", toAddress))
 
@@ -202,7 +202,7 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 				// send notification in the end
 				for _, accountID := range accounts {
 					if err := s.notifyNewNFT(accountID, toAddress, indexID); err != nil {
-						log.Logger.Error("fail to send notification for the new token",
+						log.Error("fail to send notification for the new token",
 							zap.Error(err),
 							zap.String("accountID", accountID), zap.String("indexID", indexID))
 
@@ -214,11 +214,11 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 					WithField("log", eLog).
 					Trace("not a valid nft transfer event, expect topic length to be 4")
 			}
-			log.Logger.Debug("end processing ethereum log",
+			log.Debug("end processing ethereum log",
 				zap.Any("txHash", eLog.TxHash),
 				zap.Uint("logIndex", eLog.Index),
 				zap.Duration("delay", time.Since(paringStartTime)))
-			log.Logger.Debug("channel counts", zap.Int("chanLen", len(s.ethLogChan)))
+			log.Debug("channel counts", zap.Int("chanLen", len(s.ethLogChan)))
 		}
 	}()
 

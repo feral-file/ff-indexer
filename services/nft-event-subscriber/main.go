@@ -47,12 +47,12 @@ func main() {
 		viper.GetString("ethereum.rpc_url"),
 	)
 	if err != nil {
-		log.Logger.Panic(err.Error(), zap.Error(err))
+		log.Panic(err.Error(), zap.Error(err))
 	}
 
 	wsClient, err := ethclient.Dial(viper.GetString("ethereum.ws_url"))
 	if err != nil {
-		log.Logger.Panic(err.Error(), zap.Error(err))
+		log.Panic(err.Error(), zap.Error(err))
 	}
 
 	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
@@ -60,21 +60,21 @@ func main() {
 
 	db, err := gorm.Open(postgres.Open(viper.GetString("account.db_uri")))
 	if err != nil {
-		log.Logger.Fatal("fail to connect database", zap.Error(err))
+		log.Fatal("fail to connect database", zap.Error(err))
 	}
 
 	accountStore := storage.NewAccountInformationStorage(db)
 
 	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
 	if err != nil {
-		log.Logger.Panic("fail to initiate indexer store", zap.Error(err))
+		log.Panic("fail to initiate indexer store", zap.Error(err))
 	}
 
 	nc := notification.New(viper.GetString("notification.endpoint"), nil)
 
 	bitmarkListener, err := NewListener(viper.GetString("bitmark.db_uri"))
 	if err != nil {
-		log.Logger.Panic("fail to initiate bitmark listener", zap.Error(err))
+		log.Panic("fail to initiate bitmark listener", zap.Error(err))
 	}
 
 	engine := indexer.New(

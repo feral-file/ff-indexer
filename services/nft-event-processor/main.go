@@ -37,7 +37,7 @@ func main() {
 		Dsn:         viper.GetString("sentry.dsn"),
 		Environment: environment,
 	}); err != nil {
-		log.Logger.Panic("Sentry initialization failed", zap.Error(err))
+		log.Panic("Sentry initialization failed", zap.Error(err))
 	}
 
 	db, err := gorm.Open(postgres.Open(viper.GetString("store.dsn")), &gorm.Config{
@@ -51,7 +51,7 @@ func main() {
 
 	accountDb, err := gorm.Open(postgres.Open(viper.GetString("account.db_uri")))
 	if err != nil {
-		log.Logger.Fatal("fail to connect database", zap.Error(err))
+		log.Fatal("fail to connect database", zap.Error(err))
 	}
 
 	accountStore := storage.NewAccountInformationStorage(accountDb)
@@ -62,7 +62,7 @@ func main() {
 
 	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("indexer_store.db_uri"), viper.GetString("indexer_store.db_name"))
 	if err != nil {
-		log.Logger.Panic("fail to initiate indexer store", zap.Error(err))
+		log.Panic("fail to initiate indexer store", zap.Error(err))
 	}
 
 	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))

@@ -200,7 +200,7 @@ func (c *TZKT) Debug() *TZKT {
 
 func (c *TZKT) request(req *http.Request, responseData interface{}) error {
 	if c.debug {
-		log.Logger.Debug("tzkt request", zap.String("req", traceutils.DumpRequest(req)))
+		log.Debug("tzkt request", zap.String("req", traceutils.DumpRequest(req)))
 	}
 
 	resp, err := c.client.Do(req)
@@ -210,7 +210,7 @@ func (c *TZKT) request(req *http.Request, responseData interface{}) error {
 	defer resp.Body.Close()
 
 	if c.debug {
-		log.Logger.Debug("tzkt response", zap.String("resp", traceutils.DumpResponse(resp)))
+		log.Debug("tzkt response", zap.String("resp", traceutils.DumpResponse(resp)))
 	}
 
 	if resp.StatusCode != 200 {
@@ -230,8 +230,8 @@ func (c *TZKT) request(req *http.Request, responseData interface{}) error {
 
 	err = json.NewDecoder(resp.Body).Decode(&responseData)
 	if err != nil {
-		log.Logger.Error("tzkt error response",
-			zap.String("apiSource", log.TZKT),
+		log.Error("tzkt error response",
+			log.SourceTZKT,
 			zap.String("req", traceutils.DumpRequest(req)),
 			zap.String("resp", traceutils.DumpResponse(resp)))
 

@@ -20,13 +20,13 @@ func main() {
 
 	wsClient, err := ethclient.Dial(viper.GetString("ethereum.ws_url"))
 	if err != nil {
-		log.Logger.Panic(err.Error(), zap.Error(err))
+		log.Panic(err.Error(), zap.Error(err))
 	}
 
 	// connect to the processor
 	conn, err := grpc.Dial(viper.GetString("event_processor_server.address"), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Logger.Sugar().Fatalf("did not connect: %v", err)
+		log.Sugar().Fatalf("did not connect: %v", err)
 	}
 	defer conn.Close()
 
@@ -34,5 +34,5 @@ func main() {
 	ethereumEventsEmitter := NewEthereumEventsEmitter(wsClient, c)
 	ethereumEventsEmitter.Run(ctx)
 
-	log.Logger.Info("Ethereum Emitter terminated")
+	log.Info("Ethereum Emitter terminated")
 }

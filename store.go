@@ -209,7 +209,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 
 			// TODO: check whether to remove the thumbnail cache when the thumbnail data is updated.
 			if currentAsset.ProjectMetadata.Latest.ThumbnailURL != assetUpdates.ProjectMetadata.ThumbnailURL {
-				log.Logger.Debug("image cache need to be reset",
+				log.Debug("image cache need to be reset",
 					zap.String("old", currentAsset.ProjectMetadata.Latest.ThumbnailURL),
 					zap.String("new", assetUpdates.ProjectMetadata.ThumbnailURL))
 				updates = append(updates, bson.E{Key: "$unset", Value: bson.M{"thumbnailID": ""}})
@@ -242,7 +242,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		if err := tokenResult.Err(); err != nil {
 			if err == mongo.ErrNoDocuments {
 				// If a token is not found, insert a new token
-				log.Logger.Info("new token found", zap.String("token_id", token.ID))
+				log.Info("new token found", zap.String("token_id", token.ID))
 
 				token.LastActivityTime = token.MintAt // set LastActivityTime to default token minted time
 				token.OwnersArray = []string{token.Owner}
@@ -274,13 +274,13 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 
 			tokenUpdate := bson.M{"$set": structs.Map(tokenUpdateSet)}
 
-			log.Logger.Debug("token data for updated", zap.String("token_id", token.ID), zap.Any("tokenUpdate", tokenUpdate))
+			log.Debug("token data for updated", zap.String("token_id", token.ID), zap.Any("tokenUpdate", tokenUpdate))
 			r, err := s.tokenCollection.UpdateOne(ctx, bson.M{"indexID": token.IndexID}, tokenUpdate)
 			if err != nil {
 				return err
 			}
 			if r.MatchedCount == 0 {
-				log.Logger.Warn("token is not updated", zap.String("token_id", token.ID))
+				log.Warn("token is not updated", zap.String("token_id", token.ID))
 			}
 		}
 	}
@@ -331,7 +331,7 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 	newToken.SwappedFrom = &originalTokenIndexID
 	newToken.OriginTokenInfo = append([]BaseTokenInfo{originalBaseTokenInfo}, newToken.OriginTokenInfo...)
 
-	log.Logger.Debug("update tokens for swapping", zap.String("from", originalTokenIndexID), zap.String("to", newTokenIndexID))
+	log.Debug("update tokens for swapping", zap.String("from", originalTokenIndexID), zap.String("to", newTokenIndexID))
 	session, err := s.mongoClient.StartSession()
 	if err != nil {
 		return "", err
@@ -363,7 +363,7 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 		return nil, nil
 	})
 
-	log.Logger.Debug("swap token transaction", zap.Any("transaction_result", result))
+	log.Debug("swap token transaction", zap.Any("transaction_result", result))
 
 	return newTokenIndexID, err
 }
@@ -441,7 +441,7 @@ func getPageCounts(itemLength, PageSize int) int {
 func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error) {
 	tokens := []DetailedToken{}
 
-	log.Logger.Debug("GetDetailedTokens",
+	log.Debug("GetDetailedTokens",
 		zap.Any("filterParameter", filterParameter),
 		zap.Int64("offset", offset),
 		zap.Int64("size", size))
@@ -468,7 +468,7 @@ func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParam
 	} else {
 		return s.getDetailedTokensByAggregation(ctx, filterParameter, offset, size)
 	}
-	log.Logger.Debug("GetDetailedTokens End", zap.Duration("queryTime", time.Since(startTime)))
+	log.Debug("GetDetailedTokens End", zap.Duration("queryTime", time.Since(startTime)))
 
 	return tokens, nil
 }
@@ -476,7 +476,7 @@ func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParam
 // UpdateOwner updates owner for a specific non-fungible token
 func (s *MongodbIndexerStore) UpdateOwner(ctx context.Context, indexID string, owner string, updatedAt time.Time) error {
 	if owner == "" {
-		log.Logger.Warn("ignore update empty owner", zap.String("indexID", indexID))
+		log.Warn("ignore update empty owner", zap.String("indexID", indexID))
 		return nil
 	}
 
@@ -502,7 +502,7 @@ func (s *MongodbIndexerStore) UpdateOwner(ctx context.Context, indexID string, o
 // UpdateTokenProvenance updates provenance for a specific token
 func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID string, provenances []Provenance) error {
 	if len(provenances) == 0 {
-		log.Logger.Warn("ignore update empty provenance", zap.String("indexID", indexID))
+		log.Warn("ignore update empty provenance", zap.String("indexID", indexID))
 		return nil
 	}
 
@@ -535,7 +535,7 @@ func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID
 // UpdateTokenOwners updates owners for a specific token
 func (s *MongodbIndexerStore) UpdateTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error {
 	if len(owners) == 0 {
-		log.Logger.Warn("ignore update empty provenance", zap.String("indexID", indexID))
+		log.Warn("ignore update empty provenance", zap.String("indexID", indexID))
 		return nil
 	}
 
@@ -872,7 +872,7 @@ func (s *MongodbIndexerStore) getTokensByAggregation(ctx context.Context, filter
 
 // GetTokensByTextSearch returns a list of token those assets match have attributes that match the search text.
 func (s *MongodbIndexerStore) GetTokensByTextSearch(ctx context.Context, searchText string, offset, size int64) ([]DetailedToken, error) {
-	log.Logger.Debug("GetTokensByTextSearch",
+	log.Debug("GetTokensByTextSearch",
 		zap.String("searchText", searchText),
 		zap.Int64("offset", offset),
 		zap.Int64("size", size))
@@ -1035,7 +1035,7 @@ func (s *MongodbIndexerStore) IndexIdentity(ctx context.Context, identity Accoun
 	}
 
 	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-		log.Logger.Warn("identity is not added or updated", zap.String("account_number", identity.AccountNumber))
+		log.Warn("identity is not added or updated", zap.String("account_number", identity.AccountNumber))
 	}
 
 	return nil
@@ -1069,7 +1069,7 @@ func (s *MongodbIndexerStore) UpdateAccountTokenBalance(ctx context.Context, own
 	}
 
 	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-		log.Logger.Debug("the account token's balance is not updated/added",
+		log.Debug("the account token's balance is not updated/added",
 			zap.String("IndexID", indexID),
 			zap.String("ownerAccount", ownerAccount),
 			zap.String("pendingTx", pendingTx))
@@ -1110,12 +1110,12 @@ func (s *MongodbIndexerStore) DeletePendingFieldsAccountToken(ctx context.Contex
 	}
 
 	if r.MatchedCount == 0 {
-		log.Logger.Warn("pending account token is not deleted its pending fields",
+		log.Warn("pending account token is not deleted its pending fields",
 			zap.String("IndexID", indexID),
 			zap.String("ownerAccount", ownerAccount),
 			zap.String("pendingTx", pendingTx))
 	} else {
-		log.Logger.Debug("pending account token is deleted its pending fields",
+		log.Debug("pending account token is deleted its pending fields",
 			zap.String("ownerAccount", ownerAccount),
 			zap.String("pendingTx", pendingTx))
 	}
@@ -1153,13 +1153,13 @@ func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ow
 			}
 
 			if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-				log.Logger.Warn("pending token is not added", zap.String("indexID", indexID))
+				log.Warn("pending token is not added", zap.String("indexID", indexID))
 			}
 		} else {
 			return err
 		}
 	} else {
-		log.Logger.Debug("pending token is already added",
+		log.Debug("pending token is already added",
 			zap.String("IndexID", indexID),
 			zap.String("ownerAccount", ownerAccount))
 		return nil
@@ -1209,7 +1209,7 @@ func (s *MongodbIndexerStore) IndexAccount(ctx context.Context, account Account)
 	}
 
 	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-		log.Logger.Warn("account is not added or updated", zap.String("account", account.Account))
+		log.Warn("account is not added or updated", zap.String("account", account.Account))
 	}
 
 	return nil
@@ -1229,7 +1229,7 @@ func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner stri
 				return err
 			}
 			if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-				log.Logger.Warn("account token is not added or updated", zap.String("token_id", accountToken.ID))
+				log.Warn("account token is not added or updated", zap.String("token_id", accountToken.ID))
 			}
 		} else {
 			_, err := s.accountTokenCollection.DeleteOne(ctx, bson.M{"ownerAccount": owner, "indexID": accountToken.IndexID})
@@ -1336,7 +1336,7 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error) {
 	findOptions := options.Find().SetSort(bson.D{{Key: "lastActivityTime", Value: -1}, {Key: "_id", Value: -1}}).SetLimit(size).SetSkip(offset)
 
-	log.Logger.Debug("GetDetailedAccountTokensByOwner",
+	log.Debug("GetDetailedAccountTokensByOwner",
 		zap.Any("filterParameter", filterParameter),
 		zap.Int64("offset", offset),
 		zap.Int64("size", size))
@@ -1410,12 +1410,12 @@ func (s *MongodbIndexerStore) IndexDemoTokens(ctx context.Context, owner string,
 				token.OwnersArray = []string{owner}
 				token.Owners[owner] = 1
 				if _, err := s.tokenCollection.InsertOne(ctx, token); err != nil {
-					log.Logger.Error("error while inserting demo tokens", zap.String("indexID", demoIndexID), zap.Error(err))
+					log.Error("error while inserting demo tokens", zap.String("indexID", demoIndexID), zap.Error(err))
 					return err
 				}
-				log.Logger.Debug("demo token is indexed", zap.String("indexID", demoIndexID))
+				log.Debug("demo token is indexed", zap.String("indexID", demoIndexID))
 			} else {
-				log.Logger.Error("error while finding demoIndexID in the database", zap.String("demoIndexID", demoIndexID), zap.Error(err))
+				log.Error("error while finding demoIndexID in the database", zap.String("demoIndexID", demoIndexID), zap.Error(err))
 				return err
 			}
 		} else {
@@ -1428,7 +1428,7 @@ func (s *MongodbIndexerStore) IndexDemoTokens(ctx context.Context, owner string,
 				}); err != nil {
 				return err
 			}
-			log.Logger.Debug("demo token is updated", zap.String("indexID", demoIndexID))
+			log.Debug("demo token is updated", zap.String("indexID", demoIndexID))
 		}
 	}
 

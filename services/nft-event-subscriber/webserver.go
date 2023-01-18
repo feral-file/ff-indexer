@@ -70,7 +70,7 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 
 	go func() {
 		if err := api.feedServer.SendEvent(tokenBlockchain, req.Contract, req.TokenID, req.To, mintType, req.IsTestnet); err != nil {
-			log.Logger.Debug("fail to push event to feed server", zap.Error(err))
+			log.Debug("fail to push event to feed server", zap.Error(err))
 		}
 	}()
 
@@ -83,7 +83,7 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 
 	token, err := api.subscriber.GetTokensByIndexID(c, indexID)
 	if err != nil {
-		log.Logger.Error("fail to check token by index ID", zap.Error(err))
+		log.Error("fail to check token by index ID", zap.Error(err))
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"error": "fail to check token by index ID",
 		})
@@ -95,12 +95,12 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 	// if not, index it by blockchain
 	if token != nil {
 		// ignore the indexing process since an indexed token found
-		log.Logger.Debug("an indexed token found for a corresponded event", zap.String("indexID", indexID))
+		log.Debug("an indexed token found for a corresponded event", zap.String("indexID", indexID))
 		if token.Fungible {
 			indexerWorker.StartRefreshTokenOwnershipWorkflow(c, &api.subscriber.Worker, "subscriber", indexID, 0)
 		} else {
 			if err := api.subscriber.UpdateOwner(c, indexID, req.To, req.Timestamp); err != nil {
-				log.Logger.Error("fail to update the token ownership",
+				log.Error("fail to update the token ownership",
 					zap.String("indexID", indexID),
 					zap.Error(err),
 					zap.String("from", req.From),
@@ -111,7 +111,7 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 	} else {
 		// index the new token since it is a new token for our indexer and watched by our user
 		if len(accounts) > 0 {
-			log.Logger.Info("start indexing a new token",
+			log.Info("start indexing a new token",
 				zap.String("indexID", indexID),
 				zap.String("from", req.From),
 				zap.String("to", req.To))

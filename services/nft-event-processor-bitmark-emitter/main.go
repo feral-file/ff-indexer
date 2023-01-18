@@ -30,13 +30,13 @@ func main() {
 
 	bitmarkListener, err := NewListener(viper.GetString("bitmark.db_uri"))
 	if err != nil {
-		log.Logger.Panic("fail to initiate bitmark listener", zap.Error(err))
+		log.Panic("fail to initiate bitmark listener", zap.Error(err))
 	}
 
 	// connect to the processor
 	conn, err := grpc.Dial(viper.GetString("event_processor_server.address"), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Logger.Sugar().Fatalf("did not connect: %v", err)
+		log.Sugar().Fatalf("did not connect: %v", err)
 	}
 	defer conn.Close()
 	c := processor.NewEventProcessorClient(conn)
@@ -49,5 +49,5 @@ func main() {
 
 	bitmarkEventsEmitter.Run(ctx)
 
-	log.Logger.Info("Ethereum Emitter terminated")
+	log.Info("Ethereum Emitter terminated")
 }

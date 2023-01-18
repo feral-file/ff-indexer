@@ -26,7 +26,7 @@ func GetETHBlockTime(ctx context.Context, rpcClient *ethclient.Client, hash comm
 			return time.Time{}, err
 		}
 
-		log.Logger.Debug("set new block", zap.Uint64("blockNumber", block.NumberU64()))
+		log.Debug("set new block", zap.Uint64("blockNumber", block.NumberU64()))
 		blockTimes[hash.Hex()] = time.Unix(int64(block.Time()), 0)
 
 		return blockTimes[hash.Hex()], nil

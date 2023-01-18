@@ -107,7 +107,7 @@ func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, owner str
 	if isFirstPage {
 		delay := time.Minute
 		if account.LastUpdatedTime.Unix() > time.Now().Add(-delay).Unix() {
-			log.Logger.Debug("owner refresh too frequently",
+			log.Debug("owner refresh too frequently",
 				zap.Int64("lastUpdatedTime", account.LastUpdatedTime.Unix()),
 				zap.Int64("now", time.Now().Add(-delay).Unix()),
 				zap.String("owner", account.Account))
@@ -232,8 +232,8 @@ func (w *NFTIndexerWorker) fetchBitmarkProvenance(bitmarkID string) ([]indexer.P
 	defer resp.Body.Close()
 
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		log.Logger.Error("fail to decode bitmark payload", zap.Error(err),
-			zap.String("apiSource", log.Bitmark),
+		log.Error("fail to decode bitmark payload", zap.Error(err),
+			log.SourceBitmark,
 			zap.String("respData", traceutils.DumpResponse(resp)))
 		return nil, err
 	}
@@ -278,7 +278,7 @@ func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID,
 		return nil, err
 	}
 
-	log.Logger.Debug("token provenance", zap.String("tokenID", hexID), zap.Any("logs", transferLogs))
+	log.Debug("token provenance", zap.String("tokenID", hexID), zap.Any("logs", transferLogs))
 
 	totalTransferLogs := len(transferLogs)
 
@@ -327,16 +327,16 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 
 	for _, token := range tokens {
 		if token.LastRefreshedTime.Unix() > time.Now().Add(-delay).Unix() {
-			log.Logger.Debug("provenance refresh too frequently", zap.String("indexID", token.IndexID))
+			log.Debug("provenance refresh too frequently", zap.String("indexID", token.IndexID))
 			continue
 		}
 
 		if token.Fungible {
-			log.Logger.Debug("ignore fungible token", zap.String("indexID", token.IndexID))
+			log.Debug("ignore fungible token", zap.String("indexID", token.IndexID))
 			continue
 		}
 
-		log.Logger.Debug("start refresh token provenance updating flow", zap.String("indexID", token.IndexID))
+		log.Debug("start refresh token provenance updating flow", zap.String("indexID", token.IndexID))
 
 		totalProvenances := []indexer.Provenance{}
 		switch token.Blockchain {
@@ -360,7 +360,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 			}
 
 			if delay > 0 && lastActivityTime.Sub(token.LastActivityTime) <= 0 {
-				log.Logger.Debug("no new updates since last check", zap.String("indexID", token.IndexID))
+				log.Debug("no new updates since last check", zap.String("indexID", token.IndexID))
 				continue
 			}
 
@@ -445,7 +445,7 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 
 	for _, token := range indexTokens {
 		if token.LastRefreshedTime.Unix() > time.Now().Add(-delay).Unix() {
-			log.Logger.Debug("ownership refresh too frequently",
+			log.Debug("ownership refresh too frequently",
 				zap.Int64("lastRefresh", token.LastRefreshedTime.Unix()),
 				zap.Int64("now", time.Now().Add(-delay).Unix()),
 				zap.String("indexID", token.IndexID))
@@ -453,11 +453,11 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 		}
 
 		if !token.Fungible {
-			log.Logger.Debug("ignore non-fungible token", zap.String("indexID", token.IndexID))
+			log.Debug("ignore non-fungible token", zap.String("indexID", token.IndexID))
 			continue
 		}
 
-		log.Logger.Debug("start refresh token ownership updating flow", zap.String("indexID", token.IndexID))
+		log.Debug("start refresh token ownership updating flow", zap.String("indexID", token.IndexID))
 		var (
 			owners           map[string]int64
 			lastActivityTime time.Time
@@ -471,11 +471,11 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 			}
 
 			if lastActivityTime.Sub(token.LastActivityTime) <= 0 {
-				log.Logger.Debug("no new updates since last check", zap.String("indexID", token.IndexID))
+				log.Debug("no new updates since last check", zap.String("indexID", token.IndexID))
 				continue
 			}
 
-			log.Logger.Debug("fetch eth ownership for the token", zap.String("indexID", token.IndexID))
+			log.Debug("fetch eth ownership for the token", zap.String("indexID", token.IndexID))
 			owners, err = w.indexerEngine.IndexETHTokenOwners(ctx, token.ContractAddress, token.ID)
 			if err != nil {
 				return err
@@ -487,11 +487,11 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 			}
 
 			if lastActivityTime.Sub(token.LastActivityTime) <= 0 {
-				log.Logger.Debug("no new updates since last check", zap.String("indexID", token.IndexID))
+				log.Debug("no new updates since last check", zap.String("indexID", token.IndexID))
 				continue
 			}
 
-			log.Logger.Debug("fetch tezos ownership for the token", zap.String("indexID", token.IndexID))
+			log.Debug("fetch tezos ownership for the token", zap.String("indexID", token.IndexID))
 			owners, err = w.indexerEngine.IndexTezosTokenOwners(ctx, token.ContractAddress, token.ID)
 			if err != nil {
 				return err
@@ -513,7 +513,7 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 func (w *NFTIndexerWorker) UpdateAccountTokens(ctx context.Context) error {
 	pendingAccountTokens, err := w.indexerStore.GetPendingAccountTokens(ctx)
 	if err != nil {
-		log.Logger.Warn("errors in the pending account tokens")
+		log.Warn("errors in the pending account tokens")
 		return err
 	}
 
@@ -521,7 +521,7 @@ func (w *NFTIndexerWorker) UpdateAccountTokens(ctx context.Context) error {
 	for _, pendingAccountToken := range pendingAccountTokens {
 		for idx, pendingTx := range pendingAccountToken.PendingTxs {
 			if pendingAccountToken.LastPendingTime[idx].Unix() < time.Now().Add(-delay).Unix() {
-				log.Logger.Warn("pending too long", zap.Any("pendingTxs", pendingAccountToken.PendingTxs))
+				log.Warn("pending too long", zap.Any("pendingTxs", pendingAccountToken.PendingTxs))
 				_ = w.indexerStore.DeletePendingFieldsAccountToken(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID, pendingTx, pendingAccountToken.LastPendingTime[idx])
 				continue
 			}

@@ -67,7 +67,7 @@ func (f *FeedClient) SendEvent(blockchain, contract, tokenID, owner, action stri
 	resp, err := f.client.Do(req)
 	if err != nil {
 		if f.isDebug {
-			log.Logger.Debug("fail to submit event to feed server",
+			log.Debug("fail to submit event to feed server",
 				zap.Error(err),
 				zap.String("req_dump", traceutils.DumpRequest(req)),
 			)
@@ -77,7 +77,7 @@ func (f *FeedClient) SendEvent(blockchain, contract, tokenID, owner, action stri
 
 	if resp.StatusCode != 200 {
 		if f.isDebug {
-			log.Logger.Debug("fail to submit event to feed server",
+			log.Debug("fail to submit event to feed server",
 				zap.String("req_dump", traceutils.DumpRequest(req)),
 				zap.String("resp_dump", traceutils.DumpResponse(resp)),
 			)
@@ -111,7 +111,7 @@ func (f *FeedClient) SendBurn(blockchain, contract, tokenID string) error {
 	resp, err := f.client.Do(req)
 	if err != nil {
 		if f.isDebug {
-			log.Logger.Debug("fail to submit event to feed server",
+			log.Debug("fail to submit event to feed server",
 				zap.String("req_dump", traceutils.DumpRequest(req)),
 				zap.String("resp_dump", traceutils.DumpResponse(resp)),
 			)
@@ -121,7 +121,7 @@ func (f *FeedClient) SendBurn(blockchain, contract, tokenID string) error {
 
 	if resp.StatusCode != 200 {
 		if f.isDebug {
-			log.Logger.Debug("fail to submit event to feed server",
+			log.Debug("fail to submit event to feed server",
 				zap.String("req_dump", traceutils.DumpRequest(req)),
 				zap.String("resp_dump", traceutils.DumpResponse(resp)),
 			)

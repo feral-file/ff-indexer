@@ -26,12 +26,12 @@ func StartIndexTokenWorkflow(c context.Context, client *cadence.CadenceWorkerCli
 	workflow, err := client.StartWorkflow(c, ClientName, workflowContext,
 		w.IndexTokenWorkflow, owner, contract, tokenID, indexPreview)
 	if err != nil {
-		log.Logger.Error("fail to start indexing workflow",
+		log.Error("fail to start indexing workflow",
 			zap.Error(err),
 			zap.String("owner", owner), zap.String("contract", contract), zap.String("token_id", tokenID))
 
 	} else {
-		log.Logger.Debug("start workflow to index a token",
+		log.Debug("start workflow to index a token",
 			zap.String("owner", owner),
 			zap.String("contract", contract),
 			zap.String("token_id", tokenID),
@@ -53,9 +53,9 @@ func StartRefreshTokenOwnershipWorkflow(c context.Context, client *cadence.Caden
 
 	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.RefreshTokenOwnershipWorkflow, []string{indexID}, delay)
 	if err != nil {
-		log.Logger.Error("fail to start refreshing ownership workflow", zap.Error(err), zap.String("caller", caller))
+		log.Error("fail to start refreshing ownership workflow", zap.Error(err), zap.String("caller", caller))
 	} else {
-		log.Logger.Debug("start workflow for refreshing ownership", zap.String("caller", caller), zap.String("workflow_id", workflow.ID))
+		log.Debug("start workflow for refreshing ownership", zap.String("caller", caller), zap.String("workflow_id", workflow.ID))
 	}
 }
 
@@ -77,9 +77,9 @@ func StartRefreshTokenProvenanceWorkflow(c context.Context, client *cadence.Cade
 
 	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.RefreshTokenProvenanceWorkflow, []string{indexID}, delay)
 	if err != nil {
-		log.Logger.Error("fail to start refreshing provenance workflow", zap.Error(err), zap.String("caller", caller))
+		log.Error("fail to start refreshing provenance workflow", zap.Error(err), zap.String("caller", caller))
 	} else {
-		log.Logger.Debug("start workflow for refreshing provenance", zap.String("caller", caller), zap.String("workflow_id", workflow.ID))
+		log.Debug("start workflow for refreshing provenance", zap.String("caller", caller), zap.String("workflow_id", workflow.ID))
 	}
 }
 
@@ -95,9 +95,9 @@ func StartUpdateAccountTokensWorkflow(c context.Context, client *cadence.Cadence
 
 	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.UpdateAccountTokensWorkflow, delay)
 	if err != nil {
-		log.Logger.Error("fail to start updating account token workflow", zap.Error(err))
+		log.Error("fail to start updating account token workflow", zap.Error(err))
 	} else {
-		log.Logger.Debug("start workflow for updating pending account tokens", zap.String("workflow_id", workflow.ID))
+		log.Debug("start workflow for updating pending account tokens", zap.String("workflow_id", workflow.ID))
 	}
 
 }

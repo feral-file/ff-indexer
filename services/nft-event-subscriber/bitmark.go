@@ -48,11 +48,11 @@ func (s *NFTEventSubscriber) WatchBitmarkEvent(ctx context.Context) error {
 					go func() {
 						if t.Owner == indexer.LivenetZeroAddress || t.Owner == indexer.TestnetZeroAddress {
 							if err := s.feedServer.SendBurn(indexer.BitmarkBlockchain, "", t.BitmarkID); err != nil {
-								log.Logger.Debug("fail to push event to feed server", zap.Error(err))
+								log.Debug("fail to push event to feed server", zap.Error(err))
 							}
 						} else {
 							if err := s.feedServer.SendEvent(indexer.BitmarkBlockchain, "", t.BitmarkID, t.Owner, action, viper.GetString("network.bitmark") == "testnet"); err != nil {
-								log.Logger.Debug("fail to push event to feed server", zap.Error(err))
+								log.Debug("fail to push event to feed server", zap.Error(err))
 							}
 						}
 					}()

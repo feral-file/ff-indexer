@@ -46,8 +46,8 @@ func (c *Feralfile) GetAccountInfo(owner string) (Account, error) {
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&respBody); err != nil {
-		log.Logger.Error("fail to decode response",
-			zap.String("apiSource", log.FeralFile),
+		log.Error("fail to decode response",
+			log.SourceFeralFile,
 			zap.String("response", traceutils.DumpResponse(resp)))
 		return a, err
 	}
