@@ -1,10 +1,11 @@
 package ens
 
 import (
+	log "github.com/bitmark-inc/nft-indexer/zapLog"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/sirupsen/logrus"
 	"github.com/wealdtech/go-ens/v3"
+	"go.uber.org/zap"
 )
 
 type ENS struct {
@@ -15,7 +16,7 @@ type ENS struct {
 func New(rpcEndpoint string) *ENS {
 	client, err := ethclient.Dial(rpcEndpoint)
 	if err != nil {
-		logrus.WithError(err).Panic("fail to dial ethereum rpc")
+		log.Logger.Panic("fail to dial ethereum rpc", zap.Error(err))
 	}
 
 	return &ENS{

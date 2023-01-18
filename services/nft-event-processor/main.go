@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+
 	"github.com/bitmark-inc/autonomy-account/storage"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
 	"github.com/bitmark-inc/nft-indexer/cadence"
@@ -9,9 +10,11 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
+	log "github.com/bitmark-inc/nft-indexer/zapLog"
+
+	"go.uber.org/zap"
 
 	"github.com/getsentry/sentry-go"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -34,7 +37,7 @@ func main() {
 		Dsn:         viper.GetString("sentry.dsn"),
 		Environment: environment,
 	}); err != nil {
-		log.WithError(err).Panic("Sentry initialization failed")
+		log.Logger.Panic("Sentry initialization failed", zap.Error(err))
 	}
 
 	db, err := gorm.Open(postgres.Open(viper.GetString("store.dsn")), &gorm.Config{
@@ -48,7 +51,7 @@ func main() {
 
 	accountDb, err := gorm.Open(postgres.Open(viper.GetString("account.db_uri")))
 	if err != nil {
-		log.WithError(err).Fatal("fail to connect database")
+		log.Logger.Fatal("fail to connect database", zap.Error(err))
 	}
 
 	accountStore := storage.NewAccountInformationStorage(accountDb)
@@ -59,7 +62,7 @@ func main() {
 
 	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("indexer_store.db_uri"), viper.GetString("indexer_store.db_name"))
 	if err != nil {
-		log.WithError(err).Panic("fail to initiate indexer store")
+		log.Logger.Panic("fail to initiate indexer store", zap.Error(err))
 	}
 
 	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))

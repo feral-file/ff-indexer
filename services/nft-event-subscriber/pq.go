@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	log "github.com/bitmark-inc/nft-indexer/zapLog"
 	"github.com/lib/pq"
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -28,31 +29,32 @@ func (l *Listener) Close() {
 func (l *Listener) report(et pq.ListenerEventType, err error) {
 	switch et {
 	case pq.ListenerEventConnected:
-		logrus.Info("listener connection is established")
+		log.Logger.Info("listener connection is established")
 	default:
-		logrus.Warnf("listener connection is disconnected. code: %d", et)
+		log.Logger.Sugar().Warnf("listener connection is disconnected. code: %d", et)
 	}
 	if err != nil {
-		logrus.Error(err.Error())
+		log.Logger.Error(err.Error(), zap.String("apiSource", log.Pq))
+
 	}
 }
 
 // Start will create a goroutine listening to all notifications from db
 func (l *Listener) Start() {
-	logrus.Info("connecting to database…")
+	log.Logger.Info("connecting to database…")
 	l.listener = pq.NewListener(l.uri, 2*time.Second, 16*time.Second, l.report)
 
 	go func() {
-		logrus.Info("start listening loop…")
+		log.Logger.Info("start listening loop…")
 		for {
 			select {
 			case n := <-l.listener.Notify:
 				if n != nil {
-					logrus.Debugf("receive a message from sql channel: %+v", n)
+					log.Logger.Sugar().Debugf("receive a message from sql channel: %+v", n)
 					l.Notify <- n
 				}
 			case <-l.closeCh:
-				logrus.Info("receive stop signal, will close channels")
+				log.Logger.Info("receive stop signal, will close channels")
 				if l.listener != nil {
 					l.listener.Close()
 				}

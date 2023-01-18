@@ -11,9 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
+
+	// indexer "github.com/bitmark-inc/nft-indexer"
 
 	"github.com/bitmark-inc/nft-indexer/traceutils"
+	log "github.com/bitmark-inc/nft-indexer/zapLog"
 )
 
 var ErrTooManyRequest = fmt.Errorf("too many requests")
@@ -197,7 +200,7 @@ func (c *TZKT) Debug() *TZKT {
 
 func (c *TZKT) request(req *http.Request, responseData interface{}) error {
 	if c.debug {
-		logrus.WithField("req", traceutils.DumpRequest(req)).Debug("tzkt request")
+		log.Logger.Debug("tzkt request", zap.String("req", traceutils.DumpRequest(req)))
 	}
 
 	resp, err := c.client.Do(req)
@@ -207,7 +210,7 @@ func (c *TZKT) request(req *http.Request, responseData interface{}) error {
 	defer resp.Body.Close()
 
 	if c.debug {
-		logrus.WithField("resp", traceutils.DumpResponse(resp)).Debug("tzkt response")
+		log.Logger.Debug("tzkt response", zap.String("resp", traceutils.DumpResponse(resp)))
 	}
 
 	if resp.StatusCode != 200 {
@@ -227,10 +230,11 @@ func (c *TZKT) request(req *http.Request, responseData interface{}) error {
 
 	err = json.NewDecoder(resp.Body).Decode(&responseData)
 	if err != nil {
-		logrus.
-			WithField("req", traceutils.DumpRequest(req)).
-			WithField("resp", traceutils.DumpResponse(resp)).
-			Error("tzkt error response")
+		log.Logger.Error("tzkt error response",
+			zap.String("apiSource", log.TZKT),
+			zap.String("req", traceutils.DumpRequest(req)),
+			zap.String("resp", traceutils.DumpResponse(resp)))
+
 	}
 
 	return err

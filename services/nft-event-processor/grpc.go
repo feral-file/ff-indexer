@@ -6,11 +6,12 @@ import (
 	"context"
 	"net"
 
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
+	log "github.com/bitmark-inc/nft-indexer/zapLog"
 )
 
 type GRPCServer struct {
@@ -41,7 +42,7 @@ func NewGRPCServer(network, address string, queueProcessor *EventQueueProcessor)
 func (s *GRPCServer) Run() error {
 	grpcListener, err := net.Listen(s.network, s.address)
 	if err != nil {
-		log.WithError(err).Panic("server interrupted")
+		log.Logger.Panic("server interrupted", zap.Error(err))
 	}
 
 	err = s.server.Serve(grpcListener)
@@ -66,9 +67,7 @@ func (t *GRPCHandler) PushEvent(
 	ctx context.Context,
 	i *processor.EventInput,
 ) (*processor.EventOutput, error) {
-	log.WithFields(log.Fields{
-		"input": i,
-	}).Debug("receive event input")
+	log.Logger.Debug("receive event input", zap.Any("input", i))
 
 	if err := t.queueProcessor.PushEvent(NFTEvent{
 		EventType:  i.EventType,

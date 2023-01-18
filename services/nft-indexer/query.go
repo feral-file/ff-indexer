@@ -10,11 +10,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
+	log "github.com/bitmark-inc/nft-indexer/zapLog"
 )
 
 // QueryNFTs queries NFTs based on given criteria
@@ -146,11 +147,10 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParamsIDs []str
 
 			owner, err := s.indexerEngine.GetTokenOwnerAddress(contract, tokenId)
 			if err != nil {
-				log.
-					WithField("contract", contract).
-					WithField("tokenId", tokenId).
-					WithError(err).
-					Warn("unexpected error while getting token owner address of the contract")
+				log.Logger.Warn("unexpected error while getting token owner address of the contract",
+					zap.String("contract", contract),
+					zap.String("tokenId", tokenId),
+					zap.Error(err))
 				continue
 			}
 
@@ -288,12 +288,12 @@ func (s *NFTIndexerServer) refreshIdentity(accountNumber string) {
 	c := context.Background()
 	id, err := s.fetchIdentity(c, accountNumber)
 	if err != nil {
-		log.WithError(err).WithField("identity", id).Error("fail to query account identity from blockchain")
+		log.Logger.Error("fail to query account identity from blockchain", zap.Any("identity", id), zap.Error(err))
 		return
 	}
 
 	if err := s.indexerStore.IndexIdentity(c, *id); err != nil {
-		log.WithError(err).WithField("identity", id).Error("fail to index identity to indexer store")
+		log.Logger.Error("fail to index identity to indexer store", zap.Any("identity", id), zap.Error(err))
 	}
 }
 
@@ -306,7 +306,7 @@ func (s *NFTIndexerServer) GetIdentity(c *gin.Context) {
 
 	account, err := s.indexerStore.GetIdentity(c, accountNumber)
 	if err != nil {
-		log.WithError(err).Error("fail to get identity from indexer store")
+		log.Logger.Error("fail to get identity from indexer store", zap.Error(err))
 	}
 
 	if account.AccountNumber != "" {
@@ -329,7 +329,7 @@ func (s *NFTIndexerServer) GetIdentity(c *gin.Context) {
 	}
 
 	if err := s.indexerStore.IndexIdentity(c, *id); err != nil {
-		log.WithError(err).WithField("identity", id).Error("fail to index identity to indexer store")
+		log.Logger.Error("fail to index identity to indexer store", zap.Any("identity", id), zap.Error(err))
 	}
 
 	c.JSON(200, id)
@@ -387,10 +387,10 @@ func (s *NFTIndexerServer) SetTokenPending(c *gin.Context) {
 	}
 
 	if err := s.indexerStore.AddPendingTxToAccountToken(c, string(reqParams.OwnerAccount), reqParams.IndexID, reqParams.PendingTx, reqParams.Blockchain, reqParams.ID); err != nil {
-		log.WithField("error", err).Warn("error while adding pending accountToken")
+		log.Logger.Warn("fail to index identity to indexer store", zap.Error(err))
 		return
 	}
-	log.WithField("pendingTx", reqParams.PendingTx).Debug("a pending account token is added")
+	log.Logger.Debug("a pending account token is added", zap.String("pendingTx", reqParams.PendingTx))
 
 	c.JSON(http.StatusOK, gin.H{
 		"ok": 1,
@@ -455,10 +455,10 @@ func (s *NFTIndexerServer) SetTokenPendingV1(c *gin.Context) {
 	indexID := indexer.TokenIndexID(reqParams.Blockchain, reqParams.ContractAddress, reqParams.ID)
 
 	if err := s.indexerStore.AddPendingTxToAccountToken(c, reqParams.OwnerAccount, indexID, reqParams.PendingTx, reqParams.Blockchain, reqParams.ID); err != nil {
-		log.WithField("error", err).Warn("error while adding pending accountToken")
+		log.Logger.Warn("error while adding pending accountToken", zap.Error(err))
 		return
 	}
-	log.WithField("pendingTx", reqParams.PendingTx).Debug("a pending account token is added")
+	log.Logger.Debug("a pending account token is added", zap.String("pendingTx", reqParams.PendingTx))
 
 	c.JSON(http.StatusOK, gin.H{
 		"ok": 1,

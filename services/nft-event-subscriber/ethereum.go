@@ -7,11 +7,13 @@ import (
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
+	log "github.com/bitmark-inc/nft-indexer/zapLog"
 	goethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 // FIXME: the process is not thread-safe ensure it run only once.
@@ -26,32 +28,33 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 				{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")}, // transfer event
 			}}, s.ethLogChan)
 			if err != nil {
-				logrus.WithError(err).Error("fail to start subscription connection")
+				log.Logger.Error("fail to start subscription connection", zap.Error(err), zap.String("apiSource", log.ETHClient))
 				time.Sleep(time.Second)
 				continue
 			}
 
 			s.ethSubscription = &subscription
 			err = <-subscription.Err()
-			logrus.WithError(err).Error("subscription stopped with failure")
+			log.Logger.Error("subscription stopped with failure", zap.Error(err), zap.String("apiSource", log.ETHClient))
 		}
 	}()
 
-	logrus.Info("start watching blockchain events")
+	log.Logger.Info("start watching blockchain events")
 	go func() {
 		for eLog := range s.ethLogChan {
 			paringStartTime := time.Now()
-			logrus.WithField("txHash", eLog.TxHash).
-				WithField("logIndex", eLog.Index).
-				WithField("time", paringStartTime).
-				Debug("start processing ethereum log")
+			log.Logger.Debug("start processing ethereum log",
+				zap.Any("txHash", eLog.TxHash),
+				zap.Uint("logIndex", eLog.Index),
+				zap.Time("time", paringStartTime))
 			timestamp, err := indexer.GetETHBlockTime(ctx, s.wallet.RPCClient(), eLog.BlockHash)
-			logrus.WithField("txHash", eLog.TxHash).
-				WithField("logIndex", eLog.Index).
-				WithField("delay", time.Since(paringStartTime)).Debug("get block time")
+			log.Logger.Debug("get block time",
+				zap.Any("txHash", eLog.TxHash),
+				zap.Uint("logIndex", eLog.Index),
+				zap.Duration("delay", time.Since(paringStartTime)))
 
 			if err != nil {
-				logrus.WithError(err).Error("fail to get block time")
+				log.Logger.Error("fail to get block time", zap.Error(err))
 				continue
 			}
 
@@ -62,11 +65,11 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 				contractAddress := indexer.EthereumChecksumAddress(eLog.Address.String())
 				tokenIDHash := eLog.Topics[3]
 
-				logrus.WithField("from", fromAddress).
-					WithField("to", toAddress).
-					WithField("contractAddress", contractAddress).
-					WithField("tokenIDHash", tokenIDHash).
-					Debug("receive transfer event on ethereum")
+				log.Logger.Debug("receive transfer event on ethereum",
+					zap.String("from", fromAddress),
+					zap.String("to", toAddress),
+					zap.String("contractAddress", contractAddress),
+					zap.Any("tokenIDHash", tokenIDHash))
 
 				if eLog.Topics[1].Big().Cmp(big.NewInt(0)) == 0 {
 					// ignore minting events
@@ -94,36 +97,39 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 				go func() {
 					if toAddress == indexer.EthereumZeroAddress {
 						if err := s.feedServer.SendBurn(indexer.EthereumBlockchain, contractAddress, tokenIDHash.Big().Text(10)); err != nil {
-							logrus.WithError(err).Trace("fail to push event to feed server")
+							log.Logger.Debug("fail to push event to feed server", zap.Error(err))
+
 						}
 					} else {
 						if err := s.feedServer.SendEvent(indexer.EthereumBlockchain, contractAddress, tokenIDHash.Big().Text(10), toAddress, mintType, viper.GetString("network.ethereum") == "testnet"); err != nil {
-							logrus.WithError(err).Trace("fail to push event to feed server")
+							log.Logger.Debug("fail to push event to feed server", zap.Error(err))
 						}
 					}
 				}()
 
-				logrus.WithField("txHash", eLog.TxHash).
-					WithField("logIndex", eLog.Index).
-					WithField("delay", time.Since(paringStartTime)).Debug("feed event sent")
+				log.Logger.Debug("feed event sent",
+					zap.Any("txHash", eLog.TxHash),
+					zap.Uint("logIndex", eLog.Index),
+					zap.Duration("delay", time.Since(paringStartTime)))
 
 				// TODO: do we need to move this account specific function out of this service
 				accounts, err := s.accountStore.GetAccountIDByAddress(toAddress)
 				if err != nil {
-					logrus.WithError(err).Error("fail to get accounts that watches this address")
+					log.Logger.Error("fail to get accounts that watches this address", zap.Error(err))
 					continue
 				}
 
-				logrus.WithField("txHash", eLog.TxHash).
-					WithField("logIndex", eLog.Index).
-					WithField("delay", time.Since(paringStartTime)).Debug("check related account")
+				log.Logger.Debug("check related account",
+					zap.Any("txHash", eLog.TxHash),
+					zap.Uint("logIndex", eLog.Index),
+					zap.Duration("delay", time.Since(paringStartTime)))
 
 				tokens, err := s.store.GetTokensByIndexIDs(ctx, []string{indexID})
 				if err != nil {
-					logrus.WithError(err).Error("fail to get a token by index ID")
+					log.Logger.Error("fail to get a token by index ID", zap.Error(err))
 				}
 				if len(tokens) != 0 {
-					logrus.WithField("indexID", indexID).Info("a token found for a corresponded event")
+					log.Logger.Info("a token found for a corresponded event", zap.String("indexID", indexID))
 
 					// if the new owner is not existent in our system, index a new account_token
 					if len(accounts) == 0 {
@@ -137,7 +143,7 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 						}
 
 						if err := s.store.IndexAccountTokens(ctx, toAddress, []indexer.AccountToken{accountToken}); err != nil {
-							logrus.WithField("indexID", indexID).WithField("owner", toAddress).Error("cannot index a new account_token")
+							log.Logger.Error("cannot index a new account_token", zap.String("indexID", indexID), zap.String("owner", toAddress))
 						}
 					}
 				} else {
@@ -145,7 +151,7 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 					if len(accounts) > 0 {
 						update, err := s.Engine.IndexETHToken(ctx, toAddress, contractAddress, tokenIDHash.Big().Text(10))
 						if err != nil {
-							logrus.WithError(err).Error("fail to generate index data")
+							log.Logger.Error("fail to generate index data", zap.Error(err))
 							continue
 						}
 
@@ -154,13 +160,13 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 						}
 
 						if err := s.store.IndexAsset(ctx, update.ID, *update); err != nil {
-							logrus.WithError(err).Error("fail to index token in to db")
+							log.Logger.Error("fail to index token in to db", zap.Error(err))
 							continue
 						}
 
 						tokens, err = s.store.GetTokensByIndexIDs(ctx, []string{indexID})
 						if err != nil || len(tokens) == 0 {
-							logrus.WithError(err).Error("token is not successfully indexed")
+							log.Logger.Error("token is not successfully indexed", zap.Error(err))
 							continue
 						}
 					} else {
@@ -181,12 +187,12 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 						TxID:        txID,
 						TxURL:       indexer.TxURL(indexer.EthereumBlockchain, s.environment, txID),
 					}); err != nil {
-						logrus.WithError(err).Warn("unable to push provenance, will trigger a full provenance refresh")
+						log.Logger.Warn("unable to push provenance, will trigger a full provenance refresh", zap.Error(err))
 						if err := s.UpdateOwner(ctx, indexID, toAddress, timestamp); err != nil {
-							logrus.
-								WithField("indexID", indexID).WithError(err).
-								WithField("from", fromAddress).WithField("to", toAddress).
-								Error("fail to update the token owner for the event")
+							log.Logger.Error("fail to update the token owner for the event",
+								zap.String("indexID", indexID), zap.Error(err),
+								zap.String("from", fromAddress), zap.String("to", toAddress))
+
 						}
 
 						go indexerWorker.StartRefreshTokenProvenanceWorkflow(ctx, &s.Worker, "subscriber", indexID, 0)
@@ -196,9 +202,10 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 				// send notification in the end
 				for _, accountID := range accounts {
 					if err := s.notifyNewNFT(accountID, toAddress, indexID); err != nil {
-						logrus.WithError(err).
-							WithField("accountID", accountID).WithField("indexID", indexID).
-							Error("fail to send notification for the new token")
+						log.Logger.Error("fail to send notification for the new token",
+							zap.Error(err),
+							zap.String("accountID", accountID), zap.String("indexID", indexID))
+
 					}
 				}
 
@@ -207,11 +214,11 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 					WithField("log", eLog).
 					Trace("not a valid nft transfer event, expect topic length to be 4")
 			}
-			logrus.WithField("txHash", eLog.TxHash).
-				WithField("logIndex", eLog.Index).
-				WithField("delay", time.Since(paringStartTime)).Debug("end processing ethereum log")
-
-			logrus.WithField("chanLen", len(s.ethLogChan)).Debug("channel counts")
+			log.Logger.Debug("end processing ethereum log",
+				zap.Any("txHash", eLog.TxHash),
+				zap.Uint("logIndex", eLog.Index),
+				zap.Duration("delay", time.Since(paringStartTime)))
+			log.Logger.Debug("channel counts", zap.Int("chanLen", len(s.ethLogChan)))
 		}
 	}()
 

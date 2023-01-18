@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/getsentry/sentry-go"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 
 	"github.com/bitmark-inc/config-loader"
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -18,6 +18,7 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	tezosDomain "github.com/bitmark-inc/nft-indexer/externals/tezos-domain"
 	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
+	log "github.com/bitmark-inc/nft-indexer/zapLog"
 )
 
 func main() {
@@ -31,12 +32,12 @@ func main() {
 		Dsn:         viper.GetString("sentry.dsn"),
 		Environment: environment,
 	}); err != nil {
-		log.WithError(err).Panic("Sentry initialization failed")
+		log.Logger.Panic("Sentry initialization failed", zap.Error(err))
 	}
 
 	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
 	if err != nil {
-		log.WithError(err).Panic("fail to initiate indexer store")
+		log.Logger.Panic("fail to initiate indexer store", zap.Error(err))
 	}
 
 	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
@@ -57,6 +58,6 @@ func main() {
 	s := NewNFTIndexerServer(cadenceClient, ensClient, tezosDomain, feralfileClient, indexerStore, engine, viper.GetString("server.api_token"), viper.GetString("server.admin_api_token"))
 	s.SetupRoute()
 	if err := s.Run(viper.GetString("server.port")); err != nil {
-		log.WithError(err).Panic("server interrupted")
+		log.Logger.Panic("server interrupted", zap.Error(err))
 	}
 }

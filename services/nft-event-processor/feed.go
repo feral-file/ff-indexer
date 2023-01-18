@@ -9,7 +9,8 @@ import (
 	"time"
 
 	"github.com/bitmark-inc/nft-indexer/traceutils"
-	"github.com/sirupsen/logrus"
+	log "github.com/bitmark-inc/nft-indexer/zapLog"
+	"go.uber.org/zap"
 )
 
 type FeedClient struct {
@@ -65,20 +66,20 @@ func (f *FeedClient) SendEvent(blockchain, contract, tokenID, owner, action stri
 	resp, err := f.client.Do(req)
 	if err != nil {
 		if f.isDebug {
-			logrus.
-				WithError(err).
-				WithField("req_dump", traceutils.DumpRequest(req)).
-				Debug("fail to submit event to feed server")
+			log.Logger.Debug("fail to submit event to feed server",
+				zap.Error(err),
+				zap.String("req_dump", traceutils.DumpRequest(req)))
+
 		}
 		return err
 	}
 
 	if resp.StatusCode != 200 {
 		if f.isDebug {
-			logrus.
-				WithField("req_dump", traceutils.DumpRequest(req)).
-				WithField("resp_dump", traceutils.DumpResponse(resp)).
-				Debug("fail to submit event to feed server")
+			log.Logger.Debug("fail to submit event to feed server",
+				zap.String("req_dump", traceutils.DumpRequest(req)),
+				zap.String("resp_dump", traceutils.DumpResponse(resp)))
+
 		}
 		return fmt.Errorf("fail to submit event to feed server")
 	}

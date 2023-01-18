@@ -7,11 +7,12 @@ import (
 	"net/url"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
+	log "github.com/bitmark-inc/nft-indexer/zapLog"
 )
 
 // fxhashLink converts an IPFS link to a HTTP link by using fxhash ipfs gateway.
@@ -46,7 +47,7 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 		return nil, newLastTime, err
 	}
 
-	log.WithField("tokens", ownedTokens).WithField("owner", owner).Debug("retrieve tokens for owner")
+	log.Logger.Debug("retrieve tokens for owner", zap.Any("tokens", ownedTokens), zap.String("owner", owner))
 
 	tokenUpdates := make([]AssetUpdates, 0, len(ownedTokens))
 
@@ -54,7 +55,7 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 
 		update, err := e.indexTezosToken(ctx, t.Token, owner, int64(t.Balance))
 		if err != nil {
-			log.WithError(err).Error("fail to index a tezos token")
+			log.Logger.Error("fail to index a tezos token", zap.Error(err))
 			return nil, newLastTime, err
 		}
 
@@ -74,15 +75,19 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, tokenID string) (*AssetUpdates, error) {
 	tzktToken, err := e.tzkt.GetContractToken(contract, tokenID)
 	if err != nil {
-		log.WithError(err).WithField("contract", contract).
-			WithField("tokenID", tokenID).Trace("GetContractToken")
+		log.Logger.Debug("GetContractToken",
+			zap.String("apiSource", log.TZKT),
+			zap.Error(err),
+			zap.String("contract", contract), zap.String("tokenID", tokenID))
 		return nil, err
 	}
 
 	balance, err := e.tzkt.GetTokenBalanceForOwner(contract, tokenID, owner)
 	if err != nil {
-		log.WithError(err).WithField("contract", contract).
-			WithField("tokenID", tokenID).Trace("GetTokenBalanceForOwner")
+		log.Logger.Debug("GetTokenBalanceForOwner",
+			zap.String("apiSource", log.TZKT),
+			zap.Error(err),
+			zap.String("contract", contract), zap.String("tokenID", tokenID))
 		return nil, err
 	}
 
@@ -92,7 +97,7 @@ func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, toke
 // indexTezosToken prepares indexing data for a tezos token using the
 // source API token object. It currently uses token objects from tzkt api
 func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token, owner string, balance int64) (*AssetUpdates, error) {
-	log.WithField("token", tzktToken).Debug("index tezos token")
+	log.Logger.Debug("index tezos token", zap.Any("token", tzktToken))
 
 	assetIDBytes := sha3.Sum256([]byte(fmt.Sprintf("%s-%s", tzktToken.Contract.Address, tzktToken.ID.String())))
 	assetID := hex.EncodeToString(assetIDBytes[:])
@@ -120,7 +125,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			metadataDetail.SetMedium(MediumSoftware)
 
 			if detail, err := e.fxhash.GetObjectDetail(ctx, tzktToken.ID.Int); err != nil {
-				log.WithError(err).Error("fail to get token detail from fxhash")
+				log.Logger.Error("fail to get token detail from fxhash", zap.Error(err), zap.String("apiSource", log.Fxhash))
 			} else {
 				metadataDetail.FromFxhashObject(detail)
 				tokenDetail.MintedAt = detail.CreatedAt
@@ -139,7 +144,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			tokenDetail.Fungible = true
 			objktToken, err := e.getObjktToken(tzktToken.Contract.Address, tzktToken.ID.String())
 			if err != nil {
-				log.WithError(err).Error("fail to get token detail from objkt")
+				log.Logger.Error("fail to get token detail from objkt", zap.Error(err), zap.String("apiSource", log.Objkt))
 			} else {
 				metadataDetail.FromObjkt(objktToken)
 			}
@@ -203,19 +208,19 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		},
 	}
 
-	log.WithField("blockchain", TezosBlockchain).
-		WithField("id", TokenIndexID(TezosBlockchain, tzktToken.Contract.Address, tzktToken.ID.String())).
-		WithField("tokenUpdate", tokenUpdate).
-		Trace("asset updating data prepared")
+	log.Logger.Debug("asset updating data prepared",
+		zap.String("blockchain", TezosBlockchain),
+		zap.String("id", TokenIndexID(TezosBlockchain, tzktToken.Contract.Address, tzktToken.ID.String())),
+		zap.Any("tokenUpdate", tokenUpdate))
 
 	return &tokenUpdate, nil
 }
 
 // IndexTezosTokenProvenance indexes provenance of a specific token
 func (e *IndexEngine) IndexTezosTokenProvenance(ctx context.Context, contract, tokenID string) ([]Provenance, error) {
-	log.WithField("blockchain", TezosBlockchain).
-		WithField("contract", contract).WithField("tokenID", tokenID).
-		Trace("index tezos token provenance")
+	log.Logger.Debug("index tezos token provenance",
+		zap.String("blockchain", TezosBlockchain),
+		zap.String("contract", contract), zap.String("tokenID", tokenID))
 
 	transfers, err := e.tzkt.GetTokenTransfers(contract, tokenID)
 	if err != nil {
@@ -228,10 +233,12 @@ func (e *IndexEngine) IndexTezosTokenProvenance(ctx context.Context, contract, t
 
 		tx, err := e.tzkt.GetTransaction(t.TransactionID)
 		if err != nil {
-			log.WithField("blockchain", TezosBlockchain).
-				WithField("txID", t.TransactionID).
-				WithField("transfer", t).
-				Error("fail to get transaction")
+			log.Logger.Error("fail to get transaction",
+				zap.String("apiSource", log.TZKT),
+				zap.String("blockchain", TezosBlockchain),
+				zap.Uint64("txID", t.TransactionID),
+				zap.Any("transfer", t),
+			)
 			return nil, err
 		}
 
@@ -261,9 +268,9 @@ func (e *IndexEngine) IndexTezosTokenLastActivityTime(ctx context.Context, contr
 
 // IndexTezosTokenOwners indexes owners of a given token
 func (e *IndexEngine) IndexTezosTokenOwners(ctx context.Context, contract, tokenID string) (map[string]int64, error) {
-	log.WithField("blockchain", TezosBlockchain).
-		WithField("contract", contract).WithField("tokenID", tokenID).
-		Trace("index tezos token owners")
+	log.Logger.Debug("index tezos token owners",
+		zap.String("blockchain", TezosBlockchain),
+		zap.String("contract", contract), zap.String("tokenID", tokenID))
 
 	var lastTime time.Time
 	var querLimit = 50

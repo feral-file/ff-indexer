@@ -7,9 +7,10 @@ import (
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
+	log "github.com/bitmark-inc/nft-indexer/zapLog"
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 type EventSubscriberAPI struct {
@@ -69,7 +70,7 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 
 	go func() {
 		if err := api.feedServer.SendEvent(tokenBlockchain, req.Contract, req.TokenID, req.To, mintType, req.IsTestnet); err != nil {
-			logrus.WithError(err).Debug("fail to push event to feed server")
+			log.Logger.Debug("fail to push event to feed server", zap.Error(err))
 		}
 	}()
 
@@ -82,7 +83,7 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 
 	token, err := api.subscriber.GetTokensByIndexID(c, indexID)
 	if err != nil {
-		logrus.WithError(err).Error("fail to check token by index ID")
+		log.Logger.Error("fail to check token by index ID", zap.Error(err))
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"error": "fail to check token by index ID",
 		})
@@ -94,24 +95,26 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 	// if not, index it by blockchain
 	if token != nil {
 		// ignore the indexing process since an indexed token found
-		logrus.WithField("indexID", indexID).Debug("an indexed token found for a corresponded event")
+		log.Logger.Debug("an indexed token found for a corresponded event", zap.String("indexID", indexID))
 		if token.Fungible {
 			indexerWorker.StartRefreshTokenOwnershipWorkflow(c, &api.subscriber.Worker, "subscriber", indexID, 0)
 		} else {
 			if err := api.subscriber.UpdateOwner(c, indexID, req.To, req.Timestamp); err != nil {
-				logrus.
-					WithField("indexID", indexID).WithError(err).
-					WithField("from", req.From).WithField("to", req.To).
-					Error("fail to update the token ownership")
+				log.Logger.Error("fail to update the token ownership",
+					zap.String("indexID", indexID),
+					zap.Error(err),
+					zap.String("from", req.From),
+					zap.String("to", req.To))
 			}
 			indexerWorker.StartRefreshTokenProvenanceWorkflow(c, &api.subscriber.Worker, "subscriber", indexID, 0)
 		}
 	} else {
 		// index the new token since it is a new token for our indexer and watched by our user
 		if len(accounts) > 0 {
-			logrus.WithField("indexID", indexID).
-				WithField("from", req.From).WithField("to", req.To).
-				Info("start indexing a new token")
+			log.Logger.Info("start indexing a new token",
+				zap.String("indexID", indexID),
+				zap.String("from", req.From),
+				zap.String("to", req.To))
 
 			indexerWorker.StartIndexTokenWorkflow(c, &api.subscriber.Worker, req.To, req.Contract, req.TokenID, false)
 

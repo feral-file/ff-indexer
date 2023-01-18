@@ -13,13 +13,14 @@ import (
 	goethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/contracts"
 	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
+	log "github.com/bitmark-inc/nft-indexer/zapLog"
 )
 
 var (
@@ -106,9 +107,10 @@ func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, owner str
 	if isFirstPage {
 		delay := time.Minute
 		if account.LastUpdatedTime.Unix() > time.Now().Add(-delay).Unix() {
-			log.WithField("lastUpdatedTime", account.LastUpdatedTime.Unix()).
-				WithField("now", time.Now().Add(-delay).Unix()).
-				WithField("owner", account.Account).Trace("owner refresh too frequently")
+			log.Logger.Debug("owner refresh too frequently",
+				zap.Int64("lastUpdatedTime", account.LastUpdatedTime.Unix()),
+				zap.Int64("now", time.Now().Add(-delay).Unix()),
+				zap.String("owner", account.Account))
 			return false, nil
 		}
 	}
@@ -230,7 +232,9 @@ func (w *NFTIndexerWorker) fetchBitmarkProvenance(bitmarkID string) ([]indexer.P
 	defer resp.Body.Close()
 
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		log.WithError(err).WithField("respData", traceutils.DumpResponse(resp)).Error("fail to decode bitmark payload")
+		log.Logger.Error("fail to decode bitmark payload", zap.Error(err),
+			zap.String("apiSource", log.Bitmark),
+			zap.String("respData", traceutils.DumpResponse(resp)))
 		return nil, err
 	}
 
@@ -274,7 +278,7 @@ func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID,
 		return nil, err
 	}
 
-	log.WithField("tokenID", hexID).WithField("logs", transferLogs).Debug("token provenance")
+	log.Logger.Debug("token provenance", zap.String("tokenID", hexID), zap.Any("logs", transferLogs))
 
 	totalTransferLogs := len(transferLogs)
 
@@ -323,16 +327,16 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 
 	for _, token := range tokens {
 		if token.LastRefreshedTime.Unix() > time.Now().Add(-delay).Unix() {
-			log.WithField("indexID", token.IndexID).Trace("provenance refresh too frequently")
+			log.Logger.Debug("provenance refresh too frequently", zap.String("indexID", token.IndexID))
 			continue
 		}
 
 		if token.Fungible {
-			log.WithField("indexID", token.IndexID).Trace("ignore fungible token")
+			log.Logger.Debug("ignore fungible token", zap.String("indexID", token.IndexID))
 			continue
 		}
 
-		log.WithField("indexID", token.IndexID).Debug("start refresh token provenance updating flow")
+		log.Logger.Debug("start refresh token provenance updating flow", zap.String("indexID", token.IndexID))
 
 		totalProvenances := []indexer.Provenance{}
 		switch token.Blockchain {
@@ -356,7 +360,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 			}
 
 			if delay > 0 && lastActivityTime.Sub(token.LastActivityTime) <= 0 {
-				log.WithField("indexID", token.IndexID).Trace("no new updates since last check")
+				log.Logger.Debug("no new updates since last check", zap.String("indexID", token.IndexID))
 				continue
 			}
 
@@ -441,18 +445,19 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 
 	for _, token := range indexTokens {
 		if token.LastRefreshedTime.Unix() > time.Now().Add(-delay).Unix() {
-			log.WithField("lastRefresh", token.LastRefreshedTime.Unix()).
-				WithField("now", time.Now().Add(-delay).Unix()).
-				WithField("indexID", token.IndexID).Trace("ownership refresh too frequently")
+			log.Logger.Debug("ownership refresh too frequently",
+				zap.Int64("lastRefresh", token.LastRefreshedTime.Unix()),
+				zap.Int64("now", time.Now().Add(-delay).Unix()),
+				zap.String("indexID", token.IndexID))
 			continue
 		}
 
 		if !token.Fungible {
-			log.WithField("indexID", token.IndexID).Trace("ignore non-fungible token")
+			log.Logger.Debug("ignore non-fungible token", zap.String("indexID", token.IndexID))
 			continue
 		}
 
-		log.WithField("indexID", token.IndexID).Debug("start refresh token ownership updating flow")
+		log.Logger.Debug("start refresh token ownership updating flow", zap.String("indexID", token.IndexID))
 		var (
 			owners           map[string]int64
 			lastActivityTime time.Time
@@ -466,11 +471,11 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 			}
 
 			if lastActivityTime.Sub(token.LastActivityTime) <= 0 {
-				log.WithField("indexID", token.IndexID).Trace("no new updates since last check")
+				log.Logger.Debug("no new updates since last check", zap.String("indexID", token.IndexID))
 				continue
 			}
 
-			log.WithField("indexID", token.IndexID).Debug("fetch eth ownership for the token")
+			log.Logger.Debug("fetch eth ownership for the token", zap.String("indexID", token.IndexID))
 			owners, err = w.indexerEngine.IndexETHTokenOwners(ctx, token.ContractAddress, token.ID)
 			if err != nil {
 				return err
@@ -482,11 +487,11 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 			}
 
 			if lastActivityTime.Sub(token.LastActivityTime) <= 0 {
-				log.WithField("indexID", token.IndexID).Trace("no new updates since last check")
+				log.Logger.Debug("no new updates since last check", zap.String("indexID", token.IndexID))
 				continue
 			}
 
-			log.WithField("indexID", token.IndexID).Debug("fetch tezos ownership for the token")
+			log.Logger.Debug("fetch tezos ownership for the token", zap.String("indexID", token.IndexID))
 			owners, err = w.indexerEngine.IndexTezosTokenOwners(ctx, token.ContractAddress, token.ID)
 			if err != nil {
 				return err
@@ -508,7 +513,7 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 func (w *NFTIndexerWorker) UpdateAccountTokens(ctx context.Context) error {
 	pendingAccountTokens, err := w.indexerStore.GetPendingAccountTokens(ctx)
 	if err != nil {
-		log.Warn("errors in the pending account tokens")
+		log.Logger.Warn("errors in the pending account tokens")
 		return err
 	}
 
@@ -516,7 +521,7 @@ func (w *NFTIndexerWorker) UpdateAccountTokens(ctx context.Context) error {
 	for _, pendingAccountToken := range pendingAccountTokens {
 		for idx, pendingTx := range pendingAccountToken.PendingTxs {
 			if pendingAccountToken.LastPendingTime[idx].Unix() < time.Now().Add(-delay).Unix() {
-				log.WithField("pendingTxs", pendingAccountToken.PendingTxs).Warn("pending too long")
+				log.Logger.Warn("pending too long", zap.Any("pendingTxs", pendingAccountToken.PendingTxs))
 				_ = w.indexerStore.DeletePendingFieldsAccountToken(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID, pendingTx, pendingAccountToken.LastPendingTime[idx])
 				continue
 			}

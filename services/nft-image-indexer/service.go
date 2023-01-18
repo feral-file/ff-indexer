@@ -11,10 +11,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.uber.org/zap"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/customErrors"
 	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/imageStore"
+	log "github.com/bitmark-inc/nft-indexer/zapLog"
 )
 
 type NFTAsset struct {
@@ -52,10 +54,10 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 		go func() {
 			defer s.wg.Done()
 			for asset := range assets {
-				logrus.WithField("indexID", asset.IndexID).Debug("start generating thumbnail cache for an asset")
+				log.Logger.Debug("start generating thumbnail cache for an asset", zap.String("indexID", asset.IndexID))
 
 				if _, err := s.db.CreateOrGetImage(ctx, asset.IndexID); err != nil {
-					logrus.WithError(err).Error("fail to get or create image record")
+					log.Logger.Error("fail to get or create image record", zap.Error(err))
 					continue
 				}
 
@@ -68,18 +70,18 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 				)
 				if err != nil {
 					if errors.Is(err, imageStore.ErrUnsupportImageType) {
-						logrus.WithField("indexID", asset.IndexID).Warn("unsupported image type")
+						log.Logger.Warn("unsupported image type", zap.String("indexID", asset.IndexID), zap.String("apiSource", log.ImageCaching))
 						// let the image id remain empty string
 					} else if _, ok := err.(*customErrors.UnsupportedSVG); ok {
-						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
+						log.Logger.Error("fail to upload image", zap.Error(err), zap.String("indexID", asset.IndexID), zap.String("apiSource", log.ImageCaching))
 						sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
 					} else {
-						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
+						log.Logger.Error("fail to upload image", zap.Error(err), zap.String("indexID", asset.IndexID), zap.String("apiSource", log.ImageCaching))
 					}
 				}
-				logrus.
-					WithField("duration", time.Since(uploadImageStartTime)).
-					WithField("assetID", asset.IndexID).Debug("thumbnail image uploaded")
+				log.Logger.Debug("thumbnail image uploaded",
+					zap.Duration("duration", time.Since(uploadImageStartTime)),
+					zap.String("assetID", asset.IndexID))
 
 				// Update the thumbnail by image ID returned from cloudflare, it the whol process is succeed.
 				// Otherwise, it would update to an empty value
@@ -87,9 +89,9 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 					logrus.WithError(err).Error("update token thumbnail to indexer")
 				}
 
-				logrus.WithField("indexID", asset.IndexID).Info("thumbnail generating process finished")
+				log.Logger.Info("thumbnail generating process finished", zap.String("indexID", asset.IndexID))
 			}
-			logrus.Debug("ThumbnailWorker stopped")
+			log.Logger.Debug("ThumbnailWorker stopped")
 		}()
 	}
 }
@@ -167,18 +169,18 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 
 		s.spawnThumbnailWorker(ctx, assets, 100)
 
-		logrus.WithField("thumbnailCachePeriod", s.thumbnailCachePeriod).
-			WithField("thumbnailCacheRetryInterval", s.thumbnailCacheRetryInterval).
-			Info("start the loop the get assets without thumbnail cached")
+		log.Logger.Info("start the loop the get assets without thumbnail cached",
+			zap.Duration("thumbnailCachePeriod", s.thumbnailCachePeriod),
+			zap.Duration("thumbnailCacheRetryInterval", s.thumbnailCacheRetryInterval))
 
 	WATCH_ASSETS:
 		for {
 			asset, err := s.getAssetWithoutThumbnailCached(ctx)
 			if err != nil {
 				if errors.Is(err, mongo.ErrNoDocuments) {
-					logrus.Info("No token need to generate cache a thumbnail")
+					log.Logger.Info("No token need to generate cache a thumbnail")
 				} else {
-					logrus.WithError(err).Error("fail to get asset")
+					log.Logger.Error("fail to get asset", zap.Error(err))
 				}
 
 				if done := indexer.SleepWithContext(ctx, 15*time.Second); done {
@@ -186,10 +188,10 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 				}
 				continue
 			}
-			logrus.WithField("indexID", asset.IndexID).Debug("send asset to process")
+			log.Logger.Debug("send asset to process", zap.String("indexID", asset.IndexID))
 			assets <- asset
 		}
-		logrus.Debug("Thumbnail checker closed")
+		log.Logger.Debug("Thumbnail checker closed")
 	}()
 
 }
