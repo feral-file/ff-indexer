@@ -47,7 +47,7 @@ data:
         ]
       },
       "tezosNode": {
-        "url": "https://mainnet-tezos.autonomy.io"
+        "url": "{{ .Values.serviceConfig.tezosNodeRPCURL }}"
       }
     }
   dappetizer.marketplace.config.json: |
@@ -85,6 +85,6 @@ data:
         ]
       },
       "tezosNode": {
-        "url": "https://mainnet-tezos.autonomy.io"
+        "url": "{{ .Values.serviceConfig.tezosNodeRPCURL }}"
       }
     }
