@@ -14,9 +14,9 @@ import (
 	"go.uber.org/zap"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/customErrors"
 	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/imageStore"
-	log "github.com/bitmark-inc/nft-indexer/zapLog"
 )
 
 type NFTAsset struct {

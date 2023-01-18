@@ -7,7 +7,7 @@ import (
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
-	log "github.com/bitmark-inc/nft-indexer/zapLog"
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"

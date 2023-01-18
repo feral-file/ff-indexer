@@ -14,8 +14,8 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/bitmark-inc/config-loader"
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/imageStore"
-	log "github.com/bitmark-inc/nft-indexer/zapLog"
 )
 
 func main() {

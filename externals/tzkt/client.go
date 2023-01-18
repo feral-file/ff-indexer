@@ -15,8 +15,8 @@ import (
 
 	// indexer "github.com/bitmark-inc/nft-indexer"
 
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
-	log "github.com/bitmark-inc/nft-indexer/zapLog"
 )
 
 var ErrTooManyRequest = fmt.Errorf("too many requests")

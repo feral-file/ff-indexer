@@ -7,8 +7,8 @@ import (
 
 	bitmarksdk "github.com/bitmark-inc/bitmark-sdk-go"
 	"github.com/bitmark-inc/config-loader"
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
-	log "github.com/bitmark-inc/nft-indexer/zapLog"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"

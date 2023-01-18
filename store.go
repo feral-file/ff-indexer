@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/bitmark-inc/nft-indexer/zapLog"
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/fatih/structs"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"

@@ -1,4 +1,4 @@
-package zapLog
+package log
 
 import (
 	"encoding/json"

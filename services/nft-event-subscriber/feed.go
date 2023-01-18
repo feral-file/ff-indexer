@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
-	log "github.com/bitmark-inc/nft-indexer/zapLog"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )

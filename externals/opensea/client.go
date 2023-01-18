@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
-	log "github.com/bitmark-inc/nft-indexer/zapLog"
 	"go.uber.org/zap"
 )
 

@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
-	log "github.com/bitmark-inc/nft-indexer/zapLog"
+	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 type TransactionDetails struct {

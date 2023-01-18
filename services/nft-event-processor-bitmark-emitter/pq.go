@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	log "github.com/bitmark-inc/nft-indexer/zapLog"
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/lib/pq"
 	"golang.org/x/sync/errgroup"
 )

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/bitmark-inc/nft-indexer/zapLog"
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/cloudflare/cloudflare-go"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"

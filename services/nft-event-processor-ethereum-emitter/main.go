@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/bitmark-inc/config-loader"
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
-	log "github.com/bitmark-inc/nft-indexer/zapLog"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"

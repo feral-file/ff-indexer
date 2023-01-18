@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/utils"
-	log "github.com/bitmark-inc/nft-indexer/zapLog"
 	"github.com/gabriel-vasile/mimetype"
 	"go.uber.org/zap"
 )

@@ -8,8 +8,8 @@ import (
 	"github.com/bitmark-inc/bitmark-sdk-go/tx"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/emitter"
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
-	log "github.com/bitmark-inc/nft-indexer/zapLog"
 	"go.uber.org/zap"
 )
 

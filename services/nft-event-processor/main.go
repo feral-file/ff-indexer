@@ -10,7 +10,7 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
-	log "github.com/bitmark-inc/nft-indexer/zapLog"
+	"github.com/bitmark-inc/nft-indexer/log"
 
 	"go.uber.org/zap"
 

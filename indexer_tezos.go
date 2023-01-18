@@ -12,7 +12,7 @@ import (
 
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
-	log "github.com/bitmark-inc/nft-indexer/zapLog"
+	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 // fxhashLink converts an IPFS link to a HTTP link by using fxhash ipfs gateway.
