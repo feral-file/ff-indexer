@@ -218,12 +218,12 @@ func (e *EventProcessor) GetQueueEventByStage(stage int8) (*NFTEvent, error) {
 
 // logStartStage log when start a stage
 func (e *EventProcessor) logStartStage(event *NFTEvent, stage int8) {
-	log.Sugar().Infof("start stage %d for event: ", stage, zap.Any("event", event))
+	log.Info("start stage for event: ", zap.Int8("stage", stage), zap.Any("event", event))
 }
 
 // logEndStage log when end a stage
 func (e *EventProcessor) logEndStage(event *NFTEvent, stage int8) {
-	log.Sugar().Infof("finished stage %d for event: ", stage, zap.Any("event", event))
+	log.Info("finished stage for event: ", zap.Int8("stage", stage), zap.Any("event", event))
 }
 
 // UpdateLatestOwner [stage 1] update owner for nft and ft by event information
