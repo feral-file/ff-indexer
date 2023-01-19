@@ -5,49 +5,64 @@ import (
 	"fmt"
 )
 
+// Reason keys for unsupported errors
 const (
-	ErrUnsupportImageType = "ErrUnsupportImageType"
-	ErrUnsupportedSVGURL  = "ErrUnsupportedSVGURL"
-	ErrDownloadFileError  = "ErrDownloadFileEror"
-	ErrSizeTooLarge       = "ErrSizeTooLarge"
+	ReasonUnsupportedImageType = "ErrUnsupportedImageType"
+	ReasonUnsupportedSVGFile   = "ErrUnsupportedSVGFile"
+	ReasonDownloadFileFailed   = "ErrDownloadFileFailed"
+	ReasonFileSizeTooLarge     = "ErrSizeTooLarge"
 )
 
-var ImageCachingErrorTypes = map[string]error{
-	ErrUnsupportImageType: errors.New("unsupported image type"),
-	ErrUnsupportedSVGURL:  errors.New("unsupported SVG URL"),
-	ErrDownloadFileError:  errors.New("download file error"),
-	ErrSizeTooLarge:       errors.New("size too large"),
+var ImageCachingErrorReasons = map[string]string{ // string string
+	ReasonUnsupportedImageType: "unsupported image type",
+	ReasonUnsupportedSVGFile:   "unsupported SVG File",
+	ReasonDownloadFileFailed:   "download file error",
+	ReasonFileSizeTooLarge:     "size too large",
+}
+
+type UnsupportedImageCachingError interface {
+	Error() string
+	Reason() string
 }
 
 type ImageCachingError struct {
-	Name string
-	Err  error
+	reason string
 }
 
-func (i *ImageCachingError) Error() string {
-	return ImageCachingErrorTypes[i.Name].Error()
+func (e *ImageCachingError) Reason() string {
+	return e.reason
 }
 
-func NewImageCachingError(name string) error {
+func (e *ImageCachingError) Error() string {
+	return ImageCachingErrorReasons[e.Reason()]
+}
+
+// NewImageCachingError retuns ImageCachingError if a reson is given.
+// Otherwise, it returns a regular error.
+func NewImageCachingError(reason string) error {
+	if _, ok := ImageCachingErrorReasons[reason]; !ok {
+		return errors.New(reason)
+	}
+
 	return &ImageCachingError{
-		Name: name,
-		Err:  ImageCachingErrorTypes[name],
+		reason: reason,
 	}
 }
 
 type UnsupportedSVG struct {
-	URL string
-
-	Err error
+	Url string
 }
 
-func (r *UnsupportedSVG) Error() string {
-	return fmt.Sprintf("unsupported SVG URL: %v", r.URL)
+func (e *UnsupportedSVG) Reason() string {
+	return ReasonUnsupportedSVGFile
+}
+
+func (e *UnsupportedSVG) Error() string {
+	return fmt.Sprintf("unsupported SVG Url: %v", e.Url)
 }
 
 func NewUnsupportedSVG(url string) error {
 	return &UnsupportedSVG{
-		URL: url,
-		Err: errors.New("unsupported SVG URL"),
+		Url: url,
 	}
 }

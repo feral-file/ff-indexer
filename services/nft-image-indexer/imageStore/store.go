@@ -117,14 +117,14 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 		downloadStartTime := time.Now()
 		file, mimeType, err := imageDownloader.Download()
 		if err != nil {
-			return NewImageCachingError(ErrDownloadFileError)
+			return NewImageCachingError(ReasonDownloadFileFailed)
 		}
 		log.Debug("download thumbnail finished",
 			zap.Duration("duration", time.Since(downloadStartTime)),
 			zap.String("assetID", assetID))
 
 		if !IsSupportedImageType(mimeType) {
-			return NewImageCachingError(ErrUnsupportImageType)
+			return NewImageCachingError(ReasonUnsupportedImageType)
 		}
 
 		if metadata == nil {
@@ -149,7 +149,7 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 		if err != nil {
 			isErrSizeTooLarge, _ := regexp.MatchString("entity.*too large", err.Error())
 			if isErrSizeTooLarge {
-				return NewImageCachingError(ErrSizeTooLarge)
+				return NewImageCachingError(ReasonFileSizeTooLarge)
 			}
 			return err
 		}
