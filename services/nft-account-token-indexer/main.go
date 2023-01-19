@@ -73,7 +73,10 @@ func main() {
 	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
 	cadenceClient.AddService(indexerWorker.ClientName)
 
-	indexerWorker.StartUpdateAccountTokensWorkflow(ctx, cadenceClient, 0)
+	if err := indexerWorker.StartUpdateAccountTokensWorkflow(ctx, cadenceClient, 0); err != nil {
+		panic(err)
+	}
+
 	if err := indexerWorker.StartUpdateSuggestedMIMETypeCronWorkflow(ctx, cadenceClient, 0); err != nil {
 		panic(err)
 	}
