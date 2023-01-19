@@ -8,32 +8,32 @@ import (
 	"github.com/hasura/go-graphql-client"
 )
 
-type TezosDomainAPI struct {
+type Client struct {
 	client   *graphql.Client
 	endpoint string
 }
 
-func New(graphQLEndpoint string) *TezosDomainAPI {
+func New(graphQLEndpoint string) *Client {
 	var c = &http.Client{
 		Timeout: 10 * time.Second,
 	}
 
 	client := graphql.NewClient(graphQLEndpoint, c)
 
-	return &TezosDomainAPI{
+	return &Client{
 		client:   client,
 		endpoint: graphQLEndpoint,
 	}
 }
 
-// {
-//   reverseRecord(address: "") {
-//     domain{
-//       name
-//     }
-//   }
-// }
-func (api *TezosDomainAPI) ResolveDomain(c context.Context, address string) (string, error) {
+//	{
+//	  reverseRecord(address: "") {
+//	    domain{
+//	      name
+//	    }
+//	  }
+//	}
+func (api *Client) ResolveDomain(c context.Context, address string) (string, error) {
 	var query struct {
 		Record struct {
 			Domain struct {

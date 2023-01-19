@@ -23,7 +23,7 @@ type NFTIndexerWorker struct {
 	ipfsCacheBucketName string
 
 	indexerEngine *indexer.IndexEngine
-	indexerStore  indexer.IndexerStore
+	indexerStore  indexer.Store
 	wallet        *ethereum.Wallet
 
 	bitmarkZeroAddress string
@@ -38,7 +38,7 @@ type NFTIndexerWorker struct {
 func New(environment string,
 	indexerEngine *indexer.IndexEngine,
 	awsSession *session.Session,
-	store indexer.IndexerStore) *NFTIndexerWorker {
+	store indexer.Store) *NFTIndexerWorker {
 
 	w, err := ethereum.NewWalletFromMnemonic(
 		viper.GetString("ethereum.worker_account_mnemonic"),

@@ -51,7 +51,7 @@ func (s *NFTIndexerServer) SetupRoute() {
 	v1NFTHelp.GET("", s.GetAbsentMimeTypeTokens)
 	v1NFTHelp.POST("/feedback", s.FeedbackMimeTypeTokens)
 
-	v1.POST("/admin/demo-tokens/", TokenAuthenticate("API-TOKEN", s.adminApiToken), s.CreateDemoTokens)
+	v1.POST("/admin/demo-tokens/", TokenAuthenticate("API-TOKEN", s.adminAPIToken), s.CreateDemoTokens)
 
 	feralfileAPI := v1.Group("/feralfile", TokenAuthenticate("API-TOKEN", s.apiToken))
 	feralfileAPI.POST("/nft/:token_id/provenance", s.RefreshProvenanceWithOwner)

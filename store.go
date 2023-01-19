@@ -31,7 +31,7 @@ const (
 
 var ErrNoRecordUpdated = fmt.Errorf("no record updated")
 
-type IndexerStore interface {
+type Store interface {
 	IndexAsset(ctx context.Context, id string, assetUpdates AssetUpdates) error
 	SwapToken(ctx context.Context, swapUpdate SwapUpdate) (string, error)
 
@@ -146,12 +146,12 @@ func checkIfTokenNeedToUpdate(assetSource string, currentToken, newToken Token) 
 	// check if we need to update an existent token
 	if assetSource == SourceFeralFile {
 		return true
-	} else {
-		// assetSource is not feral file
-		// only update if token source is not feral file and token balance is greater than zero.
-		if newToken.Balance > 0 && currentToken.Source != SourceFeralFile {
-			return true
-		}
+	}
+
+	// assetSource is not feral file
+	// only update if token source is not feral file and token balance is greater than zero.
+	if newToken.Balance > 0 && currentToken.Source != SourceFeralFile {
+		return true
 	}
 
 	return false
@@ -441,7 +441,7 @@ func (s *MongodbIndexerStore) getDetailedTokensByAggregation(ctx context.Context
 func getPageCounts(itemLength, PageSize int) int {
 	pageCounts := itemLength / PageSize
 	if (itemLength % PageSize) != 0 {
-		pageCounts += 1
+		pageCounts++
 	}
 	return pageCounts
 }
@@ -1254,9 +1254,8 @@ func (s *MongodbIndexerStore) GetAccount(ctx context.Context, owner string) (Acc
 	if err := r.Err(); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return account, nil
-		} else {
-			return account, err
 		}
+		return account, err
 	}
 
 	if err := r.Decode(&account); err != nil {
@@ -1567,7 +1566,7 @@ func (s *MongodbIndexerStore) UpdateTokenFeedback(ctx context.Context, tokenFeed
 			log.WithField("lastUpdatedTime", lastTokenFeedback.LastUpdatedTime.Unix()).
 				WithField("now", time.Now().Add(-delay).Unix()).
 				WithField("account", userDID).Trace("feedback submit too frequently")
-			return fmt.Errorf("Feedback submit too frequently!")
+			return fmt.Errorf("feedback submit too frequently")
 		}
 	}
 

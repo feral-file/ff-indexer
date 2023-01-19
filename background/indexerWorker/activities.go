@@ -196,7 +196,7 @@ func (w *NFTIndexerWorker) IndexAccountTokens(ctx context.Context, owner string,
 }
 
 type Provenance struct {
-	TxId      string    `json:"tx_id"`
+	TxID      string    `json:"tx_id"`
 	Owner     string    `json:"owner"`
 	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
@@ -204,10 +204,10 @@ type Provenance struct {
 
 // Bitmark is the response structure of bitmark registry
 type Bitmark struct {
-	Id               string       `json:"id"`
-	HeadId           string       `json:"head_id"`
+	ID               string       `json:"id"`
+	HeadID           string       `json:"head_id"`
 	Owner            string       `json:"owner"`
-	AssetId          string       `json:"asset_id"`
+	AssetID          string       `json:"asset_id"`
 	Issuer           string       `json:"issuer"`
 	Head             string       `json:"head"`
 	Status           string       `json:"status"`
@@ -248,8 +248,8 @@ func (w *NFTIndexerWorker) fetchBitmarkProvenance(bitmarkID string) ([]indexer.P
 			Owner:      p.Owner,
 			Blockchain: indexer.BitmarkBlockchain,
 			Timestamp:  p.CreatedAt,
-			TxID:       p.TxId,
-			TxURL:      indexer.TxURL(indexer.BitmarkBlockchain, w.Environment, p.TxId),
+			TxID:       p.TxID,
+			TxURL:      indexer.TxURL(indexer.BitmarkBlockchain, w.Environment, p.TxID),
 		})
 	}
 
@@ -572,7 +572,7 @@ func (w *NFTIndexerWorker) GetBalanceDiffFromTezosTransaction(transactionDetails
 
 			receiverAccountToken := indexer.AccountToken{
 				IndexID:          accountToken.IndexID,
-				OwnerAccount:     txs.To_,
+				OwnerAccount:     txs.To,
 				Balance:          amount,
 				LastActivityTime: transactionDetails.Timestamp,
 			}

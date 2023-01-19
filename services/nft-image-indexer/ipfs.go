@@ -14,7 +14,7 @@ type IPFSPinService interface {
 
 // PinataIPFSPinService is an IPFSPinService implementation using pinata
 type PinataIPFSPinService struct {
-	client *pinata.PinataAPIClient
+	client *pinata.Client
 }
 
 func NewPinataIPFSPinService() *PinataIPFSPinService {

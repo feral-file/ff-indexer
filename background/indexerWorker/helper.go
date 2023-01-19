@@ -13,7 +13,7 @@ import (
 	"github.com/bitmark-inc/nft-indexer/cadence"
 )
 
-func StartIndexTokenWorkflow(c context.Context, client *cadence.CadenceWorkerClient, owner, contract, tokenID string, indexPreview bool) {
+func StartIndexTokenWorkflow(c context.Context, client *cadence.WorkerClient, owner, contract, tokenID string, indexPreview bool) {
 	workflowContext := cadenceClient.StartWorkflowOptions{
 		ID:                           fmt.Sprintf("index-single-nft-%s-%s", contract, tokenID),
 		TaskList:                     TaskListName,
@@ -34,7 +34,7 @@ func StartIndexTokenWorkflow(c context.Context, client *cadence.CadenceWorkerCli
 	}
 }
 
-func StartRefreshTokenOwnershipWorkflow(c context.Context, client *cadence.CadenceWorkerClient,
+func StartRefreshTokenOwnershipWorkflow(c context.Context, client *cadence.WorkerClient,
 	caller string, indexID string, delay time.Duration) {
 	workflowContext := cadenceClient.StartWorkflowOptions{
 		ID:                           WorkflowIDIndexTokenOwnershipByHelper(caller, indexID),
@@ -53,7 +53,7 @@ func StartRefreshTokenOwnershipWorkflow(c context.Context, client *cadence.Caden
 	}
 }
 
-func StartRefreshTokenProvenanceWorkflow(c context.Context, client *cadence.CadenceWorkerClient,
+func StartRefreshTokenProvenanceWorkflow(c context.Context, client *cadence.WorkerClient,
 	caller string, indexID string, delay time.Duration) {
 	workflowContext := cadenceClient.StartWorkflowOptions{
 		ID:                           WorkflowIDIndexTokenProvenanceByHelper(caller, indexID),
@@ -77,7 +77,7 @@ func StartRefreshTokenProvenanceWorkflow(c context.Context, client *cadence.Cade
 	}
 }
 
-func StartUpdateAccountTokensWorkflow(c context.Context, client *cadence.CadenceWorkerClient, delay time.Duration) error {
+func StartUpdateAccountTokensWorkflow(c context.Context, client *cadence.WorkerClient, delay time.Duration) error {
 	workflowContext := cadenceClient.StartWorkflowOptions{
 		ID:                           "update-account-token-helper",
 		TaskList:                     AccountTokenTaskListName,
@@ -101,7 +101,7 @@ func StartUpdateAccountTokensWorkflow(c context.Context, client *cadence.Cadence
 	return nil
 }
 
-func StartUpdateSuggestedMIMETypeCronWorkflow(c context.Context, client *cadence.CadenceWorkerClient, delay time.Duration) error {
+func StartUpdateSuggestedMIMETypeCronWorkflow(c context.Context, client *cadence.WorkerClient, delay time.Duration) error {
 	workflowContext := cadenceClient.StartWorkflowOptions{
 		ID:                           "update-token-suggested-mime-type",
 		TaskList:                     AccountTokenTaskListName,

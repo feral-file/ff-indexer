@@ -474,12 +474,12 @@ type TransactionParameter struct {
 }
 
 type ParametersValue struct {
-	From_ string      `json:"from_"`
-	Txs   []TxsFormat `json:"txs"`
+	From string      `json:"from_"`
+	Txs  []TxsFormat `json:"txs"`
 }
 
 type TxsFormat struct {
-	To_     string `json:"to_"`
+	To      string `json:"to_"`
 	Amount  string `json:"amount"`
 	TokenID string `json:"token_id"`
 }
