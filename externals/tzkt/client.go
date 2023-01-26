@@ -89,8 +89,8 @@ func (f *FileFormats) UnmarshalJSON(data []byte) error {
 
 	switch data[0] {
 	case 34:
-		d_ := bytes.ReplaceAll(bytes.Trim(data, `"`), []byte{92, 117, 48, 48, 50, 50}, []byte{34})
-		d := bytes.ReplaceAll(d_, []byte{92, 34}, []byte{34})
+		d1 := bytes.ReplaceAll(bytes.Trim(data, `"`), []byte{92, 117, 48, 48, 50, 50}, []byte{34})
+		d := bytes.ReplaceAll(d1, []byte{92, 34}, []byte{34})
 
 		if err := json.Unmarshal(d, (*formats)(f)); err != nil {
 			return err
@@ -119,8 +119,8 @@ func (c *FileCreators) UnmarshalJSON(data []byte) error {
 
 	switch data[0] {
 	case 34:
-		d_ := bytes.ReplaceAll(bytes.Trim(data, `"`), []byte{92, 117, 48, 48, 50, 50}, []byte{34})
-		d := bytes.ReplaceAll(d_, []byte{92, 34}, []byte{34})
+		d1 := bytes.ReplaceAll(bytes.Trim(data, `"`), []byte{92, 117, 48, 48, 50, 50}, []byte{34})
+		d := bytes.ReplaceAll(d1, []byte{92, 34}, []byte{34})
 
 		if err := json.Unmarshal(d, (*creators)(c)); err != nil {
 			return err

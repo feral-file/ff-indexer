@@ -333,18 +333,18 @@ func getArtistURL(h objkt.Holder) string {
 }
 
 // ReplaceIPFSURIByObjktCDNURI return CDN uri if exist, if not this function will return ipfs link
-func (detail *AssetMetadataDetail) ReplaceIPFSURIByObjktCDNURI(assetType, assetUri, contract, tokenID string) string {
-	if !strings.HasPrefix(assetUri, "ipfs://") {
-		return assetUri
+func (detail *AssetMetadataDetail) ReplaceIPFSURIByObjktCDNURI(assetType, assetURI, contract, tokenID string) string {
+	if !strings.HasPrefix(assetURI, "ipfs://") {
+		return assetURI
 	}
 
-	uri, err := MakeCDNURIFromIPFSURI(assetUri, assetType, contract, tokenID)
+	uri, err := MakeCDNURIFromIPFSURI(assetURI, assetType, contract, tokenID)
 
 	if err == nil {
 		return uri
 	}
 
-	return defaultIPFSLink(assetUri)
+	return defaultIPFSLink(assetURI)
 }
 
 // MakeCDNURIFromIPFSURI create Objkt CDN uri from IPFS Uri(extract cid)
