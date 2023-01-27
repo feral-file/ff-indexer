@@ -10,6 +10,7 @@ server:
   port: :8089
   api_token: api_token
   admin_api_token:
+  secret_symmetric_key: PASSPHRASEWHICHNEEDSTOBE32BYTES
 
 jwt:
   pubkeyfile: jwt.key.pub

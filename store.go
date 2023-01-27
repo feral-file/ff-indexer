@@ -1639,7 +1639,7 @@ func (s *MongodbIndexerStore) GetGrouppedTokenFeedbacks(ctx context.Context) ([]
 }
 
 func (s *MongodbIndexerStore) UpdateTokenSugesstedMIMEType(ctx context.Context, indexID, mimeType string) error {
-	r := s.tokenCollection.FindOne(ctx, bson.M{"indexID": indexID})
+	r := s.assetCollection.FindOne(ctx, bson.M{"indexID": indexID})
 	if err := r.Err(); err != nil {
 		return err
 	}
