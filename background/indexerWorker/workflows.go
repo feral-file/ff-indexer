@@ -259,7 +259,6 @@ func (w *NFTIndexerWorker) CacheIPFSArtifactWorkflow(ctx workflow.Context, fullD
 
 // UpdateAccountTokenWorkflow is a workflow to refresh provenance for a specific token
 func (w *NFTIndexerWorker) UpdateAccountTokensWorkflow(ctx workflow.Context, delay time.Duration) error {
-	var err error
 	ao := workflow.ActivityOptions{
 		TaskList:               w.AccountTokenTaskListName,
 		ScheduleToStartTimeout: 10 * time.Minute,
@@ -272,18 +271,12 @@ func (w *NFTIndexerWorker) UpdateAccountTokensWorkflow(ctx workflow.Context, del
 
 	log.Debug("start UpdateAccountTokensWorkflow")
 
-	err = workflow.ExecuteActivity(ctx, w.UpdateAccountTokens).Get(ctx, nil)
-	if err != nil {
+	if err := workflow.ExecuteActivity(ctx, w.UpdateAccountTokens).Get(ctx, nil); err != nil {
 		log.Error("fail to update account tokens")
 		return err
 	}
 
-	err = workflow.Sleep(ctx, 1*time.Minute)
-	if err != nil {
-		log.Error("fail to sleep")
-	}
-
-	return workflow.NewContinueAsNewError(ctx, w.UpdateAccountTokensWorkflow, delay)
+	return nil
 }
 
 // UpdateSuggestedMimeTypeWorkflow is a workflow to update suggested mimeType from token feedback
