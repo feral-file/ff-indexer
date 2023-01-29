@@ -8,8 +8,9 @@ import (
 	"github.com/bitmark-inc/bitmark-sdk-go/tx"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/emitter"
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type BitmarkEventsEmitter struct {
@@ -43,13 +44,13 @@ func (e *BitmarkEventsEmitter) Watch() error {
 
 func (e *BitmarkEventsEmitter) Run(ctx context.Context) {
 	for n := range e.bitmarkListener.Notify {
-		logrus.WithField("event", n.Channel).WithField("transfers", n.Extra).Info("new event")
+		log.Info("new event", zap.String("event", n.Channel), zap.String("transfers", n.Extra))
 		row := e.bitmarkListener.db.QueryRow("SELECT value FROM event WHERE id = $1", n.Extra)
 
 		var txIDs string
 		err := row.Scan(&txIDs)
 		if err != nil {
-			logrus.WithField("event_id", n.Extra).WithError(err).Error("fail to get transaction ids")
+			log.Error("fail to get transaction ids", zap.String("event_id", n.Extra), zap.Error(err))
 			continue
 		}
 
@@ -61,11 +62,11 @@ func (e *BitmarkEventsEmitter) Run(ctx context.Context) {
 				}
 
 				if err = e.PushEvent(ctx, eventType, t.PreviousOwner, t.Owner, "", indexer.BitmarkBlockchain, t.BitmarkID); err != nil {
-					logrus.WithError(err).WithField("txID", txID).Error("gRPC request failed")
+					log.Error("gRPC request failed", zap.Error(err), zap.String("txID", txID), log.SourceGRPC)
 				}
 
 			} else {
-				logrus.WithError(err).WithField("txID", txID).Error("fail to get transaction detail")
+				log.Error("fail to get transaction detail", zap.Error(err), zap.String("txID", txID))
 			}
 		}
 	}

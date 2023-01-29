@@ -5,9 +5,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 var blockTimes = map[string]time.Time{}
@@ -26,7 +27,7 @@ func GetETHBlockTime(ctx context.Context, rpcClient *ethclient.Client, hash comm
 		return time.Time{}, err
 	}
 
-	logrus.WithField("blockNumber", block.NumberU64()).Debug("set new block")
+	log.Debug("set new block", zap.Uint64("blockNumber", block.NumberU64()))
 	blockTimes[hash.Hex()] = time.Unix(int64(block.Time()), 0)
 
 	return blockTimes[hash.Hex()], nil

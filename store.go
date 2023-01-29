@@ -7,12 +7,13 @@ import (
 	"time"
 
 	"github.com/fatih/structs"
-	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.uber.org/zap"
+
+	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 const (
@@ -217,10 +218,9 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 
 			// TODO: check whether to remove the thumbnail cache when the thumbnail data is updated.
 			if currentAsset.ProjectMetadata.Latest.ThumbnailURL != assetUpdates.ProjectMetadata.ThumbnailURL {
-				logrus.
-					WithField("old", currentAsset.ProjectMetadata.Latest.ThumbnailURL).
-					WithField("new", assetUpdates.ProjectMetadata.ThumbnailURL).
-					Debug("image cache need to be reset")
+				log.Debug("image cache need to be reset",
+					zap.String("old", currentAsset.ProjectMetadata.Latest.ThumbnailURL),
+					zap.String("new", assetUpdates.ProjectMetadata.ThumbnailURL))
 				updates = append(updates, bson.E{Key: "$unset", Value: bson.M{"thumbnailID": ""}})
 			}
 
@@ -251,7 +251,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		if err := tokenResult.Err(); err != nil {
 			if err == mongo.ErrNoDocuments {
 				// If a token is not found, insert a new token
-				logrus.WithField("token_id", token.ID).Info("new token found")
+				log.Info("new token found", zap.String("token_id", token.ID))
 
 				token.LastActivityTime = token.MintAt // set LastActivityTime to default token minted time
 				token.OwnersArray = []string{token.Owner}
@@ -283,13 +283,13 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 
 			tokenUpdate := bson.M{"$set": structs.Map(tokenUpdateSet)}
 
-			logrus.WithField("token_id", token.ID).WithField("tokenUpdate", tokenUpdate).Debug("token data for updated")
+			log.Debug("token data for updated", zap.String("token_id", token.ID), zap.Any("tokenUpdate", tokenUpdate))
 			r, err := s.tokenCollection.UpdateOne(ctx, bson.M{"indexID": token.IndexID}, tokenUpdate)
 			if err != nil {
 				return err
 			}
 			if r.MatchedCount == 0 {
-				logrus.WithField("token_id", token.ID).Warn("token is not updated")
+				log.Warn("token is not updated", zap.String("token_id", token.ID))
 			}
 		}
 	}
@@ -340,7 +340,7 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 	newToken.SwappedFrom = &originalTokenIndexID
 	newToken.OriginTokenInfo = append([]BaseTokenInfo{originalBaseTokenInfo}, newToken.OriginTokenInfo...)
 
-	logrus.WithField("from", originalTokenIndexID).WithField("to", newTokenIndexID).Debug("update tokens for swapping")
+	log.Debug("update tokens for swapping", zap.String("from", originalTokenIndexID), zap.String("to", newTokenIndexID))
 	session, err := s.mongoClient.StartSession()
 	if err != nil {
 		return "", err
@@ -372,7 +372,7 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 		return nil, nil
 	})
 
-	logrus.WithField("transaction_result", result).Debug("swap token transaction")
+	log.Debug("swap token transaction", zap.Any("transaction_result", result))
 
 	return newTokenIndexID, err
 }
@@ -450,17 +450,14 @@ func getPageCounts(itemLength, PageSize int) int {
 func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error) {
 	tokens := []DetailedToken{}
 
-	logrus.
-		WithField("filterParameter", filterParameter).
-		WithField("offset", offset).
-		WithField("size", size).
-		Debug("GetDetailedTokens")
+	log.Debug("GetDetailedTokens",
+		zap.Any("filterParameter", filterParameter),
+		zap.Int64("offset", offset),
+		zap.Int64("size", size))
 	startTime := time.Now()
 	if length := len(filterParameter.IDs); length > 0 {
 		for i := 0; i < getPageCounts(length, QueryPageSize); i++ {
-			logrus.
-				WithField("page", i).
-				Trace("doc page")
+			log.Debug("doc page", zap.Int("page", i))
 			start := i * QueryPageSize
 			end := (i + 1) * QueryPageSize
 			if end > length {
@@ -478,9 +475,7 @@ func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParam
 	} else {
 		return s.getDetailedTokensByAggregation(ctx, filterParameter, offset, size)
 	}
-	logrus.
-		WithField("queryTime", time.Since(startTime)).
-		Debug("GetDetailedTokens End")
+	log.Debug("GetDetailedTokens End", zap.Duration("queryTime", time.Since(startTime)))
 
 	return tokens, nil
 }
@@ -488,7 +483,7 @@ func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParam
 // UpdateOwner updates owner for a specific non-fungible token
 func (s *MongodbIndexerStore) UpdateOwner(ctx context.Context, indexID string, owner string, updatedAt time.Time) error {
 	if owner == "" {
-		logrus.WithField("indexID", indexID).Warn("ignore update empty owner")
+		log.Warn("ignore update empty owner", zap.String("indexID", indexID))
 		return nil
 	}
 
@@ -514,7 +509,7 @@ func (s *MongodbIndexerStore) UpdateOwner(ctx context.Context, indexID string, o
 // UpdateTokenProvenance updates provenance for a specific token
 func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID string, provenances []Provenance) error {
 	if len(provenances) == 0 {
-		logrus.WithField("indexID", indexID).Warn("ignore update empty provenance")
+		log.Warn("ignore update empty provenance", zap.String("indexID", indexID))
 		return nil
 	}
 
@@ -547,7 +542,7 @@ func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID
 // UpdateTokenOwners updates owners for a specific token
 func (s *MongodbIndexerStore) UpdateTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error {
 	if len(owners) == 0 {
-		logrus.WithField("indexID", indexID).Warn("ignore update empty provenance")
+		log.Warn("ignore update empty provenance", zap.String("indexID", indexID))
 		return nil
 	}
 
@@ -884,10 +879,10 @@ func (s *MongodbIndexerStore) getTokensByAggregation(ctx context.Context, filter
 
 // GetTokensByTextSearch returns a list of token those assets match have attributes that match the search text.
 func (s *MongodbIndexerStore) GetTokensByTextSearch(ctx context.Context, searchText string, offset, size int64) ([]DetailedToken, error) {
-	logrus.WithField("searchText", searchText).
-		WithField("offset", offset).
-		WithField("size", size).
-		Debug("GetTokensByTextSearch")
+	log.Debug("GetTokensByTextSearch",
+		zap.String("searchText", searchText),
+		zap.Int64("offset", offset),
+		zap.Int64("size", size))
 
 	pipeline := []bson.M{
 		{"$match": bson.M{
@@ -1047,7 +1042,7 @@ func (s *MongodbIndexerStore) IndexIdentity(ctx context.Context, identity Accoun
 	}
 
 	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-		logrus.WithField("account_number", identity.AccountNumber).Warn("identity is not added or updated")
+		log.Warn("identity is not added or updated", zap.String("account_number", identity.AccountNumber))
 	}
 
 	return nil
@@ -1081,7 +1076,10 @@ func (s *MongodbIndexerStore) UpdateAccountTokenBalance(ctx context.Context, own
 	}
 
 	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).WithField("pendingTx", pendingTx).Debug("the account token's balance is not updated/added")
+		log.Debug("the account token's balance is not updated/added",
+			zap.String("IndexID", indexID),
+			zap.String("ownerAccount", ownerAccount),
+			zap.String("pendingTx", pendingTx))
 	}
 
 	// remove pendingTx and lastPendingTime
@@ -1119,9 +1117,14 @@ func (s *MongodbIndexerStore) DeletePendingFieldsAccountToken(ctx context.Contex
 	}
 
 	if r.MatchedCount == 0 {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).WithField("pendingTx", pendingTx).WithField("lastPendingTime", lastPendingTime).Warn("pending account token is not deleted its pending fields")
+		log.Warn("pending account token is not deleted its pending fields",
+			zap.String("IndexID", indexID),
+			zap.String("ownerAccount", ownerAccount),
+			zap.String("pendingTx", pendingTx))
 	} else {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).WithField("pendingTx", pendingTx).WithField("lastPendingTime", lastPendingTime).Debug("pending account token is deleted its pending fields")
+		log.Debug("pending account token is deleted its pending fields",
+			zap.String("ownerAccount", ownerAccount),
+			zap.String("pendingTx", pendingTx))
 	}
 
 	return nil
@@ -1157,13 +1160,15 @@ func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ow
 			}
 
 			if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-				logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("pending token is not added")
+				log.Warn("pending token is not added", zap.String("indexID", indexID))
 			}
 		} else {
 			return err
 		}
 	} else {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Debug("pending token is already added")
+		log.Debug("pending token is already added",
+			zap.String("IndexID", indexID),
+			zap.String("ownerAccount", ownerAccount))
 		return nil
 	}
 	return nil
@@ -1211,7 +1216,7 @@ func (s *MongodbIndexerStore) IndexAccount(ctx context.Context, account Account)
 	}
 
 	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-		logrus.WithField("account", account.Account).Warn("account is not added or updated")
+		log.Warn("account is not added or updated", zap.String("account", account.Account))
 	}
 
 	return nil
@@ -1231,7 +1236,7 @@ func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner stri
 				return err
 			}
 			if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-				logrus.WithField("token_id", accountToken.ID).Warn("account token is not added or updated")
+				log.Warn("account token is not added or updated", zap.String("token_id", accountToken.ID))
 			}
 		} else {
 			_, err := s.accountTokenCollection.DeleteOne(ctx, bson.M{"ownerAccount": owner, "indexID": accountToken.IndexID})
@@ -1337,11 +1342,10 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error) {
 	findOptions := options.Find().SetSort(bson.D{{Key: "lastActivityTime", Value: -1}, {Key: "_id", Value: -1}}).SetLimit(size).SetSkip(offset)
 
-	logrus.
-		WithField("filterParameter", filterParameter).
-		WithField("offset", offset).
-		WithField("size", size).
-		Debug("GetDetailedAccountTokensByOwner")
+	log.Debug("GetDetailedAccountTokensByOwner",
+		zap.Any("filterParameter", filterParameter),
+		zap.Int64("offset", offset),
+		zap.Int64("size", size))
 
 	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{"ownerAccount": account}, findOptions)
 	if err != nil {
@@ -1412,12 +1416,12 @@ func (s *MongodbIndexerStore) IndexDemoTokens(ctx context.Context, owner string,
 				token.OwnersArray = []string{owner}
 				token.Owners[owner] = 1
 				if _, err := s.tokenCollection.InsertOne(ctx, token); err != nil {
-					logrus.WithField("indexID", demoIndexID).WithError(err).Error("error while inserting demo tokens")
+					log.Error("error while inserting demo tokens", zap.String("indexID", demoIndexID), zap.Error(err))
 					return err
 				}
-				logrus.WithField("indexID", demoIndexID).Debug("demo token is indexed")
+				log.Debug("demo token is indexed", zap.String("indexID", demoIndexID))
 			} else {
-				logrus.WithField("demoIndexID", demoIndexID).WithError(err).Error("error while finding demoIndexID in the database")
+				log.Error("error while finding demoIndexID in the database", zap.String("demoIndexID", demoIndexID), zap.Error(err))
 				return err
 			}
 		} else {
@@ -1430,7 +1434,7 @@ func (s *MongodbIndexerStore) IndexDemoTokens(ctx context.Context, owner string,
 				}); err != nil {
 				return err
 			}
-			logrus.WithField("indexID", demoIndexID).Debug("demo token is updated")
+			log.Debug("demo token is updated", zap.String("indexID", demoIndexID))
 		}
 	}
 
@@ -1563,10 +1567,12 @@ func (s *MongodbIndexerStore) UpdateTokenFeedback(ctx context.Context, tokenFeed
 		delay := time.Hour
 
 		if lastTokenFeedback.LastUpdatedTime.Unix() > time.Now().Add(-delay).Unix() {
-			log.WithField("lastUpdatedTime", lastTokenFeedback.LastUpdatedTime.Unix()).
-				WithField("now", time.Now().Add(-delay).Unix()).
-				WithField("account", userDID).Trace("feedback submit too frequently")
-			return fmt.Errorf("feedback submit too frequently")
+			log.Debug("feedback submit too frequently",
+				zap.Int64("lastUpdatedTime", lastTokenFeedback.LastUpdatedTime.Unix()),
+				zap.Int64("now", time.Now().Add(-delay).Unix()),
+				zap.String("account", userDID),
+			)
+			return fmt.Errorf("Feedback submit too frequently!")
 		}
 	}
 
@@ -1589,7 +1595,10 @@ func (s *MongodbIndexerStore) UpdateTokenFeedback(ctx context.Context, tokenFeed
 		}
 
 		if r.ModifiedCount == 0 && r.UpsertedCount == 0 {
-			logrus.WithField("index_id", tokenFeedback.IndexID).WithField("did", tokenFeedback.DID).Warn("token feedback is not added or updated")
+			log.Warn("token feedback is not added or updated",
+				zap.String("index_id", tokenFeedback.IndexID),
+				zap.String("did", tokenFeedback.DID),
+			)
 		}
 	}
 
@@ -1638,7 +1647,7 @@ func (s *MongodbIndexerStore) GetGrouppedTokenFeedbacks(ctx context.Context) ([]
 }
 
 func (s *MongodbIndexerStore) UpdateTokenSugesstedMIMEType(ctx context.Context, indexID, mimeType string) error {
-	r := s.tokenCollection.FindOne(ctx, bson.M{"indexID": indexID})
+	r := s.assetCollection.FindOne(ctx, bson.M{"indexID": indexID})
 	if err := r.Err(); err != nil {
 		return err
 	}

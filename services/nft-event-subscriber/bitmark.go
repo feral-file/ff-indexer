@@ -8,8 +8,10 @@ import (
 	tx "github.com/bitmark-inc/bitmark-sdk-go/tx"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 // WatchBitmarkEvent listens events from bitmark blockchain db for new transfer events.
@@ -46,11 +48,11 @@ func (s *NFTEventSubscriber) WatchBitmarkEvent(ctx context.Context) error {
 					go func() {
 						if t.Owner == indexer.LivenetZeroAddress || t.Owner == indexer.TestnetZeroAddress {
 							if err := s.feedServer.SendBurn(indexer.BitmarkBlockchain, "", t.BitmarkID); err != nil {
-								logrus.WithError(err).Trace("fail to push event to feed server")
+								log.Debug("fail to push event to feed server", zap.Error(err))
 							}
 						} else {
 							if err := s.feedServer.SendEvent(indexer.BitmarkBlockchain, "", t.BitmarkID, t.Owner, action, viper.GetString("network.bitmark") == "testnet"); err != nil {
-								logrus.WithError(err).Trace("fail to push event to feed server")
+								log.Debug("fail to push event to feed server", zap.Error(err))
 							}
 						}
 					}()

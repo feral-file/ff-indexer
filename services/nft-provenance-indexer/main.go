@@ -6,10 +6,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/getsentry/sentry-go"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.uber.org/cadence/activity"
 	"go.uber.org/cadence/workflow"
+	"go.uber.org/zap"
 
 	"github.com/bitmark-inc/config-loader"
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -19,6 +19,7 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
+	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 var CadenceService = "cadence-frontend"
@@ -35,14 +36,14 @@ func main() {
 		Dsn:         viper.GetString("sentry.dsn"),
 		Environment: environment,
 	}); err != nil {
-		log.WithError(err).Panic("Sentry initialization failed")
+		log.Panic("Sentry initialization failed", zap.Error(err))
 	}
 
 	ctx := context.Background()
 
 	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
 	if err != nil {
-		log.WithError(err).Panic("fail to initiate indexer store")
+		log.Panic("fail to initiate indexer store", zap.Error(err))
 	}
 
 	indexerEngine := indexer.New(

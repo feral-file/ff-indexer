@@ -8,10 +8,11 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
+	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 type TransactionDetails struct {
@@ -37,17 +38,15 @@ func (e *IndexEngine) IndexETHTokenByOwner(ctx context.Context, owner string, of
 		// 	continue
 		// }
 		balance := int64(1) // set default balance to 1 to reduce extra call to opensea
-
-		log.WithFields(log.Fields{
-			"contract": a.AssetContract.Address,
-			"tokenID":  a.TokenID,
-			"owner":    owner,
-			"balance":  balance,
-		}).Trace("get token balance")
+		log.Debug("get token balance",
+			zap.String("contract", a.AssetContract.Address),
+			zap.String("tokenID", a.TokenID),
+			zap.String("owner", owner),
+			zap.Int64("balance", balance))
 
 		update, err := e.indexETHToken(&a, owner, balance)
 		if err != nil {
-			log.WithError(err).Error("fail to index token data")
+			log.Error("fail to index token data", zap.Error(err))
 		}
 
 		if update != nil {
@@ -106,7 +105,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 		artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator.Address)
 	}
 
-	log.WithField("source", source).WithField("assetID", a.ID).Debug("source debug")
+	log.Debug("source debug", zap.String("source", source), zap.Int64("assetID", a.ID))
 
 	if a.Creator.Address != "" {
 		if artistName == "" {
@@ -140,7 +139,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 			metadata.Medium = MediumSoftware
 		} else {
 			medium := mediumByPreviewFileExtension(metadata.PreviewURL)
-			log.WithField("previewURL", metadata.PreviewURL).WithField("medium", medium).Debug("fallback medium check")
+			log.Debug("fallback medium check", zap.String("previewURL", metadata.PreviewURL), zap.Any("medium", medium))
 			metadata.Medium = medium
 		}
 	} else if a.ImageURL != "" {
@@ -174,10 +173,10 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 		},
 	}
 
-	log.WithField("blockchain", EthereumBlockchain).
-		WithField("id", TokenIndexID(EthereumBlockchain, contractAddress, a.TokenID)).
-		WithField("tokenUpdate", tokenUpdate).
-		Trace("asset updating data prepared")
+	log.Debug("asset updating data prepared",
+		zap.String("blockchain", EthereumBlockchain),
+		zap.String("id", TokenIndexID(EthereumBlockchain, contractAddress, a.TokenID)),
+		zap.Any("tokenUpdate", tokenUpdate))
 
 	return tokenUpdate, nil
 }
@@ -189,9 +188,9 @@ func (e *IndexEngine) IndexETHTokenLastActivityTime(ctx context.Context, contrac
 
 // IndexETHTokenOwners indexes owners of a given token
 func (e *IndexEngine) IndexETHTokenOwners(ctx context.Context, contract, tokenID string) (map[string]int64, error) {
-	log.WithField("blockchain", EthereumBlockchain).
-		WithField("contract", contract).WithField("tokenID", tokenID).
-		Trace("index eth token owners")
+	log.Debug("index eth token owners",
+		zap.String("blockchain", EthereumBlockchain),
+		zap.String("contract", contract), zap.String("tokenID", tokenID))
 
 	var next *string
 	ownersMap := map[string]int64{}
