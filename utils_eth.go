@@ -20,15 +20,15 @@ func GetETHBlockTime(ctx context.Context, rpcClient *ethclient.Client, hash comm
 
 	if blockTime, ok := blockTimes[hash.Hex()]; ok {
 		return blockTime, nil
-	} else {
-		block, err := rpcClient.BlockByHash(ctx, hash)
-		if err != nil {
-			return time.Time{}, err
-		}
-
-		log.Debug("set new block", zap.Uint64("blockNumber", block.NumberU64()))
-		blockTimes[hash.Hex()] = time.Unix(int64(block.Time()), 0)
-
-		return blockTimes[hash.Hex()], nil
 	}
+
+	block, err := rpcClient.BlockByHash(ctx, hash)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	log.Debug("set new block", zap.Uint64("blockNumber", block.NumberU64()))
+	blockTimes[hash.Hex()] = time.Unix(int64(block.Time()), 0)
+
+	return blockTimes[hash.Hex()], nil
 }

@@ -17,7 +17,7 @@ import (
 	indexer "github.com/bitmark-inc/nft-indexer"
 )
 
-const DEFAULT_DOWNLOAD_RETRY = 3
+const DefaultDownloadRetry = 3
 
 // CacheIPFSArtifactInS3 is an activity to cache a given file into S3
 func (w *NFTIndexerWorker) CacheIPFSArtifactInS3(ctx context.Context, fileURI string) error {
@@ -26,8 +26,8 @@ func (w *NFTIndexerWorker) CacheIPFSArtifactInS3(ctx context.Context, fileURI st
 	log.Debug("start caching IPFS file", zap.String("fileURI", fileURI))
 
 	var cid string
-	if strings.HasPrefix(fileURI, indexer.DEFAULT_IPFS_GATEWAY) {
-		cid = strings.Replace(fileURI, indexer.DEFAULT_IPFS_GATEWAY, "", -1)
+	if strings.HasPrefix(fileURI, indexer.DefaultIPFSGateway) {
+		cid = strings.Replace(fileURI, indexer.DefaultIPFSGateway, "", -1)
 	} else {
 		log.Debug("ignore non IPFS file", zap.String("fileURI", fileURI))
 		return nil
@@ -52,7 +52,7 @@ func (w *NFTIndexerWorker) CacheIPFSArtifactInS3(ctx context.Context, fileURI st
 	count := 0
 	f, mime, err := d.Download()
 	for err != nil {
-		if count < DEFAULT_DOWNLOAD_RETRY {
+		if count < DefaultDownloadRetry {
 			log.Warn("fail to download artwork", zap.Error(err))
 			f, mime, err = d.Download()
 		} else {

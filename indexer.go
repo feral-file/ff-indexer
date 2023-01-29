@@ -17,8 +17,8 @@ import (
 
 const (
 	// broken-image.svg
-	DEFAULT_DISPLAY_URI  = "ipfs://QmX5rRzkZQfvEyaYc1Q78YZ83pFj3AgpFVSK8SmxUmZ85M"
-	DEFAULT_IPFS_GATEWAY = "https://ipfs.io/ipfs/"
+	DefaultDisplayURI  = "ipfs://QmX5rRzkZQfvEyaYc1Q78YZ83pFj3AgpFVSK8SmxUmZ85M"
+	DefaultIPFSGateway = "https://ipfs.io/ipfs/"
 )
 
 // artblocksContracts indexes the addresses which are ERC721 contracts of Artblocks
@@ -85,7 +85,7 @@ func mediumByMIMEType(mimeType string) Medium {
 
 // defaultIPFSLink converts an IPFS link to a HTTP link by using ipfs.io gateway.
 func defaultIPFSLink(ipfsLink string) string {
-	return strings.ReplaceAll(ipfsLink, "ipfs://", DEFAULT_IPFS_GATEWAY)
+	return strings.ReplaceAll(ipfsLink, "ipfs://", DefaultIPFSGateway)
 }
 
 type MarketplaceProfile struct {
@@ -178,7 +178,7 @@ func (detail *AssetMetadataDetail) UpdateMetadataFromTZKT(md tzkt.TokenMetadata)
 	} else if md.ThumbnailURI != "" {
 		displayURI = md.ThumbnailURI
 	} else {
-		displayURI = DEFAULT_DISPLAY_URI
+		displayURI = DefaultDisplayURI
 	}
 
 	if md.ArtifactURI != "" {
@@ -197,7 +197,7 @@ func (detail *AssetMetadataDetail) UpdateMetadataFromTZKT(md tzkt.TokenMetadata)
 }
 
 // FromFxhashObject reads asset detail from an fxhash API object
-func (detail *AssetMetadataDetail) FromFxhashObject(o fxhash.FxHashObjectDetail) {
+func (detail *AssetMetadataDetail) FromFxhashObject(o fxhash.ObjectDetail) {
 	detail.Name = o.Name
 	detail.Description = o.Metadata.Description
 	detail.ArtistID = o.Issuer.Author.ID
@@ -276,43 +276,43 @@ func (e *IndexEngine) GetTransactionDetailsByPendingTx(pendingTx string) ([]tzkt
 }
 
 // FromObjkt reads asset detail from Objkt API object
-func (d *AssetMetadataDetail) FromObjkt(objktToken objkt.Token) {
-	d.UpdateMetadataFromObjkt(objktToken)
+func (detail *AssetMetadataDetail) FromObjkt(objktToken objkt.Token) {
+	detail.UpdateMetadataFromObjkt(objktToken)
 
 	if len(objktToken.Creators) > 0 {
-		d.ArtistID = objktToken.Creators[0].Holder.Address
-		d.ArtistURL = getArtistURL(objktToken.Creators[0].Holder)
-		d.ArtistName = objktToken.Creators[0].Holder.Alias
+		detail.ArtistID = objktToken.Creators[0].Holder.Address
+		detail.ArtistURL = getArtistURL(objktToken.Creators[0].Holder)
+		detail.ArtistName = objktToken.Creators[0].Holder.Alias
 
-		if d.ArtistName == "" && d.ArtistID != "" {
-			d.ArtistName = d.ArtistID
+		if detail.ArtistName == "" && detail.ArtistID != "" {
+			detail.ArtistName = detail.ArtistID
 		}
 	}
 }
 
 // UpdateMetadataFromObjkt update Objkt metadata to AssetMetadataDetail
-func (d *AssetMetadataDetail) UpdateMetadataFromObjkt(token objkt.Token) {
-	d.Name = token.Name
-	d.Description = token.Description
-	d.MIMEType = token.Mime
-	d.Medium = mediumByMIMEType(token.Mime)
+func (detail *AssetMetadataDetail) UpdateMetadataFromObjkt(token objkt.Token) {
+	detail.Name = token.Name
+	detail.Description = token.Description
+	detail.MIMEType = token.Mime
+	detail.Medium = mediumByMIMEType(token.Mime)
 
-	if token.DisplayUri != "" {
-		d.DisplayURI = d.ReplaceIPFSURIByObjktCDNURI(ObjktCDNDisplayType, token.DisplayUri, token.FaContract, token.TokenID)
-	} else if token.ThumbnailUri == hicetnuncDefaultThumbnailURL {
-		d.DisplayURI = d.ReplaceIPFSURIByObjktCDNURI(ObjktCDNArtifactThumbnailType, token.ThumbnailUri, token.FaContract, token.TokenID)
-	} else if token.ThumbnailUri != "" {
-		d.DisplayURI = d.ReplaceIPFSURIByObjktCDNURI(ObjktCDNThumbnailType, token.ThumbnailUri, token.FaContract, token.TokenID)
+	if token.DisplayURI != "" {
+		detail.DisplayURI = detail.ReplaceIPFSURIByObjktCDNURI(ObjktCDNDisplayType, token.DisplayURI, token.FaContract, token.TokenID)
+	} else if token.ThumbnailURI == hicetnuncDefaultThumbnailURL {
+		detail.DisplayURI = detail.ReplaceIPFSURIByObjktCDNURI(ObjktCDNArtifactThumbnailType, token.ThumbnailURI, token.FaContract, token.TokenID)
+	} else if token.ThumbnailURI != "" {
+		detail.DisplayURI = detail.ReplaceIPFSURIByObjktCDNURI(ObjktCDNThumbnailType, token.ThumbnailURI, token.FaContract, token.TokenID)
 	}
 
-	if d.DisplayURI == "" || d.DisplayURI == hicetnuncDefaultThumbnailURL {
-		d.DisplayURI = defaultIPFSLink(DEFAULT_DISPLAY_URI)
+	if detail.DisplayURI == "" || detail.DisplayURI == hicetnuncDefaultThumbnailURL {
+		detail.DisplayURI = defaultIPFSLink(DefaultDisplayURI)
 	}
 
-	if token.ArtifactUri != "" {
-		d.PreviewURI = d.ReplaceIPFSURIByObjktCDNURI(ObjktCDNArtifactType, token.ArtifactUri, token.FaContract, token.TokenID)
+	if token.ArtifactURI != "" {
+		detail.PreviewURI = detail.ReplaceIPFSURIByObjktCDNURI(ObjktCDNArtifactType, token.ArtifactURI, token.FaContract, token.TokenID)
 	} else {
-		d.PreviewURI = defaultIPFSLink(DEFAULT_DISPLAY_URI)
+		detail.PreviewURI = defaultIPFSLink(DefaultDisplayURI)
 	}
 }
 
@@ -333,18 +333,18 @@ func getArtistURL(h objkt.Holder) string {
 }
 
 // ReplaceIPFSURIByObjktCDNURI return CDN uri if exist, if not this function will return ipfs link
-func (d *AssetMetadataDetail) ReplaceIPFSURIByObjktCDNURI(assetType, assetUri, contract, tokenID string) string {
-	if !strings.HasPrefix(assetUri, "ipfs://") {
-		return assetUri
+func (detail *AssetMetadataDetail) ReplaceIPFSURIByObjktCDNURI(assetType, assetURI, contract, tokenID string) string {
+	if !strings.HasPrefix(assetURI, "ipfs://") {
+		return assetURI
 	}
 
-	uri, err := MakeCDNURIFromIPFSURI(assetUri, assetType, contract, tokenID)
+	uri, err := MakeCDNURIFromIPFSURI(assetURI, assetType, contract, tokenID)
 
 	if err == nil {
 		return uri
 	}
 
-	return defaultIPFSLink(assetUri)
+	return defaultIPFSLink(assetURI)
 }
 
 // MakeCDNURIFromIPFSURI create Objkt CDN uri from IPFS Uri(extract cid)
@@ -372,9 +372,9 @@ func MakeCDNURIFromIPFSURI(assetURI, assetType, contract, tokenID string) (strin
 
 		if CheckCDNURLIsExist(uri) {
 			return uri, nil
-		} else {
-			return "", fmt.Errorf("CDN URL is not exist")
 		}
+
+		return "", fmt.Errorf("CDN URL is not exist")
 	}
 
 	urlParsed.Path, err = url.JoinPath(ObjktCDNBasePath, cid, assetType)

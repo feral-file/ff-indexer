@@ -9,18 +9,18 @@ import (
 
 type IndexEngine struct {
 	environment string
-	opensea     *opensea.OpenseaClient
+	opensea     *opensea.Client
 	tzkt        *tzkt.TZKT
-	fxhash      *fxhash.FxHashAPI
-	objkt       *objkt.ObjktAPI
+	fxhash      *fxhash.Client
+	objkt       *objkt.Client
 }
 
 func New(
 	environment string,
-	opensea *opensea.OpenseaClient,
+	opensea *opensea.Client,
 	tzkt *tzkt.TZKT,
-	fxhash *fxhash.FxHashAPI,
-	objkt *objkt.ObjktAPI,
+	fxhash *fxhash.Client,
+	objkt *objkt.Client,
 ) *IndexEngine {
 	return &IndexEngine{
 		environment: environment,

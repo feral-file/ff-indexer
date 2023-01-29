@@ -21,7 +21,7 @@ type EventProcessor struct {
 	grpcServer     *GRPCServer
 	queueProcessor *EventQueueProcessor
 	indexerStore   *indexer.MongodbIndexerStore
-	worker         *cadence.CadenceWorkerClient
+	worker         *cadence.WorkerClient
 	accountStore   *storage.AccountInformationStorage
 	indexerEngine  *indexer.IndexEngine
 	notification   *notificationSdk.NotificationClient
@@ -33,7 +33,7 @@ func NewEventProcessor(
 	address string,
 	store EventStore,
 	indexerStore *indexer.MongodbIndexerStore,
-	worker *cadence.CadenceWorkerClient,
+	worker *cadence.WorkerClient,
 	accountStore *storage.AccountInformationStorage,
 	indexerEngine *indexer.IndexEngine,
 	notification *notificationSdk.NotificationClient,

@@ -141,21 +141,21 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParamsIDs []str
 
 		// index redundant reqParams.IDs
 		for redundantID := range m {
-			_, contract, tokenId, err := indexer.ParseTokenIndexID(redundantID)
+			_, contract, tokenID, err := indexer.ParseTokenIndexID(redundantID)
 			if err != nil {
 				continue
 			}
 
-			owner, err := s.indexerEngine.GetTokenOwnerAddress(contract, tokenId)
+			owner, err := s.indexerEngine.GetTokenOwnerAddress(contract, tokenID)
 			if err != nil {
 				log.Warn("unexpected error while getting token owner address of the contract",
 					zap.String("contract", contract),
-					zap.String("tokenId", tokenId),
+					zap.String("tokenId", tokenID),
 					zap.Error(err))
 				continue
 			}
 
-			go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, tokenId, false)
+			go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, tokenID, false)
 		}
 	}
 }

@@ -14,7 +14,7 @@ import (
 )
 
 type Token struct {
-	Id              string           `json:"id" bson:"id"`
+	ID              string           `json:"id" bson:"id"`
 	BaseTokenInfo   `bson:",inline"` // the latest token info
 	Edition         int64            `json:"edition" bson:"edition"`
 	MintAt          time.Time        `json:"mintedAt" bson:"mintedAt"`
@@ -58,12 +58,12 @@ type BaseTokenInfo struct {
 }
 
 func main() {
-	db_uri_input := flag.String("mongouri", "mongodb://localhost:27017", "mongodb uri")
+	dbURIInput := flag.String("mongouri", "mongodb://localhost:27017", "mongodb uri")
 	flag.Parse()
-	db_uri := *db_uri_input
+	dbURI := *dbURIInput
 
 	ctx := context.TODO()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(db_uri))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(dbURI))
 	if err != nil {
 		panic(err)
 	}
@@ -75,7 +75,7 @@ func main() {
 	}
 	defer cursor.Close(ctx)
 
-	var count int64 = 0
+	var count int64
 	for cursor.Next(ctx) {
 		var token Token
 		if err := cursor.Decode(&token); err != nil {
@@ -85,18 +85,18 @@ func main() {
 		if err != nil {
 			continue
 		}
-		fmt.Printf("[%v] %s-%s-%s. ID: %s\n", time.Now(), blockchain, contractAddress, tokenID, token.Id)
-		if tokenID == token.Id || token.Checked {
+		fmt.Printf("[%v] %s-%s-%s. ID: %s\n", time.Now(), blockchain, contractAddress, tokenID, token.ID)
+		if tokenID == token.ID || token.Checked {
 			fmt.Println("\t token is updated")
 			continue
 		}
 
-		newId, ok := big.NewInt(0).SetString(tokenID, 16)
+		newID, ok := big.NewInt(0).SetString(tokenID, 16)
 		if !ok {
 			panic(ok)
 		}
 
-		newIndexID := fmt.Sprintf("%s-%s-%s", blockchain, contractAddress, newId.String())
+		newIndexID := fmt.Sprintf("%s-%s-%s", blockchain, contractAddress, newID.String())
 
 		result, err := mongoCollection.UpdateOne(
 			ctx,

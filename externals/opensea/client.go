@@ -16,11 +16,11 @@ import (
 
 var ErrTooManyRequest = fmt.Errorf("too many requests")
 
-type OpenSeaTime struct {
+type Time struct {
 	time.Time
 }
 
-func (t *OpenSeaTime) UnmarshalJSON(b []byte) (err error) {
+func (t *Time) UnmarshalJSON(b []byte) (err error) {
 	s := strings.Trim(string(b), "\"")
 	s = strings.Split(s, "+")[0]
 	tt, err := time.Parse("2006-01-02T15:04:05.999999", s)
@@ -32,14 +32,14 @@ func (t *OpenSeaTime) UnmarshalJSON(b []byte) (err error) {
 	return nil
 }
 
-func (t *OpenSeaTime) MarshalJSON() ([]byte, error) {
+func (t *Time) MarshalJSON() ([]byte, error) {
 	return t.Time.MarshalJSON()
 }
 
 type AssetContract struct {
-	Address     string      `json:"address"`
-	SchemaName  string      `json:"schema_name"`
-	CreatedDate OpenSeaTime `json:"created_date"`
+	Address     string `json:"address"`
+	SchemaName  string `json:"schema_name"`
+	CreatedDate Time   `json:"created_date"`
 }
 
 type User struct {
@@ -75,7 +75,7 @@ type Asset struct {
 	Ownership     *Ownership    `json:"ownership"`
 }
 
-type OpenseaClient struct {
+type Client struct {
 	debug       bool
 	apiKey      string
 	apiEndpoint string
@@ -85,13 +85,13 @@ type OpenseaClient struct {
 	limiter RateLimiter
 }
 
-func New(network, apiKey string, rps int) *OpenseaClient {
+func New(network, apiKey string, rps int) *Client {
 	apiEndpoint := "api.opensea.io"
 	if network == "testnet" {
 		apiEndpoint = "testnets-api.opensea.io"
 	}
 
-	return &OpenseaClient{
+	return &Client{
 		apiKey:      apiKey,
 		apiEndpoint: apiEndpoint,
 		network:     network,
@@ -141,11 +141,11 @@ func NewRateLimiter(rps int) *RateLimiter {
 	return r
 }
 
-func (c *OpenseaClient) Debug(debug bool) {
+func (c *Client) Debug(debug bool) {
 	c.debug = debug
 }
 
-func (c *OpenseaClient) makeRequest(method, url string, body io.Reader) (*http.Response, error) {
+func (c *Client) makeRequest(method, url string, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
@@ -186,7 +186,7 @@ func (c *OpenseaClient) makeRequest(method, url string, body io.Reader) (*http.R
 }
 
 // RetrieveAsset returns the token information for a contract and a token id
-func (c *OpenseaClient) RetrieveAsset(contract, tokenID string) (*Asset, error) {
+func (c *Client) RetrieveAsset(contract, tokenID string) (*Asset, error) {
 	v := url.Values{
 		"asset_contract_addresses": []string{contract},
 		"token_ids":                []string{tokenID},
@@ -223,7 +223,7 @@ func (c *OpenseaClient) RetrieveAsset(contract, tokenID string) (*Asset, error) 
 	return nil, fmt.Errorf("asset not found")
 }
 
-func (c *OpenseaClient) RetrieveAssets(owner string, offset int) ([]Asset, error) {
+func (c *Client) RetrieveAssets(owner string, offset int) ([]Asset, error) {
 	// NOTE: query by offset is removed from the document but still support at this moment.
 	v := url.Values{
 		"owner":           []string{owner},
@@ -259,9 +259,9 @@ func (c *OpenseaClient) RetrieveAssets(owner string, offset int) ([]Asset, error
 }
 
 type TokenOwner struct {
-	Owner       User        `json:"owner"`
-	Quantity    int64       `json:"quantity,string"`
-	CreatedDate OpenSeaTime `json:"created_date"`
+	Owner       User  `json:"owner"`
+	Quantity    int64 `json:"quantity,string"`
+	CreatedDate Time  `json:"created_date"`
 }
 
 type AssetOwners struct {
@@ -269,7 +269,7 @@ type AssetOwners struct {
 	Owners []TokenOwner `json:"owners"`
 }
 
-func (c *OpenseaClient) GetTokenBalanceForOwner(contract, tokenID, owner string) (int64, error) {
+func (c *Client) GetTokenBalanceForOwner(contract, tokenID, owner string) (int64, error) {
 	v := url.Values{
 		"account_address": []string{owner},
 	}
@@ -304,7 +304,7 @@ func (c *OpenseaClient) GetTokenBalanceForOwner(contract, tokenID, owner string)
 	return ownership.Quantity, nil
 }
 
-func (c *OpenseaClient) RetrieveTokenOwners(contract, tokenID string, cursor *string) ([]TokenOwner, *string, error) {
+func (c *Client) RetrieveTokenOwners(contract, tokenID string, cursor *string) ([]TokenOwner, *string, error) {
 	v := url.Values{
 		"limit":           []string{"50"},
 		"order_direction": []string{"desc"},
@@ -336,7 +336,7 @@ func (c *OpenseaClient) RetrieveTokenOwners(contract, tokenID string, cursor *st
 }
 
 // GetTokenLastActivityTime returns the timestamp of the last activity for a token
-func (c *OpenseaClient) GetTokenLastActivityTime(contract, tokenID string) (time.Time, error) {
+func (c *Client) GetTokenLastActivityTime(contract, tokenID string) (time.Time, error) {
 	v := url.Values{
 		"limit":           []string{"1"},
 		"order_by":        []string{"created_date"},

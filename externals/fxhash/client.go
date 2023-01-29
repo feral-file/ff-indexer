@@ -10,8 +10,8 @@ import (
 )
 
 // GraphQL Explorer: https://api.fxhash.xyz/graphiql
-// API: https://api.fxhash.xyz/graphql
-type FxHashAPI struct {
+// Client: https://api.fxhash.xyz/graphql
+type Client struct {
 	client   *graphql.Client
 	endpoint string
 }
@@ -23,34 +23,34 @@ type URLMetadata struct {
 	ThumbnailURI string `json:"thumbnailUri"`
 }
 
-func New(graphQLEndpoint string) *FxHashAPI {
+func New(graphQLEndpoint string) *Client {
 	var c = &http.Client{
 		Timeout: 10 * time.Second,
 	}
 
 	client := graphql.NewClient(graphQLEndpoint, c)
 
-	return &FxHashAPI{
+	return &Client{
 		client:   client,
 		endpoint: graphQLEndpoint,
 	}
 }
 
-// {
-// 	objkt(id: 358743) {
-// 	  name
-// 	  createdAt
-// 	  issuer {
-// 		name
-// 		slug
-// 		author {
-// 		  id
-// 		  name
-// 		}
-// 	  }
-// 	}
-// }
-type FxHashObjectDetail struct {
+//	{
+//		objkt(id: 358743) {
+//		  name
+//		  createdAt
+//		  issuer {
+//			name
+//			slug
+//			author {
+//			  id
+//			  name
+//			}
+//		  }
+//		}
+//	}
+type ObjectDetail struct {
 	Name      string
 	CreatedAt time.Time
 	Iteration int64
@@ -65,15 +65,15 @@ type FxHashObjectDetail struct {
 }
 
 // GetObjectDetail returns an object detail for fxhash nfts
-func (api *FxHashAPI) GetObjectDetail(c context.Context, id big.Int) (FxHashObjectDetail, error) {
+func (api *Client) GetObjectDetail(c context.Context, id big.Int) (ObjectDetail, error) {
 	var query struct {
-		Object FxHashObjectDetail `graphql:"objkt(id: $id) "`
+		Object ObjectDetail `graphql:"objkt(id: $id) "`
 	}
 
 	if err := api.client.Query(c, &query, map[string]interface{}{
 		"id": graphql.Float(id.Int64()),
 	}); err != nil {
-		return FxHashObjectDetail{}, err
+		return ObjectDetail{}, err
 	}
 
 	return query.Object, nil

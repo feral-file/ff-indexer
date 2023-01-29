@@ -167,17 +167,17 @@ var a2pV2Assets = []string{
 }
 
 type Provenance struct {
-	TxId      string    `json:"tx_id"`
+	TxID      string    `json:"tx_id"`
 	Owner     string    `json:"owner"`
 	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
 type Bitmark struct {
-	Id         string       `json:"id"`
-	HeadId     string       `json:"head_id"`
+	ID         string       `json:"id"`
+	HeadID     string       `json:"head_id"`
 	Owner      string       `json:"owner"`
-	AssetId    string       `json:"asset_id"`
+	AssetID    string       `json:"asset_id"`
 	Issuer     string       `json:"issuer"`
 	Head       string       `json:"head"`
 	Status     string       `json:"status"`
@@ -215,7 +215,7 @@ func loadProvenanceFromV1API(bitmarkID string) ([]indexer.Provenance, error) {
 			Owner:      p.Owner,
 			Blockchain: indexer.BitmarkBlockchain,
 			Timestamp:  p.CreatedAt,
-			TxID:       p.TxId,
+			TxID:       p.TxID,
 		})
 	}
 
@@ -227,7 +227,7 @@ type AccountAlias struct {
 	Alias         string `json:"alias"`
 }
 
-func importTraderAliases(ctx context.Context, db indexer.IndexerStore) error {
+func importTraderAliases(ctx context.Context, db indexer.Store) error {
 	var result struct {
 		Traders []AccountAlias `json:"traders"`
 	}
@@ -274,7 +274,7 @@ func importTraderAliases(ctx context.Context, db indexer.IndexerStore) error {
 }
 
 // importV1 imports all a2p V1 NFTs to indexer
-func importV1(ctx context.Context, db indexer.IndexerStore, assetIDs []string) error {
+func importV1(ctx context.Context, db indexer.Store, assetIDs []string) error {
 	for _, assetID := range assetIDs {
 		asset, err := asset.Get(assetID)
 		if err != nil {
@@ -344,7 +344,7 @@ func importV1(ctx context.Context, db indexer.IndexerStore, assetIDs []string) e
 }
 
 // importV2 imports all a2p V2 NFTs to indexer
-func importV2(ctx context.Context, db indexer.IndexerStore, assetIDs []string) error {
+func importV2(ctx context.Context, db indexer.Store, assetIDs []string) error {
 	for _, assetID := range assetIDs {
 		asset, err := asset.Get(assetID)
 		if err != nil {
