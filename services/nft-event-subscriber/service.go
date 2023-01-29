@@ -17,12 +17,12 @@ type NFTEventSubscriber struct {
 
 	wallet       *ethereum.Wallet
 	wsClient     *ethclient.Client
-	store        indexer.IndexerStore
+	store        indexer.Store
 	Engine       *indexer.IndexEngine
 	accountStore *storage.AccountInformationStorage
 	notification *notification.NotificationClient
 	feedServer   *FeedClient
-	Worker       cadence.CadenceWorkerClient
+	Worker       cadence.WorkerClient
 
 	bitmarkListener *Listener
 
@@ -33,13 +33,13 @@ type NFTEventSubscriber struct {
 func New(wallet *ethereum.Wallet,
 	environment string,
 	wsClient *ethclient.Client,
-	store indexer.IndexerStore,
+	store indexer.Store,
 	engine *indexer.IndexEngine,
 	accountStore *storage.AccountInformationStorage,
 	bitmarkListener *Listener,
 	notification *notification.NotificationClient,
 	feedServer *FeedClient,
-	cadenceWorker cadence.CadenceWorkerClient) *NFTEventSubscriber {
+	cadenceWorker cadence.WorkerClient) *NFTEventSubscriber {
 	return &NFTEventSubscriber{
 		environment:     environment,
 		wallet:          wallet,

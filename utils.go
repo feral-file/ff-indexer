@@ -2,11 +2,18 @@ package indexer
 
 import (
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"math/big"
 	"net/http"
+	"net/url"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -200,4 +207,83 @@ func VerifyTezosSignature(message, signature, address, publicKey string) (bool, 
 		return false, err
 	}
 	return true, nil
+}
+
+// GetMIMEType returns mimeType of a file based on the extension of the url
+func GetMIMEType(urlString string) string {
+	u, err := url.Parse(urlString)
+	if err != nil {
+		return ""
+	}
+	ext := path.Ext(u.Path)
+
+	switch ext {
+	case ".svg":
+		return fmt.Sprintf("%s/%s", MediumImage, "svg+xml")
+	case ".jpg", ".jpeg":
+		return fmt.Sprintf("%s/%s", MediumImage, "jpeg")
+	case ".png", ".gif":
+		return fmt.Sprintf("%s/%s", MediumImage, strings.Split(ext, ".")[1])
+	case ".mp4":
+		return fmt.Sprintf("%s/%s", MediumVideo, "mp4")
+	case ".mov":
+		return fmt.Sprintf("%s/%s", MediumVideo, "quicktime")
+	default:
+		return ""
+	}
+}
+
+func AESSeal(message []byte, passphrase string) (string, error) {
+	key := []byte(passphrase)
+
+	c, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+
+	gcm, err := cipher.NewGCM(c)
+	if err != nil {
+		return "", err
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+		return "", err
+	}
+
+	bytes := gcm.Seal(nonce, nonce, message, nil)
+
+	return hex.EncodeToString(bytes), nil
+}
+
+func AESOpen(hexString string, passphrase string) ([]byte, error) {
+	ciphertext, err := hex.DecodeString(hexString)
+	if err != nil {
+		return nil, err
+	}
+
+	key := []byte(passphrase)
+
+	c, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	gcm, err := cipher.NewGCM(c)
+	if err != nil {
+		return nil, err
+	}
+
+	nonceSize := gcm.NonceSize()
+	if len(ciphertext) < nonceSize {
+		return nil, err
+	}
+
+	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
+	message, err := gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return message, nil
 }

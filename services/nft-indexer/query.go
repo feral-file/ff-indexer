@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -10,10 +11,11 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
 
@@ -139,22 +141,21 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParamsIDs []str
 
 		// index redundant reqParams.IDs
 		for redundantID := range m {
-			_, contract, tokenId, err := indexer.ParseTokenIndexID(redundantID)
+			_, contract, tokenID, err := indexer.ParseTokenIndexID(redundantID)
 			if err != nil {
 				continue
 			}
 
-			owner, err := s.indexerEngine.GetTokenOwnerAddress(contract, tokenId)
+			owner, err := s.indexerEngine.GetTokenOwnerAddress(contract, tokenID)
 			if err != nil {
-				log.
-					WithField("contract", contract).
-					WithField("tokenId", tokenId).
-					WithError(err).
-					Warn("unexpected error while getting token owner address of the contract")
+				log.Warn("unexpected error while getting token owner address of the contract",
+					zap.String("contract", contract),
+					zap.String("tokenId", tokenID),
+					zap.Error(err))
 				continue
 			}
 
-			go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, tokenId, false)
+			go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, tokenID, false)
 		}
 	}
 }
@@ -288,12 +289,12 @@ func (s *NFTIndexerServer) refreshIdentity(accountNumber string) {
 	c := context.Background()
 	id, err := s.fetchIdentity(c, accountNumber)
 	if err != nil {
-		log.WithError(err).WithField("identity", id).Error("fail to query account identity from blockchain")
+		log.Error("fail to query account identity from blockchain", zap.Any("identity", id), zap.Error(err))
 		return
 	}
 
 	if err := s.indexerStore.IndexIdentity(c, *id); err != nil {
-		log.WithError(err).WithField("identity", id).Error("fail to index identity to indexer store")
+		log.Error("fail to index identity to indexer store", zap.Any("identity", id), zap.Error(err))
 	}
 }
 
@@ -306,7 +307,7 @@ func (s *NFTIndexerServer) GetIdentity(c *gin.Context) {
 
 	account, err := s.indexerStore.GetIdentity(c, accountNumber)
 	if err != nil {
-		log.WithError(err).Error("fail to get identity from indexer store")
+		log.Error("fail to get identity from indexer store", zap.Error(err))
 	}
 
 	if account.AccountNumber != "" {
@@ -329,7 +330,7 @@ func (s *NFTIndexerServer) GetIdentity(c *gin.Context) {
 	}
 
 	if err := s.indexerStore.IndexIdentity(c, *id); err != nil {
-		log.WithError(err).WithField("identity", id).Error("fail to index identity to indexer store")
+		log.Error("fail to index identity to indexer store", zap.Any("identity", id), zap.Error(err))
 	}
 
 	c.JSON(200, id)
@@ -387,10 +388,10 @@ func (s *NFTIndexerServer) SetTokenPending(c *gin.Context) {
 	}
 
 	if err := s.indexerStore.AddPendingTxToAccountToken(c, string(reqParams.OwnerAccount), reqParams.IndexID, reqParams.PendingTx, reqParams.Blockchain, reqParams.ID); err != nil {
-		log.WithField("error", err).Warn("error while adding pending accountToken")
+		log.Warn("fail to index identity to indexer store", zap.Error(err))
 		return
 	}
-	log.WithField("pendingTx", reqParams.PendingTx).Debug("a pending account token is added")
+	log.Debug("a pending account token is added", zap.String("pendingTx", reqParams.PendingTx))
 
 	c.JSON(http.StatusOK, gin.H{
 		"ok": 1,
@@ -455,10 +456,10 @@ func (s *NFTIndexerServer) SetTokenPendingV1(c *gin.Context) {
 	indexID := indexer.TokenIndexID(reqParams.Blockchain, reqParams.ContractAddress, reqParams.ID)
 
 	if err := s.indexerStore.AddPendingTxToAccountToken(c, reqParams.OwnerAccount, indexID, reqParams.PendingTx, reqParams.Blockchain, reqParams.ID); err != nil {
-		log.WithField("error", err).Warn("error while adding pending accountToken")
+		log.Warn("error while adding pending accountToken", zap.Error(err))
 		return
 	}
-	log.WithField("pendingTx", reqParams.PendingTx).Debug("a pending account token is added")
+	log.Debug("a pending account token is added", zap.String("pendingTx", reqParams.PendingTx))
 
 	c.JSON(http.StatusOK, gin.H{
 		"ok": 1,
@@ -561,4 +562,94 @@ func (s *NFTIndexerServer) CreateDemoTokens(c *gin.Context) {
 		"ok":      1,
 		"message": "tokens in the system are added",
 	})
+}
+
+func (s *NFTIndexerServer) GetAbsentMimeTypeTokens(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "GetAbsentMimeTypeTokens")
+
+	userDID := c.GetString("requester")
+
+	absentMIMETypeToken, err := s.indexerStore.GetAbsentMimeTypeTokens(c, 5)
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
+		return
+	}
+
+	tokenIDs := map[string]bool{}
+	for _, t := range absentMIMETypeToken {
+		tokenIDs[t.IndexID] = true
+	}
+
+	rq := RequestedTokenFeedback{
+		DID:       userDID,
+		Timestamp: time.Now().Unix(),
+		Tokens:    tokenIDs,
+	}
+
+	data, err := json.Marshal(rq)
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to encode tokens", err)
+		return
+	}
+
+	sealedRequest, err := indexer.AESSeal(data, s.secretSymmetricKey)
+
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to generate signature", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"tokens":    absentMIMETypeToken,
+		"requestID": sealedRequest,
+	})
+}
+
+func (s *NFTIndexerServer) FeedbackMimeTypeTokens(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "FeedbackMimeTypeTokens")
+
+	userDID := c.GetString("requester")
+
+	var tokenFeedbacks TokenFeedbackParams
+
+	if err := c.Bind(&tokenFeedbacks); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	data, err := indexer.AESOpen(tokenFeedbacks.RequestID, s.secretSymmetricKey)
+	if err != nil {
+		abortWithError(c, http.StatusBadRequest, "fail to decrypt signature", err)
+		return
+	}
+
+	var rq RequestedTokenFeedback
+	if err := json.Unmarshal(data, &rq); err != nil {
+		abortWithError(c, http.StatusBadRequest, "fail to decode signature", err)
+		return
+	}
+
+	if rq.DID != userDID {
+		abortWithError(c, http.StatusBadRequest, "user DID mismatch", err)
+		return
+	}
+
+	if rq.Timestamp < time.Now().Add(-30*time.Minute).Unix() {
+		abortWithError(c, http.StatusBadRequest, "error request time too skewed", err)
+		return
+	}
+
+	for _, tokenFeedback := range tokenFeedbacks.Tokens {
+		if _, contains := rq.Tokens[tokenFeedback.IndexID]; !contains {
+			abortWithError(c, http.StatusBadRequest, "indexIDs mismatch", err)
+			return
+		}
+	}
+
+	if s.indexerStore.UpdateTokenFeedback(c, tokenFeedbacks.Tokens, userDID) != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to update token feedback to indexer store", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": 1})
 }

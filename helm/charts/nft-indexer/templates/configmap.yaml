@@ -12,6 +12,9 @@ data:
     server:
       port: :8089
 
+    jwt:
+      pubkeyfile: /usr/share/nft-indexer/jwt-pubkey.pem
+
     environment: {{ .Values.serviceConfig.environment }}
     network:
       bitmark: {{ .Values.serviceConfig.network.bitmark }}
@@ -22,6 +25,12 @@ data:
       host_port: {{ .Values.serviceConfig.cadence_hostport }}
       domain: {{ .Values.serviceConfig.cadence_domain }}
       log_level: 0
+
+    fxhash:
+      api_endpoint: https://api.fxhash.xyz/graphql
+
+    objkt:
+      api_endpoint: https://data.objkt.com/v3/graphql
 
     opensea:
       ratelimit: {{ .Values.serviceConfig.opensea_ratelimit }}

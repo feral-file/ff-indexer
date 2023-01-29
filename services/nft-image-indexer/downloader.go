@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/utils"
 	"github.com/gabriel-vasile/mimetype"
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 // DownloadFile downloads a file from a given url and returns a file reader and its mime type
@@ -41,10 +42,10 @@ func DownloadFile(url string) (io.Reader, string, error) {
 			return nil, "", err
 		}
 	}
-	logrus.
-		WithField("action", action).
-		WithField("download_url", url).
-		WithField("file_size", file.Len()).Debug("file downloaded")
+	log.Debug("file downloaded",
+		zap.String("action", action),
+		zap.String("download_url", url),
+		zap.Int("file_size", file.Len()))
 
 	return file, mimeType, err
 }
@@ -60,6 +61,6 @@ func NewURLImageDownloader(url string) *URLImageDownloader {
 }
 
 func (d *URLImageDownloader) Download() (io.Reader, string, error) {
-	logrus.WithField("sourceURL", d.url).Debug("download image from source")
+	log.Debug("download image from source", zap.String("sourceURL", d.url))
 	return DownloadFile(d.url)
 }

@@ -13,14 +13,14 @@ import (
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
 
-type PinataAPIClient struct {
+type Client struct {
 	endpoint  string
 	authToken string
 	client    *http.Client
 }
 
-func New(endpoint, authToken string, timeout time.Duration) *PinataAPIClient {
-	return &PinataAPIClient{
+func New(endpoint, authToken string, timeout time.Duration) *Client {
+	return &Client{
 		endpoint:  endpoint,
 		authToken: authToken,
 		client: &http.Client{
@@ -29,7 +29,7 @@ func New(endpoint, authToken string, timeout time.Duration) *PinataAPIClient {
 	}
 }
 
-func (p *PinataAPIClient) makeRequest(method, url string, body io.Reader) *http.Request {
+func (p *Client) makeRequest(method, url string, body io.Reader) *http.Request {
 	req, _ := http.NewRequest(method, url, body)
 
 	req.Header.Add("Content-Type", "application/json")
@@ -42,24 +42,24 @@ func (p *PinataAPIClient) makeRequest(method, url string, body io.Reader) *http.
 }
 
 type PinnedFile struct {
-	ID       string         `json:"id"`
-	CID      string         `json:"ipfs_pin_hash"`
-	Size     int64          `json:"size"`
-	Metadata PinataMetadata `json:"metadata"`
+	ID       string   `json:"id"`
+	CID      string   `json:"ipfs_pin_hash"`
+	Size     int64    `json:"size"`
+	Metadata Metadata `json:"metadata"`
 }
 
-type PinataMetadata struct {
+type Metadata struct {
 	Name string            `json:"name"`
 	KV   map[string]string `json:"keyvalues"`
 }
 
 type PinHashRequest struct {
-	CID      string          `json:"hashToPin"`
-	Metadata *PinataMetadata `json:"pinataMetadata,omitempty"`
+	CID      string    `json:"hashToPin"`
+	Metadata *Metadata `json:"pinataMetadata,omitempty"`
 }
 
 // PinnedFile returns the pinned file for a given CID
-func (p *PinataAPIClient) PinnedFile(cid string) (*PinnedFile, error) {
+func (p *Client) PinnedFile(cid string) (*PinnedFile, error) {
 	u := url.URL{
 		Scheme:   "https",
 		Host:     p.endpoint,
@@ -96,7 +96,7 @@ func (p *PinataAPIClient) PinnedFile(cid string) (*PinnedFile, error) {
 }
 
 // PinJobs gets all pinning jobs
-func (p *PinataAPIClient) PinJobs(cid string) (*PinByHashResp, error) {
+func (p *Client) PinJobs(cid string) (*PinByHashResp, error) {
 	u := url.URL{
 		Scheme:   "https",
 		Host:     p.endpoint,
@@ -140,7 +140,7 @@ type PinByHashResp struct {
 }
 
 // PinByHash makes a pin request to pinata
-func (p *PinataAPIClient) PinByHash(cid string, metadata *PinataMetadata) (*PinByHashResp, error) {
+func (p *Client) PinByHash(cid string, metadata *Metadata) (*PinByHashResp, error) {
 	u := url.URL{
 		Scheme: "https",
 		Host:   p.endpoint,

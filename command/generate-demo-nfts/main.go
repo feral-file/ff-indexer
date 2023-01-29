@@ -11,7 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var SELECTED_OWNERS = []string{
+var SelectedOwners = []string{
 	"tz1hhG3vN2NCoPZepvEbKHBFQ5denwNJwHXP",
 	"tz1fobhvuEWmHjGrjdmxm64rpkKFtJNKsNdo",
 	"0xb858A3F45840E76076c6c4DBa9f0f8958F11C1E8",
@@ -38,7 +38,7 @@ func main() {
 		panic(err)
 	}
 
-	for _, owner := range SELECTED_OWNERS {
+	for _, owner := range SelectedOwners {
 		var tokens []map[string]interface{}
 		cursor, err := tokenCollection.Find(ctx, bson.M{fmt.Sprintf("owners.%s", owner): bson.M{"$gt": 0}})
 		if err != nil {

@@ -3,15 +3,18 @@ package indexer
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"strings"
 	"time"
 
 	"github.com/fatih/structs"
-	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.uber.org/zap"
+
+	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 const (
@@ -19,17 +22,18 @@ const (
 )
 
 const (
-	assetCollectionName        = "assets"
-	tokenCollectionName        = "tokens"
-	identityCollectionName     = "identities"
-	ffIdentityCollectionName   = "ff_identities"
-	accountCollectionName      = "accounts"
-	accountTokenCollectionName = "account_tokens"
+	assetCollectionName         = "assets"
+	tokenCollectionName         = "tokens"
+	identityCollectionName      = "identities"
+	ffIdentityCollectionName    = "ff_identities"
+	accountCollectionName       = "accounts"
+	accountTokenCollectionName  = "account_tokens"
+	tokenFeedbackCollectionName = "token_feedbacks"
 )
 
 var ErrNoRecordUpdated = fmt.Errorf("no record updated")
 
-type IndexerStore interface {
+type Store interface {
 	IndexAsset(ctx context.Context, id string, assetUpdates AssetUpdates) error
 	SwapToken(ctx context.Context, swapUpdate SwapUpdate) (string, error)
 
@@ -68,6 +72,11 @@ type IndexerStore interface {
 	DeleteDemoTokens(ctx context.Context, owner string) error
 
 	UpdateOwnerForFungibleToken(ctx context.Context, indexID string, lockedTime time.Time, to string, total int64) error
+
+	GetAbsentMimeTypeTokens(ctx context.Context, limit int) ([]AbsentMIMETypeToken, error)
+	UpdateTokenFeedback(ctx context.Context, tokenFeedbacks []TokenFeedbackUpdate, userDID string) error
+	GetGrouppedTokenFeedbacks(ctx context.Context) ([]GrouppedTokenFeedback, error)
+	UpdateTokenSugesstedMIMEType(ctx context.Context, indexID, mimeType string) error
 }
 
 type FilterParameter struct {
@@ -88,28 +97,31 @@ func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*Mo
 	ffIdentityCollection := db.Collection(ffIdentityCollectionName)
 	accountCollection := db.Collection(accountCollectionName)
 	accountTokenCollection := db.Collection(accountTokenCollectionName)
+	tokenFeedbackCollection := db.Collection(tokenFeedbackCollectionName)
 
 	return &MongodbIndexerStore{
-		dbName:                 dbName,
-		mongoClient:            mongoClient,
-		tokenCollection:        tokenCollection,
-		assetCollection:        assetCollection,
-		identityCollection:     identityCollection,
-		ffIdentityCollection:   ffIdentityCollection,
-		accountCollection:      accountCollection,
-		accountTokenCollection: accountTokenCollection,
+		dbName:                  dbName,
+		mongoClient:             mongoClient,
+		tokenCollection:         tokenCollection,
+		assetCollection:         assetCollection,
+		identityCollection:      identityCollection,
+		ffIdentityCollection:    ffIdentityCollection,
+		accountCollection:       accountCollection,
+		accountTokenCollection:  accountTokenCollection,
+		tokenFeedbackCollection: tokenFeedbackCollection,
 	}, nil
 }
 
 type MongodbIndexerStore struct {
-	dbName                 string
-	mongoClient            *mongo.Client
-	tokenCollection        *mongo.Collection
-	assetCollection        *mongo.Collection
-	identityCollection     *mongo.Collection
-	ffIdentityCollection   *mongo.Collection
-	accountCollection      *mongo.Collection
-	accountTokenCollection *mongo.Collection
+	dbName                  string
+	mongoClient             *mongo.Client
+	tokenCollection         *mongo.Collection
+	assetCollection         *mongo.Collection
+	identityCollection      *mongo.Collection
+	ffIdentityCollection    *mongo.Collection
+	accountCollection       *mongo.Collection
+	accountTokenCollection  *mongo.Collection
+	tokenFeedbackCollection *mongo.Collection
 }
 
 type UpdateSet struct {
@@ -136,12 +148,12 @@ func checkIfTokenNeedToUpdate(assetSource string, currentToken, newToken Token) 
 	// check if we need to update an existent token
 	if assetSource == SourceFeralFile {
 		return true
-	} else {
-		// assetSource is not feral file
-		// only update if token source is not feral file and token balance is greater than zero.
-		if newToken.Balance > 0 && currentToken.Source != SourceFeralFile {
-			return true
-		}
+	}
+
+	// assetSource is not feral file
+	// only update if token source is not feral file and token balance is greater than zero.
+	if newToken.Balance > 0 && currentToken.Source != SourceFeralFile {
+		return true
 	}
 
 	return false
@@ -207,10 +219,9 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 
 			// TODO: check whether to remove the thumbnail cache when the thumbnail data is updated.
 			if currentAsset.ProjectMetadata.Latest.ThumbnailURL != assetUpdates.ProjectMetadata.ThumbnailURL {
-				logrus.
-					WithField("old", currentAsset.ProjectMetadata.Latest.ThumbnailURL).
-					WithField("new", assetUpdates.ProjectMetadata.ThumbnailURL).
-					Debug("image cache need to be reset")
+				log.Debug("image cache need to be reset",
+					zap.String("old", currentAsset.ProjectMetadata.Latest.ThumbnailURL),
+					zap.String("new", assetUpdates.ProjectMetadata.ThumbnailURL))
 				updates = append(updates, bson.E{Key: "$unset", Value: bson.M{"thumbnailID": ""}})
 			}
 
@@ -241,7 +252,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		if err := tokenResult.Err(); err != nil {
 			if err == mongo.ErrNoDocuments {
 				// If a token is not found, insert a new token
-				logrus.WithField("token_id", token.ID).Info("new token found")
+				log.Info("new token found", zap.String("token_id", token.ID))
 
 				token.LastActivityTime = token.MintAt // set LastActivityTime to default token minted time
 				token.OwnersArray = []string{token.Owner}
@@ -273,13 +284,13 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 
 			tokenUpdate := bson.M{"$set": structs.Map(tokenUpdateSet)}
 
-			logrus.WithField("token_id", token.ID).WithField("tokenUpdate", tokenUpdate).Debug("token data for updated")
+			log.Debug("token data for updated", zap.String("token_id", token.ID), zap.Any("tokenUpdate", tokenUpdate))
 			r, err := s.tokenCollection.UpdateOne(ctx, bson.M{"indexID": token.IndexID}, tokenUpdate)
 			if err != nil {
 				return err
 			}
 			if r.MatchedCount == 0 {
-				logrus.WithField("token_id", token.ID).Warn("token is not updated")
+				log.Warn("token is not updated", zap.String("token_id", token.ID))
 			}
 		}
 	}
@@ -312,7 +323,13 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 	var newTokenIndexID string
 
 	switch swap.NewBlockchain {
-	case EthereumBlockchain, TezosBlockchain:
+	case EthereumBlockchain:
+		tokenID, ok := big.NewInt(0).SetString(swap.NewTokenID, 16)
+		if !ok {
+			return "", fmt.Errorf("invalid token id")
+		}
+		newTokenIndexID = TokenIndexID(swap.NewBlockchain, swap.NewContractAddress, tokenID.String())
+	case TezosBlockchain:
 		newTokenIndexID = TokenIndexID(swap.NewBlockchain, swap.NewContractAddress, swap.NewTokenID)
 	default:
 		return "", fmt.Errorf("blockchain is not supported")
@@ -330,7 +347,7 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 	newToken.SwappedFrom = &originalTokenIndexID
 	newToken.OriginTokenInfo = append([]BaseTokenInfo{originalBaseTokenInfo}, newToken.OriginTokenInfo...)
 
-	logrus.WithField("from", originalTokenIndexID).WithField("to", newTokenIndexID).Debug("update tokens for swapping")
+	log.Debug("update tokens for swapping", zap.String("from", originalTokenIndexID), zap.String("to", newTokenIndexID))
 	session, err := s.mongoClient.StartSession()
 	if err != nil {
 		return "", err
@@ -355,14 +372,14 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 			return nil, err
 		}
 
-		if r.ModifiedCount == 0 && r.UpsertedCount == 0 {
+		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
 			return nil, ErrNoRecordUpdated
 		}
 
 		return nil, nil
 	})
 
-	logrus.WithField("transaction_result", result).Debug("swap token transaction")
+	log.Debug("swap token transaction", zap.Any("transaction_result", result))
 
 	return newTokenIndexID, err
 }
@@ -431,7 +448,7 @@ func (s *MongodbIndexerStore) getDetailedTokensByAggregation(ctx context.Context
 func getPageCounts(itemLength, PageSize int) int {
 	pageCounts := itemLength / PageSize
 	if (itemLength % PageSize) != 0 {
-		pageCounts += 1
+		pageCounts++
 	}
 	return pageCounts
 }
@@ -440,17 +457,14 @@ func getPageCounts(itemLength, PageSize int) int {
 func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error) {
 	tokens := []DetailedToken{}
 
-	logrus.
-		WithField("filterParameter", filterParameter).
-		WithField("offset", offset).
-		WithField("size", size).
-		Debug("GetDetailedTokens")
+	log.Debug("GetDetailedTokens",
+		zap.Any("filterParameter", filterParameter),
+		zap.Int64("offset", offset),
+		zap.Int64("size", size))
 	startTime := time.Now()
 	if length := len(filterParameter.IDs); length > 0 {
 		for i := 0; i < getPageCounts(length, QueryPageSize); i++ {
-			logrus.
-				WithField("page", i).
-				Trace("doc page")
+			log.Debug("doc page", zap.Int("page", i))
 			start := i * QueryPageSize
 			end := (i + 1) * QueryPageSize
 			if end > length {
@@ -468,9 +482,7 @@ func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParam
 	} else {
 		return s.getDetailedTokensByAggregation(ctx, filterParameter, offset, size)
 	}
-	logrus.
-		WithField("queryTime", time.Since(startTime)).
-		Debug("GetDetailedTokens End")
+	log.Debug("GetDetailedTokens End", zap.Duration("queryTime", time.Since(startTime)))
 
 	return tokens, nil
 }
@@ -478,7 +490,7 @@ func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParam
 // UpdateOwner updates owner for a specific non-fungible token
 func (s *MongodbIndexerStore) UpdateOwner(ctx context.Context, indexID string, owner string, updatedAt time.Time) error {
 	if owner == "" {
-		logrus.WithField("indexID", indexID).Warn("ignore update empty owner")
+		log.Warn("ignore update empty owner", zap.String("indexID", indexID))
 		return nil
 	}
 
@@ -504,7 +516,7 @@ func (s *MongodbIndexerStore) UpdateOwner(ctx context.Context, indexID string, o
 // UpdateTokenProvenance updates provenance for a specific token
 func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID string, provenances []Provenance) error {
 	if len(provenances) == 0 {
-		logrus.WithField("indexID", indexID).Warn("ignore update empty provenance")
+		log.Warn("ignore update empty provenance", zap.String("indexID", indexID))
 		return nil
 	}
 
@@ -537,7 +549,7 @@ func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID
 // UpdateTokenOwners updates owners for a specific token
 func (s *MongodbIndexerStore) UpdateTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error {
 	if len(owners) == 0 {
-		logrus.WithField("indexID", indexID).Warn("ignore update empty provenance")
+		log.Warn("ignore update empty provenance", zap.String("indexID", indexID))
 		return nil
 	}
 
@@ -608,12 +620,7 @@ func (s *MongodbIndexerStore) PushProvenance(ctx context.Context, indexID string
 func (s *MongodbIndexerStore) GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
 	tokens := make([]string, 0)
 
-	c, err := s.tokenCollection.Find(ctx,
-		bson.M{
-			fmt.Sprintf("owners.%s", owner): bson.M{"$gte": 1},
-			"ownersArray":                   bson.M{"$in": bson.A{owner}},
-			"burned":                        bson.M{"$ne": true},
-		},
+	c, err := s.accountTokenCollection.Find(ctx, bson.M{"ownerAccount": owner},
 		options.Find().SetProjection(bson.M{"indexID": 1, "_id": 0}))
 	if err != nil {
 		return nil, err
@@ -640,6 +647,7 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 	type asset struct {
 		ThumbnailID     string                   `bson:"thumbnailID"`
 		IPFSPinned      bool                     `json:"ipfsPinned"`
+		Attributes      *AssetAttributes         `json:"attributes" bson:"attributes,omitempty"` // manually inserted fields
 		ProjectMetadata VersionedProjectMetadata `bson:"projectMetadata"`
 	}
 
@@ -685,6 +693,7 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 		token.ThumbnailID = a.ThumbnailID
 		token.IPFSPinned = a.IPFSPinned
 		token.ProjectMetadata = a.ProjectMetadata
+		token.Attributes = a.Attributes
 
 		tokens = append(tokens, token)
 	}
@@ -840,6 +849,7 @@ func (s *MongodbIndexerStore) getTokensByAggregation(ctx context.Context, filter
 						"$project": bson.M{
 							"source":          1,
 							"projectMetadata": 1,
+							"attributes":      1,
 							"thumbnailID":     1,
 							"ipfsPinned":      1,
 							"_id":             0,
@@ -879,10 +889,10 @@ func (s *MongodbIndexerStore) getTokensByAggregation(ctx context.Context, filter
 
 // GetTokensByTextSearch returns a list of token those assets match have attributes that match the search text.
 func (s *MongodbIndexerStore) GetTokensByTextSearch(ctx context.Context, searchText string, offset, size int64) ([]DetailedToken, error) {
-	logrus.WithField("searchText", searchText).
-		WithField("offset", offset).
-		WithField("size", size).
-		Debug("GetTokensByTextSearch")
+	log.Debug("GetTokensByTextSearch",
+		zap.String("searchText", searchText),
+		zap.Int64("offset", offset),
+		zap.Int64("size", size))
 
 	pipeline := []bson.M{
 		{"$match": bson.M{
@@ -1042,7 +1052,7 @@ func (s *MongodbIndexerStore) IndexIdentity(ctx context.Context, identity Accoun
 	}
 
 	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-		logrus.WithField("account_number", identity.AccountNumber).Warn("identity is not added or updated")
+		log.Warn("identity is not added or updated", zap.String("account_number", identity.AccountNumber))
 	}
 
 	return nil
@@ -1076,7 +1086,10 @@ func (s *MongodbIndexerStore) UpdateAccountTokenBalance(ctx context.Context, own
 	}
 
 	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).WithField("pendingTx", pendingTx).Debug("the account token's balance is not updated/added")
+		log.Debug("the account token's balance is not updated/added",
+			zap.String("IndexID", indexID),
+			zap.String("ownerAccount", ownerAccount),
+			zap.String("pendingTx", pendingTx))
 	}
 
 	// remove pendingTx and lastPendingTime
@@ -1114,9 +1127,14 @@ func (s *MongodbIndexerStore) DeletePendingFieldsAccountToken(ctx context.Contex
 	}
 
 	if r.MatchedCount == 0 {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).WithField("pendingTx", pendingTx).WithField("lastPendingTime", lastPendingTime).Warn("pending account token is not deleted its pending fields")
+		log.Warn("pending account token is not deleted its pending fields",
+			zap.String("IndexID", indexID),
+			zap.String("ownerAccount", ownerAccount),
+			zap.String("pendingTx", pendingTx))
 	} else {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).WithField("pendingTx", pendingTx).WithField("lastPendingTime", lastPendingTime).Debug("pending account token is deleted its pending fields")
+		log.Debug("pending account token is deleted its pending fields",
+			zap.String("ownerAccount", ownerAccount),
+			zap.String("pendingTx", pendingTx))
 	}
 
 	return nil
@@ -1152,13 +1170,15 @@ func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ow
 			}
 
 			if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-				logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Warn("pending token is not added")
+				log.Warn("pending token is not added", zap.String("indexID", indexID))
 			}
 		} else {
 			return err
 		}
 	} else {
-		logrus.WithField("IndexID", indexID).WithField("ownerAccount", ownerAccount).Debug("pending token is already added")
+		log.Debug("pending token is already added",
+			zap.String("IndexID", indexID),
+			zap.String("ownerAccount", ownerAccount))
 		return nil
 	}
 	return nil
@@ -1206,7 +1226,7 @@ func (s *MongodbIndexerStore) IndexAccount(ctx context.Context, account Account)
 	}
 
 	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-		logrus.WithField("account", account.Account).Warn("account is not added or updated")
+		log.Warn("account is not added or updated", zap.String("account", account.Account))
 	}
 
 	return nil
@@ -1226,7 +1246,7 @@ func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner stri
 				return err
 			}
 			if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-				logrus.WithField("token_id", accountToken.ID).Warn("account token is not added or updated")
+				log.Warn("account token is not added or updated", zap.String("token_id", accountToken.ID))
 			}
 		} else {
 			_, err := s.accountTokenCollection.DeleteOne(ctx, bson.M{"ownerAccount": owner, "indexID": accountToken.IndexID})
@@ -1249,9 +1269,8 @@ func (s *MongodbIndexerStore) GetAccount(ctx context.Context, owner string) (Acc
 	if err := r.Err(); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return account, nil
-		} else {
-			return account, err
 		}
+		return account, err
 	}
 
 	if err := r.Decode(&account); err != nil {
@@ -1333,11 +1352,10 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error) {
 	findOptions := options.Find().SetSort(bson.D{{Key: "lastActivityTime", Value: -1}, {Key: "_id", Value: -1}}).SetLimit(size).SetSkip(offset)
 
-	logrus.
-		WithField("filterParameter", filterParameter).
-		WithField("offset", offset).
-		WithField("size", size).
-		Debug("GetDetailedAccountTokensByOwner")
+	log.Debug("GetDetailedAccountTokensByOwner",
+		zap.Any("filterParameter", filterParameter),
+		zap.Int64("offset", offset),
+		zap.Int64("size", size))
 
 	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{"ownerAccount": account}, findOptions)
 	if err != nil {
@@ -1408,12 +1426,12 @@ func (s *MongodbIndexerStore) IndexDemoTokens(ctx context.Context, owner string,
 				token.OwnersArray = []string{owner}
 				token.Owners[owner] = 1
 				if _, err := s.tokenCollection.InsertOne(ctx, token); err != nil {
-					logrus.WithField("indexID", demoIndexID).WithError(err).Error("error while inserting demo tokens")
+					log.Error("error while inserting demo tokens", zap.String("indexID", demoIndexID), zap.Error(err))
 					return err
 				}
-				logrus.WithField("indexID", demoIndexID).Debug("demo token is indexed")
+				log.Debug("demo token is indexed", zap.String("indexID", demoIndexID))
 			} else {
-				logrus.WithField("demoIndexID", demoIndexID).WithError(err).Error("error while finding demoIndexID in the database")
+				log.Error("error while finding demoIndexID in the database", zap.String("demoIndexID", demoIndexID), zap.Error(err))
 				return err
 			}
 		} else {
@@ -1426,7 +1444,7 @@ func (s *MongodbIndexerStore) IndexDemoTokens(ctx context.Context, owner string,
 				}); err != nil {
 				return err
 			}
-			logrus.WithField("indexID", demoIndexID).Debug("demo token is updated")
+			log.Debug("demo token is updated", zap.String("indexID", demoIndexID))
 		}
 	}
 
@@ -1502,4 +1520,155 @@ func (s *MongodbIndexerStore) GetTokensByIndexID(ctx context.Context, indexID st
 	}
 
 	return &tokens[0], err
+}
+
+// GetAbsentMimeTypeTokens returns list up random limit tokens that mimeType is absent
+func (s *MongodbIndexerStore) GetAbsentMimeTypeTokens(ctx context.Context, limit int) ([]AbsentMIMETypeToken, error) {
+	compactedToken := []AbsentMIMETypeToken{}
+
+	var tokens []struct {
+		IndexID         string                   `bson:"indexID"`
+		ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
+	}
+	c, err := s.assetCollection.Aggregate(ctx, []bson.M{
+		{
+			"$match": bson.D{{Key: "$or", Value: []interface{}{
+				bson.D{{Key: "projectMetadata.lastest.mimeType", Value: ""}},
+				bson.D{{Key: "projectMetadata.lastest.mimeType", Value: bson.M{"$exists": false}}},
+			}}},
+		},
+		{"$sample": bson.M{"size": limit}},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := c.All(ctx, &tokens); err != nil {
+		return nil, err
+	}
+
+	for _, token := range tokens {
+		compactedToken = append(compactedToken, AbsentMIMETypeToken{
+			IndexID:    token.IndexID,
+			PreviewURL: token.ProjectMetadata.Latest.PreviewURL,
+		})
+	}
+
+	return compactedToken, nil
+}
+
+// UpdateTokenFeedback inserts or updates list of token feedback by a user.
+func (s *MongodbIndexerStore) UpdateTokenFeedback(ctx context.Context, tokenFeedbacks []TokenFeedbackUpdate, userDID string) error {
+	r := s.tokenFeedbackCollection.FindOne(ctx, bson.M{"did": userDID}, options.FindOne().SetSort(bson.M{"lastUpdatedTime": -1}))
+
+	if err := r.Err(); err != nil {
+		if err != mongo.ErrNoDocuments {
+			return err
+		}
+	}
+
+	if r.Err() == nil {
+		var lastTokenFeedback TokenFeedback
+
+		if err := r.Decode(&lastTokenFeedback); err != nil {
+			return err
+		}
+
+		delay := time.Hour
+
+		if lastTokenFeedback.LastUpdatedTime.Unix() > time.Now().Add(-delay).Unix() {
+			log.Debug("feedback submit too frequently",
+				zap.Int64("lastUpdatedTime", lastTokenFeedback.LastUpdatedTime.Unix()),
+				zap.Int64("now", time.Now().Add(-delay).Unix()),
+				zap.String("account", userDID),
+			)
+			return fmt.Errorf("feedback submit too frequently")
+		}
+	}
+
+	for _, token := range tokenFeedbacks {
+		tokenFeedback := TokenFeedback{
+			IndexID:         token.IndexID,
+			MimeType:        token.MimeType,
+			DID:             userDID,
+			LastUpdatedTime: time.Now(),
+		}
+
+		r, err := s.tokenFeedbackCollection.UpdateOne(ctx,
+			bson.M{"indexID": token.IndexID, "did": userDID},
+			bson.M{"$set": tokenFeedback},
+			options.Update().SetUpsert(true),
+		)
+
+		if err != nil {
+			return err
+		}
+
+		if r.ModifiedCount == 0 && r.UpsertedCount == 0 {
+			log.Warn("token feedback is not added or updated",
+				zap.String("index_id", tokenFeedback.IndexID),
+				zap.String("did", tokenFeedback.DID),
+			)
+		}
+	}
+
+	return nil
+}
+
+// GetGrouppedTokenFeedbacks returns token feedbacks that group by indexID & mimeTypes.
+func (s *MongodbIndexerStore) GetGrouppedTokenFeedbacks(ctx context.Context) ([]GrouppedTokenFeedback, error) {
+	tokenFeedbacks := make([]GrouppedTokenFeedback, 0)
+
+	c, err := s.tokenFeedbackCollection.Aggregate(ctx, []bson.M{
+		{"$sort": bson.D{{Key: "lastActivityTime", Value: 1}}},
+		{
+			"$group": bson.M{
+				"_id":   bson.M{"indexID": "$indexID", "mimeType": "$mimeType"},
+				"count": bson.M{"$sum": 1},
+			},
+		},
+		{
+			"$group": bson.M{
+				"_id": "$_id.indexID",
+				"mimeTypes": bson.M{
+					"$push": bson.M{
+						"mimeType": "$_id.mimeType",
+						"count":    "$count",
+					},
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	for c.Next(ctx) {
+		var tokenFeedback GrouppedTokenFeedback
+		if err := c.Decode(&tokenFeedback); err != nil {
+			return nil, err
+		}
+
+		tokenFeedbacks = append(tokenFeedbacks, tokenFeedback)
+	}
+
+	return tokenFeedbacks, nil
+}
+
+func (s *MongodbIndexerStore) UpdateTokenSugesstedMIMEType(ctx context.Context, indexID, mimeType string) error {
+	r := s.assetCollection.FindOne(ctx, bson.M{"indexID": indexID})
+	if err := r.Err(); err != nil {
+		return err
+	}
+
+	updates := bson.D{{Key: "$set", Value: bson.D{{Key: "projectMetadata.latest.suggestionMimeType", Value: mimeType}}}}
+
+	_, err := s.assetCollection.UpdateOne(
+		ctx,
+		bson.M{"indexID": indexID},
+		updates,
+	)
+
+	return err
 }

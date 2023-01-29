@@ -6,7 +6,6 @@ import (
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/getsentry/sentry-go"
-	cadenceClient "go.uber.org/cadence/client"
 	"go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
 )
@@ -14,35 +13,35 @@ import (
 const TokenRefreshingDelay = 7 * time.Minute
 
 // triggerIndexOutdatedTokenWorkflow triggers two workflows for checking both ownership and provenance
-func (w *NFTIndexerWorker) triggerIndexOutdatedTokenWorkflow(ctx workflow.Context, owner string, ownedFungibleToken, ownedNonFungibleToken []string) {
-	log := workflow.GetLogger(ctx)
+// func (w *NFTIndexerWorker) triggerIndexOutdatedTokenWorkflow(ctx workflow.Context, owner string, ownedFungibleToken, ownedNonFungibleToken []string) {
+// 	log := workflow.GetLogger(ctx)
 
-	if len(ownedFungibleToken) > 0 {
-		log.Debug("Start child workflow to check existence token ownership", zap.String("owner", owner))
-		cwoOwnership := workflow.ChildWorkflowOptions{
-			TaskList:                     ProvenanceTaskListName,
-			WorkflowID:                   WorkflowIDIndexTokenOwnershipByOwner(owner),
-			WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-			ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-			ExecutionStartToCloseTimeout: time.Hour,
-		}
-		_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoOwnership),
-			w.RefreshTokenOwnershipWorkflow, ownedFungibleToken, TokenRefreshingDelay)
-	}
+// 	if len(ownedFungibleToken) > 0 {
+// 		log.Debug("Start child workflow to check existence token ownership", zap.String("owner", owner))
+// 		cwoOwnership := workflow.ChildWorkflowOptions{
+// 			TaskList:                     ProvenanceTaskListName,
+// 			WorkflowID:                   WorkflowIDIndexTokenOwnershipByOwner(owner),
+// 			WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+// 			ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
+// 			ExecutionStartToCloseTimeout: time.Hour,
+// 		}
+// 		_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoOwnership),
+// 			w.RefreshTokenOwnershipWorkflow, ownedFungibleToken, TokenRefreshingDelay)
+// 	}
 
-	if len(ownedNonFungibleToken) > 0 {
-		log.Debug("Start child workflow to check existence token provenance", zap.String("owner", owner))
-		cwoProvenance := workflow.ChildWorkflowOptions{
-			TaskList:                     ProvenanceTaskListName,
-			WorkflowID:                   WorkflowIDIndexTokenProvenanceByOwner(owner),
-			WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-			ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-			ExecutionStartToCloseTimeout: time.Hour,
-		}
-		_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoProvenance),
-			w.RefreshTokenProvenanceWorkflow, ownedNonFungibleToken, TokenRefreshingDelay)
-	}
-}
+// 	if len(ownedNonFungibleToken) > 0 {
+// 		log.Debug("Start child workflow to check existence token provenance", zap.String("owner", owner))
+// 		cwoProvenance := workflow.ChildWorkflowOptions{
+// 			TaskList:                     ProvenanceTaskListName,
+// 			WorkflowID:                   WorkflowIDIndexTokenProvenanceByOwner(owner),
+// 			WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+// 			ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
+// 			ExecutionStartToCloseTimeout: time.Hour,
+// 		}
+// 		_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoProvenance),
+// 			w.RefreshTokenProvenanceWorkflow, ownedNonFungibleToken, TokenRefreshingDelay)
+// 	}
+// }
 
 // IndexOpenseaTokenWorkflow is a workflow to summarize NFT data from OpenSea and save it to the storage.
 func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, tokenOwner string) error {
@@ -260,30 +259,44 @@ func (w *NFTIndexerWorker) CacheIPFSArtifactWorkflow(ctx workflow.Context, fullD
 
 // UpdateAccountTokenWorkflow is a workflow to refresh provenance for a specific token
 func (w *NFTIndexerWorker) UpdateAccountTokensWorkflow(ctx workflow.Context, delay time.Duration) error {
-	var err error
-	for {
-		ao := workflow.ActivityOptions{
-			TaskList:               w.AccountTokenTaskListName,
-			ScheduleToStartTimeout: 10 * time.Minute,
-			StartToCloseTimeout:    time.Hour,
-		}
-
-		log := workflow.GetLogger(ctx)
-
-		ctx = workflow.WithActivityOptions(ctx, ao)
-
-		log.Debug("start UpdateAccountTokensWorkflow")
-
-		err = workflow.ExecuteActivity(ctx, w.UpdateAccountTokens).Get(ctx, nil)
-		if err != nil {
-			log.Error("fail to update account tokens")
-			return err
-		}
-
-		err = workflow.Sleep(ctx, 1*time.Minute)
-		if err != nil {
-			log.Error("fail to sleep")
-			return err
-		}
+	ao := workflow.ActivityOptions{
+		TaskList:               w.AccountTokenTaskListName,
+		ScheduleToStartTimeout: 10 * time.Minute,
+		StartToCloseTimeout:    time.Hour,
 	}
+
+	log := workflow.GetLogger(ctx)
+
+	ctx = workflow.WithActivityOptions(ctx, ao)
+
+	log.Debug("start UpdateAccountTokensWorkflow")
+
+	if err := workflow.ExecuteActivity(ctx, w.UpdateAccountTokens).Get(ctx, nil); err != nil {
+		log.Error("fail to update account tokens")
+		return err
+	}
+
+	return nil
+}
+
+// UpdateSuggestedMimeTypeWorkflow is a workflow to update suggested mimeType from token feedback
+func (w *NFTIndexerWorker) UpdateSuggestedMIMETypeWorkflow(ctx workflow.Context, delay time.Duration) error {
+	ao := workflow.ActivityOptions{
+		TaskList:               w.AccountTokenTaskListName,
+		ScheduleToStartTimeout: 10 * time.Minute,
+		StartToCloseTimeout:    time.Hour,
+	}
+
+	log := workflow.GetLogger(ctx)
+
+	ctx = workflow.WithActivityOptions(ctx, ao)
+
+	log.Debug("start UpdateSuggestedMimeTypeWorkflow")
+
+	if err := workflow.ExecuteActivity(ctx, w.CalculateMIMETypeFromTokenFeedback).Get(ctx, nil); err != nil {
+		log.Error("fail to update suggested mimeType")
+		return err
+	}
+
+	return nil
 }

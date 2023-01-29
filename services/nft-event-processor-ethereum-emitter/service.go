@@ -7,12 +7,13 @@ import (
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/emitter"
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 	goethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
 
 type EthereumEventsEmitter struct {
@@ -35,21 +36,21 @@ func NewEthereumEventsEmitter(wsClient *ethclient.Client,
 }
 
 func (e *EthereumEventsEmitter) Watch(ctx context.Context) {
-	logrus.Info("start watching Ethereum events")
+	log.Info("start watching Ethereum events")
 
 	for {
 		subscription, err := e.wsClient.SubscribeFilterLogs(ctx, goethereum.FilterQuery{Topics: [][]common.Hash{
 			{common.HexToHash(indexer.TransferEventSignature)}, // transfer event
 		}}, e.ethLogChan)
 		if err != nil {
-			logrus.WithError(err).Error("fail to start subscription connection")
+			log.Error("fail to start subscription connection", zap.Error(err), log.SourceETHClient)
 			time.Sleep(time.Second)
 			continue
 		}
 
 		e.ethSubscription = &subscription
 		err = <-subscription.Err()
-		logrus.WithError(err).Error("subscription stopped with failure")
+		log.Error("subscription stopped with failure", zap.Error(err), log.SourceETHClient)
 
 	}
 }
@@ -59,10 +60,10 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 
 	for eLog := range e.ethLogChan {
 		paringStartTime := time.Now()
-		logrus.WithField("txHash", eLog.TxHash).
-			WithField("logIndex", eLog.Index).
-			WithField("time", paringStartTime).
-			Debug("start processing ethereum log")
+		log.Debug("start processing ethereum log",
+			zap.Any("txHash", eLog.TxHash),
+			zap.Uint("logIndex", eLog.Index),
+			zap.Time("time", paringStartTime))
 
 		if topicLen := len(eLog.Topics); topicLen == 4 {
 
@@ -71,11 +72,11 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 			contractAddress := indexer.EthereumChecksumAddress(eLog.Address.String())
 			tokenIDHash := eLog.Topics[3]
 
-			logrus.WithField("from", fromAddress).
-				WithField("to", toAddress).
-				WithField("contractAddress", contractAddress).
-				WithField("tokenIDHash", tokenIDHash).
-				Debug("receive transfer event on ethereum")
+			log.Debug("receive transfer event on ethereum",
+				zap.String("from", fromAddress),
+				zap.String("to", toAddress),
+				zap.String("contractAddress", contractAddress),
+				zap.Any("tokenIDHash", tokenIDHash))
 
 			if eLog.Topics[1].Big().Cmp(big.NewInt(0)) == 0 {
 				// ignore minting events
@@ -90,7 +91,7 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 			}
 
 			if err := e.PushEvent(ctx, eventType, fromAddress, toAddress, contractAddress, indexer.EthereumBlockchain, tokenIDHash.Big().Text(10)); err != nil {
-				logrus.WithError(err).Error("gRPC request failed")
+				log.Error("gRPC request failed", zap.Error(err), log.SourceGRPC)
 				continue
 			}
 		}

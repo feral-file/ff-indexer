@@ -82,6 +82,10 @@ type Token struct {
 	LastRefreshedTime time.Time    `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
 }
 
+type AssetAttributes struct {
+	Scrollable bool `json:"scrollable" bson:"scrollable"`
+}
+
 type ProjectMetadata struct {
 	// Common attributes
 	ArtistID            string `json:"artistID" structs:"artistID" bson:"artistID"`                                  // Artist blockchain address
@@ -102,6 +106,9 @@ type ProjectMetadata struct {
 	GalleryThumbnailURL string `json:"galleryThumbnailURL" structs:"galleryThumbnailURL" bson:"galleryThumbnailURL"` // <image_thumbnail_url>,
 	AssetData           string `json:"assetData" structs:"assetData" bson:"assetData"`                               // null,
 	AssetURL            string `json:"assetURL" structs:"assetURL" bson:"assetURL"`                                  // <permalink>
+
+	// autonomy customized attributes
+	Attributes *AssetAttributes `json:"attributes,omitempty" bson:"attributes,omitempty"`
 
 	// artwork metadata from source. currently on for Feral File
 	ArtworkMetadata map[string]interface{} `json:"artworkMetadata" structs:"artworkMetadata" bson:"artworkMetadata"`
@@ -139,6 +146,11 @@ type SwapUpdate struct {
 	BlockchainMetadata      interface{}     `json:"blockchainMetadata"`
 }
 
+type TokenFeedbackUpdate struct {
+	IndexID  string `json:"indexID"`
+	MimeType string `json:"mimeType"`
+}
+
 // VersionedProjectMetadata is a structure that manages different versions of project metadata.
 // Currently, it maintains two version: the original one and the latest one.
 type VersionedProjectMetadata struct {
@@ -152,7 +164,30 @@ type DetailedToken struct {
 	Token           `bson:",inline"`
 	ThumbnailID     string                   `json:"thumbnailID"`
 	IPFSPinned      bool                     `json:"ipfsPinned"`
+	Attributes      *AssetAttributes         `json:"attributes,omitempty"`
 	ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
+}
+
+type AbsentMIMETypeToken struct {
+	IndexID    string `json:"indexID"`
+	PreviewURL string `json:"previewURL"`
+}
+
+type TokenFeedback struct {
+	IndexID         string    `json:"indexID" bson:"indexID"`
+	MimeType        string    `json:"mimeType" bson:"mimeType"`
+	LastUpdatedTime time.Time `json:"lastUpdatedTime" bson:"lastUpdatedTime"`
+	DID             string    `json:"did" bson:"did"`
+}
+
+type GrouppedTokenFeedback struct {
+	IndexID   string              `bson:"_id" json:"indexID,omitempty"`
+	MimeTypes []MimeTypeWithCount `bson:"mimeTypes" json:"mimeTypes"`
+}
+
+type MimeTypeWithCount struct {
+	MimeType string `bson:"mimeType" json:"mimeType"`
+	Count    int    `bson:"count" json:"count"`
 }
 
 type Account struct {

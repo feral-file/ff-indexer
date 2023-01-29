@@ -8,11 +8,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 	cadenceClient "go.uber.org/cadence/client"
+	"go.uber.org/zap"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
 
@@ -42,15 +43,26 @@ type NFTQueryParams struct {
 	IDs []string `json:"ids"`
 }
 
+type TokenFeedbackParams struct {
+	Tokens    []indexer.TokenFeedbackUpdate `json:"tokens"`
+	RequestID string                        `json:"requestID"`
+}
+
+type RequestedTokenFeedback struct {
+	DID       string          `json:"did"`
+	Timestamp int64           `json:"timestamp"`
+	Tokens    map[string]bool `json:"tokens"`
+}
+
 // FIXME: remove this and merge with background / helpers
 func (s *NFTIndexerServer) startIndexWorkflow(c context.Context, owner, blockchain string, workflowFunc interface{}) {
 	workflowContext := buildIndexNFTsContext(owner, blockchain)
 
 	workflow, err := s.cadenceWorker.StartWorkflow(c, indexerWorker.ClientName, workflowContext, workflowFunc, owner)
 	if err != nil {
-		log.WithError(err).WithField("owner", owner).WithField("blockchain", blockchain).Error("fail to start indexing workflow")
+		log.Error("fail to start indexing workflow", zap.Error(err), zap.String("owner", owner), zap.String("blockchain", blockchain))
 	} else {
-		log.WithField("owner", owner).WithField("blockchain", blockchain).WithField("workflow_id", workflow.ID).Info("start workflow for indexing tokens")
+		log.Info("start workflow for indexing tokens", zap.String("owner", owner), zap.String("blockchain", blockchain), zap.String("workflow_id", workflow.ID))
 	}
 }
 

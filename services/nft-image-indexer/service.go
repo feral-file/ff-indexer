@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.uber.org/zap"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/customErrors"
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/imageStore"
 )
 
@@ -52,14 +52,15 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 		go func() {
 			defer s.wg.Done()
 			for asset := range assets {
-				logrus.WithField("indexID", asset.IndexID).Debug("start generating thumbnail cache for an asset")
+				log.Debug("start generating thumbnail cache for an asset", zap.String("indexID", asset.IndexID))
 
 				if _, err := s.db.CreateOrGetImage(ctx, asset.IndexID); err != nil {
-					logrus.WithError(err).Error("fail to get or create image record")
+					log.Error("fail to get or create image record", zap.Error(err))
 					continue
 				}
 
 				uploadImageStartTime := time.Now()
+				var errString string
 				img, err := s.db.UploadImage(ctx, asset.IndexID, NewURLImageDownloader(asset.ProjectMetadata.Latest.ThumbnailURL),
 					map[string]interface{}{
 						"source":   asset.ProjectMetadata.Latest.Source,
@@ -67,29 +68,35 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 					},
 				)
 				if err != nil {
-					if errors.Is(err, imageStore.ErrUnsupportImageType) {
-						logrus.WithField("indexID", asset.IndexID).Warn("unsupported image type")
-						// let the image id remain empty string
-					} else if _, ok := err.(*customErrors.UnsupportedSVG); ok {
-						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
+					if _, ok := err.(*imageStore.UnsupportedSVG); ok {
+						errString = imageStore.ErrUnsupportedSVGURL
 						sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
-					} else {
-						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
+					} else if imgCachingErr, ok := err.(*imageStore.ImageCachingError); ok {
+						errString = imgCachingErr.Name
+						sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
+					}
+
+					log.Error("fail to upload image", zap.Error(err), zap.String("indexID", asset.IndexID), log.SourceImageCaching)
+
+					// add failure to the asset
+					err = s.markAssetThumbnailFailed(ctx, asset.IndexID, errString)
+					if err != nil {
+						log.Error("add thumbnail failure was failed", zap.String("indexID", asset.IndexID), zap.Error(err))
 					}
 				}
-				logrus.
-					WithField("duration", time.Since(uploadImageStartTime)).
-					WithField("assetID", asset.IndexID).Debug("thumbnail image uploaded")
+				log.Debug("thumbnail image uploaded",
+					zap.Duration("duration", time.Since(uploadImageStartTime)),
+					zap.String("assetID", asset.IndexID))
 
 				// Update the thumbnail by image ID returned from cloudflare, it the whol process is succeed.
 				// Otherwise, it would update to an empty value
-				if err := s.updateTokenThumbnail(ctx, img.AssetID, img.ImageID); err != nil {
-					logrus.WithError(err).Error("update token thumbnail to indexer")
+				if err := s.updateAssetThumbnail(ctx, img.AssetID, img.ImageID); err != nil {
+					log.Error("update token thumbnail to indexer", zap.Error(err))
 				}
 
-				logrus.WithField("indexID", asset.IndexID).Info("thumbnail generating process finished")
+				log.Info("thumbnail generating process finished", zap.String("indexID", asset.IndexID))
 			}
-			logrus.Debug("ThumbnailWorker stopped")
+			log.Debug("ThumbnailWorker stopped")
 		}()
 	}
 }
@@ -107,6 +114,10 @@ func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) 
 			},
 			// filter assets which does not have thumbnailID or the thumbnailID is empty
 			"thumbnailID": bson.M{
+				"$not": bson.M{"$exists": true, "$ne": ""},
+			},
+			// filter assets which does not have thumbnailFailure or the thumbnailFailure is empty
+			"thumbnailFailure": bson.M{
 				"$not": bson.M{"$exists": true, "$ne": ""},
 			},
 			// filter assets which are qualified to generate thumbnails in cloudflare.
@@ -146,12 +157,23 @@ func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) 
 	return asset, err
 }
 
-// updateTokenThumbnail sets the thumbnail id for a specific token
-func (s *NFTContentIndexer) updateTokenThumbnail(ctx context.Context, indexID, thumbnailID string) error {
+// updateAssetThumbnail sets the thumbnail id for a specific token
+func (s *NFTContentIndexer) updateAssetThumbnail(ctx context.Context, indexID, thumbnailID string) error {
 	_, err := s.nftAssets.UpdateOne(
 		ctx,
 		bson.M{"indexID": indexID},
 		bson.D{{Key: "$set", Value: bson.D{{Key: "thumbnailID", Value: thumbnailID}}}},
+	)
+
+	return err
+}
+
+// markAssetThumbnailFailed sets thumbnail failure for a specific token
+func (s *NFTContentIndexer) markAssetThumbnailFailed(ctx context.Context, indexID, thumbnailFailure string) error {
+	_, err := s.nftAssets.UpdateOne(
+		ctx,
+		bson.M{"indexID": indexID},
+		bson.D{{Key: "$set", Value: bson.D{{Key: "thumbnailFailure", Value: thumbnailFailure}}}},
 	)
 
 	return err
@@ -167,18 +189,18 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 
 		s.spawnThumbnailWorker(ctx, assets, 100)
 
-		logrus.WithField("thumbnailCachePeriod", s.thumbnailCachePeriod).
-			WithField("thumbnailCacheRetryInterval", s.thumbnailCacheRetryInterval).
-			Info("start the loop the get assets without thumbnail cached")
+		log.Info("start the loop the get assets without thumbnail cached",
+			zap.Duration("thumbnailCachePeriod", s.thumbnailCachePeriod),
+			zap.Duration("thumbnailCacheRetryInterval", s.thumbnailCacheRetryInterval))
 
 	WATCH_ASSETS:
 		for {
 			asset, err := s.getAssetWithoutThumbnailCached(ctx)
 			if err != nil {
 				if errors.Is(err, mongo.ErrNoDocuments) {
-					logrus.Info("No token need to generate cache a thumbnail")
+					log.Info("No token need to generate cache a thumbnail")
 				} else {
-					logrus.WithError(err).Error("fail to get asset")
+					log.Error("fail to get asset", zap.Error(err))
 				}
 
 				if done := indexer.SleepWithContext(ctx, 15*time.Second); done {
@@ -186,10 +208,10 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 				}
 				continue
 			}
-			logrus.WithField("indexID", asset.IndexID).Debug("send asset to process")
+			log.Debug("send asset to process", zap.String("indexID", asset.IndexID))
 			assets <- asset
 		}
-		logrus.Debug("Thumbnail checker closed")
+		log.Debug("Thumbnail checker closed")
 	}()
 
 }
