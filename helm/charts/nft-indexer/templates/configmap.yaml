@@ -12,6 +12,9 @@ data:
     server:
       port: :8089
 
+    jwt:
+      pubkeyfile: /usr/share/nft-indexer/jwt-pubkey.pem
+
     environment: {{ .Values.serviceConfig.environment }}
     network:
       bitmark: {{ .Values.serviceConfig.network.bitmark }}

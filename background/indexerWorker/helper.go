@@ -6,6 +6,7 @@ import (
 	"time"
 
 	uberCadence "go.uber.org/cadence"
+	"go.uber.org/cadence/.gen/go/shared"
 	cadenceClient "go.uber.org/cadence/client"
 	"go.uber.org/zap"
 
@@ -83,9 +84,9 @@ func StartRefreshTokenProvenanceWorkflow(c context.Context, client *cadence.Cade
 	}
 }
 
-func StartUpdateAccountTokensWorkflow(c context.Context, client *cadence.CadenceWorkerClient, delay time.Duration) {
+func StartUpdateAccountTokensWorkflow(c context.Context, client *cadence.CadenceWorkerClient, delay time.Duration) error {
 	workflowContext := cadenceClient.StartWorkflowOptions{
-		ID:                           fmt.Sprintf("update-account-token-helper-%s", time.Now()),
+		ID:                           "update-account-token-helper",
 		TaskList:                     AccountTokenTaskListName,
 		ExecutionStartToCloseTimeout: time.Hour,
 		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
@@ -96,8 +97,37 @@ func StartUpdateAccountTokensWorkflow(c context.Context, client *cadence.Cadence
 	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.UpdateAccountTokensWorkflow, delay)
 	if err != nil {
 		log.Error("fail to start updating account token workflow", zap.Error(err))
+		_, isAlreadyStartedError := err.(*shared.WorkflowExecutionAlreadyStartedError)
+		if !isAlreadyStartedError {
+			return err
+		}
 	} else {
 		log.Debug("start workflow for updating pending account tokens", zap.String("workflow_id", workflow.ID))
 	}
 
+	return nil
+}
+
+func StartUpdateSuggestedMIMETypeCronWorkflow(c context.Context, client *cadence.CadenceWorkerClient, delay time.Duration) error {
+	workflowContext := cadenceClient.StartWorkflowOptions{
+		ID:                           "update-token-suggested-mime-type",
+		TaskList:                     AccountTokenTaskListName,
+		ExecutionStartToCloseTimeout: time.Hour,
+		CronSchedule:                 "0 * * * *", //every hour
+	}
+
+	var w NFTIndexerWorker
+
+	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.UpdateSuggestedMIMETypeWorkflow, delay)
+	if err != nil {
+		log.Error("fail to start updating suggested mime type workflow", zap.Error(err))
+		_, isAlreadyStartedError := err.(*shared.WorkflowExecutionAlreadyStartedError)
+		if !isAlreadyStartedError {
+			return err
+		}
+	} else {
+		log.Debug("start workflow for updating suggested mime type", zap.String("workflow_id", workflow.ID))
+	}
+
+	return nil
 }

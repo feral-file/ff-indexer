@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rsa"
+
 	"github.com/gin-gonic/gin"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -11,9 +13,11 @@ import (
 )
 
 type NFTIndexerServer struct {
-	apiToken      string
-	adminApiToken string
-	route         *gin.Engine
+	apiToken           string
+	adminApiToken      string
+	secretSymmetricKey string
+	jwtPubkey          *rsa.PublicKey
+	route              *gin.Engine
 
 	ensClient     *ens.ENS
 	tezosDomain   *tezosDomain.TezosDomainAPI
@@ -29,14 +33,18 @@ func NewNFTIndexerServer(cadenceWorker *cadence.CadenceWorkerClient,
 	feralfileClient *feralfile.Feralfile,
 	indexerStore indexer.IndexerStore,
 	indexerEngine *indexer.IndexEngine,
+	jwtPubkey *rsa.PublicKey,
 	apiToken string,
-	adminApiToken string) *NFTIndexerServer {
+	adminApiToken string,
+	secretSymmetricKey string) *NFTIndexerServer {
 	r := gin.New()
 
 	return &NFTIndexerServer{
-		apiToken:      apiToken,
-		adminApiToken: adminApiToken,
-		route:         r,
+		apiToken:           apiToken,
+		adminApiToken:      adminApiToken,
+		secretSymmetricKey: secretSymmetricKey,
+		jwtPubkey:          jwtPubkey,
+		route:              r,
 
 		ensClient:     ensClient,
 		tezosDomain:   tezosDomain,

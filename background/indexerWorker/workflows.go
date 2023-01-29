@@ -286,3 +286,25 @@ func (w *NFTIndexerWorker) UpdateAccountTokensWorkflow(ctx workflow.Context, del
 		}
 	}
 }
+
+// UpdateSuggestedMimeTypeWorkflow is a workflow to update suggested mimeType from token feedback
+func (w *NFTIndexerWorker) UpdateSuggestedMIMETypeWorkflow(ctx workflow.Context, delay time.Duration) error {
+	ao := workflow.ActivityOptions{
+		TaskList:               w.AccountTokenTaskListName,
+		ScheduleToStartTimeout: 10 * time.Minute,
+		StartToCloseTimeout:    time.Hour,
+	}
+
+	log := workflow.GetLogger(ctx)
+
+	ctx = workflow.WithActivityOptions(ctx, ao)
+
+	log.Debug("start UpdateSuggestedMimeTypeWorkflow")
+
+	if err := workflow.ExecuteActivity(ctx, w.CalculateMIMETypeFromTokenFeedback).Get(ctx, nil); err != nil {
+		log.Error("fail to update suggested mimeType")
+		return err
+	}
+
+	return nil
+}
