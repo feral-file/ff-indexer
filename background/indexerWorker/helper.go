@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	uberCadence "go.uber.org/cadence"
 	"go.uber.org/cadence/.gen/go/shared"
 	cadenceClient "go.uber.org/cadence/client"
+	"go.uber.org/zap"
 
 	"github.com/bitmark-inc/nft-indexer/cadence"
+	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 func StartIndexTokenWorkflow(c context.Context, client *cadence.CadenceWorkerClient, owner, contract, tokenID string, indexPreview bool) {
@@ -26,11 +27,17 @@ func StartIndexTokenWorkflow(c context.Context, client *cadence.CadenceWorkerCli
 	workflow, err := client.StartWorkflow(c, ClientName, workflowContext,
 		w.IndexTokenWorkflow, owner, contract, tokenID, indexPreview)
 	if err != nil {
-		log.WithError(err).WithField("owner", owner).WithField("contract", contract).WithField("token_id", tokenID).
-			Error("fail to start indexing workflow")
+		log.Error("fail to start indexing workflow",
+			zap.Error(err),
+			zap.String("owner", owner), zap.String("contract", contract), zap.String("token_id", tokenID))
+
 	} else {
-		log.WithField("owner", owner).WithField("contract", contract).WithField("token_id", tokenID).WithField("workflow_id", workflow.ID).
-			Debug("start workflow to index a token")
+		log.Debug("start workflow to index a token",
+			zap.String("owner", owner),
+			zap.String("contract", contract),
+			zap.String("token_id", tokenID),
+			zap.String("workflow_id", workflow.ID))
+
 	}
 }
 
@@ -47,9 +54,9 @@ func StartRefreshTokenOwnershipWorkflow(c context.Context, client *cadence.Caden
 
 	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.RefreshTokenOwnershipWorkflow, []string{indexID}, delay)
 	if err != nil {
-		log.WithError(err).WithField("caller", caller).Error("fail to start refreshing ownership workflow")
+		log.Error("fail to start refreshing ownership workflow", zap.Error(err), zap.String("caller", caller))
 	} else {
-		log.WithField("caller", caller).WithField("workflow_id", workflow.ID).Debug("start workflow for refreshing ownership")
+		log.Debug("start workflow for refreshing ownership", zap.String("caller", caller), zap.String("workflow_id", workflow.ID))
 	}
 }
 
@@ -71,9 +78,9 @@ func StartRefreshTokenProvenanceWorkflow(c context.Context, client *cadence.Cade
 
 	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.RefreshTokenProvenanceWorkflow, []string{indexID}, delay)
 	if err != nil {
-		log.WithError(err).WithField("caller", caller).Error("fail to start refreshing provenance workflow")
+		log.Error("fail to start refreshing provenance workflow", zap.Error(err), zap.String("caller", caller))
 	} else {
-		log.WithField("caller", caller).WithField("workflow_id", workflow.ID).Debug("start workflow for refreshing provenance")
+		log.Debug("start workflow for refreshing provenance", zap.String("caller", caller), zap.String("workflow_id", workflow.ID))
 	}
 }
 
@@ -89,13 +96,13 @@ func StartUpdateAccountTokensWorkflow(c context.Context, client *cadence.Cadence
 
 	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.UpdateAccountTokensWorkflow, delay)
 	if err != nil {
-		log.WithError(err).Error("fail to start updating account token workflow")
+		log.Error("fail to start updating account token workflow", zap.Error(err))
 		_, isAlreadyStartedError := err.(*shared.WorkflowExecutionAlreadyStartedError)
 		if !isAlreadyStartedError {
 			return err
 		}
 	} else {
-		log.WithField("workflow_id", workflow.ID).Debug("start workflow for updating pending account tokens")
+		log.Debug("start workflow for updating pending account tokens", zap.String("workflow_id", workflow.ID))
 	}
 
 	return nil
@@ -113,13 +120,13 @@ func StartUpdateSuggestedMIMETypeCronWorkflow(c context.Context, client *cadence
 
 	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.UpdateSuggestedMIMETypeWorkflow, delay)
 	if err != nil {
-		log.WithError(err).Error("fail to start updating suggested mime type workflow")
+		log.Error("fail to start updating suggested mime type workflow", zap.Error(err))
 		_, isAlreadyStartedError := err.(*shared.WorkflowExecutionAlreadyStartedError)
 		if !isAlreadyStartedError {
 			return err
 		}
 	} else {
-		log.WithField("workflow_id", workflow.ID).Debug("start workflow for updating suggested mime type")
+		log.Debug("start workflow for updating suggested mime type", zap.String("workflow_id", workflow.ID))
 	}
 
 	return nil

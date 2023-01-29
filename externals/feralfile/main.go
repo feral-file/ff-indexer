@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
+	"go.uber.org/zap"
 )
 
 type Feralfile struct {
@@ -46,7 +46,9 @@ func (c *Feralfile) GetAccountInfo(owner string) (Account, error) {
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&respBody); err != nil {
-		logrus.WithField("response", traceutils.DumpResponse(resp)).Error("fail to decode response")
+		log.Error("fail to decode response",
+			log.SourceFeralFile,
+			zap.String("response", traceutils.DumpResponse(resp)))
 		return a, err
 	}
 

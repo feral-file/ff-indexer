@@ -7,12 +7,13 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.uber.org/zap"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/imageStore"
 )
 
@@ -51,10 +52,10 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 		go func() {
 			defer s.wg.Done()
 			for asset := range assets {
-				logrus.WithField("indexID", asset.IndexID).Debug("start generating thumbnail cache for an asset")
+				log.Debug("start generating thumbnail cache for an asset", zap.String("indexID", asset.IndexID))
 
 				if _, err := s.db.CreateOrGetImage(ctx, asset.IndexID); err != nil {
-					logrus.WithError(err).Error("fail to get or create image record")
+					log.Error("fail to get or create image record", zap.Error(err))
 					continue
 				}
 
@@ -75,27 +76,27 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 						sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
 					}
 
-					logrus.WithError(err).WithField("indexID", asset.IndexID).Error("fail to upload image")
+					log.Error("fail to upload image", zap.Error(err), zap.String("indexID", asset.IndexID), log.SourceImageCaching)
 
 					// add failure to the asset
 					err = s.markAssetThumbnailFailed(ctx, asset.IndexID, errString)
 					if err != nil {
-						logrus.WithError(err).WithField("indexID", asset.IndexID).Error("add thumbnail failure was failed")
+						log.Error("add thumbnail failure was failed", zap.String("indexID", asset.IndexID), zap.Error(err))
 					}
 				}
-				logrus.
-					WithField("duration", time.Since(uploadImageStartTime)).
-					WithField("assetID", asset.IndexID).Debug("thumbnail image uploaded")
+				log.Debug("thumbnail image uploaded",
+					zap.Duration("duration", time.Since(uploadImageStartTime)),
+					zap.String("assetID", asset.IndexID))
 
 				// Update the thumbnail by image ID returned from cloudflare, it the whol process is succeed.
 				// Otherwise, it would update to an empty value
 				if err := s.updateAssetThumbnail(ctx, img.AssetID, img.ImageID); err != nil {
-					logrus.WithError(err).Error("update token thumbnail to indexer")
+					log.Error("update token thumbnail to indexer", zap.Error(err))
 				}
 
-				logrus.WithField("indexID", asset.IndexID).Info("thumbnail generating process finished")
+				log.Info("thumbnail generating process finished", zap.String("indexID", asset.IndexID))
 			}
-			logrus.Debug("ThumbnailWorker stopped")
+			log.Debug("ThumbnailWorker stopped")
 		}()
 	}
 }
@@ -188,18 +189,18 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 
 		s.spawnThumbnailWorker(ctx, assets, 100)
 
-		logrus.WithField("thumbnailCachePeriod", s.thumbnailCachePeriod).
-			WithField("thumbnailCacheRetryInterval", s.thumbnailCacheRetryInterval).
-			Info("start the loop the get assets without thumbnail cached")
+		log.Info("start the loop the get assets without thumbnail cached",
+			zap.Duration("thumbnailCachePeriod", s.thumbnailCachePeriod),
+			zap.Duration("thumbnailCacheRetryInterval", s.thumbnailCacheRetryInterval))
 
 	WATCH_ASSETS:
 		for {
 			asset, err := s.getAssetWithoutThumbnailCached(ctx)
 			if err != nil {
 				if errors.Is(err, mongo.ErrNoDocuments) {
-					logrus.Info("No token need to generate cache a thumbnail")
+					log.Info("No token need to generate cache a thumbnail")
 				} else {
-					logrus.WithError(err).Error("fail to get asset")
+					log.Error("fail to get asset", zap.Error(err))
 				}
 
 				if done := indexer.SleepWithContext(ctx, 15*time.Second); done {
@@ -207,10 +208,10 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 				}
 				continue
 			}
-			logrus.WithField("indexID", asset.IndexID).Debug("send asset to process")
+			log.Debug("send asset to process", zap.String("indexID", asset.IndexID))
 			assets <- asset
 		}
-		logrus.Debug("Thumbnail checker closed")
+		log.Debug("Thumbnail checker closed")
 	}()
 
 }

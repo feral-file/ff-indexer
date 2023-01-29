@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
@@ -23,6 +23,7 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
+	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 func main() {
@@ -46,12 +47,12 @@ func main() {
 		viper.GetString("ethereum.rpc_url"),
 	)
 	if err != nil {
-		logrus.WithError(err).Panic(err)
+		log.Panic(err.Error(), zap.Error(err))
 	}
 
 	wsClient, err := ethclient.Dial(viper.GetString("ethereum.ws_url"))
 	if err != nil {
-		logrus.WithError(err).Panic(err)
+		log.Panic(err.Error(), zap.Error(err))
 	}
 
 	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
@@ -59,21 +60,21 @@ func main() {
 
 	db, err := gorm.Open(postgres.Open(viper.GetString("account.db_uri")))
 	if err != nil {
-		logrus.WithError(err).Fatal("fail to connect database")
+		log.Fatal("fail to connect database", zap.Error(err))
 	}
 
 	accountStore := storage.NewAccountInformationStorage(db)
 
 	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
 	if err != nil {
-		logrus.WithError(err).Panic("fail to initiate indexer store")
+		log.Panic("fail to initiate indexer store", zap.Error(err))
 	}
 
 	nc := notification.New(viper.GetString("notification.endpoint"), nil)
 
 	bitmarkListener, err := NewListener(viper.GetString("bitmark.db_uri"))
 	if err != nil {
-		logrus.WithError(err).Panic("fail to initiate bitmark listener")
+		log.Panic("fail to initiate bitmark listener", zap.Error(err))
 	}
 
 	engine := indexer.New(
