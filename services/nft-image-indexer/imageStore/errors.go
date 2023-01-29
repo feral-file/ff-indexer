@@ -50,7 +50,7 @@ func NewImageCachingError(reason string) error {
 }
 
 type UnsupportedSVG struct {
-	Url string
+	URL string
 }
 
 func (e *UnsupportedSVG) Reason() string {
@@ -58,11 +58,11 @@ func (e *UnsupportedSVG) Reason() string {
 }
 
 func (e *UnsupportedSVG) Error() string {
-	return fmt.Sprintf("unsupported SVG Url: %v", e.Url)
+	return fmt.Sprintf("unsupported SVG Url: %v", e.URL)
 }
 
 func NewUnsupportedSVG(url string) error {
 	return &UnsupportedSVG{
-		Url: url,
+		URL: url,
 	}
 }
