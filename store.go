@@ -1572,7 +1572,7 @@ func (s *MongodbIndexerStore) UpdateTokenFeedback(ctx context.Context, tokenFeed
 				zap.Int64("now", time.Now().Add(-delay).Unix()),
 				zap.String("account", userDID),
 			)
-			return fmt.Errorf("Feedback submit too frequently!")
+			return fmt.Errorf("feedback submit too frequently")
 		}
 	}
 
