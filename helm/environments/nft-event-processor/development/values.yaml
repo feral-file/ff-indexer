@@ -1,0 +1,19 @@
+replicaCount: 1
+
+image:
+  tags:
+    eventProcessor: "event-processor-0.0.16-minh-test-3"
+    ethereumEmitter: "ethereum-emitter-0.0.16-minh-test-3"
+    bitmarkEmitter: "bitmark-emitter-0.0.16-minh-test-3"
+
+serviceConfig:
+  tezosNodeRPCURL: https://rpc.lima.tzstats.com
+  contractAddresses: [
+    "KT1VZ6Zkoae9DtXkbuw4wtFCg9WH8eywcvEX"
+  ]
+  contractBoostUrl: "https://api.limanet.tzkt.io/"
+  environment: development
+  network:
+    tezos: testnet
+    ethereum: testnet
+    bitmark: testnet
