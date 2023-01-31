@@ -1,0 +1,258 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nft-event-processor.fullname" . }}
+  labels:
+    v: "1"
+    {{- include "nft-event-processor.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "nft-event-processor.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        {{- include "nft-event-processor.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tags.eventprocessor | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+          - /nft-event-processor
+          ports:
+            - name: http
+              containerPort: 8089
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: NFT_INDEXER_STORE_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-processor.fullname" . }}
+                  key: store_db_uri
+            - name: NFT-INDEXER_STORE_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-processor.fullname" . }}
+                  key: store_db_name
+            - name: NFT_INDEXER_ACCOUNT_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-processor.fullname" . }}
+                  key: account_db_uri
+            - name: NFT_INDEXER_SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-processor.fullname" . }}
+                  key: sentry_dsn
+          volumeMounts:
+          - name: config
+            mountPath: "/.config"
+            readOnly: true
+      volumes:
+      # You set volumes at the Pod level, then mount them into containers inside that Pod
+      - name: config
+        configMap:
+          name: {{ include "nft-event-processor.fullname" . }}
+          items:
+          - key: "config.yaml"
+            path: "config.yaml"
+      - name: marketplace-indexer-config
+        configMap:
+          name: {{ include "nft-event-processor.fullname" . }}
+          items:
+          - key: "dappetizer.marketplace.config.json"
+            path: "dappetizer.default.config.json"
+      - name: feralfile-indexer-config
+        configMap:
+          name: {{ include "nft-event-processor.fullname" . }}
+          items:
+          - key: "dappetizer.feralfile.config.json"
+            path: "dappetizer.default.config.json"
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nft-event-processor.fullname" . }}-ethereum-emitter
+  labels:
+    v: "1"
+    {{- include "nft-event-processor.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "nft-event-processor.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        {{- include "nft-event-processor.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tags.ethereumEmitter | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+          - /nft-event-processor-ethereum-emitter
+          env:
+            - name: NFT_INDEXER_ETHEREUM_WORKER_ACCOUNT_MNEMONIC
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-processor.fullname" . }}
+                  key: ethereum_worker_account_mnemonic
+            - name: NFT_INDEXER_ETHEREUM_RPC_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-processor.fullname" . }}
+                  key: ethereum_rpc_url
+            - name: NFT_INDEXER_ETHEREUM_WS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-processor.fullname" . }}
+                  key: ethereum_ws_url
+          volumeMounts:
+          - name: config
+            mountPath: "/.config"
+            readOnly: true
+      volumes:
+      # You set volumes at the Pod level, then mount them into containers inside that Pod
+      - name: config
+        configMap:
+          name: {{ include "nft-event-processor.fullname" . }}
+          items:
+          - key: "config.yaml"
+            path: "config.yaml"
+      - name: marketplace-indexer-config
+        configMap:
+          name: {{ include "nft-event-processor.fullname" . }}
+          items:
+          - key: "dappetizer.marketplace.config.json"
+            path: "dappetizer.default.config.json"
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---      
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nft-event-processor.fullname" . }}-bitmark-emitter
+  labels:
+    v: "1"
+    {{- include "nft-event-processor.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "nft-event-processor.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        {{- include "nft-event-processor.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tags.bitmarkEmitter | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+          - /nft-event-processor-bitmark-emitter
+          env:
+            - name: NFT_INDEXER_BITMARKSDK_APIKEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-processor.fullname" . }}
+                  key: bitmarksdk_apikey
+            - name: NFT_INDEXER_BITMARK_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-processor.fullname" . }}
+                  key: bitmark_db_uri
+          volumeMounts:
+          - name: config
+            mountPath: "/.config"
+            readOnly: true
+      volumes:
+      # You set volumes at the Pod level, then mount them into containers inside that Pod
+      - name: config
+        configMap:
+          name: {{ include "nft-event-processor.fullname" . }}
+          items:
+          - key: "config.yaml"
+            path: "config.yaml"
+      - name: marketplace-indexer-config
+        configMap:
+          name: {{ include "nft-event-processor.fullname" . }}
+          items:
+          - key: "dappetizer.marketplace.config.json"
+            path: "dappetizer.default.config.json"
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

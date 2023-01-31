@@ -31,10 +31,26 @@ releases:
   - image:
       tags:
         eventSubscriber: "event-subscriber-{{ env "GITHUB_SHA" }}"
-        ethereumEmitter: "event-processor-ethereum-emitter-{{ env "GITHUB_SHA" }}"
   {{- end }}
   secrets:
   - helm/environments/nft-event-subscriber/{{ .Environment.Name }}/secrets.yaml
+
+- name: nft-event-processor # name of this release
+  namespace: autonomy{{ if eq .Environment.Name "staging" }}-staging{{ end }}
+  chart: helm/charts/nft-event-processor  # the chart being installed to create this release, referenced by relative path to local helmfile
+  labels:
+    app: event-processor
+  values:
+  - helm/environments/nft-event-processor/{{ .Environment.Name }}/values.yaml
+  {{- if env "GITHUB_SHA" }}
+  - image:
+      tags:
+        eventProcessor: "event-processor-{{ env "GITHUB_SHA" }}"
+        ethereumEmitter: "event-processor-ethereum-emitter-{{ env "GITHUB_SHA" }}"
+        bitmarkEmitter: "event-processor-bitmark-emitter-{{ env "GITHUB_SHA" }}"
+  {{- end }}
+  secrets:
+  - helm/environments/nft-event-processor/{{ .Environment.Name }}/secrets.yaml
 
 - name: nft-image-indexer # name of this release
   namespace: autonomy{{ if eq .Environment.Name "staging" }}-staging{{ end }}
