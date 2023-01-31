@@ -2,9 +2,10 @@ replicaCount: 1
 
 image:
   tags:
-    eventSubscriber: "event-subscriber-0.0.16-6"
+    eventSubscriber: "event-subscriber-0.0.16-minh-test-2"
     tezosMarketplaceIndexer:
-    tezosFeralfileIndexer: tezos-feralfile-indexer-2.0.0-6
+    tezosFeralfileIndexer: tezos-feralfile-indexer-3.0.0-2
+    ethereumEmitter: event-processor-ethereum-emitter-0.1.0-1
 
 serviceConfig:
   tezosNodeRPCURL: https://rpc.lima.tzstats.com

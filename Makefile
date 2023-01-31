@@ -5,9 +5,9 @@
 
 .PHONY:
 
-dist =
-GITHUB_USER =
-GITHUB_TOKEN =
+dist = 0.1.0-1
+GITHUB_USER = minhkstn
+GITHUB_TOKEN = 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
 
 ARCH = $(shell /usr/bin/uname -m)
 

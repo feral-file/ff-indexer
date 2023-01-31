@@ -31,6 +31,7 @@ releases:
   - image:
       tags:
         eventSubscriber: "event-subscriber-{{ env "GITHUB_SHA" }}"
+        ethereumEmitter: "event-processor-ethereum-emitter-{{ env "GITHUB_SHA" }}"
   {{- end }}
   secrets:
   - helm/environments/nft-event-subscriber/{{ .Environment.Name }}/secrets.yaml
