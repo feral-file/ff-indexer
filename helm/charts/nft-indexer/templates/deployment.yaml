@@ -57,6 +57,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-indexer.fullname" . }}
                   key: server_admin_api_token
+            - name: NFT_INDEXER_SERVER_SECRET_SYMMETRIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: server_secret_symmetric_key
             - name: NFT_INDEXER_ENS_RPC_URL
               valueFrom:
                 secretKeyRef:
