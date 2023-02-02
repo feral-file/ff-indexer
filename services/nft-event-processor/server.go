@@ -23,7 +23,6 @@ type EventProcessor struct {
 	indexerStore   *indexer.MongodbIndexerStore
 	worker         *cadence.WorkerClient
 	accountStore   *storage.AccountInformationStorage
-	indexerEngine  *indexer.IndexEngine
 	notification   *notificationSdk.NotificationClient
 	feedServer     *FeedClient
 }
@@ -35,7 +34,6 @@ func NewEventProcessor(
 	indexerStore *indexer.MongodbIndexerStore,
 	worker *cadence.WorkerClient,
 	accountStore *storage.AccountInformationStorage,
-	indexerEngine *indexer.IndexEngine,
 	notification *notificationSdk.NotificationClient,
 	feedServer *FeedClient,
 ) *EventProcessor {
@@ -48,7 +46,6 @@ func NewEventProcessor(
 		indexerStore:   indexerStore,
 		worker:         worker,
 		accountStore:   accountStore,
-		indexerEngine:  indexerEngine,
 		notification:   notification,
 		feedServer:     feedServer,
 	}
