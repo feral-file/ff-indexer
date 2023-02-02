@@ -46,8 +46,8 @@ releases:
   - image:
       tags:
         eventProcessor: "event-processor-{{ env "GITHUB_SHA" }}"
-        ethereumEmitter: "event-processor-ethereum-emitter-{{ env "GITHUB_SHA" }}"
-        bitmarkEmitter: "event-processor-bitmark-emitter-{{ env "GITHUB_SHA" }}"
+        ethereumEmitter: "ethereum-emitter-{{ env "GITHUB_SHA" }}"
+        bitmarkEmitter: "bitmark-emitter-{{ env "GITHUB_SHA" }}"
   {{- end }}
   secrets:
   - helm/environments/nft-event-processor/{{ .Environment.Name }}/secrets.yaml

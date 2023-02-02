@@ -2,9 +2,9 @@ replicaCount: 1
 
 image:
   tags:
-    eventProcessor: "event-processor-0.0.16-minh-test-3"
-    ethereumEmitter: "ethereum-emitter-0.0.16-minh-test-3"
-    bitmarkEmitter: "bitmark-emitter-0.0.16-minh-test-3"
+    eventProcessor: "event-processor-0.1.0-2"
+    ethereumEmitter: "ethereum-emitter-0.1.0-2"
+    bitmarkEmitter: "bitmark-emitter-0.1.0-2"
 
 serviceConfig:
   tezosNodeRPCURL: https://rpc.lima.tzstats.com

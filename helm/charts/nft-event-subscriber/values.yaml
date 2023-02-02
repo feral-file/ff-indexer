@@ -12,7 +12,6 @@ image:
     eventSubscriber: "event-subscriber-0.0.14-11"
     tezosIndexer: tezos-event-indexer-0.0.1-4
     feralfileIndexer: tezos-feralfile-indexer-0.0.1-8
-    ethereumEmitter: event-processor-ethereum-emitter-0.1.0-1
 
 serviceConfig:
   environment: development
