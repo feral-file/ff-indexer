@@ -152,8 +152,8 @@ endif
 	-t nft-indexer:account-token-indexer-$(dist) -f Dockerfile-account-token-indexer .
 	docker tag nft-indexer:account-token-indexer-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:account-token-indexer-$(dist)
 
-.PHONY: build-nft-event-processor-ethereum-emitter
-build-nft-event-processor-ethereum-emitter:
+.PHONY: build-nftethereum-emitter
+build-nft-ethereum-emitter:
 ifndef dist
 	$(error dist is undefined)
 endif
@@ -163,8 +163,8 @@ endif
 	-t nft-indexer:ethereum-emitter-$(dist) -f Dockerfile-event-processor-ethereum-emitter .
 	docker tag nft-indexer:ethereum-emitter-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:ethereum-emitter-$(dist)
 
-.PHONY: build-nft-event-processor-bitmark-emitter
-build-nft-event-processor-bitmark-emitter:
+.PHONY: build-nft-bitmark-emitter
+build-nft-bitmark-emitter:
 ifndef dist
 	$(error dist is undefined)
 endif
