@@ -160,8 +160,8 @@ endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
-	-t nft-indexer:event-processor-ethereum-emitter-$(dist) -f Dockerfile-event-processor-ethereum-emitter .
-	docker tag nft-indexer:event-processor-ethereum-emitter-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:event-processor-ethereum-emitter-$(dist)
+	-t nft-indexer:ethereum-emitter-$(dist) -f Dockerfile-event-processor-ethereum-emitter .
+	docker tag nft-indexer:ethereum-emitter-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:ethereum-emitter-$(dist)
 
 .PHONY: build-nft-event-processor-bitmark-emitter
 build-nft-event-processor-bitmark-emitter:
@@ -171,8 +171,8 @@ endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
-	-t nft-indexer:event-processor-bitmark-emitter-$(dist) -f Dockerfile-event-processor-bitmark-emitter .
-	docker tag nft-indexer:event-processor-bitmark-emitter-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:event-processor-bitmark-emitter-$(dist)
+	-t nft-indexer:bitmark-emitter-$(dist) -f Dockerfile-event-processor-bitmark-emitter .
+	docker tag nft-indexer:bitmark-emitter-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:bitmark-emitter-$(dist)
 
 .PHONY: build-nft-event-subscriber
 build-nft-event-subscriber:

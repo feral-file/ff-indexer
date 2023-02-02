@@ -29,7 +29,7 @@ spec:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tags.eventprocessor | default .Chart.AppVersion }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tags.eventProcessor | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
           - /nft-event-processor
@@ -60,6 +60,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-event-processor.fullname" . }}
                   key: sentry_dsn
+            - name: NFT_INDEXER_STORE_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-processor.fullname" . }}
+                  key: store_dsn
           volumeMounts:
           - name: config
             mountPath: "/.config"
