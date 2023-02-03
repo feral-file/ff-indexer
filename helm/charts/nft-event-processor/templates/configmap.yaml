@@ -7,31 +7,39 @@ metadata:
 data:
   config.yaml: |
     server:
-      port: :8089
-    log:
-      level: {{ .Values.serviceConfig.log_level | default "info" }}
-
-    environment: {{ .Values.serviceConfig.environment }}
-    network:
-      bitmark: {{ .Values.serviceConfig.network.bitmark }}
-      ethereum: {{ .Values.serviceConfig.network.ethereum }}
-      tezos: {{ .Values.serviceConfig.network.tezos }}
-
-    cadence:
-      host_port: {{ .Values.serviceConfig.cadence_hostport }}
-      domain: nft-indexer
-      log_level: 0
-
-    notification:
-      endpoint: http://autonomy-notification.autonomy.svc.cluster.local:80
-
-    feed:
-      endpoint: {{ .Values.serviceConfig.feedEndpoint }}
+      network: tcp
+      address: localhost:8765
     
     store:
-      dsn: dsn
+      dsn:
       cache_expiry: 24h
       log_level: 2
+    
+    log:
+      level: debug
+    
+    sentry:
+      dsn:
+    
+    indexer_store:
+      db_uri:
+      db_name:
+    
+    cadence:
+      host_port: cadence-frontend.cadence.svc.cluster.local:7933
+      domain: nft-indexer
+      log_level: 0
+    
+    feed:
+      endpoint: http://autonomy-event-feed.autonomy.svc.cluster.local:80
+      api_token:
+      debug: true
+    
+    account:
+      db_uri:
+    
+    notification:
+      endpoint: http://autonomy-notification.autonomy.svc.cluster.local:80
 
   dappetizer.feralfile.config.json: |
     {
