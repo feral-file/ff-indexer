@@ -1,9 +1,9 @@
 on:
   push:
     branches:
-      - "test_deploy_event_processor"
+      - "deploy_event_processor"
 
-name: Deploy event-processor to Development 2
+name: Deploy event-processor to Development [TEST]
 
 jobs:
   deploy:

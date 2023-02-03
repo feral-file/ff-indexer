@@ -40,31 +40,31 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env:
-            - name: NFT_INDEXER_STORE_DB_URI
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "nft-event-processor.fullname" . }}
-                  key: store_db_uri
-            - name: NFT_INDEXER_STORE_DB_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "nft-event-processor.fullname" . }}
-                  key: store_db_name
-            - name: NFT_INDEXER_ACCOUNT_DB_URI
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "nft-event-processor.fullname" . }}
-                  key: account_db_uri
-            - name: NFT_INDEXER_SENTRY_DSN
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "nft-event-processor.fullname" . }}
-                  key: sentry_dsn
             - name: NFT_INDEXER_STORE_DSN
               valueFrom:
                 secretKeyRef:
                   name: {{ include "nft-event-processor.fullname" . }}
                   key: store_dsn
+            - name: NFT_INDEXER_INDEXER_STORE_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-processor.fullname" . }}
+                  key: indexer_store_db_uri
+            - name: NFT_INDEXER_INDEXER_STORE_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-processor.fullname" . }}
+                  key: indexer_store_db_name
+            - name: NFT_INDEXER_FEED_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-processor.fullname" . }}
+                  key: feed_api_token
+            - name: NFT_INDEXER_ACCOUNT_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-processor.fullname" . }}
+                  key: account_db_uri
           volumeMounts:
           - name: config
             mountPath: "/.config"

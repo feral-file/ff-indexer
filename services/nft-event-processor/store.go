@@ -71,7 +71,7 @@ func (s *PostgresEventStore) GetQueueEventByStage(stage int8) (*NFTEvent, error)
 		if err := db.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("stage = ?", EventStages[stage]).
 			Where("status <> ?", EventStatusProcessed).
-			Order("created_at asc").First(&event).Error; err != nil {
+			Order("created_at asc").Limit(1).Find(&event).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return nil
 			}
@@ -79,7 +79,12 @@ func (s *PostgresEventStore) GetQueueEventByStage(stage int8) (*NFTEvent, error)
 		}
 
 		event.Status = EventStatusProcessing
-		return db.Save(event).Error
+
+		if event.ID != "" {
+			return db.Save(event).Error
+		}
+
+		return nil
 	})
 	if err != nil {
 		return nil, err

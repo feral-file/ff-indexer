@@ -31,20 +31,5 @@ feed:
 account:
   db_uri:
 
-network:
-  tezos:
-  ethereum:
-  bitmark:
-
-opensea:
-  api_key:
-  ratelimit: 1
-
-fxhash:
-  api_endpoint:
-
-objkt:
-  api_endpoint:
-
 notification:
   endpoint:
