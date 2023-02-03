@@ -34,7 +34,7 @@ func main() {
 	}
 
 	// connect to the processor
-	conn, err := grpc.Dial(viper.GetString("event_processor_server.address"), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(viper.GetString("server.address"), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Sugar().Fatalf("did not connect: %v", err)
 	}
@@ -49,5 +49,5 @@ func main() {
 
 	bitmarkEventsEmitter.Run(ctx)
 
-	log.Info("Ethereum Emitter terminated")
+	log.Info("Bitmark Emitter terminated")
 }

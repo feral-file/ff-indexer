@@ -152,7 +152,7 @@ endif
 	-t nft-indexer:account-token-indexer-$(dist) -f Dockerfile-account-token-indexer .
 	docker tag nft-indexer:account-token-indexer-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:account-token-indexer-$(dist)
 
-.PHONY: build-nftethereum-emitter
+.PHONY: build-nft-ethereum-emitter
 build-nft-ethereum-emitter:
 ifndef dist
 	$(error dist is undefined)
