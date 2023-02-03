@@ -7,7 +7,7 @@ bitmark:
 bitmarksdk:
   apikey:
 
-event_processor_server:
+server:
   network: tcp
   address: localhost:8765
 
