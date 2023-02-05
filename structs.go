@@ -164,6 +164,7 @@ type DetailedToken struct {
 	Token           `bson:",inline"`
 	ThumbnailID     string                   `json:"thumbnailID"`
 	IPFSPinned      bool                     `json:"ipfsPinned"`
+	Attributes      *AssetAttributes         `json:"attributes,omitempty"`
 	ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
 }
 

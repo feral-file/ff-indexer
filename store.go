@@ -3,6 +3,7 @@ package indexer
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"strings"
 	"time"
 
@@ -322,7 +323,13 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 	var newTokenIndexID string
 
 	switch swap.NewBlockchain {
-	case EthereumBlockchain, TezosBlockchain:
+	case EthereumBlockchain:
+		tokenID, ok := big.NewInt(0).SetString(swap.NewTokenID, 16)
+		if !ok {
+			return "", fmt.Errorf("invalid token id")
+		}
+		newTokenIndexID = TokenIndexID(swap.NewBlockchain, swap.NewContractAddress, tokenID.String())
+	case TezosBlockchain:
 		newTokenIndexID = TokenIndexID(swap.NewBlockchain, swap.NewContractAddress, swap.NewTokenID)
 	default:
 		return "", fmt.Errorf("blockchain is not supported")
@@ -365,7 +372,7 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 			return nil, err
 		}
 
-		if r.ModifiedCount == 0 && r.UpsertedCount == 0 {
+		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
 			return nil, ErrNoRecordUpdated
 		}
 
@@ -640,6 +647,7 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 	type asset struct {
 		ThumbnailID     string                   `bson:"thumbnailID"`
 		IPFSPinned      bool                     `json:"ipfsPinned"`
+		Attributes      *AssetAttributes         `json:"attributes" bson:"attributes,omitempty"` // manually inserted fields
 		ProjectMetadata VersionedProjectMetadata `bson:"projectMetadata"`
 	}
 
@@ -685,6 +693,7 @@ func (s *MongodbIndexerStore) GetDetailedTokensByOwners(ctx context.Context, own
 		token.ThumbnailID = a.ThumbnailID
 		token.IPFSPinned = a.IPFSPinned
 		token.ProjectMetadata = a.ProjectMetadata
+		token.Attributes = a.Attributes
 
 		tokens = append(tokens, token)
 	}
@@ -840,6 +849,7 @@ func (s *MongodbIndexerStore) getTokensByAggregation(ctx context.Context, filter
 						"$project": bson.M{
 							"source":          1,
 							"projectMetadata": 1,
+							"attributes":      1,
 							"thumbnailID":     1,
 							"ipfsPinned":      1,
 							"_id":             0,
