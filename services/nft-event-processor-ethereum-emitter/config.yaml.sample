@@ -1,5 +1,5 @@
 ethereum:
   ws_url: wss://rinkeby.infura.io/ws/v3/<project_id>
 
-server:
+event_processor_server:
   address: localhost:8765

@@ -34,8 +34,7 @@ spec:
           command:
           - /nft-event-processor
           ports:
-            - name: http
-              containerPort: 8089
+            - containerPort: 8089
               protocol: TCP
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

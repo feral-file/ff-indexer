@@ -24,7 +24,8 @@ func main() {
 	}
 
 	// connect to the processor
-	conn, err := grpc.Dial(viper.GetString("server.address"), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	log.Info("gRPC server: " + viper.GetString("event_processor_server.address"))
+	conn, err := grpc.Dial(viper.GetString("event_processor_server.address"), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Sugar().Fatalf("did not connect: %v", err)
 	}
