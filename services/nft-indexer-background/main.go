@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -26,6 +27,9 @@ var CadenceService = "cadence-frontend"
 
 func main() {
 	config.LoadConfig("NFT_INDEXER")
+	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug")); err != nil {
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
+	}
 
 	hostPort := viper.GetString("cadence.host_port")
 	logLevel := viper.GetInt("cadence.log_level")

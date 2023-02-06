@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/dgrijalva/jwt-go"
@@ -29,6 +30,9 @@ func main() {
 	config.LoadConfig("NFT_INDEXER")
 
 	environment := viper.GetString("environment")
+	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug")); err != nil {
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
+	}
 
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn:         viper.GetString("sentry.dsn"),

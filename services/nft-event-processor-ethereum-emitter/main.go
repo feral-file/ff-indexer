@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/bitmark-inc/config-loader"
 	"github.com/bitmark-inc/nft-indexer/log"
@@ -15,6 +16,9 @@ import (
 
 func main() {
 	config.LoadConfig("NFT_INDEXER")
+	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug")); err != nil {
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
+	}
 
 	ctx := context.Background()
 

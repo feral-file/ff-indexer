@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -23,6 +24,9 @@ func main() {
 	defer cancel()
 
 	config.LoadConfig("NFT_INDEXER")
+	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug")); err != nil {
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
+	}
 
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn: viper.GetString("sentry.dsn"),
