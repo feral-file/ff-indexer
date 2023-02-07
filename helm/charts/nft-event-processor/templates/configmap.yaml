@@ -8,11 +8,11 @@ data:
   config.yaml: |
     server:
       network: tcp
-      address: localhost:8765
+      address: 0.0.0.0:8765
 
     event_processor_server:
       network: tcp
-      address: autonomy.nft-event-processor.svc.cluster.local:8765
+      address: nft-event-processor.autonomy.svc.cluster.local:8765
     
     store:
       dsn:
