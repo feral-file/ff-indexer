@@ -3,7 +3,7 @@ on:
     branches:
       - "deploy_event_processor"
 
-name: Deploy event-processor to Development [TEST]
+name: Deploy event-processor to Development [TESTING]
 
 jobs:
   deploy:
