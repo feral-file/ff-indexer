@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-var DefaultLogger *zap.Logger = InitializeLogger()
+var DefaultLogger = InitializeLogger()
 
 func InitializeLogger() *zap.Logger {
 	log, err := New()

@@ -60,7 +60,6 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 				}
 
 				uploadImageStartTime := time.Now()
-				var errString string
 				img, err := s.db.UploadImage(ctx, asset.IndexID, NewURLImageDownloader(asset.ProjectMetadata.Latest.ThumbnailURL),
 					map[string]interface{}{
 						"source":   asset.ProjectMetadata.Latest.Source,
@@ -68,21 +67,15 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 					},
 				)
 				if err != nil {
-					if _, ok := err.(*imageStore.UnsupportedSVG); ok {
-						errString = imageStore.ErrUnsupportedSVGURL
-						sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
-					} else if imgCachingErr, ok := err.(*imageStore.ImageCachingError); ok {
-						errString = imgCachingErr.Name
-						sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
+					if uerr, ok := err.(imageStore.UnsupportedImageCachingError); ok {
+						// add failure to the asset
+						if err := s.markAssetThumbnailFailed(ctx, asset.IndexID, uerr.Reason()); err != nil {
+							log.Error("add thumbnail failure was failed", zap.String("indexID", asset.IndexID), zap.Error(err))
+						}
 					}
 
-					log.Error("fail to upload image", zap.Error(err), zap.String("indexID", asset.IndexID), log.SourceImageCaching)
-
-					// add failure to the asset
-					err = s.markAssetThumbnailFailed(ctx, asset.IndexID, errString)
-					if err != nil {
-						log.Error("add thumbnail failure was failed", zap.String("indexID", asset.IndexID), zap.Error(err))
-					}
+					sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
+					log.Error("fail to upload image", zap.String("indexID", asset.IndexID), zap.Error(err))
 				}
 				log.Debug("thumbnail image uploaded",
 					zap.Duration("duration", time.Since(uploadImageStartTime)),
@@ -169,11 +162,11 @@ func (s *NFTContentIndexer) updateAssetThumbnail(ctx context.Context, indexID, t
 }
 
 // markAssetThumbnailFailed sets thumbnail failure for a specific token
-func (s *NFTContentIndexer) markAssetThumbnailFailed(ctx context.Context, indexID, thumbnailFailure string) error {
+func (s *NFTContentIndexer) markAssetThumbnailFailed(ctx context.Context, indexID, thumbnailFailedReason string) error {
 	_, err := s.nftAssets.UpdateOne(
 		ctx,
 		bson.M{"indexID": indexID},
-		bson.D{{Key: "$set", Value: bson.D{{Key: "thumbnailFailure", Value: thumbnailFailure}}}},
+		bson.D{{Key: "$set", Value: bson.D{{Key: "thumbnailFailedReason", Value: thumbnailFailedReason}}}},
 	)
 
 	return err
