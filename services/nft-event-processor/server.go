@@ -240,6 +240,7 @@ func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 			continue
 		}
 
+		eventType := event.EventType
 		eventID := event.ID
 		blockchain := event.Blockchain
 		contract := event.Contract
@@ -255,47 +256,45 @@ func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 			log.Error("fail to get token by index id", zap.Error(err))
 		}
 
-		if token == nil {
-			continue
-		}
+		if token != nil {
+			if !token.Fungible {
+				err := e.indexerStore.PushProvenance(ctx, indexID, token.LastRefreshedTime, indexer.Provenance{
+					Type:        eventType,
+					FormerOwner: &event.From,
+					Owner:       to,
+					Blockchain:  blockchain,
+					Timestamp:   time.Now(),
+					TxID:        "",
+					TxURL:       "",
+				})
 
-		if !token.Fungible {
-			err := e.indexerStore.PushProvenance(ctx, indexID, token.LastRefreshedTime, indexer.Provenance{
-				Type:        "transfer",
-				FormerOwner: &event.From,
-				Owner:       to,
-				Blockchain:  blockchain,
-				Timestamp:   time.Now(),
-				TxID:        "",
-				TxURL:       "",
-			})
-
-			if err != nil {
-				err = e.indexerStore.UpdateOwner(ctx, indexID, to, time.Now())
 				if err != nil {
-					log.Error("fail to update owner", zap.Error(err))
+					err = e.indexerStore.UpdateOwner(ctx, indexID, to, time.Now())
+					if err != nil {
+						log.Error("fail to update owner", zap.Error(err))
+					}
+				}
+			} else {
+				err := e.indexerStore.UpdateOwnerForFungibleToken(ctx, indexID, token.LastRefreshedTime, event.To, 1)
+				if err != nil {
+					log.Error("fail to update owner for fungible token", zap.Error(err))
 				}
 			}
-		} else {
-			err := e.indexerStore.UpdateOwnerForFungibleToken(ctx, indexID, token.LastRefreshedTime, event.To, 1)
-			if err != nil {
-				log.Error("fail to update owner for fungible token", zap.Error(err))
+
+			var accountTokens []indexer.AccountToken
+			var accountToken indexer.AccountToken
+
+			accountToken.IndexID = indexID
+			accountToken.OwnerAccount = to
+			accountToken.Balance = 1
+			accountToken.ContractAddress = contract
+			accountToken.ID = tokenID
+
+			accountTokens = append(accountTokens, accountToken)
+			if err := e.indexerStore.IndexAccountTokens(ctx, to, accountTokens); err != nil {
+				log.Error("fail to index account token", zap.Error(err))
+				continue
 			}
-		}
-
-		var accountTokens []indexer.AccountToken
-		var accountToken indexer.AccountToken
-
-		accountToken.IndexID = indexID
-		accountToken.OwnerAccount = to
-		accountToken.Balance = 1
-		accountToken.ContractAddress = contract
-		accountToken.ID = tokenID
-
-		accountTokens = append(accountTokens, accountToken)
-		if err := e.indexerStore.IndexAccountTokens(ctx, to, accountTokens); err != nil {
-			log.Error("fail to index account token", zap.Error(err))
-			continue
 		}
 
 		if err := e.UpdateEvent(eventID, map[string]interface{}{
