@@ -6,10 +6,6 @@ import (
 	"github.com/bitmark-inc/autonomy-account/storage"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
 	"github.com/bitmark-inc/nft-indexer/cadence"
-	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
-	"github.com/bitmark-inc/nft-indexer/externals/objkt"
-	"github.com/bitmark-inc/nft-indexer/externals/opensea"
-	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 	"github.com/bitmark-inc/nft-indexer/log"
 
 	"go.uber.org/zap"
@@ -68,14 +64,6 @@ func main() {
 	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
 	cadenceClient.AddService(indexerWorker.ClientName)
 
-	indexerEngine := indexer.New(
-		environment,
-		opensea.New(viper.GetString("network.ethereum"), viper.GetString("opensea.api_key"), viper.GetInt("opensea.ratelimit")),
-		tzkt.New(viper.GetString("network.tezos")),
-		fxhash.New(viper.GetString("fxhash.api_endpoint")),
-		objkt.New(viper.GetString("objkt.api_endpoint")),
-	)
-
 	notification := notification.New(viper.GetString("notification.endpoint"), nil)
 
 	feedServer := NewFeedClient(viper.GetString("feed.endpoint"), viper.GetString("feed.api_token"), viper.GetBool("feed.debug"))
@@ -87,7 +75,6 @@ func main() {
 		indexerStore,
 		cadenceClient,
 		accountStore,
-		indexerEngine,
 		notification,
 		feedServer,
 	)
