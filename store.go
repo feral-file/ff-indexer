@@ -66,12 +66,14 @@ type Store interface {
 	IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error
 	GetAccount(ctx context.Context, owner string) (Account, error)
 	GetAccountTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]AccountToken, error)
+	UpdateAccountTokenOwner(ctx context.Context, indexID string, owner string, lastActivityTime time.Time) error
 	UpdateAccountTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error
 	GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
 	IndexDemoTokens(ctx context.Context, owner string, indexIDs []string) error
 	DeleteDemoTokens(ctx context.Context, owner string) error
 
 	UpdateOwnerForFungibleToken(ctx context.Context, indexID string, lockedTime time.Time, to string, total int64) error
+	UpdateAccountTokenOwnerForFungibleToken(ctx context.Context, indexID, fromOwner, toOwner string, lastActivityTime time.Time, balanceDiff int64) error
 
 	GetAbsentMimeTypeTokens(ctx context.Context, limit int) ([]AbsentMIMETypeToken, error)
 	UpdateTokenFeedback(ctx context.Context, tokenFeedbacks []TokenFeedbackUpdate, userDID string) error
@@ -509,6 +511,24 @@ func (s *MongodbIndexerStore) UpdateOwner(ctx context.Context, indexID string, o
 			"lastRefreshedTime": time.Now(),
 		},
 	})
+
+	return err
+}
+
+// UpdateAccountTokenOwner updates the owner for a specific non-fungible account token
+func (s *MongodbIndexerStore) UpdateAccountTokenOwner(ctx context.Context, indexID string, owner string, lastActivityTime time.Time) error {
+	_, err := s.accountTokenCollection.UpdateOne(ctx, bson.M{
+		"indexID":          indexID,
+		"lastActivityTime": bson.M{"$lt": lastActivityTime},
+	}, bson.M{
+		"$set": bson.M{
+			"ownerAccount":      owner,
+			"lastActivityTime":  lastActivityTime,
+			"lastRefreshedTime": time.Now(),
+		},
+	},
+		options.Update().SetUpsert(true),
+	)
 
 	return err
 }
@@ -1486,6 +1506,7 @@ func (s *MongodbIndexerStore) DeleteDemoTokens(ctx context.Context, owner string
 	return nil
 }
 
+// UpdateOwnerForFungibleToken adds a new owner to a fungible token
 func (s *MongodbIndexerStore) UpdateOwnerForFungibleToken(ctx context.Context, indexID string, lockedTime time.Time, to string, total int64) error {
 	r, err := s.tokenCollection.UpdateOne(ctx,
 		bson.M{
@@ -1507,6 +1528,44 @@ func (s *MongodbIndexerStore) UpdateOwnerForFungibleToken(ctx context.Context, i
 	}
 
 	return nil
+}
+
+// UpdateAccountTokenOwnerForFungibleToken updates owners and balances of fungible account tokens
+func (s *MongodbIndexerStore) UpdateAccountTokenOwnerForFungibleToken(ctx context.Context, indexID, fromOwner, toOwner string, lastActivityTime time.Time, balanceDiff int64) error {
+	_, err := s.accountTokenCollection.UpdateOne(ctx, bson.M{
+		"indexID":          indexID,
+		"ownerAccount":     fromOwner,
+		"lastActivityTime": bson.M{"$lt": lastActivityTime},
+	}, bson.M{
+		"$set": bson.M{
+			"lastActivityTime":  lastActivityTime,
+			"lastRefreshedTime": time.Now(),
+		},
+		"$inc": bson.M{
+			"balance": -balanceDiff,
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = s.accountTokenCollection.UpdateOne(ctx, bson.M{
+		"indexID":          indexID,
+		"ownerAccount":     toOwner,
+		"lastActivityTime": bson.M{"$lt": lastActivityTime},
+	}, bson.M{
+		"$set": bson.M{
+			"lastActivityTime":  lastActivityTime,
+			"lastRefreshedTime": time.Now(),
+		},
+		"$inc": bson.M{
+			"balance": balanceDiff,
+		},
+	},
+		options.Update().SetUpsert(true),
+	)
+
+	return err
 }
 
 func (s *MongodbIndexerStore) GetTokensByIndexID(ctx context.Context, indexID string) (*Token, error) {

@@ -274,10 +274,20 @@ func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 						log.Error("fail to update owner", zap.Error(err))
 					}
 				}
+
+				err = e.indexerStore.UpdateAccountTokenOwner(ctx, indexID, to, token.LastActivityTime)
+				if err != nil {
+					log.Error("fail to update owner for account token", zap.Error(err))
+				}
 			} else {
 				err := e.indexerStore.UpdateOwnerForFungibleToken(ctx, indexID, token.LastRefreshedTime, event.To, 1)
 				if err != nil {
 					log.Error("fail to update owner for fungible token", zap.Error(err))
+				}
+
+				err = e.indexerStore.UpdateAccountTokenOwnerForFungibleToken(ctx, indexID, event.From, to, token.LastRefreshedTime, 1)
+				if err != nil {
+					log.Error("fail to update owner for fungible account token", zap.Error(err))
 				}
 			}
 
