@@ -9,7 +9,7 @@ data:
     server:
       port: :8089
     log:
-      level: {{ .Values.serviceConfig.log_level | default "info" }}
+      level: {{ .Values.serviceConfig.logLevel | default "info" }}
 
     environment: {{ .Values.serviceConfig.environment }}
     network:

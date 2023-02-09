@@ -19,5 +19,5 @@ data:
       db_name: nft_indexer
 
     log:
-      level: info
+      level: {{ .Values.serviceConfig.logLevel | default "info" }}
 
