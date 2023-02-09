@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -31,6 +32,10 @@ func main() {
 	logLevel := viper.GetInt("cadence.log_level")
 
 	environment := viper.GetString("environment")
+
+	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug")); err != nil {
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
+	}
 
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn:         viper.GetString("sentry.dsn"),

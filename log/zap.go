@@ -1,29 +1,28 @@
 package log
 
 import (
-	"fmt"
 	"strings"
 
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-var DefaultLogger *zap.Logger = InitializeLogger()
+var defaultLogger *zap.Logger
 
-func InitializeLogger() *zap.Logger {
-	log, err := New()
+func Initialize(level string, isDebug bool) error {
+	log, err := New(level, isDebug)
 	if err != nil {
-		panic(fmt.Errorf("fail to init zap logger: %s", err.Error()))
+		return err
 	}
 
-	return log
+	defaultLogger = log
+	return nil
 }
 
-func New() (*zap.Logger, error) {
+func New(level string, isDebug bool) (*zap.Logger, error) {
 	var config zap.Config
 
-	if viper.GetBool("debug") {
+	if isDebug {
 		config = zap.NewDevelopmentConfig()
 		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	} else {
@@ -32,45 +31,53 @@ func New() (*zap.Logger, error) {
 	}
 
 	// override log level by configuration
-	logLevel := zap.DebugLevel
-	switch strings.ToUpper(viper.GetString("log.level")) {
+	l := zap.ErrorLevel
+	switch strings.ToUpper(level) {
 	case "TRACE", "DEBUG":
-		logLevel = zap.DebugLevel
+		l = zap.DebugLevel
 	case "INFO":
-		logLevel = zap.DebugLevel
+		l = zap.InfoLevel
 	case "WARN":
-		logLevel = zap.DebugLevel
+		l = zap.WarnLevel
 	}
 
-	config.Level = zap.NewAtomicLevelAt(logLevel)
+	config.Level = zap.NewAtomicLevelAt(l)
 
 	return config.Build()
 }
 
+func mustDefaultLogger() *zap.Logger {
+	if defaultLogger == nil {
+		panic("use indexer logger without initializing")
+	}
+
+	return defaultLogger
+}
+
 func Debug(msg string, fields ...zap.Field) {
-	DefaultLogger.Debug(msg, fields...)
+	mustDefaultLogger().Debug(msg, fields...)
 }
 
 func Info(msg string, fields ...zap.Field) {
-	DefaultLogger.Info(msg, fields...)
+	mustDefaultLogger().Info(msg, fields...)
 }
 
 func Warn(msg string, fields ...zap.Field) {
-	DefaultLogger.Warn(msg, fields...)
+	mustDefaultLogger().Warn(msg, fields...)
 }
 
 func Error(msg string, fields ...zap.Field) {
-	DefaultLogger.Error(msg, fields...)
+	mustDefaultLogger().Error(msg, fields...)
 }
 
 func Panic(msg string, fields ...zap.Field) {
-	DefaultLogger.Panic(msg, fields...)
+	mustDefaultLogger().Panic(msg, fields...)
 }
 
 func Fatal(msg string, fields ...zap.Field) {
-	DefaultLogger.Fatal(msg, fields...)
+	mustDefaultLogger().Fatal(msg, fields...)
 }
 
 func Sugar() *zap.SugaredLogger {
-	return DefaultLogger.Sugar()
+	return mustDefaultLogger().Sugar()
 }
