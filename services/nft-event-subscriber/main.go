@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -32,6 +33,9 @@ func main() {
 	ctx := context.Background()
 
 	environment := viper.GetString("environment")
+	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug")); err != nil {
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
+	}
 
 	bitmarksdk.Init(&bitmarksdk.Config{
 		Network: bitmarksdk.Network(viper.GetString("network.bitmark")),

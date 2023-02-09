@@ -126,6 +126,16 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 		}
 	}
 
+	for _, accountID := range accounts {
+		log.Info("send notification for the new token to related accounts",
+			zap.String("accountID", accountID), zap.String("indexID", indexID))
+		if err := api.subscriber.notifyNewNFT(accountID, req.To, indexID); err != nil {
+			log.Error("fail to send notification for the new token",
+				zap.Error(err),
+				zap.String("accountID", accountID), zap.String("indexID", indexID))
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"ok": 1,
 	})

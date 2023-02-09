@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/bitmark-inc/autonomy-account/storage"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
@@ -26,6 +27,10 @@ func main() {
 	ctx := context.Background()
 
 	config.LoadConfig("NFT_INDEXER")
+
+	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug")); err != nil {
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
+	}
 
 	environment := viper.GetString("environment")
 
