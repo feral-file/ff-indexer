@@ -1547,12 +1547,12 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwner(ctx context.Context, index
 	)
 
 	if err != nil {
-		return err
+		log.Error("Update owner failed", zap.String("indexID", indexID), zap.String("owner", toOwner))
 	}
 
 	// Delete the owner with balance 0 for fungible tokens and old owners for non-fungible tokens
 	var accountToken AccountToken
-	r := s.accountCollection.FindOne(ctx, bson.M{"indexID": indexID, "ownerAccount": toOwner})
+	r := s.accountTokenCollection.FindOne(ctx, bson.M{"indexID": indexID, "ownerAccount": toOwner})
 	if err := r.Decode(&accountToken); err != nil {
 		return err
 	}

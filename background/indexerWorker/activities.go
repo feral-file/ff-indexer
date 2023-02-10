@@ -401,7 +401,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 		}
 
 		if len(totalProvenances) != 0 {
-			if err := w.indexerStore.UpdateAccountTokenOwner(ctx, token.IndexID, *totalProvenances[0].FormerOwner, totalProvenances[0].Owner, totalProvenances[0].Timestamp, 1); err != nil {
+			if err := w.indexerStore.UpdateAccountTokenOwner(ctx, token.IndexID, "", totalProvenances[0].Owner, totalProvenances[0].Timestamp, 1); err != nil {
 				return err
 			}
 		}
