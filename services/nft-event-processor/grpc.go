@@ -70,7 +70,7 @@ func (t *GRPCHandler) PushEvent(
 	log.Debug("receive event input", zap.Any("input", i))
 
 	if err := t.queueProcessor.PushEvent(NFTEvent{
-		EventType:  i.EventType,
+		Type:       i.Type,
 		Blockchain: i.Blockchain,
 		Contract:   i.Contract,
 		TokenID:    i.TokenID,

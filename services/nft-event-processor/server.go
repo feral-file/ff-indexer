@@ -240,7 +240,7 @@ func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 			continue
 		}
 
-		eventType := event.EventType
+		eventType := event.Type
 		eventID := event.ID
 		blockchain := event.Blockchain
 		contract := event.Contract
@@ -382,7 +382,7 @@ func (e *EventProcessor) SendEventToFeedServer() {
 		contract := event.Contract
 		tokenID := event.TokenID
 		to := event.To
-		eventType := event.EventType
+		eventType := event.Type
 
 		e.logStartStage(event, stage)
 
