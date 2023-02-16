@@ -62,6 +62,10 @@ nft-event-processor-ethereum-emitter:
 nft-event-processor-bitmark-emitter:
 	go build -o bin/nft-event-processor-bitmark-emitter ./services/nft-event-processor-bitmark-emitter
 
+.PHONY: nft-asset-update
+nft-asset-update:
+	go build -o bin/nft-asset-update ./services/nft-asset-update
+
 .PHONY: run-nft-indexer
 run-nft-indexer: nft-indexer
 	./bin/nft-indexer -c config.yaml
@@ -98,12 +102,16 @@ run-nft-event-processor-ethereum-emitter: nft-event-processor-ethereum-emitter
 run-nft-event-processor-bitmark-emitter: nft-event-processor-bitmark-emitter
 	./bin/nft-event-processor-bitmark-emitter -c config.yaml
 
+.PHONY: run-nft-asset-update
+run-nft-asset-update: nft-asset-update
+	./bin/nft-asset-update -c config.yaml
+
 .PHONY: renew-event-processor-grpc
 renew-event-processor-grpc:
 	protoc --proto_path=protos --go-grpc_out=services/nft-event-processor/ --go_out=services/nft-event-processor/ event-processor.proto
 
 .PHONY: build
-build: nft-indexer nft-indexer-background nft-event-subscriber nft-event-processor nft-provenance-indexer nft-account-token-indexer nft-event-processor-ethereum-emitter nft-event-processor-bitmark-emitter
+build: nft-indexer nft-indexer-background nft-event-subscriber nft-event-processor nft-provenance-indexer nft-account-token-indexer nft-event-processor-ethereum-emitter nft-event-processor-bitmark-emitter nft-asset-update
 
 .PHONY: run
 run: config run-nft-indexer
@@ -206,6 +214,17 @@ endif
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t nft-indexer:image-indexer-$(dist) -f Dockerfile-image-indexer .
 	docker tag nft-indexer:image-indexer-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:image-indexer-$(dist)
+
+.PHONY: build-nft-asset-update
+build-nft-asset-update:
+ifndef dist
+	$(error dist is undefined)
+endif
+	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
+	--build-arg GITHUB_USER=$(GITHUB_USER) \
+	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
+	-t nft-indexer:asset-update-$(dist) -f Dockerfile-asset-update .
+	docker tag nft-indexer:asset-update-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:asset-update-$(dist)
 
 .PHONY: build-chromep
 build-chromep:
