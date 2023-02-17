@@ -155,7 +155,10 @@ func (s *NFTContentIndexer) updateAssetThumbnail(ctx context.Context, indexID, t
 	_, err := s.nftAssets.UpdateOne(
 		ctx,
 		bson.M{"indexID": indexID},
-		bson.D{{Key: "$set", Value: bson.D{{Key: "thumbnailID", Value: thumbnailID}}}},
+		bson.D{{Key: "$set", Value: bson.D{
+			{Key: "thumbnailID", Value: thumbnailID},
+			{Key: "lastUpdatedAt", Value: time.Now()},
+		}}},
 	)
 
 	return err

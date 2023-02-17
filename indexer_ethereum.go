@@ -149,6 +149,11 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 	contractType := strings.ToLower(a.AssetContract.SchemaName)
 	fungible := contractType != "erc721"
 
+	lastActivityTime, err := e.opensea.GetTokenLastActivityTime(contractAddress, a.TokenID)
+	if err != nil {
+		log.Error("fail to get token lastActivityTime")
+	}
+
 	tokenUpdate := &AssetUpdates{
 		ID:              fmt.Sprintf("%d", a.ID),
 		Source:          dataSource,
@@ -169,6 +174,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 				Owners:            map[string]int64{owner: balance},
 				MintAt:            a.AssetContract.CreatedDate.Time, // set minted_at to the contract creation time
 				LastRefreshedTime: time.Now(),
+				LastActivityTime:  lastActivityTime,
 			},
 		},
 	}

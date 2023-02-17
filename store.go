@@ -136,6 +136,7 @@ type UpdateSet struct {
 	Edition            int64                    `structs:"edition,omitempty"`
 	EditionName        string                   `structs:"editionName,omitempty"`
 	ContractAddress    string                   `structs:"contractAddress,omitempty"`
+	LastUpdatedAt      time.Time                `struct:"lastUpdatedAt"`
 }
 
 // checkIfTokenNeedToUpdate returns true if the new token data is suppose to be
@@ -181,6 +182,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 					Origin: assetUpdates.ProjectMetadata,
 					Latest: assetUpdates.ProjectMetadata,
 				},
+				LastUpdatedAt: time.Now(),
 			}
 
 			if _, err := s.assetCollection.InsertOne(ctx, structs.Map(assetUpdateSet)); err != nil {
@@ -216,7 +218,10 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		}
 
 		if requireUpdates {
-			updates := bson.D{{Key: "$set", Value: bson.D{{Key: "projectMetadata.latest", Value: assetUpdates.ProjectMetadata}}}}
+			updates := bson.D{{Key: "$set", Value: bson.D{
+				{Key: "projectMetadata.latest", Value: assetUpdates.ProjectMetadata},
+				{Key: "lastUpdatedAt", Value: time.Now()},
+			}}}
 
 			// TODO: check whether to remove the thumbnail cache when the thumbnail data is updated.
 			if currentAsset.ProjectMetadata.Latest.ThumbnailURL != assetUpdates.ProjectMetadata.ThumbnailURL {
@@ -1344,7 +1349,15 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 		ownerList = append(ownerList, owner)
 	}
 
-	_, err := s.accountTokenCollection.DeleteMany(ctx, bson.M{"indexID": bson.M{"$eq": indexID}, "ownerAccount": bson.M{"$nin": ownerList}})
+	_, err := s.accountTokenCollection.UpdateMany(ctx, bson.M{
+		"indexID": bson.M{"$eq": indexID}, "ownerAccount": bson.M{"$nin": ownerList},
+	}, bson.M{
+		"$set": bson.M{
+			"balance":          0,
+			"lastUpdatedAt":    time.Now(),
+			"lastActivityTime": lastActivityTime,
+		},
+	})
 
 	return err
 }
@@ -1550,28 +1563,6 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwner(ctx context.Context, index
 		return err
 	}
 
-	// Delete the owner with balance 0 for fungible tokens and old owners for non-fungible tokens
-	var accountToken AccountToken
-	r := s.accountCollection.FindOne(ctx, bson.M{"indexID": indexID, "ownerAccount": toOwner})
-	if err := r.Decode(&accountToken); err != nil {
-		return err
-	}
-
-	if accountToken.Fungible {
-		_, err = s.accountTokenCollection.DeleteMany(ctx, bson.M{
-			"indexID":          indexID,
-			"ownerAccount":     fromOwner,
-			"balance":          0,
-			"lastActivityTime": bson.M{"$lte": lastActivityTime},
-		})
-	} else {
-		_, err = s.accountTokenCollection.DeleteMany(ctx, bson.M{
-			"indexID":          indexID,
-			"ownerAccount":     bson.M{"$ne": toOwner},
-			"lastActivityTime": bson.M{"$lte": lastActivityTime},
-		})
-	}
-
 	return err
 }
 
@@ -1728,7 +1719,10 @@ func (s *MongodbIndexerStore) UpdateTokenSugesstedMIMEType(ctx context.Context, 
 		return err
 	}
 
-	updates := bson.D{{Key: "$set", Value: bson.D{{Key: "projectMetadata.latest.suggestionMimeType", Value: mimeType}}}}
+	updates := bson.D{{Key: "$set", Value: bson.D{
+		{Key: "projectMetadata.latest.suggestionMimeType", Value: mimeType},
+		{Key: "lastUpdatedAt", Value: time.Now()},
+	}}}
 
 	_, err := s.assetCollection.UpdateOne(
 		ctx,
