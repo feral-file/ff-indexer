@@ -80,6 +80,7 @@ type Token struct {
 	Provenances       []Provenance `json:"provenance" bson:"provenance"`
 	LastActivityTime  time.Time    `json:"lastActivityTime" bson:"lastActivityTime"`
 	LastRefreshedTime time.Time    `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
+	LastUpdatedAt     time.Time    `json:"LastUpdatedAt" bson:"LastUpdatedAt"`
 }
 
 type AssetAttributes struct {
@@ -168,6 +169,23 @@ type DetailedToken struct {
 	ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
 }
 
+type DetailedTokenV2 struct {
+	Token      `bson:",inline"`
+	IPFSPinned bool             `json:"ipfsPinned"`
+	Attributes *AssetAttributes `json:"attributes,omitempty"`
+	Asset      TokenAsset       `json:"asset" bson:"asset"`
+}
+
+type TokenAsset struct {
+	ThumbnailID   string             `json:"thumbnailID" bson:"thumbnailID"`
+	LastUpdatedAt time.Time          `json:"lastUpdatedAt" bson:"lastUpdatedAt"`
+	Metadata      TokenAssetMetadata `json:"metadata" bson:"metadata"`
+}
+
+type TokenAssetMetadata struct {
+	Project VersionedProjectMetadata `json:"project" bson:"project"`
+}
+
 type AbsentMIMETypeToken struct {
 	IndexID    string `json:"indexID"`
 	PreviewURL string `json:"previewURL"`
@@ -205,6 +223,7 @@ type AccountToken struct {
 	LastActivityTime  time.Time        `json:"lastActivityTime" bson:"lastActivityTime"`
 	LastRefreshedTime time.Time        `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
 	LastPendingTime   []time.Time      `json:"-" bson:"lastPendingTime"`
+	LastUpdatedAt     time.Time        `json:"lastUpdatedAt" bson:"lastUpdatedAt"`
 	PendingTxs        []string         `json:"pendingTxs" bson:"pendingTxs"`
 }
 
