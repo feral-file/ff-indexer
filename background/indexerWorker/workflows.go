@@ -304,7 +304,7 @@ func (w *NFTIndexerWorker) UpdateSuggestedMIMETypeWorkflow(ctx workflow.Context,
 	return nil
 }
 
-func (w *NFTIndexerWorker) UpdateAssetWorkflow(ctx workflow.Context, delay time.Duration) error {
+func (w *NFTIndexerWorker) DetectAssetChangeWorkflow(ctx workflow.Context, delay time.Duration) error {
 	ao := workflow.ActivityOptions{
 		TaskList:               w.AssetTaskListName,
 		ScheduleToStartTimeout: 10 * time.Minute,
