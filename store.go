@@ -1780,21 +1780,21 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 	}
 
 	filterParameter.IDs = indexIDs
-	assets, err := s.GetDetailedTokensV2(ctx, filterParameter, offset, size)
+	tokens, err := s.GetDetailedTokensV2(ctx, filterParameter, offset, size)
 
 	if err != nil {
 		return nil, err
 	}
 
-	for i := range assets {
-		asset := &assets[i]
+	for i := range tokens {
+		token := &tokens[i]
 
-		asset.Balance = accountTokenMap[asset.IndexID].Balance
-		asset.Owner = accountTokenMap[asset.IndexID].OwnerAccount
-		asset.LastUpdatedAt = accountTokenMap[asset.IndexID].LastRefreshedTime
+		token.Balance = accountTokenMap[token.IndexID].Balance
+		token.Owner = accountTokenMap[token.IndexID].OwnerAccount
+		token.LastUpdatedAt = accountTokenMap[token.IndexID].LastRefreshedTime
 	}
 
-	return assets, nil
+	return tokens, nil
 }
 
 // GetDetailedTokensV2 returns a list of tokens information based on ids
@@ -1831,7 +1831,7 @@ func (s *MongodbIndexerStore) GetDetailedTokensV2(ctx context.Context, filterPar
 	return tokens, nil
 }
 
-// getDetailedTokensV2InCustomView returns detail tokens from mongodb custom view
+// getDetailedTokensV2InView returns detail tokens from mongodb custom view
 func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error) {
 	tokens := []DetailedTokenV2{}
 

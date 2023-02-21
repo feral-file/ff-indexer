@@ -173,16 +173,16 @@ type DetailedTokenV2 struct {
 	Token      `bson:",inline"`
 	IPFSPinned bool             `json:"ipfsPinned"`
 	Attributes *AssetAttributes `json:"attributes,omitempty"`
-	Asset      TokenAsset       `json:"asset" bson:"asset"`
+	Asset      AssetV2          `json:"asset" bson:"asset"`
 }
 
-type TokenAsset struct {
-	ThumbnailID   string             `json:"thumbnailID" bson:"thumbnailID"`
-	LastUpdatedAt time.Time          `json:"lastUpdatedAt" bson:"lastUpdatedAt"`
-	Metadata      TokenAssetMetadata `json:"metadata" bson:"metadata"`
+type AssetV2 struct {
+	ThumbnailID   string        `json:"thumbnailID" bson:"thumbnailID"`
+	LastUpdatedAt time.Time     `json:"lastUpdatedAt" bson:"lastUpdatedAt"`
+	Metadata      AssetMetadata `json:"metadata" bson:"metadata"`
 }
 
-type TokenAssetMetadata struct {
+type AssetMetadata struct {
 	Project VersionedProjectMetadata `json:"project" bson:"project"`
 }
 
