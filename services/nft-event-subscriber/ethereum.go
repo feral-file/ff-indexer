@@ -174,13 +174,13 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 						}
 
 						if err := s.store.IndexAccountTokens(ctx, update.Tokens[0].Owner, []indexer.AccountToken{accountToken}); err != nil {
-							log.Error("fail to index account token to db", zap.Error(err))
+							log.Info("fail to index account token to db", zap.Error(err))
 							continue
 						}
 
 						tokens, err = s.store.GetTokensByIndexIDs(ctx, []string{indexID})
 						if err != nil || len(tokens) == 0 {
-							log.Error("token is not successfully indexed", zap.Error(err))
+							log.Info("token is not successfully indexed", zap.Error(err))
 							continue
 						}
 					} else {

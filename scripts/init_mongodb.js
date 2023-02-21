@@ -92,3 +92,29 @@ db.identities.createIndex({
   unique: true,
   sparse: true
 })
+
+db.createView("token_assets", "tokens", [
+  {
+    "$lookup": {
+      "from": "assets",
+      "localField": "assetID",
+      "foreignField": "id",
+      "as": "asset"
+    }
+  },
+  { "$unwind": "$asset" },
+  {
+    "$addFields": {
+    "asset.metadata.project": "$asset.projectMetadata"
+    }
+  },
+  {
+    "$project": {
+      "asset._id": 0,
+      "asset.projectMetadata": 0,
+      "owners": 0,
+      "ownersArray": 0,
+      "_id": 0
+    }
+  }
+])

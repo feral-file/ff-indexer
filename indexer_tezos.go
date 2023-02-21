@@ -186,7 +186,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 
 	lastActivityTime, err := e.tzkt.GetTokenLastActivityTime(tzktToken.Contract.Address, tzktToken.ID.String())
 	if err != nil {
-		log.Error("fail to get token lastActivityTime")
+		log.Info("fail to get token lastActivityTime")
 	}
 
 	tokenUpdate := AssetUpdates{

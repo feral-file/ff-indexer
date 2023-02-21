@@ -151,7 +151,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 
 	lastActivityTime, err := e.opensea.GetTokenLastActivityTime(contractAddress, a.TokenID)
 	if err != nil {
-		log.Error("fail to get token lastActivityTime")
+		log.Info("fail to get token lastActivityTime")
 	}
 
 	tokenUpdate := &AssetUpdates{
