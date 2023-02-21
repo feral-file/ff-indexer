@@ -1692,6 +1692,7 @@ func (s *MongodbIndexerStore) UpdateTokenSugesstedMIMEType(ctx context.Context, 
 	return err
 }
 
+// MarkAccountTokenChanged sets the lastRefreshedTime to now
 func (s *MongodbIndexerStore) MarkAccountTokenChanged(ctx context.Context, indexIDs []string) {
 	for _, indexID := range indexIDs {
 		_, err := s.accountTokenCollection.UpdateMany(ctx, bson.M{
