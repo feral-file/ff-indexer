@@ -78,6 +78,8 @@ type Store interface {
 	UpdateTokenFeedback(ctx context.Context, tokenFeedbacks []TokenFeedbackUpdate, userDID string) error
 	GetGrouppedTokenFeedbacks(ctx context.Context) ([]GrouppedTokenFeedback, error)
 	UpdateTokenSugesstedMIMEType(ctx context.Context, indexID, mimeType string) error
+
+	MarkAccountTokenChanged(ctx context.Context, indexIDs []string)
 }
 
 type FilterParameter struct {
@@ -1241,24 +1243,17 @@ func (s *MongodbIndexerStore) IndexAccount(ctx context.Context, account Account)
 // IndexAccountTokens indexes the account tokens by inputs
 func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error {
 	for _, accountToken := range accountTokens {
-		if accountToken.Balance > 0 {
-			r, err := s.accountTokenCollection.UpdateOne(ctx,
-				bson.M{"indexID": accountToken.IndexID, "ownerAccount": owner},
-				bson.M{"$set": accountToken},
-				options.Update().SetUpsert(true),
-			)
+		r, err := s.accountTokenCollection.UpdateOne(ctx,
+			bson.M{"indexID": accountToken.IndexID, "ownerAccount": owner},
+			bson.M{"$set": accountToken},
+			options.Update().SetUpsert(true),
+		)
 
-			if err != nil {
-				return err
-			}
-			if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-				log.Warn("account token is not added or updated", zap.String("token_id", accountToken.ID))
-			}
-		} else {
-			_, err := s.accountTokenCollection.DeleteOne(ctx, bson.M{"ownerAccount": owner, "indexID": accountToken.IndexID})
-			if err != nil {
-				return err
-			}
+		if err != nil {
+			return err
+		}
+		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
+			log.Warn("account token is not added or updated", zap.String("token_id", accountToken.ID))
 		}
 	}
 
@@ -1353,9 +1348,9 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 		"indexID": bson.M{"$eq": indexID}, "ownerAccount": bson.M{"$nin": ownerList},
 	}, bson.M{
 		"$set": bson.M{
-			"balance":          0,
-			"lastUpdatedAt":    time.Now(),
-			"lastActivityTime": lastActivityTime,
+			"balance":           0,
+			"lastRefreshedTime": time.Now(),
+			"lastActivityTime":  lastActivityTime,
 		},
 	})
 
@@ -1731,4 +1726,19 @@ func (s *MongodbIndexerStore) UpdateTokenSugesstedMIMEType(ctx context.Context, 
 	)
 
 	return err
+}
+
+func (s *MongodbIndexerStore) MarkAccountTokenChanged(ctx context.Context, indexIDs []string) {
+	for _, indexID := range indexIDs {
+		_, err := s.accountTokenCollection.UpdateMany(ctx, bson.M{
+			"indexID": bson.M{"eq": indexID},
+		}, bson.M{
+			"$set": bson.M{"lastRefreshedTime": time.Now()},
+		})
+
+		if err != nil {
+			log.Info("cannot update account tokens", zap.String("indexID", indexID))
+			continue
+		}
+	}
 }

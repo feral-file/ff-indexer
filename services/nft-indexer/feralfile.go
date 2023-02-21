@@ -29,19 +29,12 @@ func (s *NFTIndexerServer) IndexAsset(c *gin.Context) {
 		return
 	}
 
-	accountToken := indexer.AccountToken{
-		BaseTokenInfo:     input.Tokens[0].BaseTokenInfo,
-		IndexID:           input.Tokens[0].IndexID,
-		OwnerAccount:      input.Tokens[0].Owner,
-		Balance:           input.Tokens[0].Balance,
-		LastActivityTime:  input.Tokens[0].LastActivityTime,
-		LastRefreshedTime: input.Tokens[0].LastRefreshedTime,
+	updatedIndexIDs := []string{}
+	for _, token := range input.Tokens {
+		updatedIndexIDs = append(updatedIndexIDs, token.IndexID)
 	}
 
-	if err := s.indexerStore.IndexAccountTokens(c, input.Tokens[0].Owner, []indexer.AccountToken{accountToken}); err != nil {
-		abortWithError(c, http.StatusInternalServerError, "unable to update account token data", err)
-		return
-	}
+	s.indexerStore.MarkAccountTokenChanged(c, updatedIndexIDs)
 
 	c.JSON(http.StatusOK, gin.H{"ok": 1})
 }
