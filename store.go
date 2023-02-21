@@ -1763,12 +1763,14 @@ func (s *MongodbIndexerStore) GetPresignedThumbnailTokens(ctx context.Context) (
 
 		r := s.tokenCollection.FindOne(ctx, bson.M{"assetID": currentAsset.ProjectMetadata.Latest.AssetID})
 		if r.Err() != nil {
+			log.Info("cannot find asset ID", zap.String("assetID", currentAsset.ProjectMetadata.Latest.AssetID), zap.Error(r.Err()))
 			continue
 		}
 
 		var token Token
 
 		if err := r.Decode(&token); err != nil {
+			log.Info("cannot decode token", zap.Error(err))
 			continue
 		}
 

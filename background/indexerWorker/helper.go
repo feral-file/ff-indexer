@@ -132,7 +132,7 @@ func StartUpdateSuggestedMIMETypeCronWorkflow(c context.Context, client *cadence
 	return nil
 }
 
-func StartDetectAssetChangeWorkflow(c context.Context, client *cadence.WorkerClient, delay time.Duration) error {
+func StartDetectAssetChangeWorkflow(c context.Context, client *cadence.WorkerClient) error {
 	workflowContext := cadenceClient.StartWorkflowOptions{
 		ID:                           "detect-asset-change-helper",
 		TaskList:                     AssetTaskListName,
@@ -142,7 +142,7 @@ func StartDetectAssetChangeWorkflow(c context.Context, client *cadence.WorkerCli
 
 	var w NFTIndexerWorker
 
-	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.DetectAssetChangeWorkflow, delay)
+	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.DetectAssetChangeWorkflow)
 	if err != nil {
 		log.Error("fail to start detect asset change workflow", zap.Error(err))
 		_, isAlreadyStartedError := err.(*shared.WorkflowExecutionAlreadyStartedError)

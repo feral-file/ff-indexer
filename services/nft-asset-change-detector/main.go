@@ -75,7 +75,7 @@ func main() {
 	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
 	cadenceClient.AddService(indexerWorker.ClientName)
 
-	if err := indexerWorker.StartDetectAssetChangeWorkflow(ctx, cadenceClient, 0); err != nil {
+	if err := indexerWorker.StartDetectAssetChangeWorkflow(ctx, cadenceClient); err != nil {
 		panic(err)
 	}
 

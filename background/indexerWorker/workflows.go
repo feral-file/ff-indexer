@@ -304,7 +304,7 @@ func (w *NFTIndexerWorker) UpdateSuggestedMIMETypeWorkflow(ctx workflow.Context,
 	return nil
 }
 
-func (w *NFTIndexerWorker) DetectAssetChangeWorkflow(ctx workflow.Context, delay time.Duration) error {
+func (w *NFTIndexerWorker) DetectAssetChangeWorkflow(ctx workflow.Context) error {
 	ao := workflow.ActivityOptions{
 		TaskList:               w.AssetTaskListName,
 		ScheduleToStartTimeout: 10 * time.Minute,
@@ -315,7 +315,7 @@ func (w *NFTIndexerWorker) DetectAssetChangeWorkflow(ctx workflow.Context, delay
 
 	ctx = workflow.WithActivityOptions(ctx, ao)
 
-	log.Debug("start UpdateAssetWorkflow")
+	log.Debug("start DetectAssetChangeWorkflow")
 
 	if err := workflow.ExecuteActivity(ctx, w.UpdatePresignedThumbnailAssets).Get(ctx, nil); err != nil {
 		log.Error("fail to update asset")
