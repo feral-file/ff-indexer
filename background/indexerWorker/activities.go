@@ -672,20 +672,20 @@ func (w *NFTIndexerWorker) CalculateMIMETypeFromTokenFeedback(ctx context.Contex
 func (w *NFTIndexerWorker) UpdatePresignedThumbnailAssets(ctx context.Context) error {
 	presignedThumbnailTokens, err := w.indexerStore.GetPresignedThumbnailTokens(ctx)
 	if err != nil {
-		log.Warn("errors in the pending account tokens")
+		log.Debug("errors in the pending account tokens", zap.Error(err))
 		return err
 	}
 
 	for _, token := range presignedThumbnailTokens {
 		assetUpdates, err := w.indexerEngine.IndexTezosToken(ctx, token.Owner, token.ContractAddress, token.ID)
 		if err != nil {
-			log.Error("fail to get updates of a tezos token", zap.Error(err))
+			log.Info("fail to get updates of a tezos token", zap.Error(err))
 			continue
 		}
 
 		err = w.indexerStore.IndexAsset(ctx, token.AssetID, *assetUpdates)
 		if err != nil {
-			log.Error("fail to update a tezos asset", zap.Error(err))
+			log.Info("fail to update a tezos asset", zap.Error(err))
 			continue
 		}
 	}
