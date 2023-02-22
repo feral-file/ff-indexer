@@ -184,6 +184,11 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		LastUpdatedAt: time.Now(),
 	}
 
+	lastActivityTime, err := e.tzkt.GetTokenLastActivityTime(tzktToken.Contract.Address, tzktToken.ID.String())
+	if err != nil {
+		log.Info("fail to get token lastActivityTime")
+	}
+
 	tokenUpdate := AssetUpdates{
 		ID:              assetID,
 		Source:          SourceTZKT, // asset data source which is different than project source
@@ -204,6 +209,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 				Edition:           tokenDetail.Edition,
 				MintAt:            tokenDetail.MintedAt,
 				LastRefreshedTime: time.Now(),
+				LastActivityTime:  lastActivityTime,
 			},
 		},
 	}

@@ -49,6 +49,7 @@ func main() {
 	// nft indexer store
 	db := mongoClient.Database(viper.GetString("store.db_name"))
 	assetCollection := db.Collection("assets")
+	accountTokenCollection := db.Collection("account_tokens")
 
 	pinataIPFS := NewPinataIPFSPinService()
 
@@ -66,7 +67,7 @@ func main() {
 		thumbnailCacheRetryInterval = 24 * time.Hour
 	}
 
-	imageIndexer := NewNFTContentIndexer(store, assetCollection, pinataIPFS,
+	imageIndexer := NewNFTContentIndexer(store, assetCollection, accountTokenCollection, pinataIPFS,
 		thumbnailCachePeriod, thumbnailCacheRetryInterval)
 	imageIndexer.Start(ctx)
 

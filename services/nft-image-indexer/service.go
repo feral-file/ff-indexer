@@ -28,20 +28,22 @@ type NFTContentIndexer struct {
 	thumbnailCachePeriod        time.Duration
 	thumbnailCacheRetryInterval time.Duration
 
-	db        *imageStore.ImageStore
-	ipfs      IPFSPinService
-	nftAssets *mongo.Collection
+	db               *imageStore.ImageStore
+	ipfs             IPFSPinService
+	nftAssets        *mongo.Collection
+	nftAccountTokens *mongo.Collection
 }
 
-func NewNFTContentIndexer(db *imageStore.ImageStore, nftAssets *mongo.Collection, ipfs IPFSPinService,
+func NewNFTContentIndexer(db *imageStore.ImageStore, nftAssets *mongo.Collection, nftAccountTokens *mongo.Collection, ipfs IPFSPinService,
 	thumbnailCachePeriod, thumbnailCacheRetryInterval time.Duration) *NFTContentIndexer {
 	return &NFTContentIndexer{
 		thumbnailCachePeriod:        thumbnailCachePeriod,
 		thumbnailCacheRetryInterval: thumbnailCacheRetryInterval,
 
-		db:        db,
-		ipfs:      ipfs,
-		nftAssets: nftAssets,
+		db:               db,
+		ipfs:             ipfs,
+		nftAssets:        nftAssets,
+		nftAccountTokens: nftAccountTokens,
 	}
 }
 
@@ -155,7 +157,21 @@ func (s *NFTContentIndexer) updateAssetThumbnail(ctx context.Context, indexID, t
 	_, err := s.nftAssets.UpdateOne(
 		ctx,
 		bson.M{"indexID": indexID},
-		bson.D{{Key: "$set", Value: bson.D{{Key: "thumbnailID", Value: thumbnailID}}}},
+		bson.D{{Key: "$set", Value: bson.D{
+			{Key: "thumbnailID", Value: thumbnailID},
+			{Key: "lastUpdatedAt", Value: time.Now()},
+		}}},
+	)
+	if err != nil {
+		log.Info("update asset thumbnail failed", zap.String("indexID", indexID), zap.Error(err))
+		return err
+	}
+	_, err = s.nftAccountTokens.UpdateMany(
+		ctx,
+		bson.M{"indexID": indexID},
+		bson.D{{Key: "$set", Value: bson.D{
+			{Key: "lastRefreshedTime", Value: time.Now()},
+		}}},
 	)
 
 	return err

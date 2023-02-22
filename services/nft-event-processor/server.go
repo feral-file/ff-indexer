@@ -152,6 +152,7 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 					IndexID:           indexID,
 					OwnerAccount:      to,
 					Balance:           int64(1),
+					LastActivityTime:  event.UpdatedAt,
 					LastRefreshedTime: token.LastActivityTime,
 				}
 

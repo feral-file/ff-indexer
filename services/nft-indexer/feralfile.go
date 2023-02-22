@@ -29,6 +29,13 @@ func (s *NFTIndexerServer) IndexAsset(c *gin.Context) {
 		return
 	}
 
+	updatedIndexIDs := []string{}
+	for _, token := range input.Tokens {
+		updatedIndexIDs = append(updatedIndexIDs, token.IndexID)
+	}
+
+	s.indexerStore.MarkAccountTokenChanged(c, updatedIndexIDs)
+
 	c.JSON(http.StatusOK, gin.H{"ok": 1})
 }
 
