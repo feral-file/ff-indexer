@@ -184,9 +184,13 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		LastUpdatedAt: time.Now(),
 	}
 
-	lastActivityTime, err := e.tzkt.GetTokenLastActivityTime(tzktToken.Contract.Address, tzktToken.ID.String())
+	ownedTokens, err := e.GetTezosTokenByOwner(ctx, owner, time.Time{}, 0)
 	if err != nil {
 		log.Info("fail to get token lastActivityTime")
+	}
+	lastActivityTime := time.Time{}
+	if len(ownedTokens) > 0 {
+		lastActivityTime = ownedTokens[len(ownedTokens)-1].LastTime
 	}
 
 	tokenUpdate := AssetUpdates{

@@ -159,7 +159,7 @@ func (s *NFTContentIndexer) updateAssetThumbnail(ctx context.Context, indexID, t
 		bson.M{"indexID": indexID},
 		bson.D{{Key: "$set", Value: bson.D{
 			{Key: "thumbnailID", Value: thumbnailID},
-			{Key: "lastUpdatedAt", Value: time.Now()},
+			{Key: "lastRefreshedTime", Value: time.Now()},
 		}}},
 	)
 	if err != nil {
