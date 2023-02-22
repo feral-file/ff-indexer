@@ -3,9 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
-
-	"github.com/dgrijalva/jwt-go"
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -14,6 +11,7 @@ import (
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
 	"github.com/bitmark-inc/nft-indexer/cadence"
+	"github.com/bitmark-inc/nft-indexer/externals/aws/ssm"
 	"github.com/bitmark-inc/nft-indexer/externals/ens"
 	"github.com/bitmark-inc/nft-indexer/externals/feralfile"
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
@@ -61,17 +59,17 @@ func main() {
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 	)
 
-	jwtPublicByte, err := os.ReadFile(viper.GetString("jwt.pubkeyfile"))
+	awsSystemManager, err := ssm.New(ctx)
 	if err != nil {
-		log.Fatal("fail to read jwt key file", zap.Error(err))
+		log.Fatal("fail to create aws System Manager", zap.Error(err))
 	}
 
-	jwtPubkey, err := jwt.ParseRSAPublicKeyFromPEM(jwtPublicByte)
+	jwtPublicKey, err := awsSystemManager.GetRSAPublishKeyFromParameterStore(ctx, viper.GetString("jwt.pubkey_name"))
 	if err != nil {
-		log.Panic("jwt public key parsing failed", zap.Error(err))
+		log.Fatal("fail to read jwt publish key file", zap.Error(err))
 	}
 
-	s := NewNFTIndexerServer(cadenceClient, ensClient, tezosDomain, feralfileClient, indexerStore, engine, jwtPubkey, viper.GetString("server.api_token"), viper.GetString("server.admin_api_token"), viper.GetString("server.secret_symmetric_key"))
+	s := NewNFTIndexerServer(cadenceClient, ensClient, tezosDomain, feralfileClient, indexerStore, engine, jwtPublicKey, viper.GetString("server.api_token"), viper.GetString("server.admin_api_token"), viper.GetString("server.secret_symmetric_key"))
 	s.SetupRoute()
 	if err := s.Run(viper.GetString("server.port")); err != nil {
 		log.Panic("server interrupted", zap.Error(err))

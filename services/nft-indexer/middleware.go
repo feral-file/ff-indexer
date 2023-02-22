@@ -43,7 +43,7 @@ func (s *NFTIndexerServer) authenticate(c *gin.Context) {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
 
-		return s.jwtPubkey, nil
+		return s.jwtPublicKey, nil
 	})
 
 	if err != nil {

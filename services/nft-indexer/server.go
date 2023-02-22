@@ -16,7 +16,7 @@ type NFTIndexerServer struct {
 	apiToken           string
 	adminAPIToken      string
 	secretSymmetricKey string
-	jwtPubkey          *rsa.PublicKey
+	jwtPublicKey       *rsa.PublicKey
 	route              *gin.Engine
 	ensClient          *ens.ENS
 	tezosDomain        *tezosDomain.Client
@@ -32,7 +32,7 @@ func NewNFTIndexerServer(cadenceWorker *cadence.WorkerClient,
 	feralfileClient *feralfile.Feralfile,
 	indexerStore indexer.Store,
 	indexerEngine *indexer.IndexEngine,
-	jwtPubkey *rsa.PublicKey,
+	jwtPublicKey *rsa.PublicKey,
 	apiToken string,
 	adminAPIToken string,
 	secretSymmetricKey string) *NFTIndexerServer {
@@ -42,7 +42,7 @@ func NewNFTIndexerServer(cadenceWorker *cadence.WorkerClient,
 		apiToken:           apiToken,
 		adminAPIToken:      adminAPIToken,
 		secretSymmetricKey: secretSymmetricKey,
-		jwtPubkey:          jwtPubkey,
+		jwtPublicKey:       jwtPublicKey,
 		route:              r,
 		ensClient:          ensClient,
 		tezosDomain:        tezosDomain,
