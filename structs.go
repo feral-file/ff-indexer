@@ -176,6 +176,7 @@ type DetailedTokenV2 struct {
 }
 
 type AssetV2 struct {
+	IndexID       string        `json:"indexID" bson:"indexID"`
 	ThumbnailID   string        `json:"thumbnailID" bson:"thumbnailID"`
 	LastUpdatedAt time.Time     `json:"lastUpdatedAt" bson:"lastUpdatedAt"`
 	Metadata      AssetMetadata `json:"metadata" bson:"metadata"`
