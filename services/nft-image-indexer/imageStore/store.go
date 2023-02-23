@@ -1,8 +1,11 @@
 package imageStore
 
 import (
+	"bytes"
 	"context"
 	"io"
+	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 	"time"
@@ -22,6 +25,8 @@ type Metadata map[string]interface{}
 type ImageDownloader interface {
 	Download() (io.Reader, string, error)
 }
+
+const ImageSizeThreshold = 10 * 1024 * 1024 // 10MB
 
 // IsSupportedImageType validates if an image is supported
 func IsSupportedImageType(mimeType string) bool {
@@ -137,6 +142,22 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 			metadata["mime_type"] = mimeType
 		}
 
+		buf := &bytes.Buffer{}
+		nRead, err := io.Copy(buf, file)
+		if err != nil {
+			log.Error("error while reading size of image", zap.Error(err))
+		}
+
+		if nRead > ImageSizeThreshold {
+			file, err = compressImage(file)
+			if err != nil {
+				log.Error("cannot compress the thumbnail with ffmpeg", zap.Error(err))
+			}
+		}
+
+		attempt := 0
+
+	UPLOAD_IMAGE:
 		uploadRequest := cloudflare.ImageUploadRequest{
 			File:     io.NopCloser(file),
 			Name:     assetID,
@@ -144,12 +165,22 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 		}
 
 		log.Debug("upload image to cloudflare", zap.String("assetID", assetID))
+		attempt++
 
 		i, err := s.cloudflareAPI.UploadImage(ctx, s.cloudflareAccountID, uploadRequest)
 		if err != nil {
-			isErrSizeTooLarge, _ := regexp.MatchString("entity.*too large", err.Error())
-			if isErrSizeTooLarge {
-				return NewImageCachingError(ReasonFileSizeTooLarge)
+			re, _ := regexp.Compile("entity.*too large")
+			isErrSizeTooLarge := re.MatchString(err.Error())
+
+			if isErrSizeTooLarge && attempt < 2 {
+				file, err = compressImage(file)
+				if err != nil {
+					log.Error("cannot compress the thumbnail with ffmpeg", zap.Error(err))
+					return NewImageCachingError(ReasonFileSizeTooLarge)
+				}
+
+				goto UPLOAD_IMAGE
+
 			}
 			return err
 		}
@@ -171,4 +202,57 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 	}
 
 	return image, err
+}
+
+// compressImage compresses an image by reducing width (iw), height (ih) and quality (compression_level)
+func compressImage(file io.Reader) (io.Reader, error) {
+	resultBuffer := bytes.NewBuffer(make([]byte, 0))
+	buf := &bytes.Buffer{}
+	_, err := io.Copy(buf, file)
+	if err != nil {
+		return file, err
+	}
+
+	// Compress the image
+	// If it is a gif, we select the first frame
+	// To make sure the size is less than a threshold, the new image has 90% of the width and height
+	// of the input image
+	cmd := exec.Command("ffmpeg", "-y",
+		"-f", "image2pipe",
+		"-i", "pipe:0",
+		"-vsync", "0",
+		"-vf", "select=eq(n\\,0)",
+		"-vf", "scale=-1:min'(10000,ih*0.9)':force_original_aspect_ratio=decrease",
+		"-q:v", "5",
+		"-update", "1",
+		"-f", "image2", "pipe:1")
+
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = resultBuffer
+
+	stdin, _ := cmd.StdinPipe()
+	if err = cmd.Start(); err != nil {
+		return file, err
+	}
+
+	if _, err = stdin.Write(buf.Bytes()); err != nil {
+		return file, err
+	}
+
+	if err = stdin.Close(); err != nil {
+		return file, err
+	}
+
+	if err = cmd.Wait(); err != nil {
+		return file, err
+	}
+
+	file = bytes.NewReader(resultBuffer.Bytes())
+	nRead := int64(resultBuffer.Len())
+
+	if nRead > ImageSizeThreshold {
+		return compressImage(file)
+	}
+
+	return file, nil
 }
