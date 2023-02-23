@@ -3,8 +3,9 @@ package main
 import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/bitmark-inc/nft-indexer/services/nft-indexer/graph"
 	"github.com/gin-gonic/gin"
+
+	"github.com/bitmark-inc/nft-indexer/services/nft-indexer/graph"
 )
 
 // Defining the Graphql handler
@@ -16,7 +17,7 @@ func (s *NFTIndexerServer) graphqlHandler(c *gin.Context) {
 
 // Defining the Playground handler
 func (s *NFTIndexerServer) playgroundHandler(c *gin.Context) {
-	h := playground.Handler("Token", "/v1/graphql/query")
+	h := playground.Handler("Token", "/v2/graphql/query")
 
 	h.ServeHTTP(c.Writer, c.Request)
 }

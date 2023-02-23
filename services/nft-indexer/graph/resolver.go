@@ -94,3 +94,11 @@ func (r *Resolver) mapGraphQLProvenance(p indexer.Provenance) *model.Provenance 
 		TxURL:       p.TxURL,
 	}
 }
+
+func (r *Resolver) mapGraphQLIdentity(a indexer.AccountIdentity) *model.Identity {
+	return &model.Identity{
+		AccountNumber: a.AccountNumber,
+		Blockchain:    a.Blockchain,
+		Name:          a.Name,
+	}
+}

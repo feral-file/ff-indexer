@@ -74,9 +74,15 @@ type ProjectMetadata {
 	assetURL:            String!
 }
 
+type Identity {
+	accountNumber:  String!
+	blockchain:      String!
+	name:            String!
+}
+
 type Query {
-  nft(owners: [String!]!, lastUpdatedAt: Time, offset: Int64! = 0, size: Int64! = 50): [Token!]!
-  query(ids: [String!]!, offset: Int64! = 0, size: Int64! = 50): [Token!]!
+  tokens(owners: [String!]! = [], ids: [String!]! = [], lastUpdatedAt: Time, offset: Int64! = 0, size: Int64! = 50): [Token!]!
+  identity(account: String!): Identity
 }
 
 scalar Time

@@ -6,27 +6,39 @@ package graph
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/services/nft-indexer/graph/model"
 )
 
-// Nft is the resolver for the nft field.
-func (r *queryResolver) Nft(ctx context.Context, owners []string, lastUpdatedAt *time.Time, offset int64, size int64) ([]*model.Token, error) {
-	queryLastUpdatedTime := time.Time{}
-	if lastUpdatedAt != nil {
-		queryLastUpdatedTime = *lastUpdatedAt
-	}
+// Tokens is the resolver for the tokens field.
+func (r *queryResolver) Tokens(ctx context.Context, owners []string, ids []string, lastUpdatedAt *time.Time, offset int64, size int64) ([]*model.Token, error) {
+	var tokensInfo []indexer.DetailedTokenV2
+	var err error
 
-	tokensInfo, err := r.indexerStore.GetDetailedAccountTokensByOwners(
-		ctx,
-		owners,
-		indexer.FilterParameter{},
-		queryLastUpdatedTime,
-		offset,
-		size,
-	)
+	if len(ids) == 0 && len(owners) > 0 {
+		queryLastUpdatedTime := time.Time{}
+		if lastUpdatedAt != nil {
+			queryLastUpdatedTime = *lastUpdatedAt
+		}
+
+		tokensInfo, err = r.indexerStore.GetDetailedAccountTokensByOwners(
+			ctx,
+			owners,
+			indexer.FilterParameter{},
+			queryLastUpdatedTime,
+			offset,
+			size,
+		)
+	} else if len((owners)) == 0 && len(ids) > 0 {
+		tokensInfo, err = r.indexerStore.GetDetailedTokensV2(ctx, indexer.FilterParameter{
+			IDs: ids,
+		}, offset, size)
+	} else {
+		return []*model.Token{}, fmt.Errorf("invalid query")
+	}
 
 	if err != nil {
 		return []*model.Token{}, err
@@ -40,22 +52,15 @@ func (r *queryResolver) Nft(ctx context.Context, owners []string, lastUpdatedAt 
 	return tokens, nil
 }
 
-// Query is the resolver for the query field.
-func (r *queryResolver) Query(ctx context.Context, ids []string, offset int64, size int64) ([]*model.Token, error) {
-	tokensInfo, err := r.indexerStore.GetDetailedTokensV2(ctx, indexer.FilterParameter{
-		IDs: ids,
-	}, offset, size)
+// Identity is the resolver for the identity field.
+func (r *queryResolver) Identity(ctx context.Context, account string) (*model.Identity, error) {
+	identity, err := r.indexerStore.GetIdentity(ctx, account)
 
 	if err != nil {
-		return []*model.Token{}, err
+		return nil, err
 	}
 
-	tokens := []*model.Token{}
-	for _, t := range tokensInfo {
-		tokens = append(tokens, r.mapGraphQLToken(t))
-	}
-
-	return tokens, nil
+	return r.mapGraphQLIdentity(identity), nil
 }
 
 // Query returns QueryResolver implementation.

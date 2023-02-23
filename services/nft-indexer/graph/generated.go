@@ -58,6 +58,12 @@ type ComplexityRoot struct {
 		Project func(childComplexity int) int
 	}
 
+	Identity struct {
+		AccountNumber func(childComplexity int) int
+		Blockchain    func(childComplexity int) int
+		Name          func(childComplexity int) int
+	}
+
 	ProjectMetadata struct {
 		ArtistID            func(childComplexity int) int
 		ArtistName          func(childComplexity int) int
@@ -90,8 +96,8 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Nft   func(childComplexity int, owners []string, lastUpdatedAt *time.Time, offset int64, size int64) int
-		Query func(childComplexity int, ids []string, offset int64, size int64) int
+		Identity func(childComplexity int, account string) int
+		Tokens   func(childComplexity int, owners []string, ids []string, lastUpdatedAt *time.Time, offset int64, size int64) int
 	}
 
 	Token struct {
@@ -121,8 +127,8 @@ type ComplexityRoot struct {
 }
 
 type QueryResolver interface {
-	Nft(ctx context.Context, owners []string, lastUpdatedAt *time.Time, offset int64, size int64) ([]*model.Token, error)
-	Query(ctx context.Context, ids []string, offset int64, size int64) ([]*model.Token, error)
+	Tokens(ctx context.Context, owners []string, ids []string, lastUpdatedAt *time.Time, offset int64, size int64) ([]*model.Token, error)
+	Identity(ctx context.Context, account string) (*model.Identity, error)
 }
 
 type executableSchema struct {
@@ -174,6 +180,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AssetMetadata.Project(childComplexity), true
+
+	case "Identity.accountNumber":
+		if e.complexity.Identity.AccountNumber == nil {
+			break
+		}
+
+		return e.complexity.Identity.AccountNumber(childComplexity), true
+
+	case "Identity.blockchain":
+		if e.complexity.Identity.Blockchain == nil {
+			break
+		}
+
+		return e.complexity.Identity.Blockchain(childComplexity), true
+
+	case "Identity.name":
+		if e.complexity.Identity.Name == nil {
+			break
+		}
+
+		return e.complexity.Identity.Name(childComplexity), true
 
 	case "ProjectMetadata.artistID":
 		if e.complexity.ProjectMetadata.ArtistID == nil {
@@ -350,29 +377,29 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Provenance.Type(childComplexity), true
 
-	case "Query.nft":
-		if e.complexity.Query.Nft == nil {
+	case "Query.identity":
+		if e.complexity.Query.Identity == nil {
 			break
 		}
 
-		args, err := ec.field_Query_nft_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query_identity_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.Nft(childComplexity, args["owners"].([]string), args["lastUpdatedAt"].(*time.Time), args["offset"].(int64), args["size"].(int64)), true
+		return e.complexity.Query.Identity(childComplexity, args["account"].(string)), true
 
-	case "Query.query":
-		if e.complexity.Query.Query == nil {
+	case "Query.tokens":
+		if e.complexity.Query.Tokens == nil {
 			break
 		}
 
-		args, err := ec.field_Query_query_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query_tokens_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.Query(childComplexity, args["ids"].([]string), args["offset"].(int64), args["size"].(int64)), true
+		return e.complexity.Query.Tokens(childComplexity, args["owners"].([]string), args["ids"].([]string), args["lastUpdatedAt"].(*time.Time), args["offset"].(int64), args["size"].(int64)), true
 
 	case "Token.asset":
 		if e.complexity.Token.Asset == nil {
@@ -593,7 +620,22 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_nft_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_identity_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["account"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("account"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["account"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_tokens_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 []string
@@ -605,66 +647,42 @@ func (ec *executionContext) field_Query_nft_args(ctx context.Context, rawArgs ma
 		}
 	}
 	args["owners"] = arg0
-	var arg1 *time.Time
+	var arg1 []string
+	if tmp, ok := rawArgs["ids"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ids"))
+		arg1, err = ec.unmarshalNString2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["ids"] = arg1
+	var arg2 *time.Time
 	if tmp, ok := rawArgs["lastUpdatedAt"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lastUpdatedAt"))
-		arg1, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, tmp)
+		arg2, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["lastUpdatedAt"] = arg1
-	var arg2 int64
+	args["lastUpdatedAt"] = arg2
+	var arg3 int64
 	if tmp, ok := rawArgs["offset"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
-		arg2, err = ec.unmarshalNInt642int64(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["offset"] = arg2
-	var arg3 int64
-	if tmp, ok := rawArgs["size"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("size"))
 		arg3, err = ec.unmarshalNInt642int64(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["size"] = arg3
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_query_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 []string
-	if tmp, ok := rawArgs["ids"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ids"))
-		arg0, err = ec.unmarshalNString2ᚕstringᚄ(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["ids"] = arg0
-	var arg1 int64
-	if tmp, ok := rawArgs["offset"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
-		arg1, err = ec.unmarshalNInt642int64(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["offset"] = arg1
-	var arg2 int64
+	args["offset"] = arg3
+	var arg4 int64
 	if tmp, ok := rawArgs["size"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("size"))
-		arg2, err = ec.unmarshalNInt642int64(ctx, tmp)
+		arg4, err = ec.unmarshalNInt642int64(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["size"] = arg2
+	args["size"] = arg4
 	return args, nil
 }
 
@@ -931,6 +949,138 @@ func (ec *executionContext) fieldContext_AssetMetadata_project(ctx context.Conte
 				return ec.fieldContext_VersionedProjectMetadata_lastest(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type VersionedProjectMetadata", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Identity_accountNumber(ctx context.Context, field graphql.CollectedField, obj *model.Identity) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Identity_accountNumber(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AccountNumber, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Identity_accountNumber(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Identity",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Identity_blockchain(ctx context.Context, field graphql.CollectedField, obj *model.Identity) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Identity_blockchain(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Blockchain, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Identity_blockchain(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Identity",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Identity_name(ctx context.Context, field graphql.CollectedField, obj *model.Identity) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Identity_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Identity_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Identity",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2033,8 +2183,8 @@ func (ec *executionContext) fieldContext_Provenance_txURL(ctx context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_nft(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_nft(ctx, field)
+func (ec *executionContext) _Query_tokens(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_tokens(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -2047,7 +2197,7 @@ func (ec *executionContext) _Query_nft(ctx context.Context, field graphql.Collec
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Nft(rctx, fc.Args["owners"].([]string), fc.Args["lastUpdatedAt"].(*time.Time), fc.Args["offset"].(int64), fc.Args["size"].(int64))
+		return ec.resolvers.Query().Tokens(rctx, fc.Args["owners"].([]string), fc.Args["ids"].([]string), fc.Args["lastUpdatedAt"].(*time.Time), fc.Args["offset"].(int64), fc.Args["size"].(int64))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2063,7 +2213,7 @@ func (ec *executionContext) _Query_nft(ctx context.Context, field graphql.Collec
 	return ec.marshalNToken2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐTokenᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_nft(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_tokens(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -2116,15 +2266,15 @@ func (ec *executionContext) fieldContext_Query_nft(ctx context.Context, field gr
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_nft_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_tokens_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_query(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Query_query(ctx, field)
+func (ec *executionContext) _Query_identity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_identity(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -2137,23 +2287,20 @@ func (ec *executionContext) _Query_query(ctx context.Context, field graphql.Coll
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Query(rctx, fc.Args["ids"].([]string), fc.Args["offset"].(int64), fc.Args["size"].(int64))
+		return ec.resolvers.Query().Identity(rctx, fc.Args["account"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Token)
+	res := resTmp.(*model.Identity)
 	fc.Result = res
-	return ec.marshalNToken2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐTokenᚄ(ctx, field.Selections, res)
+	return ec.marshalOIdentity2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐIdentity(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_query(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_identity(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -2161,42 +2308,14 @@ func (ec *executionContext) fieldContext_Query_query(ctx context.Context, field 
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Token_id(ctx, field)
+			case "accountNumber":
+				return ec.fieldContext_Identity_accountNumber(ctx, field)
 			case "blockchain":
-				return ec.fieldContext_Token_blockchain(ctx, field)
-			case "fungible":
-				return ec.fieldContext_Token_fungible(ctx, field)
-			case "contractType":
-				return ec.fieldContext_Token_contractType(ctx, field)
-			case "contractAddress":
-				return ec.fieldContext_Token_contractAddress(ctx, field)
-			case "edition":
-				return ec.fieldContext_Token_edition(ctx, field)
-			case "editionName":
-				return ec.fieldContext_Token_editionName(ctx, field)
-			case "mintAt":
-				return ec.fieldContext_Token_mintAt(ctx, field)
-			case "balance":
-				return ec.fieldContext_Token_balance(ctx, field)
-			case "owner":
-				return ec.fieldContext_Token_owner(ctx, field)
-			case "indexID":
-				return ec.fieldContext_Token_indexID(ctx, field)
-			case "source":
-				return ec.fieldContext_Token_source(ctx, field)
-			case "swapped":
-				return ec.fieldContext_Token_swapped(ctx, field)
-			case "burned":
-				return ec.fieldContext_Token_burned(ctx, field)
-			case "provenance":
-				return ec.fieldContext_Token_provenance(ctx, field)
-			case "attributes":
-				return ec.fieldContext_Token_attributes(ctx, field)
-			case "asset":
-				return ec.fieldContext_Token_asset(ctx, field)
+				return ec.fieldContext_Identity_blockchain(ctx, field)
+			case "name":
+				return ec.fieldContext_Identity_name(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Token", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type Identity", field.Name)
 		},
 	}
 	defer func() {
@@ -2206,7 +2325,7 @@ func (ec *executionContext) fieldContext_Query_query(ctx context.Context, field 
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_query_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_identity_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -5156,6 +5275,48 @@ func (ec *executionContext) _AssetMetadata(ctx context.Context, sel ast.Selectio
 	return out
 }
 
+var identityImplementors = []string{"Identity"}
+
+func (ec *executionContext) _Identity(ctx context.Context, sel ast.SelectionSet, obj *model.Identity) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, identityImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Identity")
+		case "accountNumber":
+
+			out.Values[i] = ec._Identity_accountNumber(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "blockchain":
+
+			out.Values[i] = ec._Identity_blockchain(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "name":
+
+			out.Values[i] = ec._Identity_name(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var projectMetadataImplementors = []string{"ProjectMetadata"}
 
 func (ec *executionContext) _ProjectMetadata(ctx context.Context, sel ast.SelectionSet, obj *model.ProjectMetadata) graphql.Marshaler {
@@ -5388,7 +5549,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
-		case "nft":
+		case "tokens":
 			field := field
 
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -5397,7 +5558,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_nft(ctx, field)
+				res = ec._Query_tokens(ctx, field)
 				return res
 			}
 
@@ -5408,7 +5569,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
-		case "query":
+		case "identity":
 			field := field
 
 			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
@@ -5417,7 +5578,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_query(ctx, field)
+				res = ec._Query_identity(ctx, field)
 				return res
 			}
 
@@ -6462,6 +6623,13 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	}
 	res := graphql.MarshalBoolean(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOIdentity2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐIdentity(ctx context.Context, sel ast.SelectionSet, v *model.Identity) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Identity(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOInt642ᚖint64(ctx context.Context, v interface{}) (*int64, error) {

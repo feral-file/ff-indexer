@@ -20,6 +20,12 @@ type AssetMetadata struct {
 	Project *VersionedProjectMetadata `json:"project"`
 }
 
+type Identity struct {
+	AccountNumber string `json:"accountNumber"`
+	Blockchain    string `json:"blockchain"`
+	Name          string `json:"name"`
+}
+
 type ProjectMetadata struct {
 	ArtistID            string `json:"artistID"`
 	ArtistName          string `json:"artistName"`
