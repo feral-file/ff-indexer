@@ -8,7 +8,7 @@ require (
 	github.com/bitmark-inc/autonomy-account v0.0.5-1
 	github.com/bitmark-inc/autonomy-notification v0.0.3
 	github.com/bitmark-inc/bitmark-sdk-go v0.3.0
-	github.com/bitmark-inc/config-loader v0.0.4
+	github.com/bitmark-inc/config-loader v0.0.5
 	github.com/chromedp/chromedp v0.8.6
 	github.com/cloudflare/cloudflare-go v0.45.0
 	github.com/ethereum/go-ethereum v1.10.23
@@ -38,6 +38,19 @@ require (
 )
 
 require (
+	github.com/aws/aws-sdk-go-v2 v1.17.5 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.18.14 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.13.14 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.23 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.29 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.23 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.30 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.23 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.35.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.12.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.14.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.18.4 // indirect
+	github.com/aws/smithy-go v1.13.5 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1 v1.0.3 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v2 v2.0.0 // indirect
 )
@@ -64,7 +77,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deckarep/golang-set v1.8.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a // indirect
 	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
