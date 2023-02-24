@@ -7,8 +7,8 @@
 import * as jspb from "google-protobuf";
 
 export class EventInput extends jspb.Message { 
-    getEventtype(): string;
-    setEventtype(value: string): EventInput;
+    getType(): string;
+    setType(value: string): EventInput;
     getBlockchain(): string;
     setBlockchain(value: string): EventInput;
     getContract(): string;
@@ -32,7 +32,7 @@ export class EventInput extends jspb.Message {
 
 export namespace EventInput {
     export type AsObject = {
-        eventtype: string,
+        type: string,
         blockchain: string,
         contract: string,
         from: string,

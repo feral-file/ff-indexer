@@ -34,7 +34,7 @@ import {
     HicetniucUpdateOperatorsParameter,
 } from './hicetniuc-indexer-interfaces.generated';
 
-import { outputTransfer as outputTransfer } from './callback'
+import { outputTransfer } from './callback'
 
 @contractFilter({ name: 'hicetniuc' })
 export class HicetniucIndexer {

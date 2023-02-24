@@ -70,7 +70,7 @@ import {
     VersumUpdateTokenMetadataParameter,
 } from './versum-indexer-interfaces.generated';
 
-import { outputTransfer as outputTransfer } from './callback'
+import { outputTransfer } from './callback'
 
 @contractFilter({ name: 'versum' })
 export class VersumIndexer {
