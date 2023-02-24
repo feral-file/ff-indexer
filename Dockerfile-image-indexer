@@ -7,7 +7,7 @@
 
 FROM golang:1.19.3-alpine as build
 
-RUN apk add --no-cache git gcc musl-dev ffmpeg
+RUN apk add --no-cache git gcc musl-dev
 
 ARG GITHUB_USER=bot
 ARG GITHUB_TOKEN=token
@@ -31,5 +31,8 @@ FROM 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:chromep-0.1.0
 ARG dist=0.0
 
 COPY --from=build /go/bin/nft-image-indexer /nft-image-indexer
+
+USER root
+RUN apk add --no-cache ffmpeg
 
 ADD services/nft-image-indexer/config.yaml.sample /.config/config.yaml

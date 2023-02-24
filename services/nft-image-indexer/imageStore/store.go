@@ -23,7 +23,7 @@ import (
 type Metadata map[string]interface{}
 
 type ImageDownloader interface {
-	Download() (io.Reader, string, error)
+	Download() (io.Reader, string, int, error)
 }
 
 const ImageSizeThreshold = 10 * 1024 * 1024 // 10MB
@@ -120,7 +120,7 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 		}
 
 		downloadStartTime := time.Now()
-		file, mimeType, err := imageDownloader.Download()
+		file, mimeType, imageSize, err := imageDownloader.Download()
 		if err != nil {
 			return NewImageCachingError(ReasonDownloadFileFailed)
 		}
@@ -140,12 +140,6 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 			metadata["mime_type"] = "image/png"
 		} else {
 			metadata["mime_type"] = mimeType
-		}
-
-		buf := &bytes.Buffer{}
-		imageSize, err := io.Copy(buf, file)
-		if err != nil {
-			log.Error("error while reading size of image", zap.Error(err))
 		}
 
 		if imageSize > ImageSizeThreshold {
@@ -235,11 +229,8 @@ func compressImage(file io.Reader) (io.Reader, error) {
 		return file, err
 	}
 
-	file = bytes.NewReader(resultBuffer.Bytes())
-	nRead := int64(resultBuffer.Len())
-
-	if nRead > ImageSizeThreshold {
-		return compressImage(file)
+	if resultBuffer.Len() > ImageSizeThreshold {
+		return compressImage(resultBuffer)
 	}
 
 	return file, nil
