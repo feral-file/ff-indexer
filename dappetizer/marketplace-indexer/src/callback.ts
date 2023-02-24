@@ -27,22 +27,22 @@ interface TezosTransferParameterItem {
 
 const IS_TESTNET = <string>process.env.NETWORK == "testnet"
 
-const eventProcessorUri = <string>process.env.EVENT_PROCESSOR_URI
-const eventSubscriberUrl = <string>process.env.EVENT_SUBSCRIBER_URL
+const eventProcessorURI = <string>process.env.EVENT_PROCESSOR_URI
+const eventSubscriberURL = <string>process.env.EVENT_SUBSCRIBER_URL
 
-if (!eventSubscriberUrl) {
+if (!eventSubscriberURL) {
   console.log("[TEZOS_MARLETPLACE_INDEXER]", "event subscriber url not set")
 }
 
 var grpcClient: EventProcessorClient
-if (eventProcessorUri) {
-  grpcClient = new EventProcessorClient(eventProcessorUri, grpc.ChannelCredentials.createInsecure());
+if (eventProcessorURI) {
+  grpcClient = new EventProcessorClient(eventProcessorURI, grpc.ChannelCredentials.createInsecure());
 } else {
   console.log("[TEZOS_MARLETPLACE_INDEXER]", "event processor uri not set")
 }
 
 async function reportEvent(timestamp: Date, contract: string, tokenID: string, from_: string, to_: string) {
-  await axios.post(eventSubscriberUrl, {
+  await axios.post(eventSubscriberURL, {
     "timestamp": timestamp,
     "contract": contract,
     "tokenID": tokenID,
@@ -59,7 +59,7 @@ async function grpcReportEvent(timestamp: Date, contract: string, tokenID: strin
 
   let event = new EventInput()
   event.setBlockchain("tezos")
-  event.setEventtype("transfer")
+  event.setType("transfer")
   event.setContract(contract)
   event.setFrom(from_)
   event.setTo(to_)
@@ -129,15 +129,15 @@ export function outputTransferAPI(parameter: TezosTransferParameterItem[], index
 }
 
 export function outputTransfer(parameter: TezosTransferParameterItem[], indexingContext: TransactionIndexingContext) {
-  if (eventProcessorUri) {
+  if (eventProcessorURI) {
     outputTransferGRPC(parameter, indexingContext)
   }
 
-  if (eventSubscriberUrl) {
+  if (eventSubscriberURL) {
     outputTransferAPI(parameter, indexingContext)
   }
 
-  if (!eventProcessorUri && !eventSubscriberUrl) {
+  if (!eventProcessorURI && !eventSubscriberURL) {
     outputTransferStdout(parameter, indexingContext)
   }
 }

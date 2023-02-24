@@ -97,7 +97,7 @@ proto.EventInput.prototype.toObject = function(opt_includeInstance) {
  */
 proto.EventInput.toObject = function(includeInstance, msg) {
   var f, obj = {
-    eventtype: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    type: jspb.Message.getFieldWithDefault(msg, 1, ""),
     blockchain: jspb.Message.getFieldWithDefault(msg, 2, ""),
     contract: jspb.Message.getFieldWithDefault(msg, 3, ""),
     from: jspb.Message.getFieldWithDefault(msg, 4, ""),
@@ -141,7 +141,7 @@ proto.EventInput.deserializeBinaryFromReader = function(msg, reader) {
     switch (field) {
     case 1:
       var value = /** @type {string} */ (reader.readString());
-      msg.setEventtype(value);
+      msg.setType(value);
       break;
     case 2:
       var value = /** @type {string} */ (reader.readString());
@@ -192,7 +192,7 @@ proto.EventInput.prototype.serializeBinary = function() {
  */
 proto.EventInput.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getEventtype();
+  f = message.getType();
   if (f.length > 0) {
     writer.writeString(
       1,
@@ -238,10 +238,10 @@ proto.EventInput.serializeBinaryToWriter = function(message, writer) {
 
 
 /**
- * optional string EventType = 1;
+ * optional string Type = 1;
  * @return {string}
  */
-proto.EventInput.prototype.getEventtype = function() {
+proto.EventInput.prototype.getType = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
@@ -250,7 +250,7 @@ proto.EventInput.prototype.getEventtype = function() {
  * @param {string} value
  * @return {!proto.EventInput} returns this
  */
-proto.EventInput.prototype.setEventtype = function(value) {
+proto.EventInput.prototype.setType = function(value) {
   return jspb.Message.setProto3StringField(this, 1, value);
 };
 
