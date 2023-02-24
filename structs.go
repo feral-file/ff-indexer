@@ -80,7 +80,6 @@ type Token struct {
 	Provenances       []Provenance `json:"provenance" bson:"provenance"`
 	LastActivityTime  time.Time    `json:"lastActivityTime" bson:"lastActivityTime"`
 	LastRefreshedTime time.Time    `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
-	LastUpdatedAt     time.Time    `json:"LastUpdatedAt" bson:"LastUpdatedAt"`
 }
 
 type AssetAttributes struct {
@@ -177,6 +176,7 @@ type DetailedTokenV2 struct {
 }
 
 type AssetV2 struct {
+	IndexID       string        `json:"indexID" bson:"indexID"`
 	ThumbnailID   string        `json:"thumbnailID" bson:"thumbnailID"`
 	LastUpdatedAt time.Time     `json:"lastUpdatedAt" bson:"lastUpdatedAt"`
 	Metadata      AssetMetadata `json:"metadata" bson:"metadata"`

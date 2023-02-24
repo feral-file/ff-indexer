@@ -53,7 +53,7 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 
 	for _, t := range ownedTokens {
 
-		update, err := e.indexTezosToken(ctx, t.Token, owner, int64(t.Balance))
+		update, err := e.indexTezosToken(ctx, t.Token, owner, int64(t.Balance), t.LastTime)
 		if err != nil {
 			log.Error("fail to index a tezos token", zap.Error(err))
 			return nil, newLastTime, err
@@ -82,21 +82,21 @@ func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, toke
 		return nil, err
 	}
 
-	balance, err := e.tzkt.GetTokenBalanceForOwner(contract, tokenID, owner)
+	balance, lastTime, err := e.tzkt.GetTokenBalanceAndLastTimeForOwner(contract, tokenID, owner)
 	if err != nil {
-		log.Debug("GetTokenBalanceForOwner",
+		log.Debug("GetTokenBalanceAndLastTimeForOwner",
 			log.SourceTZKT,
 			zap.Error(err),
 			zap.String("contract", contract), zap.String("tokenID", tokenID))
 		return nil, err
 	}
 
-	return e.indexTezosToken(ctx, tzktToken, owner, balance)
+	return e.indexTezosToken(ctx, tzktToken, owner, balance, lastTime)
 }
 
 // indexTezosToken prepares indexing data for a tezos token using the
 // source API token object. It currently uses token objects from tzkt api
-func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token, owner string, balance int64) (*AssetUpdates, error) {
+func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token, owner string, balance int64, lastActivityTime time.Time) (*AssetUpdates, error) {
 	log.Debug("index tezos token", zap.Any("token", tzktToken))
 
 	assetIDBytes := sha3.Sum256([]byte(fmt.Sprintf("%s-%s", tzktToken.Contract.Address, tzktToken.ID.String())))
@@ -182,11 +182,6 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		GalleryThumbnailURL: metadataDetail.DisplayURI,
 
 		LastUpdatedAt: time.Now(),
-	}
-
-	lastActivityTime, err := e.tzkt.GetTokenLastActivityTime(tzktToken.Contract.Address, tzktToken.ID.String())
-	if err != nil {
-		log.Info("fail to get token lastActivityTime")
 	}
 
 	tokenUpdate := AssetUpdates{
