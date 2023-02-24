@@ -17,7 +17,7 @@ func (s *NFTIndexerServer) graphqlHandler(c *gin.Context) {
 
 // Defining the Playground handler
 func (s *NFTIndexerServer) playgroundHandler(c *gin.Context) {
-	h := playground.Handler("Token", "/v2/graphql/query")
+	h := playground.Handler("Token", "/v2/graphql")
 
 	h.ServeHTTP(c.Writer, c.Request)
 }
