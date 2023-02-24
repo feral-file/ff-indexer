@@ -8,7 +8,7 @@ import (
 
 type Asset struct {
 	ThumbnailID   string         `json:"thumbnailID"`
-	LastUpdatedAt time.Time      `json:"lastUpdatedAt"`
+	LastUpdatedAt *time.Time     `json:"lastUpdatedAt"`
 	Metadata      *AssetMetadata `json:"metadata"`
 }
 
@@ -48,13 +48,13 @@ type ProjectMetadata struct {
 }
 
 type Provenance struct {
-	Type        string    `json:"type"`
-	Owner       string    `json:"owner"`
-	Blockchain  string    `json:"blockchain"`
-	BlockNumber *int64    `json:"blockNumber"`
-	Timestamp   time.Time `json:"timestamp"`
-	TxID        string    `json:"txID"`
-	TxURL       string    `json:"txURL"`
+	Type        string     `json:"type"`
+	Owner       string     `json:"owner"`
+	Blockchain  string     `json:"blockchain"`
+	BlockNumber *int64     `json:"blockNumber"`
+	Timestamp   *time.Time `json:"timestamp"`
+	TxID        string     `json:"txID"`
+	TxURL       string     `json:"txURL"`
 }
 
 type Token struct {
@@ -65,7 +65,7 @@ type Token struct {
 	ContractAddress string           `json:"contractAddress"`
 	Edition         int64            `json:"edition"`
 	EditionName     string           `json:"editionName"`
-	MintAt          time.Time        `json:"mintAt"`
+	MintAt          *time.Time       `json:"mintAt"`
 	Balance         int64            `json:"balance"`
 	Owner           string           `json:"owner"`
 	IndexID         string           `json:"indexID"`

@@ -39,13 +39,13 @@ func (r *Resolver) mapGraphQLToken(t indexer.DetailedTokenV2) *model.Token {
 		Edition:         t.Edition,
 		EditionName:     t.EditionName,
 		Source:          t.Source,
-		MintAt:          t.MintAt,
+		MintAt:          &t.MintAt,
 		Swapped:         t.Swapped,
 		Provenance:      provenances,
 		Attributes:      &attributes,
 		Asset: &model.Asset{
 			ThumbnailID:   t.Asset.ThumbnailID,
-			LastUpdatedAt: t.Asset.LastUpdatedAt,
+			LastUpdatedAt: &t.Asset.LastUpdatedAt,
 			Metadata: &model.AssetMetadata{
 				Project: &model.VersionedProjectMetadata{
 					Origin:  r.mapGraphQLProjectMetadata(t.Asset.Metadata.Project.Origin),
@@ -89,7 +89,7 @@ func (r *Resolver) mapGraphQLProvenance(p indexer.Provenance) *model.Provenance 
 		Owner:       p.Type,
 		Blockchain:  p.Blockchain,
 		BlockNumber: &b,
-		Timestamp:   p.Timestamp,
+		Timestamp:   &p.Timestamp,
 		TxID:        p.TxID,
 		TxURL:       p.TxURL,
 	}
