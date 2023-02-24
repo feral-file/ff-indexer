@@ -84,6 +84,7 @@ func (w *NFTIndexerWorker) IndexETHTokenByOwner(ctx context.Context, owner strin
 			IndexID:           update.Tokens[0].IndexID,
 			OwnerAccount:      update.Tokens[0].Owner,
 			Balance:           update.Tokens[0].Balance,
+			LastActivityTime:  update.Tokens[0].LastActivityTime,
 			LastRefreshedTime: update.Tokens[0].LastRefreshedTime,
 		})
 	}
