@@ -3,7 +3,6 @@ package indexer
 import (
 	"context"
 	"fmt"
-	"github.com/bitmark-inc/nft-indexer/log"
 	"strings"
 	"testing"
 	"time"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
+	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 func TestIndexTezosTokenProvenance(t *testing.T) {
