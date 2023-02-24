@@ -143,21 +143,18 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 		}
 
 		buf := &bytes.Buffer{}
-		nRead, err := io.Copy(buf, file)
+		imageSize, err := io.Copy(buf, file)
 		if err != nil {
 			log.Error("error while reading size of image", zap.Error(err))
 		}
 
-		if nRead > ImageSizeThreshold {
+		if imageSize > ImageSizeThreshold {
 			file, err = compressImage(file)
 			if err != nil {
 				log.Error("cannot compress the thumbnail with ffmpeg", zap.Error(err))
 			}
 		}
 
-		attempt := 0
-
-	UPLOAD_IMAGE:
 		uploadRequest := cloudflare.ImageUploadRequest{
 			File:     io.NopCloser(file),
 			Name:     assetID,
@@ -165,22 +162,12 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 		}
 
 		log.Debug("upload image to cloudflare", zap.String("assetID", assetID))
-		attempt++
 
 		i, err := s.cloudflareAPI.UploadImage(ctx, s.cloudflareAccountID, uploadRequest)
 		if err != nil {
-			re, _ := regexp.Compile("entity.*too large")
-			isErrSizeTooLarge := re.MatchString(err.Error())
-
-			if isErrSizeTooLarge && attempt < 2 {
-				file, err = compressImage(file)
-				if err != nil {
-					log.Error("cannot compress the thumbnail with ffmpeg", zap.Error(err))
-					return NewImageCachingError(ReasonFileSizeTooLarge)
-				}
-
-				goto UPLOAD_IMAGE
-
+			isErrSizeTooLarge, _ := regexp.MatchString("entity.*too large", err.Error())
+			if isErrSizeTooLarge {
+				return NewImageCachingError(ReasonFileSizeTooLarge)
 			}
 			return err
 		}
@@ -217,6 +204,7 @@ func compressImage(file io.Reader) (io.Reader, error) {
 	// If it is a gif, we select the first frame
 	// To make sure the size is less than a threshold, the new image has 90% of the width and height
 	// of the input image
+	// FIXME: adapt the command with various image size to make sure we get the best quality with output size < 10MB
 	cmd := exec.Command("ffmpeg", "-y",
 		"-f", "image2pipe",
 		"-i", "pipe:0",

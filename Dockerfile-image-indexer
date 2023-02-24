@@ -7,7 +7,7 @@
 
 FROM golang:1.19.3-alpine as build
 
-RUN apk add --no-cache git gcc musl-dev
+RUN apk add --no-cache git gcc musl-dev ffmpeg
 
 ARG GITHUB_USER=bot
 ARG GITHUB_TOKEN=token
