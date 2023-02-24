@@ -29,6 +29,16 @@ func (s *NFTIndexerServer) IndexAsset(c *gin.Context) {
 		return
 	}
 
+	updatedIndexIDs := []string{}
+	for _, token := range input.Tokens {
+		updatedIndexIDs = append(updatedIndexIDs, token.IndexID)
+	}
+
+	if err := s.indexerStore.MarkAccountTokenChanged(c, updatedIndexIDs); err != nil {
+		abortWithError(c, http.StatusInternalServerError, "unable to update asset data", err)
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{"ok": 1})
 }
 

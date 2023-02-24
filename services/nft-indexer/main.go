@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/getsentry/sentry-go"
@@ -11,6 +10,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/bitmark-inc/config-loader"
+	"github.com/bitmark-inc/config-loader/external/aws/ssm"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
 	"github.com/bitmark-inc/nft-indexer/cadence"
@@ -61,12 +61,17 @@ func main() {
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 	)
 
-	jwtPublicByte, err := os.ReadFile(viper.GetString("jwt.pubkeyfile"))
+	parameterStore, err := ssm.NewParameterStore(ctx)
 	if err != nil {
-		log.Fatal("fail to read jwt key file", zap.Error(err))
+		log.Panic("can not create new parameter store", zap.Error(err))
 	}
 
-	jwtPubkey, err := jwt.ParseRSAPublicKeyFromPEM(jwtPublicByte)
+	jwtPublicKeyString, err := parameterStore.GetString(ctx, viper.GetString("jwt.public_key_name"))
+	if err != nil {
+		log.Panic("get jwt public key failed", zap.Error(err))
+	}
+
+	jwtPubkey, err := jwt.ParseRSAPublicKeyFromPEM([]byte(jwtPublicKeyString))
 	if err != nil {
 		log.Panic("jwt public key parsing failed", zap.Error(err))
 	}

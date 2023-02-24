@@ -32,11 +32,6 @@ func (e *IndexEngine) IndexETHTokenByOwner(ctx context.Context, owner string, of
 	tokenUpdates := make([]AssetUpdates, 0, len(assets))
 
 	for _, a := range assets {
-		// balance, err := e.opensea.GetTokenBalanceForOwner(a.AssetContract.Address, a.TokenID, owner)
-		// if err != nil {
-		// 	log.WithError(err).Error("fail to get token balance from owner")
-		// 	continue
-		// }
 		balance := int64(1) // set default balance to 1 to reduce extra call to opensea
 		log.Debug("get token balance",
 			zap.String("contract", a.AssetContract.Address),
@@ -149,6 +144,12 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 	contractType := strings.ToLower(a.AssetContract.SchemaName)
 	fungible := contractType != "erc721"
 
+	// FIXME: this would increase the overhead of opensea API, need to be address later.
+	lastActivityTime, err := e.opensea.GetTokenLastActivityTime(contractAddress, a.TokenID)
+	if err != nil {
+		log.Info("fail to get token lastActivityTime")
+	}
+
 	tokenUpdate := &AssetUpdates{
 		ID:              fmt.Sprintf("%d", a.ID),
 		Source:          dataSource,
@@ -169,6 +170,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 				Owners:            map[string]int64{owner: balance},
 				MintAt:            a.AssetContract.CreatedDate.Time, // set minted_at to the contract creation time
 				LastRefreshedTime: time.Now(),
+				LastActivityTime:  lastActivityTime,
 			},
 		},
 	}

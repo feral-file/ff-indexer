@@ -50,16 +50,16 @@ func main() {
 
 	store := NewPostgresEventStore(db)
 
+	if err := store.AutoMigrate(); err != nil {
+		panic(err)
+	}
+
 	accountDb, err := gorm.Open(postgres.Open(viper.GetString("account.db_uri")))
 	if err != nil {
 		log.Fatal("fail to connect database", zap.Error(err))
 	}
 
 	accountStore := storage.NewAccountInformationStorage(accountDb)
-
-	if err := store.AutoMigrate(); err != nil {
-		panic(err)
-	}
 
 	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("indexer_store.db_uri"), viper.GetString("indexer_store.db_name"))
 	if err != nil {

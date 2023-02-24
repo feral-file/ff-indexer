@@ -43,7 +43,7 @@ type NFTQueryParams struct {
 	IDs []string `json:"ids"`
 
 	// lastUpdatedAt
-	LastUpdatedAt int64 `json:"lastUpdatedAt"`
+	LastUpdatedAt int64 `form:"lastUpdatedAt"`
 }
 
 type TokenFeedbackParams struct {

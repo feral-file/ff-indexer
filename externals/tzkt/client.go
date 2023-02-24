@@ -429,8 +429,8 @@ func (c *TZKT) GetTokenOwners(contract, tokenID string, limit int, lastTime time
 	return owners, nil
 }
 
-// GetTokenBalanceForOwner returns a list of TokenOwner for a specific token
-func (c *TZKT) GetTokenBalanceForOwner(contract, tokenID, owner string) (int64, error) {
+// GetTokenBalanceAndLastTimeForOwner returns a list of TokenOwner for a specific token
+func (c *TZKT) GetTokenBalanceAndLastTimeForOwner(contract, tokenID, owner string) (int64, time.Time, error) {
 	v := url.Values{
 		"token.contract": []string{contract},
 		"token.tokenId":  []string{tokenID},
@@ -451,18 +451,18 @@ func (c *TZKT) GetTokenBalanceForOwner(contract, tokenID, owner string) (int64, 
 
 	req, _ := http.NewRequest("GET", u.String(), nil)
 	if err := c.request(req, &owners); err != nil {
-		return 0, err
+		return 0, time.Time{}, err
 	}
 
 	if len(owners) == 0 {
-		return 0, fmt.Errorf("token not found")
+		return 0, time.Time{}, fmt.Errorf("token not found")
 	}
 
 	if len(owners) > 1 {
-		return 0, fmt.Errorf("multiple token owners returned")
+		return 0, time.Time{}, fmt.Errorf("multiple token owners returned")
 	}
 
-	return owners[0].Balance, nil
+	return owners[0].Balance, owners[0].LastTime, nil
 }
 
 type TransactionDetails struct {
