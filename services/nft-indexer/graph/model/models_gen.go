@@ -7,6 +7,7 @@ import (
 )
 
 type Asset struct {
+	IndexID       string         `json:"indexID"`
 	ThumbnailID   string         `json:"thumbnailID"`
 	LastUpdatedAt *time.Time     `json:"lastUpdatedAt"`
 	Metadata      *AssetMetadata `json:"metadata"`
@@ -58,23 +59,25 @@ type Provenance struct {
 }
 
 type Token struct {
-	ID              string           `json:"id"`
-	Blockchain      string           `json:"blockchain"`
-	Fungible        bool             `json:"fungible"`
-	ContractType    string           `json:"contractType"`
-	ContractAddress string           `json:"contractAddress"`
-	Edition         int64            `json:"edition"`
-	EditionName     string           `json:"editionName"`
-	MintAt          *time.Time       `json:"mintAt"`
-	Balance         int64            `json:"balance"`
-	Owner           string           `json:"owner"`
-	IndexID         string           `json:"indexID"`
-	Source          string           `json:"source"`
-	Swapped         bool             `json:"swapped"`
-	Burned          bool             `json:"burned"`
-	Provenance      []*Provenance    `json:"provenance"`
-	Attributes      *AssetAttributes `json:"attributes"`
-	Asset           *Asset           `json:"asset"`
+	ID                string           `json:"id"`
+	Blockchain        string           `json:"blockchain"`
+	Fungible          bool             `json:"fungible"`
+	ContractType      string           `json:"contractType"`
+	ContractAddress   string           `json:"contractAddress"`
+	Edition           int64            `json:"edition"`
+	EditionName       string           `json:"editionName"`
+	MintAt            *time.Time       `json:"mintAt"`
+	Balance           int64            `json:"balance"`
+	Owner             string           `json:"owner"`
+	IndexID           string           `json:"indexID"`
+	Source            string           `json:"source"`
+	Swapped           bool             `json:"swapped"`
+	Burned            bool             `json:"burned"`
+	Provenance        []*Provenance    `json:"provenance"`
+	Attributes        *AssetAttributes `json:"attributes"`
+	LastActivityTime  *time.Time       `json:"lastActivityTime"`
+	LastRefreshedTime *time.Time       `json:"lastRefreshedTime"`
+	Asset             *Asset           `json:"asset"`
 }
 
 type VersionedProjectMetadata struct {

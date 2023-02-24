@@ -21,6 +21,8 @@ type Token {
 	burned:          	Boolean!
 	provenance:			[Provenance!]!
 	attributes: 		AssetAttributes
+	lastActivityTime:  	Time
+	lastRefreshedTime: 	Time
   	asset:           	Asset!
 }
 
@@ -39,9 +41,10 @@ type AssetAttributes {
 }
 
 type Asset {
-  	thumbnailID:      String!
-	lastUpdatedAt:    Time
-	metadata:         AssetMetadata!
+	indexID:       	String!
+	thumbnailID:   	String!
+	lastUpdatedAt:	Time
+	metadata:      	AssetMetadata!
 }
 
 type AssetMetadata {

@@ -45,6 +45,7 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Asset struct {
+		IndexID       func(childComplexity int) int
 		LastUpdatedAt func(childComplexity int) int
 		Metadata      func(childComplexity int) int
 		ThumbnailID   func(childComplexity int) int
@@ -101,23 +102,25 @@ type ComplexityRoot struct {
 	}
 
 	Token struct {
-		Asset           func(childComplexity int) int
-		Attributes      func(childComplexity int) int
-		Balance         func(childComplexity int) int
-		Blockchain      func(childComplexity int) int
-		Burned          func(childComplexity int) int
-		ContractAddress func(childComplexity int) int
-		ContractType    func(childComplexity int) int
-		Edition         func(childComplexity int) int
-		EditionName     func(childComplexity int) int
-		Fungible        func(childComplexity int) int
-		ID              func(childComplexity int) int
-		IndexID         func(childComplexity int) int
-		MintAt          func(childComplexity int) int
-		Owner           func(childComplexity int) int
-		Provenance      func(childComplexity int) int
-		Source          func(childComplexity int) int
-		Swapped         func(childComplexity int) int
+		Asset             func(childComplexity int) int
+		Attributes        func(childComplexity int) int
+		Balance           func(childComplexity int) int
+		Blockchain        func(childComplexity int) int
+		Burned            func(childComplexity int) int
+		ContractAddress   func(childComplexity int) int
+		ContractType      func(childComplexity int) int
+		Edition           func(childComplexity int) int
+		EditionName       func(childComplexity int) int
+		Fungible          func(childComplexity int) int
+		ID                func(childComplexity int) int
+		IndexID           func(childComplexity int) int
+		LastActivityTime  func(childComplexity int) int
+		LastRefreshedTime func(childComplexity int) int
+		MintAt            func(childComplexity int) int
+		Owner             func(childComplexity int) int
+		Provenance        func(childComplexity int) int
+		Source            func(childComplexity int) int
+		Swapped           func(childComplexity int) int
 	}
 
 	VersionedProjectMetadata struct {
@@ -145,6 +148,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Asset.indexID":
+		if e.complexity.Asset.IndexID == nil {
+			break
+		}
+
+		return e.complexity.Asset.IndexID(childComplexity), true
 
 	case "Asset.lastUpdatedAt":
 		if e.complexity.Asset.LastUpdatedAt == nil {
@@ -485,6 +495,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Token.IndexID(childComplexity), true
 
+	case "Token.lastActivityTime":
+		if e.complexity.Token.LastActivityTime == nil {
+			break
+		}
+
+		return e.complexity.Token.LastActivityTime(childComplexity), true
+
+	case "Token.lastRefreshedTime":
+		if e.complexity.Token.LastRefreshedTime == nil {
+			break
+		}
+
+		return e.complexity.Token.LastRefreshedTime(childComplexity), true
+
 	case "Token.mintAt":
 		if e.complexity.Token.MintAt == nil {
 			break
@@ -723,6 +747,50 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _Asset_indexID(ctx context.Context, field graphql.CollectedField, obj *model.Asset) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Asset_indexID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IndexID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Asset_indexID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Asset",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
 
 func (ec *executionContext) _Asset_thumbnailID(ctx context.Context, field graphql.CollectedField, obj *model.Asset) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Asset_thumbnailID(ctx, field)
@@ -2247,6 +2315,10 @@ func (ec *executionContext) fieldContext_Query_tokens(ctx context.Context, field
 				return ec.fieldContext_Token_provenance(ctx, field)
 			case "attributes":
 				return ec.fieldContext_Token_attributes(ctx, field)
+			case "lastActivityTime":
+				return ec.fieldContext_Token_lastActivityTime(ctx, field)
+			case "lastRefreshedTime":
+				return ec.fieldContext_Token_lastRefreshedTime(ctx, field)
 			case "asset":
 				return ec.fieldContext_Token_asset(ctx, field)
 			}
@@ -3171,6 +3243,88 @@ func (ec *executionContext) fieldContext_Token_attributes(ctx context.Context, f
 	return fc, nil
 }
 
+func (ec *executionContext) _Token_lastActivityTime(ctx context.Context, field graphql.CollectedField, obj *model.Token) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Token_lastActivityTime(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LastActivityTime, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Token_lastActivityTime(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Token",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Token_lastRefreshedTime(ctx context.Context, field graphql.CollectedField, obj *model.Token) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Token_lastRefreshedTime(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LastRefreshedTime, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Token_lastRefreshedTime(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Token",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Token_asset(ctx context.Context, field graphql.CollectedField, obj *model.Token) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Token_asset(ctx, field)
 	if err != nil {
@@ -3210,6 +3364,8 @@ func (ec *executionContext) fieldContext_Token_asset(ctx context.Context, field 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "indexID":
+				return ec.fieldContext_Asset_indexID(ctx, field)
 			case "thumbnailID":
 				return ec.fieldContext_Asset_thumbnailID(ctx, field)
 			case "lastUpdatedAt":
@@ -5178,6 +5334,13 @@ func (ec *executionContext) _Asset(ctx context.Context, sel ast.SelectionSet, ob
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Asset")
+		case "indexID":
+
+			out.Values[i] = ec._Asset_indexID(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "thumbnailID":
 
 			out.Values[i] = ec._Asset_thumbnailID(ctx, field, obj)
@@ -5709,6 +5872,14 @@ func (ec *executionContext) _Token(ctx context.Context, sel ast.SelectionSet, ob
 		case "attributes":
 
 			out.Values[i] = ec._Token_attributes(ctx, field, obj)
+
+		case "lastActivityTime":
+
+			out.Values[i] = ec._Token_lastActivityTime(ctx, field, obj)
+
+		case "lastRefreshedTime":
+
+			out.Values[i] = ec._Token_lastRefreshedTime(ctx, field, obj)
 
 		case "asset":
 
