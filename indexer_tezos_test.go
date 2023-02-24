@@ -2,6 +2,8 @@ package indexer
 
 import (
 	"context"
+	"fmt"
+	"github.com/bitmark-inc/nft-indexer/log"
 	"strings"
 	"testing"
 	"time"
@@ -48,6 +50,10 @@ func TestIndexTezosTokenOwnersWithNFTOwnByManyAddress(t *testing.T) {
 }
 
 func TestIndexTezosToken(t *testing.T) {
+	if err := log.Initialize("", false); err != nil {
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
+	}
+
 	engine := New("", nil, tzkt.New(""), nil, objkt.New("https://data.objkt.com/v3/graphql"))
 	assetUpdates, err := engine.IndexTezosToken(context.Background(), "tz1RBi5DCVBYh1EGrcoJszkte1hDjrFfXm5C", "KT1FDfoj9s7ZLE9ycGyTf2QDq32dfvrEsSp8", "0")
 	assert.NoError(t, err)
@@ -87,6 +93,12 @@ func TestIndexTezosToken(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, strings.Contains(assetUpdates.ProjectMetadata.PreviewURL, "https://assets.objkt.media/file/assets-003/"), true)
 	assert.Equal(t, strings.Contains(assetUpdates.ProjectMetadata.ThumbnailURL, "https://"), true)
+
+	assetUpdates, err = engine.IndexTezosToken(context.Background(), "tz1Let211RoZTN9Qji7aU9oZYqT335SmZf4p", "KT1MhSRKsujc4q5b5KsXvmsvkFyht9h4meZs", "608")
+	assert.NoError(t, err)
+	assert.Equal(t, strings.Contains(assetUpdates.ProjectMetadata.PreviewURL, "https://assets.objkt.media/file/assets-003/"), true)
+	assert.Equal(t, strings.Contains(assetUpdates.ProjectMetadata.ThumbnailURL, "https://assets.objkt.media/file/assets-003/"), true)
+	assert.Equal(t, assetUpdates.ProjectMetadata.Title == "", false)
 
 	// case fxhash api fail
 	//assetUpdates, err := engine.IndexTezosToken(context.Background(), "tz1NkDtLboBk6gYG2jUyLmKcQHxzDDiSU3Kn", "KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE", "286488")

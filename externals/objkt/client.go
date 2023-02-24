@@ -64,7 +64,7 @@ type Holder struct {
 // GetObjectToken query Objkt Token object from Objkt API
 func (g *Client) GetObjectToken(contract string, tokenID string) (Token, error) {
 	var query struct {
-		SliceToken `graphql:"token(where: {tokenID: {_eq: $tokenID}, fa_contract: {_eq: $fa_contract}})"`
+		SliceToken `graphql:"token(where: {token_id: {_eq: $tokenID}, fa_contract: {_eq: $fa_contract}})"`
 	}
 
 	variables := map[string]interface{}{
