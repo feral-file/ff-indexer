@@ -676,8 +676,7 @@ func (w *NFTIndexerWorker) UpdatePresignedThumbnailAssets(ctx context.Context) e
 		return err
 	}
 
-	updatedIndexIDs := []string{}
-
+	updatedTokens := []indexer.Token{}
 	for _, token := range presignedThumbnailTokens {
 		assetUpdates, err := w.indexerEngine.IndexTezosToken(ctx, token.Owner, token.ContractAddress, token.ID)
 		if err != nil {
@@ -691,13 +690,16 @@ func (w *NFTIndexerWorker) UpdatePresignedThumbnailAssets(ctx context.Context) e
 			continue
 		}
 
-		for _, updatedToken := range assetUpdates.Tokens {
-			updatedIndexIDs = append(updatedIndexIDs, updatedToken.IndexID)
-		}
+		updatedTokens = append(updatedTokens, assetUpdates.Tokens...)
+	}
+
+	updatedIndexIDs := []string{}
+	for _, token := range updatedTokens {
+		updatedIndexIDs = append(updatedIndexIDs, token.IndexID)
 	}
 
 	if err := w.indexerStore.MarkAccountTokenChanged(ctx, updatedIndexIDs); err != nil {
-		log.Error("fail to update asset data", zap.Error(err))
+		log.Error("fail to update account tokens", zap.Any("indexIDs", updatedIndexIDs), zap.Error(err))
 		return err
 	}
 
