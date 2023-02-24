@@ -63,6 +63,9 @@ func (s *NFTIndexerServer) SetupRoute() {
 	v2NFT.GET("", s.GetAccountNFTsV2)
 	v2NFT.POST("/query", s.QueryNFTsV2)
 
+	v2.POST("/graphql", s.graphqlHandler)
+	v2.GET("/graphiql", s.playgroundHandler)
+
 	s.route.NoRoute(func(c *gin.Context) {
 		c.JSON(404, gin.H{
 			"message": "this is not what you are looking for",
