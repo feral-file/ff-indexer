@@ -8,21 +8,21 @@ import (
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
 	"github.com/bitmark-inc/nft-indexer/cadence"
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 
 	notification "github.com/bitmark-inc/autonomy-notification"
 	notificationSdk "github.com/bitmark-inc/autonomy-notification/sdk"
-	"github.com/sirupsen/logrus"
 )
 
 type EventProcessor struct {
 	grpcServer     *GRPCServer
 	queueProcessor *EventQueueProcessor
 	indexerStore   *indexer.MongodbIndexerStore
-	worker         *cadence.CadenceWorkerClient
+	worker         *cadence.WorkerClient
 	accountStore   *storage.AccountInformationStorage
-	indexerEngine  *indexer.IndexEngine
 	notification   *notificationSdk.NotificationClient
 	feedServer     *FeedClient
 }
@@ -32,9 +32,8 @@ func NewEventProcessor(
 	address string,
 	store EventStore,
 	indexerStore *indexer.MongodbIndexerStore,
-	worker *cadence.CadenceWorkerClient,
+	worker *cadence.WorkerClient,
 	accountStore *storage.AccountInformationStorage,
-	indexerEngine *indexer.IndexEngine,
 	notification *notificationSdk.NotificationClient,
 	feedServer *FeedClient,
 ) *EventProcessor {
@@ -47,7 +46,6 @@ func NewEventProcessor(
 		indexerStore:   indexerStore,
 		worker:         worker,
 		accountStore:   accountStore,
-		indexerEngine:  indexerEngine,
 		notification:   notification,
 		feedServer:     feedServer,
 	}
@@ -76,14 +74,14 @@ func (e *EventProcessor) Run(ctx context.Context) {
 	e.ProcessEvents(ctx)
 
 	if err := e.grpcServer.Run(); err != nil {
-		logrus.WithError(err).Error("gRPC stopped with error")
+		log.Error("gRPC stopped with error", zap.Error(err))
 	}
 }
 
 // ProcessEvents start a loop to continuously consuming queud event
 func (e *EventProcessor) ProcessEvents(ctx context.Context) {
 	// run goroutines forever
-	logrus.Trace("start event processing goroutines")
+	log.Debug("start event processing goroutines")
 
 	//stage 1: update the latest owner into mongodb
 	go e.UpdateLatestOwner(ctx)
@@ -111,11 +109,11 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 	for {
 		event, err := e.GetQueueEventByStage(stage)
 		if err != nil {
-			logrus.WithError(err).Error("Have error when try to get queue event")
+			log.Error("Have error when try to get queue event", zap.Error(err))
 		}
 
 		if event == nil {
-			logrus.Info("event queue empty")
+			log.Info("event queue empty")
 			time.Sleep(WaitingTime)
 
 			continue
@@ -136,7 +134,7 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 
 		token, err := e.indexerStore.GetTokensByIndexID(ctx, indexID)
 		if err != nil {
-			logrus.WithError(err).Error("fail to check token by index ID")
+			log.Error("fail to check token by index ID", zap.Error(err))
 			return
 		}
 
@@ -145,7 +143,7 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 		// if not, index it by blockchain
 		if token != nil {
 			// ignore the indexing process since an indexed token found
-			logrus.WithField("indexID", indexID).Debug("an indexed token found for a corresponded event")
+			log.Debug("an indexed token found for a corresponded event", zap.String("indexID", indexID))
 
 			// if the new owner is not existent in our system, index a new account_token
 			if len(accounts) == 0 {
@@ -154,11 +152,12 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 					IndexID:           indexID,
 					OwnerAccount:      to,
 					Balance:           int64(1),
+					LastActivityTime:  event.UpdatedAt,
 					LastRefreshedTime: token.LastActivityTime,
 				}
 
 				if err := e.indexerStore.IndexAccountTokens(ctx, to, []indexer.AccountToken{accountToken}); err != nil {
-					logrus.WithField("indexID", indexID).WithField("owner", to).Error("cannot index a new account_token")
+					log.Error("cannot index a new account_token", zap.String("indexID", indexID), zap.String("owner", to))
 				}
 			}
 
@@ -166,19 +165,19 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 				indexerWorker.StartRefreshTokenOwnershipWorkflow(ctx, e.worker, "processor", indexID, 0)
 			} else {
 				if err := e.indexerStore.UpdateOwner(ctx, indexID, to, time.Now()); err != nil {
-					logrus.
-						WithField("indexID", indexID).WithError(err).
-						WithField("from", from).WithField("to", to).
-						Error("fail to update the token ownership")
+					log.Error("fail to update the token ownership",
+						zap.String("indexID", indexID), zap.Error(err),
+						zap.String("from", from), zap.String("to", to))
+
 				}
 				indexerWorker.StartRefreshTokenProvenanceWorkflow(ctx, e.worker, "processor", indexID, 0)
 			}
 		} else {
 			// index the new token since it is a new token for our indexer and watched by our user
 			if len(accounts) > 0 {
-				logrus.WithField("indexID", indexID).
-					WithField("from", from).WithField("to", to).
-					Info("start indexing a new token")
+				log.Info("start indexing a new token",
+					zap.String("indexID", indexID),
+					zap.String("from", from), zap.String("to", to))
 
 				indexerWorker.StartIndexTokenWorkflow(ctx, e.worker, to, contract, tokenID, false)
 			}
@@ -187,7 +186,7 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 		if err := e.UpdateEvent(eventID, map[string]interface{}{
 			"stage": EventStages[stage+1],
 		}); err != nil {
-			logrus.WithError(err).Error("fail to update event")
+			log.Error("fail to update event", zap.Error(err))
 		}
 
 		e.logEndStage(event, stage)
@@ -217,16 +216,12 @@ func (e *EventProcessor) GetQueueEventByStage(stage int8) (*NFTEvent, error) {
 
 // logStartStage log when start a stage
 func (e *EventProcessor) logStartStage(event *NFTEvent, stage int8) {
-	logrus.WithFields(logrus.Fields{
-		"event": event,
-	}).Info("start stage ", stage, " for event: ")
+	log.Info("start stage for event: ", zap.Int8("stage", stage), zap.Any("event", event))
 }
 
 // logEndStage log when end a stage
 func (e *EventProcessor) logEndStage(event *NFTEvent, stage int8) {
-	logrus.WithFields(logrus.Fields{
-		"event": event,
-	}).Info("Finished stage ", stage, " for event: ")
+	log.Info("finished stage for event: ", zap.Int8("stage", stage), zap.Any("event", event))
 }
 
 // UpdateLatestOwner [stage 1] update owner for nft and ft by event information
@@ -236,16 +231,17 @@ func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 	for {
 		event, err := e.GetQueueEventByStage(stage)
 		if err != nil {
-			logrus.WithError(err).Error("Have error when try to get queue event")
+			log.Error("Have error when try to get queue event", zap.Error(err))
 		}
 
 		if event == nil {
-			logrus.Info("event queue empty")
+			log.Info("event queue empty")
 			time.Sleep(WaitingTime)
 
 			continue
 		}
 
+		eventType := event.Type
 		eventID := event.ID
 		blockchain := event.Blockchain
 		contract := event.Contract
@@ -258,56 +254,54 @@ func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 
 		token, err := e.indexerStore.GetTokensByIndexID(ctx, indexID)
 		if err != nil {
-			logrus.WithError(err).Error("fail to get token by index id")
+			log.Error("fail to get token by index id", zap.Error(err))
 		}
 
-		if token == nil {
-			continue
-		}
+		if token != nil {
+			if !token.Fungible {
+				err := e.indexerStore.PushProvenance(ctx, indexID, token.LastRefreshedTime, indexer.Provenance{
+					Type:        eventType,
+					FormerOwner: &event.From,
+					Owner:       to,
+					Blockchain:  blockchain,
+					Timestamp:   time.Now(),
+					TxID:        "",
+					TxURL:       "",
+				})
 
-		if !token.Fungible {
-			err := e.indexerStore.PushProvenance(ctx, indexID, token.LastRefreshedTime, indexer.Provenance{
-				Type:        "transfer",
-				FormerOwner: &event.From,
-				Owner:       to,
-				Blockchain:  blockchain,
-				Timestamp:   time.Now(),
-				TxID:        "",
-				TxURL:       "",
-			})
-
-			if err != nil {
-				err = e.indexerStore.UpdateOwner(ctx, indexID, to, time.Now())
 				if err != nil {
-					logrus.WithError(err).Error("fail to update owner")
+					err = e.indexerStore.UpdateOwner(ctx, indexID, to, time.Now())
+					if err != nil {
+						log.Error("fail to update owner", zap.Error(err))
+					}
+				}
+			} else {
+				err := e.indexerStore.UpdateOwnerForFungibleToken(ctx, indexID, token.LastRefreshedTime, event.To, 1)
+				if err != nil {
+					log.Error("fail to update owner for fungible token", zap.Error(err))
 				}
 			}
-		} else {
-			err := e.indexerStore.UpdateOwnerForFungibleToken(ctx, indexID, token.LastRefreshedTime, event.To, 1)
-			if err != nil {
-				logrus.WithError(err).Error("fail to Update owner for fungible token")
+
+			var accountTokens []indexer.AccountToken
+			var accountToken indexer.AccountToken
+
+			accountToken.IndexID = indexID
+			accountToken.OwnerAccount = to
+			accountToken.Balance = 1
+			accountToken.ContractAddress = contract
+			accountToken.ID = tokenID
+
+			accountTokens = append(accountTokens, accountToken)
+			if err := e.indexerStore.IndexAccountTokens(ctx, to, accountTokens); err != nil {
+				log.Error("fail to index account token", zap.Error(err))
+				continue
 			}
-		}
-
-		var accountTokens []indexer.AccountToken
-		var accountToken indexer.AccountToken
-
-		accountToken.IndexID = indexID
-		accountToken.OwnerAccount = to
-		accountToken.Balance = 1
-		accountToken.ContractAddress = contract
-		accountToken.ID = tokenID
-
-		accountTokens = append(accountTokens, accountToken)
-		if err := e.indexerStore.IndexAccountTokens(ctx, to, accountTokens); err != nil {
-			logrus.WithError(err).Error("fail to index account token")
-			continue
 		}
 
 		if err := e.UpdateEvent(eventID, map[string]interface{}{
 			"stage": EventStages[stage+1],
 		}); err != nil {
-			logrus.WithError(err).Error("fail to update event")
+			log.Error("fail to update event", zap.Error(err))
 		}
 
 		e.logEndStage(event, stage)
@@ -321,11 +315,11 @@ func (e *EventProcessor) NotifyChangeTokenOwner() {
 	for {
 		event, err := e.GetQueueEventByStage(stage)
 		if err != nil {
-			logrus.WithError(err).Error("Have error when try to get queue event")
+			log.Error("have error when try to get queue event", zap.Error(err))
 		}
 
 		if event == nil {
-			logrus.Info("event queue empty")
+			log.Info("event queue empty")
 			time.Sleep(WaitingTime)
 
 			continue
@@ -344,16 +338,17 @@ func (e *EventProcessor) NotifyChangeTokenOwner() {
 
 		for _, accountID := range accounts {
 			if err := e.notifyChangeOwner(accountID, to, indexID); err != nil {
-				logrus.WithError(err).
-					WithField("accountID", accountID).WithField("indexID", indexID).
-					Error("fail to send notificationSdk for the new update")
+				log.Error("fail to send notificationSdk for the new update",
+					zap.Error(err),
+					zap.String("accountID", accountID), zap.String("indexID", indexID))
+
 			}
 		}
 
 		if err := e.UpdateEvent(eventID, map[string]interface{}{
 			"stage": EventStages[stage+1],
 		}); err != nil {
-			logrus.WithError(err).Error("fail to update event")
+			log.Error("fail to update event", zap.Error(err))
 		}
 
 		e.logEndStage(event, stage)
@@ -367,11 +362,11 @@ func (e *EventProcessor) SendEventToFeedServer() {
 	for {
 		event, err := e.GetQueueEventByStage(stage)
 		if err != nil {
-			logrus.WithError(err).Error("Have error when try to get queue event")
+			log.Error("Have error when try to get queue event", zap.Error(err))
 		}
 
 		if event == nil {
-			logrus.Info("event queue empty")
+			log.Info("event queue empty")
 			time.Sleep(WaitingTime)
 
 			continue
@@ -382,17 +377,17 @@ func (e *EventProcessor) SendEventToFeedServer() {
 		contract := event.Contract
 		tokenID := event.TokenID
 		to := event.To
-		eventType := event.EventType
+		eventType := event.Type
 
 		e.logStartStage(event, stage)
 
 		if err := e.feedServer.SendEvent(blockchain, contract, tokenID, to, eventType, viper.GetString("network.ethereum") == "testnet"); err != nil {
-			logrus.WithError(err).Trace("fail to push event to feed server")
+			log.Debug("fail to push event to feed server", zap.Error(err))
 		}
 
 		// finish all stage of event processing
 		if err := e.queueProcessor.store.CompleteEvent(eventID); err != nil {
-			logrus.WithError(err).Error("fail to mark an event completed")
+			log.Error("fail to mark an event completed", zap.Error(err))
 		}
 
 		e.logEndStage(event, stage)

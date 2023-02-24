@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rsa"
+
 	"github.com/gin-gonic/gin"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -11,39 +13,43 @@ import (
 )
 
 type NFTIndexerServer struct {
-	apiToken      string
-	adminApiToken string
-	route         *gin.Engine
-
-	ensClient     *ens.ENS
-	tezosDomain   *tezosDomain.TezosDomainAPI
-	feralfile     *feralfile.Feralfile
-	cadenceWorker *cadence.CadenceWorkerClient
-	indexerStore  indexer.IndexerStore
-	indexerEngine *indexer.IndexEngine
+	apiToken           string
+	adminAPIToken      string
+	secretSymmetricKey string
+	jwtPubkey          *rsa.PublicKey
+	route              *gin.Engine
+	ensClient          *ens.ENS
+	tezosDomain        *tezosDomain.Client
+	feralfile          *feralfile.Feralfile
+	cadenceWorker      *cadence.WorkerClient
+	indexerStore       indexer.Store
+	indexerEngine      *indexer.IndexEngine
 }
 
-func NewNFTIndexerServer(cadenceWorker *cadence.CadenceWorkerClient,
+func NewNFTIndexerServer(cadenceWorker *cadence.WorkerClient,
 	ensClient *ens.ENS,
-	tezosDomain *tezosDomain.TezosDomainAPI,
+	tezosDomain *tezosDomain.Client,
 	feralfileClient *feralfile.Feralfile,
-	indexerStore indexer.IndexerStore,
+	indexerStore indexer.Store,
 	indexerEngine *indexer.IndexEngine,
+	jwtPubkey *rsa.PublicKey,
 	apiToken string,
-	adminApiToken string) *NFTIndexerServer {
+	adminAPIToken string,
+	secretSymmetricKey string) *NFTIndexerServer {
 	r := gin.New()
 
 	return &NFTIndexerServer{
-		apiToken:      apiToken,
-		adminApiToken: adminApiToken,
-		route:         r,
-
-		ensClient:     ensClient,
-		tezosDomain:   tezosDomain,
-		feralfile:     feralfileClient,
-		cadenceWorker: cadenceWorker,
-		indexerStore:  indexerStore,
-		indexerEngine: indexerEngine,
+		apiToken:           apiToken,
+		adminAPIToken:      adminAPIToken,
+		secretSymmetricKey: secretSymmetricKey,
+		jwtPubkey:          jwtPubkey,
+		route:              r,
+		ensClient:          ensClient,
+		tezosDomain:        tezosDomain,
+		feralfile:          feralfileClient,
+		cadenceWorker:      cadenceWorker,
+		indexerStore:       indexerStore,
+		indexerEngine:      indexerEngine,
 	}
 }
 

@@ -3,13 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/bitmark-inc/config-loader"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"strings"
 )
 
 type NFTAsset struct {
@@ -65,7 +66,7 @@ func main() {
 		thumbnailCDN := ad.ReplaceIPFSURIByObjktCDNURI(indexer.ObjktCDNArtifactThumbnailType, "ipfs://", s[1], s[2])
 
 		if thumbnailCDN == "ipfs://" {
-			thumbnailCDN = strings.ReplaceAll(indexer.DEFAULT_DISPLAY_URI, "ipfs://", indexer.DEFAULT_IPFS_GATEWAY)
+			thumbnailCDN = strings.ReplaceAll(indexer.DefaultDisplayURI, "ipfs://", indexer.DefaultIPFSGateway)
 		}
 
 		_, err := assetsCollection.UpdateOne(

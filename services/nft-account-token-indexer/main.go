@@ -2,14 +2,15 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/getsentry/sentry-go"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"go.uber.org/cadence/activity"
 	"go.uber.org/cadence/workflow"
+	"go.uber.org/zap"
 
 	"github.com/bitmark-inc/config-loader"
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -19,6 +20,7 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
+	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 var CadenceService = "cadence-frontend"
@@ -31,18 +33,22 @@ func main() {
 
 	environment := viper.GetString("environment")
 
+	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug")); err != nil {
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
+	}
+
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn:         viper.GetString("sentry.dsn"),
 		Environment: environment,
 	}); err != nil {
-		log.WithError(err).Panic("Sentry initialization failed")
+		log.Panic("Sentry initialization failed", zap.Error(err))
 	}
 
 	ctx := context.Background()
 
 	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
 	if err != nil {
-		log.WithError(err).Panic("fail to initiate indexer store")
+		log.Panic("fail to initiate indexer store", zap.Error(err))
 	}
 
 	indexerEngine := indexer.New(
@@ -61,9 +67,11 @@ func main() {
 
 	// workflows
 	workflow.Register(worker.UpdateAccountTokensWorkflow)
+	workflow.Register(worker.UpdateSuggestedMIMETypeWorkflow)
 
 	// activities
 	activity.Register(worker.UpdateAccountTokens)
+	activity.Register(worker.CalculateMIMETypeFromTokenFeedback)
 
 	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)
 	workerLogger := cadence.BuildCadenceLogger(logLevel)
@@ -71,7 +79,13 @@ func main() {
 	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
 	cadenceClient.AddService(indexerWorker.ClientName)
 
-	indexerWorker.StartUpdateAccountTokensWorkflow(ctx, cadenceClient, 0)
+	if err := indexerWorker.StartUpdateAccountTokensWorkflow(ctx, cadenceClient, 0); err != nil {
+		panic(err)
+	}
+
+	if err := indexerWorker.StartUpdateSuggestedMIMETypeCronWorkflow(ctx, cadenceClient, 0); err != nil {
+		panic(err)
+	}
 
 	cadence.StartWorker(workerLogger, workerServiceClient, viper.GetString("cadence.domain"), indexerWorker.AccountTokenTaskListName)
 }

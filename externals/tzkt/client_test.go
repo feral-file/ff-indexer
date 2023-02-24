@@ -73,7 +73,7 @@ func TestGetTokenActivityTimeNotExist(t *testing.T) {
 func TestGetTokenBalanceForOwner(t *testing.T) {
 	tc := New("")
 
-	owner, err := tc.GetTokenBalanceForOwner("KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton", "751194", "tz1bpvbjRGW1XHkALp4hFee6PKbnZCcoN9hE")
+	owner, _, err := tc.GetTokenBalanceAndLastTimeForOwner("KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton", "751194", "tz1bpvbjRGW1XHkALp4hFee6PKbnZCcoN9hE")
 	assert.NoError(t, err)
 	assert.Equal(t, owner, int64(1))
 }

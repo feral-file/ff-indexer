@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/getsentry/sentry-go"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 
 	"github.com/bitmark-inc/config-loader"
+	"github.com/bitmark-inc/config-loader/external/aws/ssm"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
 	"github.com/bitmark-inc/nft-indexer/cadence"
@@ -18,6 +21,7 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	tezosDomain "github.com/bitmark-inc/nft-indexer/externals/tezos-domain"
 	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
+	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 func main() {
@@ -26,17 +30,20 @@ func main() {
 	config.LoadConfig("NFT_INDEXER")
 
 	environment := viper.GetString("environment")
+	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug")); err != nil {
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
+	}
 
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn:         viper.GetString("sentry.dsn"),
 		Environment: environment,
 	}); err != nil {
-		log.WithError(err).Panic("Sentry initialization failed")
+		log.Panic("Sentry initialization failed", zap.Error(err))
 	}
 
 	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
 	if err != nil {
-		log.WithError(err).Panic("fail to initiate indexer store")
+		log.Panic("fail to initiate indexer store", zap.Error(err))
 	}
 
 	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
@@ -54,9 +61,24 @@ func main() {
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 	)
 
-	s := NewNFTIndexerServer(cadenceClient, ensClient, tezosDomain, feralfileClient, indexerStore, engine, viper.GetString("server.api_token"), viper.GetString("server.admin_api_token"))
+	parameterStore, err := ssm.NewParameterStore(ctx)
+	if err != nil {
+		log.Panic("can not create new parameter store", zap.Error(err))
+	}
+
+	jwtPublicKeyString, err := parameterStore.GetString(ctx, viper.GetString("jwt.public_key_name"))
+	if err != nil {
+		log.Panic("get jwt public key failed", zap.Error(err))
+	}
+
+	jwtPubkey, err := jwt.ParseRSAPublicKeyFromPEM([]byte(jwtPublicKeyString))
+	if err != nil {
+		log.Panic("jwt public key parsing failed", zap.Error(err))
+	}
+
+	s := NewNFTIndexerServer(cadenceClient, ensClient, tezosDomain, feralfileClient, indexerStore, engine, jwtPubkey, viper.GetString("server.api_token"), viper.GetString("server.admin_api_token"), viper.GetString("server.secret_symmetric_key"))
 	s.SetupRoute()
 	if err := s.Run(viper.GetString("server.port")); err != nil {
-		log.WithError(err).Panic("server interrupted")
+		log.Panic("server interrupted", zap.Error(err))
 	}
 }

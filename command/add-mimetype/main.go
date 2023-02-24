@@ -47,18 +47,18 @@ type ProjectMetadata struct {
 }
 
 type OpenseaAssetMetadata struct {
-	Image_original_url     string `json:"image_original_url" structs:"image_original_url"`
-	Animation_original_url string `json:"animation_original_url" structs:"animation_original_url"`
-	Image_thumbnail_url    string `json:"image_thumbnail_url" structs:"image_thumbnail_url"`
+	ImageOriginalURL     string `json:"image_original_url" structs:"image_original_url"`
+	AnimationOriginalURL string `json:"animation_original_url" structs:"animation_original_url"`
+	ImageThumbnailURL    string `json:"image_thumbnail_url" structs:"image_thumbnail_url"`
 }
 
 func main() {
-	db_uri_input := flag.String("mongouri", "mongodb://localhost:27017", "mongodb uri")
+	dbURIInput := flag.String("mongouri", "mongodb://localhost:27017", "mongodb uri")
 	flag.Parse()
-	db_uri := *db_uri_input
+	dbURI := *dbURIInput
 
 	ctx := context.TODO()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(db_uri))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(dbURI))
 	if err != nil {
 		panic(err)
 	}
@@ -73,7 +73,7 @@ func main() {
 	}
 	defer cursor.Close(ctx)
 
-	var count int64 = 0
+	var count int64
 	startTime := time.Now()
 	for cursor.Next(ctx) {
 		var asset Asset

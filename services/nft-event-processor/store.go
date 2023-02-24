@@ -17,7 +17,7 @@ const (
 
 type NFTEvent struct {
 	ID         string `gorm:"primaryKey;size:255;default:uuid_generate_v4()"`
-	EventType  string
+	Type       string
 	Blockchain string
 	Contract   string
 	TokenID    string

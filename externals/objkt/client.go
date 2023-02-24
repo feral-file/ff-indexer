@@ -9,19 +9,19 @@ import (
 	"github.com/hasura/go-graphql-client"
 )
 
-type ObjktAPI struct {
+type Client struct {
 	Client   *graphql.Client
 	Endpoint string
 }
 
-func New(graphQLEndpoint string) *ObjktAPI {
+func New(graphQLEndpoint string) *Client {
 	var c = &http.Client{
 		Timeout: 10 * time.Second,
 	}
 
 	client := graphql.NewClient(graphQLEndpoint, c)
 
-	return &ObjktAPI{
+	return &Client{
 		Client:   client,
 		Endpoint: graphQLEndpoint,
 	}
@@ -35,9 +35,9 @@ type Token struct {
 	Name         string
 	Description  string
 	Mime         string
-	DisplayUri   string `graphql:"display_uri"`
-	ThumbnailUri string `graphql:"thumbnail_uri"`
-	ArtifactUri  string `graphql:"artifact_uri"`
+	DisplayURI   string `graphql:"display_uri"`
+	ThumbnailURI string `graphql:"thumbnail_uri"`
+	ArtifactURI  string `graphql:"artifact_uri"`
 	TokenID      string `graphql:"token_id"`
 	FaContract   string `graphql:"fa_contract"`
 	Creators     []Creators
@@ -62,13 +62,13 @@ type Holder struct {
 }
 
 // GetObjectToken query Objkt Token object from Objkt API
-func (g *ObjktAPI) GetObjectToken(contract string, token_id string) (Token, error) {
+func (g *Client) GetObjectToken(contract string, tokenID string) (Token, error) {
 	var query struct {
-		SliceToken `graphql:"token(where: {token_id: {_eq: $token_id}, fa_contract: {_eq: $fa_contract}})"`
+		SliceToken `graphql:"token(where: {token_id: {_eq: $tokenID}, fa_contract: {_eq: $fa_contract}})"`
 	}
 
 	variables := map[string]interface{}{
-		"token_id":    graphql.String(token_id),
+		"tokenID":     graphql.String(tokenID),
 		"fa_contract": graphql.String(contract),
 	}
 

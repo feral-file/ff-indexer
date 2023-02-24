@@ -11,8 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 
+	// indexer "github.com/bitmark-inc/nft-indexer"
+
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
 
@@ -89,8 +92,8 @@ func (f *FileFormats) UnmarshalJSON(data []byte) error {
 
 	switch data[0] {
 	case 34:
-		d_ := bytes.ReplaceAll(bytes.Trim(data, `"`), []byte{92, 117, 48, 48, 50, 50}, []byte{34})
-		d := bytes.ReplaceAll(d_, []byte{92, 34}, []byte{34})
+		d1 := bytes.ReplaceAll(bytes.Trim(data, `"`), []byte{92, 117, 48, 48, 50, 50}, []byte{34})
+		d := bytes.ReplaceAll(d1, []byte{92, 34}, []byte{34})
 
 		if err := json.Unmarshal(d, (*formats)(f)); err != nil {
 			return err
@@ -119,8 +122,8 @@ func (c *FileCreators) UnmarshalJSON(data []byte) error {
 
 	switch data[0] {
 	case 34:
-		d_ := bytes.ReplaceAll(bytes.Trim(data, `"`), []byte{92, 117, 48, 48, 50, 50}, []byte{34})
-		d := bytes.ReplaceAll(d_, []byte{92, 34}, []byte{34})
+		d1 := bytes.ReplaceAll(bytes.Trim(data, `"`), []byte{92, 117, 48, 48, 50, 50}, []byte{34})
+		d := bytes.ReplaceAll(d1, []byte{92, 34}, []byte{34})
 
 		if err := json.Unmarshal(d, (*creators)(c)); err != nil {
 			return err
@@ -197,7 +200,7 @@ func (c *TZKT) Debug() *TZKT {
 
 func (c *TZKT) request(req *http.Request, responseData interface{}) error {
 	if c.debug {
-		logrus.WithField("req", traceutils.DumpRequest(req)).Debug("tzkt request")
+		log.Debug("tzkt request", zap.String("req", traceutils.DumpRequest(req)))
 	}
 
 	resp, err := c.client.Do(req)
@@ -207,7 +210,7 @@ func (c *TZKT) request(req *http.Request, responseData interface{}) error {
 	defer resp.Body.Close()
 
 	if c.debug {
-		logrus.WithField("resp", traceutils.DumpResponse(resp)).Debug("tzkt response")
+		log.Debug("tzkt response", zap.String("resp", traceutils.DumpResponse(resp)))
 	}
 
 	if resp.StatusCode != 200 {
@@ -227,10 +230,11 @@ func (c *TZKT) request(req *http.Request, responseData interface{}) error {
 
 	err = json.NewDecoder(resp.Body).Decode(&responseData)
 	if err != nil {
-		logrus.
-			WithField("req", traceutils.DumpRequest(req)).
-			WithField("resp", traceutils.DumpResponse(resp)).
-			Error("tzkt error response")
+		log.Error("tzkt error response",
+			log.SourceTZKT,
+			zap.String("req", traceutils.DumpRequest(req)),
+			zap.String("resp", traceutils.DumpResponse(resp)))
+
 	}
 
 	return err
@@ -425,8 +429,8 @@ func (c *TZKT) GetTokenOwners(contract, tokenID string, limit int, lastTime time
 	return owners, nil
 }
 
-// GetTokenBalanceForOwner returns a list of TokenOwner for a specific token
-func (c *TZKT) GetTokenBalanceForOwner(contract, tokenID, owner string) (int64, error) {
+// GetTokenBalanceAndLastTimeForOwner returns a list of TokenOwner for a specific token
+func (c *TZKT) GetTokenBalanceAndLastTimeForOwner(contract, tokenID, owner string) (int64, time.Time, error) {
 	v := url.Values{
 		"token.contract": []string{contract},
 		"token.tokenId":  []string{tokenID},
@@ -447,18 +451,18 @@ func (c *TZKT) GetTokenBalanceForOwner(contract, tokenID, owner string) (int64, 
 
 	req, _ := http.NewRequest("GET", u.String(), nil)
 	if err := c.request(req, &owners); err != nil {
-		return 0, err
+		return 0, time.Time{}, err
 	}
 
 	if len(owners) == 0 {
-		return 0, fmt.Errorf("token not found")
+		return 0, time.Time{}, fmt.Errorf("token not found")
 	}
 
 	if len(owners) > 1 {
-		return 0, fmt.Errorf("multiple token owners returned")
+		return 0, time.Time{}, fmt.Errorf("multiple token owners returned")
 	}
 
-	return owners[0].Balance, nil
+	return owners[0].Balance, owners[0].LastTime, nil
 }
 
 type TransactionDetails struct {
@@ -474,12 +478,12 @@ type TransactionParameter struct {
 }
 
 type ParametersValue struct {
-	From_ string      `json:"from_"`
-	Txs   []TxsFormat `json:"txs"`
+	From string      `json:"from_"`
+	Txs  []TxsFormat `json:"txs"`
 }
 
 type TxsFormat struct {
-	To_     string `json:"to_"`
+	To      string `json:"to_"`
 	Amount  string `json:"amount"`
 	TokenID string `json:"token_id"`
 }

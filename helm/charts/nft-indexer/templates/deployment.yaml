@@ -37,6 +37,16 @@ spec:
               containerPort: 8089
               protocol: TCP
           env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: aws_access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: aws_secret_access_key
             - name: NFT_INDEXER_STORE_DB_URI
               valueFrom:
                 secretKeyRef:
@@ -57,6 +67,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-indexer.fullname" . }}
                   key: server_admin_api_token
+            - name: NFT_INDEXER_SERVER_SECRET_SYMMETRIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: server_secret_symmetric_key
             - name: NFT_INDEXER_ENS_RPC_URL
               valueFrom:
                 secretKeyRef:
@@ -78,6 +93,9 @@ spec:
           - name: config
             mountPath: "/.config"
             readOnly: true
+          - name: jwt-pubkey-file
+            mountPath: /usr/share/nft-indexer
+            readOnly: true
       volumes:
       # You set volumes at the Pod level, then mount them into containers inside that Pod
       - name: config
@@ -86,6 +104,12 @@ spec:
           items:
           - key: "config.yaml"
             path: "config.yaml"
+      - name: jwt-pubkey-file
+        secret:
+          secretName: {{ include "nft-indexer.fullname" . }}-jwt
+          items:
+            - key: jwt-pubkey.pem
+              path: jwt-pubkey.pem
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

@@ -3,12 +3,14 @@ package imageStore
 import (
 	"context"
 	"io"
+	"regexp"
 	"strings"
 	"time"
 
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/cloudflare/cloudflare-go"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -115,14 +117,14 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 		downloadStartTime := time.Now()
 		file, mimeType, err := imageDownloader.Download()
 		if err != nil {
-			return err
+			return NewImageCachingError(ReasonDownloadFileFailed)
 		}
-		logrus.
-			WithField("duration", time.Since(downloadStartTime)).
-			WithField("assetID", assetID).Debug("download thumbnail finished")
+		log.Debug("download thumbnail finished",
+			zap.Duration("duration", time.Since(downloadStartTime)),
+			zap.String("assetID", assetID))
 
 		if !IsSupportedImageType(mimeType) {
-			return ErrUnsupportImageType
+			return NewImageCachingError(ReasonUnsupportedImageType)
 		}
 
 		if metadata == nil {
@@ -141,10 +143,14 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 			Metadata: metadata,
 		}
 
-		logrus.WithField("assetID", assetID).Debug("upload image to cloudflare")
+		log.Debug("upload image to cloudflare", zap.String("assetID", assetID))
 
 		i, err := s.cloudflareAPI.UploadImage(ctx, s.cloudflareAccountID, uploadRequest)
 		if err != nil {
+			isErrSizeTooLarge, _ := regexp.MatchString("entity.*too large", err.Error())
+			if isErrSizeTooLarge {
+				return NewImageCachingError(ReasonFileSizeTooLarge)
+			}
 			return err
 		}
 
@@ -157,10 +163,10 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 	// Clean up uploaded files when a transaction is failed.
 	// It can not 100% ensure the file is cleaned up due to service broken
 	if err != nil && cloudflareImageID != "" {
-		logrus.WithField("assetID", assetID).Warn("clean uploaded file due to rollback")
+		log.Warn("clean uploaded file due to rollback", zap.String("assetID", assetID))
 		err = s.cloudflareAPI.DeleteImage(ctx, s.cloudflareAccountID, cloudflareImageID)
 		if err != nil {
-			logrus.WithField("cloudflareImageID", cloudflareImageID).Warn("fail to clean uploaded file")
+			log.Warn("fail to clean uploaded file", zap.String("cloudflareImageID", cloudflareImageID))
 		}
 	}
 

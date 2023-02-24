@@ -259,30 +259,47 @@ func (w *NFTIndexerWorker) CacheIPFSArtifactWorkflow(ctx workflow.Context, fullD
 
 // UpdateAccountTokenWorkflow is a workflow to refresh provenance for a specific token
 func (w *NFTIndexerWorker) UpdateAccountTokensWorkflow(ctx workflow.Context, delay time.Duration) error {
-	var err error
-	for {
-		ao := workflow.ActivityOptions{
-			TaskList:               w.AccountTokenTaskListName,
-			ScheduleToStartTimeout: 10 * time.Minute,
-			StartToCloseTimeout:    time.Hour,
-		}
-
-		log := workflow.GetLogger(ctx)
-
-		ctx = workflow.WithActivityOptions(ctx, ao)
-
-		log.Debug("start UpdateAccountTokensWorkflow")
-
-		err = workflow.ExecuteActivity(ctx, w.UpdateAccountTokens).Get(ctx, nil)
-		if err != nil {
-			log.Error("fail to update account tokens")
-			return err
-		}
-
-		err = workflow.Sleep(ctx, 1*time.Minute)
-		if err != nil {
-			log.Error("fail to sleep")
-			return err
-		}
+	ao := workflow.ActivityOptions{
+		TaskList:               w.AccountTokenTaskListName,
+		ScheduleToStartTimeout: 10 * time.Minute,
+		StartToCloseTimeout:    time.Hour,
 	}
+
+	log := workflow.GetLogger(ctx)
+
+	ctx = workflow.WithActivityOptions(ctx, ao)
+
+	log.Debug("start UpdateAccountTokensWorkflow")
+
+	if err := workflow.ExecuteActivity(ctx, w.UpdateAccountTokens).Get(ctx, nil); err != nil {
+		log.Error("fail to update account tokens")
+		return err
+	}
+
+	_ = workflow.Sleep(ctx, 1*time.Minute)
+
+	return workflow.NewContinueAsNewError(ctx, w.UpdateAccountTokensWorkflow, delay)
+
+}
+
+// UpdateSuggestedMimeTypeWorkflow is a workflow to update suggested mimeType from token feedback
+func (w *NFTIndexerWorker) UpdateSuggestedMIMETypeWorkflow(ctx workflow.Context, delay time.Duration) error {
+	ao := workflow.ActivityOptions{
+		TaskList:               w.AccountTokenTaskListName,
+		ScheduleToStartTimeout: 10 * time.Minute,
+		StartToCloseTimeout:    time.Hour,
+	}
+
+	log := workflow.GetLogger(ctx)
+
+	ctx = workflow.WithActivityOptions(ctx, ao)
+
+	log.Debug("start UpdateSuggestedMimeTypeWorkflow")
+
+	if err := workflow.ExecuteActivity(ctx, w.CalculateMIMETypeFromTokenFeedback).Get(ctx, nil); err != nil {
+		log.Error("fail to update suggested mimeType")
+		return err
+	}
+
+	return nil
 }
