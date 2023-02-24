@@ -15,7 +15,6 @@ var ClientName = "nft-indexer-worker"
 var TaskListName = "nft-indexer"
 var ProvenanceTaskListName = "nft-provenance-indexer"
 var AccountTokenTaskListName = "nft-account-token-indexer"
-var AssetTaskListName = "nft-asset-update"
 
 type NFTIndexerWorker struct {
 	http       *http.Client
@@ -34,7 +33,6 @@ type NFTIndexerWorker struct {
 	TaskListName             string
 	ProvenanceTaskListName   string
 	AccountTokenTaskListName string
-	AssetTaskListName        string
 }
 
 func New(environment string,
@@ -78,6 +76,5 @@ func New(environment string,
 		TaskListName:             TaskListName,
 		ProvenanceTaskListName:   ProvenanceTaskListName,
 		AccountTokenTaskListName: AccountTokenTaskListName,
-		AssetTaskListName:        AssetTaskListName,
 	}
 }

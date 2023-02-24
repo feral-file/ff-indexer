@@ -135,7 +135,7 @@ func StartUpdateSuggestedMIMETypeCronWorkflow(c context.Context, client *cadence
 func StartDetectAssetChangeWorkflow(c context.Context, client *cadence.WorkerClient) error {
 	workflowContext := cadenceClient.StartWorkflowOptions{
 		ID:                           "detect-asset-change-helper",
-		TaskList:                     AssetTaskListName,
+		TaskList:                     AccountTokenTaskListName,
 		ExecutionStartToCloseTimeout: time.Hour,
 		CronSchedule:                 "0 * * * *", //every hour
 	}

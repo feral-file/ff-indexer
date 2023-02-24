@@ -62,10 +62,6 @@ nft-event-processor-ethereum-emitter:
 nft-event-processor-bitmark-emitter:
 	go build -o bin/nft-event-processor-bitmark-emitter ./services/nft-event-processor-bitmark-emitter
 
-.PHONY: nft-asset-change-detector
-nft-asset-change-detector:
-	go build -o bin/nft-asset-change-detector ./services/nft-asset-change-detector
-
 .PHONY: run-nft-indexer
 run-nft-indexer: nft-indexer
 	./bin/nft-indexer -c config.yaml
@@ -102,16 +98,12 @@ run-nft-event-processor-ethereum-emitter: nft-event-processor-ethereum-emitter
 run-nft-event-processor-bitmark-emitter: nft-event-processor-bitmark-emitter
 	./bin/nft-event-processor-bitmark-emitter -c config.yaml
 
-.PHONY: run-nft-asset-change-detector
-run-nft-asset-change-detector: nft-asset-change-detector
-	./bin/nft-asset-change-detector -c config.yaml
-
 .PHONY: renew-event-processor-grpc
 renew-event-processor-grpc:
 	protoc --proto_path=protos --go-grpc_out=services/nft-event-processor/ --go_out=services/nft-event-processor/ event-processor.proto
 
 .PHONY: build
-build: nft-indexer nft-indexer-background nft-event-subscriber nft-event-processor nft-provenance-indexer nft-account-token-indexer nft-event-processor-ethereum-emitter nft-event-processor-bitmark-emitter nft-asset-change-detector
+build: nft-indexer nft-indexer-background nft-event-subscriber nft-event-processor nft-provenance-indexer nft-account-token-indexer nft-event-processor-ethereum-emitter nft-event-processor-bitmark-emitter
 
 .PHONY: run
 run: config run-nft-indexer
@@ -214,17 +206,6 @@ endif
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t nft-indexer:image-indexer-$(dist) -f Dockerfile-image-indexer .
 	docker tag nft-indexer:image-indexer-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:image-indexer-$(dist)
-
-.PHONY: build-nft-asset-change-detector
-build-nft-asset-change-detector:
-ifndef dist
-	$(error dist is undefined)
-endif
-	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
-	--build-arg GITHUB_USER=$(GITHUB_USER) \
-	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
-	-t nft-indexer:asset-change-detector-$(dist) -f Dockerfile-asset-change-detector .
-	docker tag nft-indexer:asset-change-detector-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:asset-change-detector-$(dist)
 
 .PHONY: build-chromep
 build-chromep:

@@ -306,7 +306,7 @@ func (w *NFTIndexerWorker) UpdateSuggestedMIMETypeWorkflow(ctx workflow.Context,
 
 func (w *NFTIndexerWorker) DetectAssetChangeWorkflow(ctx workflow.Context) error {
 	ao := workflow.ActivityOptions{
-		TaskList:               w.AssetTaskListName,
+		TaskList:               w.AccountTokenTaskListName,
 		ScheduleToStartTimeout: 10 * time.Minute,
 		StartToCloseTimeout:    time.Hour,
 	}
