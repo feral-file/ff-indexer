@@ -1783,7 +1783,7 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 	}
 
 	filterParameter.IDs = indexIDs
-	tokens, err := s.GetDetailedTokensV2(ctx, filterParameter, offset, size)
+	tokens, err := s.GetDetailedTokensV2(ctx, filterParameter, 0, int64(len(indexIDs)))
 
 	if err != nil {
 		return nil, err
@@ -1818,16 +1818,27 @@ func (s *MongodbIndexerStore) GetDetailedTokensV2(ctx context.Context, filterPar
 				end = length
 			}
 
+			if end < int(offset) {
+				continue
+			}
+
+			if start < int(offset) {
+				start = int(offset)
+			}
+
+			if end > int(size+offset) {
+				end = int(offset + size)
+			}
+
 			pagedTokens, err := s.getDetailedTokensV2InView(ctx,
-				FilterParameter{IDs: filterParameter.IDs[start:end]},
-				offset, size)
+				FilterParameter{IDs: filterParameter.IDs[start:end]})
 			if err != nil {
 				return nil, err
 			}
 			tokens = append(tokens, pagedTokens...)
 		}
 	} else {
-		return s.getDetailedTokensV2InView(ctx, filterParameter, offset, size)
+		return s.getDetailedTokensV2InView(ctx, filterParameter)
 	}
 	log.Debug("GetDetailedTokensV2 End", zap.Duration("queryTime", time.Since(startTime)))
 
@@ -1835,10 +1846,10 @@ func (s *MongodbIndexerStore) GetDetailedTokensV2(ctx context.Context, filterPar
 }
 
 // getDetailedTokensV2InView returns detail tokens from mongodb custom view
-func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error) {
+func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, filterParameter FilterParameter) ([]DetailedTokenV2, error) {
 	tokens := []DetailedTokenV2{}
 
-	findOptions := options.Find().SetSort(bson.D{{Key: "lastRefreshedTime", Value: -1}, {Key: "_id", Value: -1}}).SetLimit(size).SetSkip(offset)
+	findOptions := options.Find().SetSort(bson.D{{Key: "lastRefreshedTime", Value: -1}, {Key: "_id", Value: -1}})
 
 	cursor, err := s.tokenAssetCollection.Find(ctx, bson.M{
 		"indexID": bson.M{"$in": filterParameter.IDs},
