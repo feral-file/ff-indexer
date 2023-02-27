@@ -32,4 +32,7 @@ ARG dist=0.0
 
 COPY --from=build /go/bin/nft-image-indexer /nft-image-indexer
 
+USER root
+RUN apk add --no-cache ffmpeg
+
 ADD services/nft-image-indexer/config.yaml.sample /.config/config.yaml
