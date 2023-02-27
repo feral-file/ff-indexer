@@ -51,7 +51,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: nft-indexer
           IMAGE_TAG: ethereum-emitter-${{ github.sha }}
-          DOCKERFILE: Dockerfile-event-processor-ethereum-emitter
+          DOCKERFILE: Dockerfile-ethereum-emitter
           GITHUB_USER: bitmark-bot
           GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
         run: |
@@ -70,7 +70,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: nft-indexer
           IMAGE_TAG: bitmark-emitter-${{ github.sha }}
-          DOCKERFILE: Dockerfile-event-processor-bitmark-emitter
+          DOCKERFILE: Dockerfile-bitmark-emitter
           GITHUB_USER: bitmark-bot
           GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
         run: |
