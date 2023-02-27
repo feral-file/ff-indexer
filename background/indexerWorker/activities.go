@@ -676,7 +676,7 @@ func (w *NFTIndexerWorker) UpdatePresignedThumbnailAssets(ctx context.Context) e
 		return err
 	}
 
-	updatedTokens := []indexer.Token{}
+	updatedIndexIDs := []string{}
 	for _, token := range presignedThumbnailTokens {
 		assetUpdates, err := w.indexerEngine.IndexTezosToken(ctx, token.Owner, token.ContractAddress, token.ID)
 		if err != nil {
@@ -690,12 +690,9 @@ func (w *NFTIndexerWorker) UpdatePresignedThumbnailAssets(ctx context.Context) e
 			continue
 		}
 
-		updatedTokens = append(updatedTokens, assetUpdates.Tokens...)
-	}
-
-	updatedIndexIDs := []string{}
-	for _, token := range updatedTokens {
-		updatedIndexIDs = append(updatedIndexIDs, token.IndexID)
+		for _, token := range assetUpdates.Tokens {
+			updatedIndexIDs = append(updatedIndexIDs, token.IndexID)
+		}
 	}
 
 	if err := w.indexerStore.MarkAccountTokenChanged(ctx, updatedIndexIDs); err != nil {
