@@ -27,3 +27,7 @@ func (s *NFTEventSubscriber) GetTokensByIndexID(c context.Context, indexID strin
 func (s *NFTEventSubscriber) UpdateOwner(c context.Context, id, owner string, updatedAt time.Time) error {
 	return s.store.UpdateOwner(c, id, owner, updatedAt)
 }
+
+func (s *NFTEventSubscriber) UpdateAccountTokenOwners(c context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error {
+	return s.store.UpdateAccountTokenOwners(c, indexID, lastActivityTime, owners)
+}
