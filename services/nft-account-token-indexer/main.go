@@ -68,10 +68,12 @@ func main() {
 	// workflows
 	workflow.Register(worker.UpdateAccountTokensWorkflow)
 	workflow.Register(worker.UpdateSuggestedMIMETypeWorkflow)
+	workflow.Register(worker.DetectAssetChangeWorkflow)
 
 	// activities
 	activity.Register(worker.UpdateAccountTokens)
 	activity.Register(worker.CalculateMIMETypeFromTokenFeedback)
+	activity.Register(worker.UpdatePresignedThumbnailAssets)
 
 	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)
 	workerLogger := cadence.BuildCadenceLogger(logLevel)
@@ -84,6 +86,10 @@ func main() {
 	}
 
 	if err := indexerWorker.StartUpdateSuggestedMIMETypeCronWorkflow(ctx, cadenceClient, 0); err != nil {
+		panic(err)
+	}
+
+	if err := indexerWorker.StartDetectAssetChangeWorkflow(ctx, cadenceClient); err != nil {
 		panic(err)
 	}
 

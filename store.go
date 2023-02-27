@@ -18,7 +18,8 @@ import (
 )
 
 const (
-	QueryPageSize = 25
+	QueryPageSize   = 25
+	PresignedFxhash = "QmYwSwa5hP4346GqD7hAjutwJSmeYTdiLQ7Wec2C7Cez1D"
 )
 
 const (
@@ -78,6 +79,7 @@ type Store interface {
 	UpdateTokenFeedback(ctx context.Context, tokenFeedbacks []TokenFeedbackUpdate, userDID string) error
 	GetGrouppedTokenFeedbacks(ctx context.Context) ([]GrouppedTokenFeedback, error)
 	UpdateTokenSugesstedMIMEType(ctx context.Context, indexID, mimeType string) error
+	GetPresignedThumbnailTokens(ctx context.Context) ([]Token, error)
 
 	MarkAccountTokenChanged(ctx context.Context, indexIDs []string) error
 
@@ -1690,6 +1692,46 @@ func (s *MongodbIndexerStore) UpdateTokenSugesstedMIMEType(ctx context.Context, 
 	)
 
 	return err
+}
+
+// GetPresignedThumbnailTokens gets tokens that have presigned thumbnail
+func (s *MongodbIndexerStore) GetPresignedThumbnailTokens(ctx context.Context) ([]Token, error) {
+	tokens := []Token{}
+
+	cursor, err := s.assetCollection.Find(ctx, bson.M{
+		"source":                              SourceTZKT,
+		"projectMetadata.latest.thumbnailURL": bson.M{"$regex": PresignedFxhash},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for cursor.Next(ctx) {
+		var currentAsset struct {
+			ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
+		}
+
+		if err := cursor.Decode(&currentAsset); err != nil {
+			return nil, err
+		}
+
+		r := s.tokenCollection.FindOne(ctx, bson.M{"assetID": currentAsset.ProjectMetadata.Latest.AssetID})
+		if r.Err() != nil {
+			log.Error("cannot find asset ID", zap.String("assetID", currentAsset.ProjectMetadata.Latest.AssetID), zap.Error(r.Err()))
+			continue
+		}
+
+		var token Token
+
+		if err := r.Decode(&token); err != nil {
+			log.Error("cannot decode token", zap.Error(err))
+			continue
+		}
+
+		tokens = append(tokens, token)
+	}
+
+	return tokens, nil
 }
 
 // MarkAccountTokenChanged sets the lastRefreshedTime to now

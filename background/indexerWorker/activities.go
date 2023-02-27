@@ -667,3 +667,38 @@ func (w *NFTIndexerWorker) CalculateMIMETypeFromTokenFeedback(ctx context.Contex
 
 	return nil
 }
+
+// UpdatePresignedThumbnailAssets detects pre-sign fxhash thumbnail and trigger IndexAsset
+func (w *NFTIndexerWorker) UpdatePresignedThumbnailAssets(ctx context.Context) error {
+	presignedThumbnailTokens, err := w.indexerStore.GetPresignedThumbnailTokens(ctx)
+	if err != nil {
+		log.Debug("errors in the pending account tokens", zap.Error(err))
+		return err
+	}
+
+	updatedIndexIDs := []string{}
+	for _, token := range presignedThumbnailTokens {
+		assetUpdates, err := w.indexerEngine.IndexTezosToken(ctx, token.Owner, token.ContractAddress, token.ID)
+		if err != nil {
+			log.Error("fail to get updates of a tezos token", zap.String("indexID", token.IndexID), zap.Error(err))
+			continue
+		}
+
+		err = w.indexerStore.IndexAsset(ctx, token.AssetID, *assetUpdates)
+		if err != nil {
+			log.Error("fail to update a tezos asset", zap.String("assetID", token.AssetID), zap.Error(err))
+			continue
+		}
+
+		for _, token := range assetUpdates.Tokens {
+			updatedIndexIDs = append(updatedIndexIDs, token.IndexID)
+		}
+	}
+
+	if err := w.indexerStore.MarkAccountTokenChanged(ctx, updatedIndexIDs); err != nil {
+		log.Error("fail to update account tokens", zap.Any("indexIDs", updatedIndexIDs), zap.Error(err))
+		return err
+	}
+
+	return nil
+}
