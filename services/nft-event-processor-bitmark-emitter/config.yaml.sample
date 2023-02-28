@@ -10,5 +10,3 @@ bitmarksdk:
 event_processor_server:
   network: tcp
   address: localhost:8765
-
-
