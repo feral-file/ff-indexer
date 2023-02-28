@@ -7,10 +7,10 @@ import (
 )
 
 type Asset struct {
-	IndexID       string         `json:"indexID"`
-	ThumbnailID   string         `json:"thumbnailID"`
-	LastUpdatedAt *time.Time     `json:"lastUpdatedAt"`
-	Metadata      *AssetMetadata `json:"metadata"`
+	IndexID           string         `json:"indexID"`
+	ThumbnailID       string         `json:"thumbnailID"`
+	LastRefreshedTime *time.Time     `json:"lastRefreshedTime"`
+	Metadata          *AssetMetadata `json:"metadata"`
 }
 
 type AssetAttributes struct {
