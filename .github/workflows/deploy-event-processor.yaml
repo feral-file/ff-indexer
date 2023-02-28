@@ -1,7 +1,4 @@
-on:
-  push:
-    branches:
-      - story/1798_deploy_event_processor_and_emitters
+on: workflow_dispatch
 
 name: Deploy event-processor to Development
 
