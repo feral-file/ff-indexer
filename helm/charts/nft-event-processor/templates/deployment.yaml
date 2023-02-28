@@ -77,18 +77,6 @@ spec:
           items:
           - key: "config.yaml"
             path: "config.yaml"
-      - name: marketplace-indexer-config
-        configMap:
-          name: {{ include "nft-event-processor.fullname" . }}
-          items:
-          - key: "dappetizer.marketplace.config.json"
-            path: "dappetizer.default.config.json"
-      - name: feralfile-indexer-config
-        configMap:
-          name: {{ include "nft-event-processor.fullname" . }}
-          items:
-          - key: "dappetizer.feralfile.config.json"
-            path: "dappetizer.default.config.json"
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -164,14 +152,8 @@ spec:
         configMap:
           name: {{ include "nft-event-processor.fullname" . }}
           items:
-          - key: "config.yaml"
+          - key: "ethereum.yaml"
             path: "config.yaml"
-      - name: marketplace-indexer-config
-        configMap:
-          name: {{ include "nft-event-processor.fullname" . }}
-          items:
-          - key: "dappetizer.marketplace.config.json"
-            path: "dappetizer.default.config.json"
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -241,14 +223,8 @@ spec:
         configMap:
           name: {{ include "nft-event-processor.fullname" . }}
           items:
-          - key: "config.yaml"
+          - key: "bitmark.yaml"
             path: "config.yaml"
-      - name: marketplace-indexer-config
-        configMap:
-          name: {{ include "nft-event-processor.fullname" . }}
-          items:
-          - key: "dappetizer.marketplace.config.json"
-            path: "dappetizer.default.config.json"
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

@@ -56,11 +56,11 @@ nft-account-token-indexer:
 
 .PHONY: nft-ethereum-emitter
 nft-ethereum-emitter:
-	go build -o bin/nft-ethereum-emitter ./services/nft-ethereum-emitter
+	go build -o bin/nft-ethereum-emitter ./services/nft-event-processor-ethereum-emitter
 
 .PHONY: nft-bitmark-emitter
 nft-bitmark-emitter:
-	go build -o bin/nft-bitmark-emitter ./services/nft-bitmark-emitter
+	go build -o bin/nft-bitmark-emitter ./services/nft-event-processor-bitmark-emitter
 
 .PHONY: run-nft-indexer
 run-nft-indexer: nft-indexer

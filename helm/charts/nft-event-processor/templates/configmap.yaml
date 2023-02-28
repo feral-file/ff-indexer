@@ -9,15 +9,11 @@ data:
     server:
       network: tcp
       address: 0.0.0.0:8765
-
-    event_processor_server:
-      network: tcp
-      address: nft-event-processor.autonomy.svc.cluster.local:8765
-    
+      
     store:
       dsn:
       cache_expiry: 24h
-      log_level: 2
+      log_level: 1
     
     log:
       level: debug
@@ -45,60 +41,32 @@ data:
     notification:
       endpoint: http://autonomy-notification.autonomy.svc.cluster.local:80
 
-  dappetizer.feralfile.config.json: |
-    {
-      "indexing": {
-        "fromBlockLevel": 2845033,
-        "contractBoost": {
-          "type": "tzkt",
-          "apiUrl": "{{ .Values.serviceConfig.contractBoostUrl }}"
-        },
-        "contracts": [
-          {
-            "name": "FeralFileV1",
-            "addresses": {{ .Values.serviceConfig.contractAddresses | toJson }}
-          }
-        ]
-      },
-      "tezosNode": {
-        "url": "https://mainnet-tezos.autonomy.io"
-      }
-    }
-  dappetizer.marketplace.config.json: |
-    {
-      "indexing": {
-        "fromBlockLevel": 2845173,
-        "contractBoost": {
-          "type": "tzkt"
-        },
-        "contracts": [
-          {
-            "name": "fxhash",
-            "addresses": [
-              "KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE"
-            ]
-          },
-          {
-            "name": "hicetniuc",
-            "addresses": [
-              "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton"
-            ]
-          },
-          {
-            "name": "versum",
-            "addresses": [
-              "KT1LjmAdYQCLBjwv4S2oFkEzyHVkomAf5MrW"
-            ]
-          },
-          {
-            "name": "fxhashv2",
-            "addresses": [
-              "KT1U6EHmNxJTkvaWJ4ThczG4FSDaHC21ssvi"
-            ]
-          }
-        ]
-      },
-      "tezosNode": {
-        "url": "https://mainnet-tezos.autonomy.io"
-      }
-    }
+  ethereum.yaml: |
+    ethereum:
+      ws_url:
+
+    log:
+      level: debug
+
+    event_processor_server:
+      network: tcp
+      address: nft-event-processor.autonomy.svc.cluster.local:8765
+
+  bitmark.yaml: |
+    network:
+      bitmark: testnet
+
+    bitmark:
+      db_uri:
+
+    bitmarksdk:
+      apikey:
+
+    log:
+      level: debug
+
+    event_processor_server:
+      network: tcp
+      address: nft-event-processor.autonomy.svc.cluster.local:8765
+
+
