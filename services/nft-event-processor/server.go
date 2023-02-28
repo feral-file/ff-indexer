@@ -113,7 +113,6 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 		}
 
 		if event == nil {
-			log.Info("event queue empty")
 			time.Sleep(WaitingTime)
 
 			continue
@@ -235,7 +234,6 @@ func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 		}
 
 		if event == nil {
-			log.Info("event queue empty")
 			time.Sleep(WaitingTime)
 
 			continue
@@ -319,7 +317,6 @@ func (e *EventProcessor) NotifyChangeTokenOwner() {
 		}
 
 		if event == nil {
-			log.Info("event queue empty")
 			time.Sleep(WaitingTime)
 
 			continue
@@ -366,7 +363,6 @@ func (e *EventProcessor) SendEventToFeedServer() {
 		}
 
 		if event == nil {
-			log.Info("event queue empty")
 			time.Sleep(WaitingTime)
 
 			continue
