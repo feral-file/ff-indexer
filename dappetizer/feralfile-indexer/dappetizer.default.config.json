@@ -1,0 +1,19 @@
+{
+  "indexing": {
+    "fromBlockLevel": 2845033,
+    "contractBoost": {
+      "type": "tzkt"
+    },
+    "contracts": [
+      {
+        "name": "FeralFileV1",
+        "addresses": [
+          "KT1RnhKKsAD7ScFi3Nb7HKK2hnPCqXcbNG3k"
+        ]
+      }
+    ]
+  },
+  "tezosNode": {
+    "url": "https://mainnet-tezos.autonomy.io"
+  }
+}

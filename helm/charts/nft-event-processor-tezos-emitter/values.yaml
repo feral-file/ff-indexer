@@ -1,4 +1,4 @@
-# Default values for nft-event-subscriber.
+# Default values for nft-event-processor-tezos-emitter.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
@@ -19,8 +19,8 @@ serviceConfig:
   cadence_hostport: cadence-frontend.cadence.svc.cluster.local:7933
   feedEndpoint: http://autonomy-event-feed.autonomy.svc.cluster.local:80
   tezosNodeRPCURL: https://rpc.ghost.tzstats.com
-  eventProcessorURI:
-  eventSubscriberURL: http://localhost:8089/events
+  eventProcessorURI: nft-event-processor.autonomy.svc.cluster.local:8765
+  eventSubscriberURL:
   contractAddresses: []
   contractBoostUrl: "https://api.tzkt.io/"
 

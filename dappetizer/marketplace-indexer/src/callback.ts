@@ -31,14 +31,14 @@ const eventProcessorURI = <string>process.env.EVENT_PROCESSOR_URI
 const eventSubscriberURL = <string>process.env.EVENT_SUBSCRIBER_URL
 
 if (!eventSubscriberURL) {
-  console.log("[TEZOS_MARLETPLACE_INDEXER]", "event subscriber url not set")
+  console.log("[TEZOS_EMITTER]", "event subscriber url not set")
 }
 
 var grpcClient: EventProcessorClient
 if (eventProcessorURI) {
   grpcClient = new EventProcessorClient(eventProcessorURI, grpc.ChannelCredentials.createInsecure());
 } else {
-  console.log("[TEZOS_MARLETPLACE_INDEXER]", "event processor uri not set")
+  console.log("[TEZOS_EMITTER]", "event processor uri not set")
 }
 
 async function reportEvent(timestamp: Date, contract: string, tokenID: string, from_: string, to_: string) {

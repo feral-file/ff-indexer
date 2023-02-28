@@ -1,15 +1,15 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "nft-event-subscriber.fullname" . }}
+  name: {{ include "nft-event-processor-tezos-emitter.fullname" . }}
   labels:
     v: "1"
-    {{- include "nft-event-subscriber.labels" . | nindent 4 }}
+    {{- include "nft-event-processor-tezos-emitter.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "nft-event-subscriber.selectorLabels" . | nindent 6 }}
+      {{- include "nft-event-processor-tezos-emitter.selectorLabels" . | nindent 6 }}
   template:
     metadata:
     {{- with .Values.podAnnotations }}
@@ -17,7 +17,7 @@ spec:
         {{- toYaml . | nindent 8 }}
     {{- end }}
       labels:
-        {{- include "nft-event-subscriber.selectorLabels" . | nindent 8 }}
+        {{- include "nft-event-processor-tezos-emitter.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -26,69 +26,6 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-        - name: {{ .Chart.Name }}
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tags.eventSubscriber | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command:
-          - /nft-event-subscriber
-          ports:
-            - name: http
-              containerPort: 8089
-              protocol: TCP
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-          env:
-            - name: NFT_INDEXER_STORE_DB_URI
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "nft-event-subscriber.fullname" . }}
-                  key: store_db_uri
-            - name: NFT_INDEXER_ACCOUNT_DB_URI
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "nft-event-subscriber.fullname" . }}
-                  key: account_db_uri
-            - name: NFT_INDEXER_ETHEREUM_WORKER_ACCOUNT_MNEMONIC
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "nft-event-subscriber.fullname" . }}
-                  key: ethereum_worker_account_mnemonic
-            - name: NFT_INDEXER_ETHEREUM_RPC_URL
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "nft-event-subscriber.fullname" . }}
-                  key: ethereum_rpc_url
-            - name: NFT_INDEXER_ETHEREUM_WS_URL
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "nft-event-subscriber.fullname" . }}
-                  key: ethereum_ws_url
-            - name: NFT_INDEXER_FEED_API_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "nft-event-subscriber.fullname" . }}
-                  key: feed_api_token
-            - name: NFT_INDEXER_OPENSEA_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "nft-event-subscriber.fullname" . }}
-                  key: opensea_api_key
-            - name: NFT_INDEXER_BITMARKSDK_APIKEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "nft-event-subscriber.fullname" . }}
-                  key: bitmarksdk_apikey
-            - name: NFT_INDEXER_BITMARK_DB_URI
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "nft-event-subscriber.fullname" . }}
-                  key: bitmark_db_uri
-          volumeMounts:
-          - name: config
-            mountPath: "/.config"
-            readOnly: true
 {{- if ne .Values.serviceConfig.environment "development" }}
         - name: {{ .Chart.Name }}-tezos-indexer
           securityContext:
@@ -125,11 +62,11 @@ spec:
 {{- end }}
             - name: DEFAULT_CONFIG_PATH
               value: /.config/dappetizer.default.config.json
-{{- if ne .Values.serviceConfig.eventProcessorURI "" }}
+{{- if not (kindIs "invalid" .Values.serviceConfig.eventProcessorURI) }}
             - name: EVENT_PROCESSOR_URI
               value: {{ .Values.serviceConfig.eventProcessorURI }}
 {{- end }}
-{{- if ne .Values.serviceConfig.eventSubscriberURL "" }}
+{{- if not (kindIs "invalid" .Values.serviceConfig.eventSubscriberURL) }}
             - name: EVENT_SUBSCRIBER_URL
               value: {{ .Values.serviceConfig.eventSubscriberURL }}
 {{- end }}
@@ -141,21 +78,15 @@ spec:
             readOnly: true
       volumes:
       # You set volumes at the Pod level, then mount them into containers inside that Pod
-      - name: config
-        configMap:
-          name: {{ include "nft-event-subscriber.fullname" . }}
-          items:
-          - key: "config.yaml"
-            path: "config.yaml"
       - name: marketplace-indexer-config
         configMap:
-          name: {{ include "nft-event-subscriber.fullname" . }}
+          name: {{ include "nft-event-processor-tezos-emitter.fullname" . }}
           items:
           - key: "dappetizer.marketplace.config.json"
             path: "dappetizer.default.config.json"
       - name: feralfile-indexer-config
         configMap:
-          name: {{ include "nft-event-subscriber.fullname" . }}
+          name: {{ include "nft-event-processor-tezos-emitter.fullname" . }}
           items:
           - key: "dappetizer.feralfile.config.json"
             path: "dappetizer.default.config.json"

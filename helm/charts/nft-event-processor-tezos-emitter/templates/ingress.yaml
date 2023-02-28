@@ -4,8 +4,8 @@
 {{- if empty .Values.ingress.hosts }}
 {{ fail ".Values.ingress.hosts should not be empty when ingress is enabled" }}
 {{- end }}
-{{- $fullName := include "nft-event-subscriber.fullname" . -}}
-{{- $tlsSecretName := include "nft-event-subscriber.tlsSecretName" . -}}
+{{- $fullName := include "nft-event-processor-tezos-emitter.fullname" . -}}
+{{- $tlsSecretName := include "nft-event-processor-tezos-emitter.tlsSecretName" . -}}
 {{- $svcPort := .Values.service.port -}}
 
 {{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
@@ -19,7 +19,7 @@ kind: Ingress
 metadata:
   name: {{ $fullName }}
   labels:
-    {{- include "nft-event-subscriber.labels" . | nindent 4 }}
+    {{- include "nft-event-processor-tezos-emitter.labels" . | nindent 4 }}
   annotations:
   {{- if .Values.ingress.external_dns }}
     external-dns.alpha.kubernetes.io/hostname: {{ range $index, $value := .Values.ingress.hosts }}{{ if ne $index 0 }},{{ end }}{{ $value.host }}{{ end }}
