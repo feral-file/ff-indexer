@@ -1831,14 +1831,14 @@ func (s *MongodbIndexerStore) GetDetailedTokensV2(ctx context.Context, filterPar
 			}
 
 			pagedTokens, err := s.getDetailedTokensV2InView(ctx,
-				FilterParameter{IDs: filterParameter.IDs[start:end]})
+				FilterParameter{IDs: filterParameter.IDs[start:end]}, 0, int64(end-start))
 			if err != nil {
 				return nil, err
 			}
 			tokens = append(tokens, pagedTokens...)
 		}
 	} else {
-		return s.getDetailedTokensV2InView(ctx, filterParameter)
+		return s.getDetailedTokensV2InView(ctx, filterParameter, offset, size)
 	}
 	log.Debug("GetDetailedTokensV2 End", zap.Duration("queryTime", time.Since(startTime)))
 
@@ -1846,7 +1846,7 @@ func (s *MongodbIndexerStore) GetDetailedTokensV2(ctx context.Context, filterPar
 }
 
 // getDetailedTokensV2InView returns detail tokens from mongodb custom view
-func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, filterParameter FilterParameter) ([]DetailedTokenV2, error) {
+func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error) {
 	tokens := []DetailedTokenV2{}
 
 	findOptions := options.Find().SetSort(bson.D{{Key: "lastRefreshedTime", Value: -1}, {Key: "_id", Value: -1}})
