@@ -417,6 +417,7 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 
 	accountTokens, err := w.indexerStore.GetAccountTokensByIndexIDs(ctx, indexIDs)
 	if err != nil {
+		log.Error("fail to get account tokens", zap.Any("indexIDs", indexIDs), zap.Error(err))
 		return err
 	}
 
@@ -426,6 +427,7 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 
 	tokens, err := w.indexerStore.GetTokensByIndexIDs(ctx, indexIDs)
 	if err != nil {
+		log.Error("fail to get tokens", zap.Any("indexIDs", indexIDs), zap.Error(err))
 		return err
 	}
 
@@ -467,6 +469,7 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 		case indexer.EthereumBlockchain:
 			lastActivityTime, err = w.indexerEngine.IndexETHTokenLastActivityTime(ctx, token.ContractAddress, token.ID)
 			if err != nil {
+				log.Error("fail to get lastActivityTime", zap.String("indexID", token.IndexID), zap.Error(err))
 				return err
 			}
 
@@ -478,11 +481,13 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 			log.Debug("fetch eth ownership for the token", zap.String("indexID", token.IndexID))
 			owners, err = w.indexerEngine.IndexETHTokenOwners(ctx, token.ContractAddress, token.ID)
 			if err != nil {
+				log.Error("fail to fetch ownership", zap.String("indexID", token.IndexID), zap.Error(err))
 				return err
 			}
 		case indexer.TezosBlockchain:
 			lastActivityTime, err = w.indexerEngine.IndexTezosTokenLastActivityTime(ctx, token.ContractAddress, token.ID)
 			if err != nil {
+				log.Error("fail to get lastActivityTime", zap.String("indexID", token.IndexID), zap.Error(err))
 				return err
 			}
 
@@ -494,15 +499,18 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 			log.Debug("fetch tezos ownership for the token", zap.String("indexID", token.IndexID))
 			owners, err = w.indexerEngine.IndexTezosTokenOwners(ctx, token.ContractAddress, token.ID)
 			if err != nil {
+				log.Error("fail to fetch ownership", zap.String("indexID", token.IndexID), zap.Error(err))
 				return err
 			}
 		}
 
 		if err := w.indexerStore.UpdateTokenOwners(ctx, token.IndexID, lastActivityTime, owners); err != nil {
+			log.Error("fail to update token owners", zap.String("indexID", token.IndexID), zap.Any("owners", owners), zap.Error(err))
 			return err
 		}
 
 		if err := w.indexerStore.UpdateAccountTokenOwners(ctx, token.IndexID, lastActivityTime, owners); err != nil {
+			log.Error("fail to update account token owners", zap.String("indexID", token.IndexID), zap.Any("owners", owners), zap.Error(err))
 			return err
 		}
 	}
