@@ -41,10 +41,10 @@ type AssetAttributes {
 }
 
 type Asset {
-	indexID:       	String!
-	thumbnailID:   	String!
-	lastUpdatedAt:	Time
-	metadata:      	AssetMetadata!
+	indexID:       		String!
+	thumbnailID:   		String!
+	lastRefreshedTime:	Time
+	metadata:      		AssetMetadata!
 }
 
 type AssetMetadata {

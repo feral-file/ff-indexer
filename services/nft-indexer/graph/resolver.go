@@ -46,9 +46,9 @@ func (r *Resolver) mapGraphQLToken(t indexer.DetailedTokenV2) *model.Token {
 		LastActivityTime:  &t.LastActivityTime,
 		LastRefreshedTime: &t.LastRefreshedTime,
 		Asset: &model.Asset{
-			IndexID:       t.Asset.IndexID,
-			ThumbnailID:   t.Asset.ThumbnailID,
-			LastUpdatedAt: &t.Asset.LastUpdatedAt,
+			IndexID:           t.Asset.IndexID,
+			ThumbnailID:       t.Asset.ThumbnailID,
+			LastRefreshedTime: &t.Asset.LastRefreshedTime,
 			Metadata: &model.AssetMetadata{
 				Project: &model.VersionedProjectMetadata{
 					Origin:  r.mapGraphQLProjectMetadata(t.Asset.Metadata.Project.Origin),

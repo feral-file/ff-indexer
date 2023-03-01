@@ -45,10 +45,10 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Asset struct {
-		IndexID       func(childComplexity int) int
-		LastUpdatedAt func(childComplexity int) int
-		Metadata      func(childComplexity int) int
-		ThumbnailID   func(childComplexity int) int
+		IndexID           func(childComplexity int) int
+		LastRefreshedTime func(childComplexity int) int
+		Metadata          func(childComplexity int) int
+		ThumbnailID       func(childComplexity int) int
 	}
 
 	AssetAttributes struct {
@@ -156,12 +156,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Asset.IndexID(childComplexity), true
 
-	case "Asset.lastUpdatedAt":
-		if e.complexity.Asset.LastUpdatedAt == nil {
+	case "Asset.lastRefreshedTime":
+		if e.complexity.Asset.LastRefreshedTime == nil {
 			break
 		}
 
-		return e.complexity.Asset.LastUpdatedAt(childComplexity), true
+		return e.complexity.Asset.LastRefreshedTime(childComplexity), true
 
 	case "Asset.metadata":
 		if e.complexity.Asset.Metadata == nil {
@@ -836,8 +836,8 @@ func (ec *executionContext) fieldContext_Asset_thumbnailID(ctx context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Asset_lastUpdatedAt(ctx context.Context, field graphql.CollectedField, obj *model.Asset) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Asset_lastUpdatedAt(ctx, field)
+func (ec *executionContext) _Asset_lastRefreshedTime(ctx context.Context, field graphql.CollectedField, obj *model.Asset) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Asset_lastRefreshedTime(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -850,7 +850,7 @@ func (ec *executionContext) _Asset_lastUpdatedAt(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.LastUpdatedAt, nil
+		return obj.LastRefreshedTime, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -864,7 +864,7 @@ func (ec *executionContext) _Asset_lastUpdatedAt(ctx context.Context, field grap
 	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Asset_lastUpdatedAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Asset_lastRefreshedTime(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Asset",
 		Field:      field,
@@ -3368,8 +3368,8 @@ func (ec *executionContext) fieldContext_Token_asset(ctx context.Context, field 
 				return ec.fieldContext_Asset_indexID(ctx, field)
 			case "thumbnailID":
 				return ec.fieldContext_Asset_thumbnailID(ctx, field)
-			case "lastUpdatedAt":
-				return ec.fieldContext_Asset_lastUpdatedAt(ctx, field)
+			case "lastRefreshedTime":
+				return ec.fieldContext_Asset_lastRefreshedTime(ctx, field)
 			case "metadata":
 				return ec.fieldContext_Asset_metadata(ctx, field)
 			}
@@ -5348,9 +5348,9 @@ func (ec *executionContext) _Asset(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "lastUpdatedAt":
+		case "lastRefreshedTime":
 
-			out.Values[i] = ec._Asset_lastUpdatedAt(ctx, field, obj)
+			out.Values[i] = ec._Asset_lastRefreshedTime(ctx, field, obj)
 
 		case "metadata":
 
