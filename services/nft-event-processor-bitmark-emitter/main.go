@@ -53,5 +53,5 @@ func main() {
 
 	bitmarkEventsEmitter.Run(ctx)
 
-	log.Info("Ethereum Emitter terminated")
+	log.Info("Bitmark Emitter terminated")
 }

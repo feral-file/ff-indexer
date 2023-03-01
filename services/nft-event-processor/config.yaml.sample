@@ -6,7 +6,7 @@ server:
 store:
   dsn:
   cache_expiry: 24h
-  log_level: 2
+  log_level: 1
 
 log:
   level: debug

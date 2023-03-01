@@ -1,0 +1,15 @@
+{
+    "include": [
+        "src/**/*"
+    ],
+    "compilerOptions": {
+        "outDir": "dist",
+        "target": "ES2020",
+        "module": "CommonJS",
+        "moduleResolution": "Node",
+        "experimentalDecorators": true,
+        "allowJs": true,
+        "emitDecoratorMetadata": true,
+        "strict": true
+    }
+}

@@ -18,17 +18,19 @@ import (
 )
 
 const (
-	QueryPageSize = 25
+	QueryPageSize   = 25
+	PresignedFxhash = "QmYwSwa5hP4346GqD7hAjutwJSmeYTdiLQ7Wec2C7Cez1D"
 )
 
 const (
-	assetCollectionName         = "assets"
-	tokenCollectionName         = "tokens"
-	identityCollectionName      = "identities"
-	ffIdentityCollectionName    = "ff_identities"
-	accountCollectionName       = "accounts"
-	accountTokenCollectionName  = "account_tokens"
-	tokenFeedbackCollectionName = "token_feedbacks"
+	assetCollectionName          = "assets"
+	tokenCollectionName          = "tokens"
+	identityCollectionName       = "identities"
+	ffIdentityCollectionName     = "ff_identities"
+	accountCollectionName        = "accounts"
+	accountTokenCollectionName   = "account_tokens"
+	tokenFeedbackCollectionName  = "token_feedbacks"
+	tokenAssetViewCollectionName = "token_assets"
 )
 
 var ErrNoRecordUpdated = fmt.Errorf("no record updated")
@@ -77,6 +79,12 @@ type Store interface {
 	UpdateTokenFeedback(ctx context.Context, tokenFeedbacks []TokenFeedbackUpdate, userDID string) error
 	GetGrouppedTokenFeedbacks(ctx context.Context) ([]GrouppedTokenFeedback, error)
 	UpdateTokenSugesstedMIMEType(ctx context.Context, indexID, mimeType string) error
+	GetPresignedThumbnailTokens(ctx context.Context) ([]Token, error)
+
+	MarkAccountTokenChanged(ctx context.Context, indexIDs []string) error
+
+	GetDetailedTokensV2(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error)
+	GetDetailedAccountTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, lastUpdatedAt time.Time, offset, size int64) ([]DetailedTokenV2, error)
 }
 
 type FilterParameter struct {
@@ -98,6 +106,7 @@ func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*Mo
 	accountCollection := db.Collection(accountCollectionName)
 	accountTokenCollection := db.Collection(accountTokenCollectionName)
 	tokenFeedbackCollection := db.Collection(tokenFeedbackCollectionName)
+	tokenAssetCollection := db.Collection(tokenAssetViewCollectionName)
 
 	return &MongodbIndexerStore{
 		dbName:                  dbName,
@@ -109,6 +118,7 @@ func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*Mo
 		accountCollection:       accountCollection,
 		accountTokenCollection:  accountTokenCollection,
 		tokenFeedbackCollection: tokenFeedbackCollection,
+		tokenAssetCollection:    tokenAssetCollection,
 	}, nil
 }
 
@@ -122,6 +132,7 @@ type MongodbIndexerStore struct {
 	accountCollection       *mongo.Collection
 	accountTokenCollection  *mongo.Collection
 	tokenFeedbackCollection *mongo.Collection
+	tokenAssetCollection    *mongo.Collection
 }
 
 type UpdateSet struct {
@@ -135,6 +146,7 @@ type UpdateSet struct {
 	Edition            int64                    `structs:"edition,omitempty"`
 	EditionName        string                   `structs:"editionName,omitempty"`
 	ContractAddress    string                   `structs:"contractAddress,omitempty"`
+	LastRefreshedTime  time.Time                `struct:"lastRefreshedTime"`
 }
 
 // checkIfTokenNeedToUpdate returns true if the new token data is suppose to be
@@ -180,6 +192,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 					Origin: assetUpdates.ProjectMetadata,
 					Latest: assetUpdates.ProjectMetadata,
 				},
+				LastRefreshedTime: time.Now(),
 			}
 
 			if _, err := s.assetCollection.InsertOne(ctx, structs.Map(assetUpdateSet)); err != nil {
@@ -215,7 +228,10 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		}
 
 		if requireUpdates {
-			updates := bson.D{{Key: "$set", Value: bson.D{{Key: "projectMetadata.latest", Value: assetUpdates.ProjectMetadata}}}}
+			updates := bson.D{{Key: "$set", Value: bson.D{
+				{Key: "projectMetadata.latest", Value: assetUpdates.ProjectMetadata},
+				{Key: "lastRefreshedTime", Value: time.Now()},
+			}}}
 
 			// TODO: check whether to remove the thumbnail cache when the thumbnail data is updated.
 			if currentAsset.ProjectMetadata.Latest.ThumbnailURL != assetUpdates.ProjectMetadata.ThumbnailURL {
@@ -1235,24 +1251,17 @@ func (s *MongodbIndexerStore) IndexAccount(ctx context.Context, account Account)
 // IndexAccountTokens indexes the account tokens by inputs
 func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error {
 	for _, accountToken := range accountTokens {
-		if accountToken.Balance > 0 {
-			r, err := s.accountTokenCollection.UpdateOne(ctx,
-				bson.M{"indexID": accountToken.IndexID, "ownerAccount": owner},
-				bson.M{"$set": accountToken},
-				options.Update().SetUpsert(true),
-			)
+		r, err := s.accountTokenCollection.UpdateOne(ctx,
+			bson.M{"indexID": accountToken.IndexID, "ownerAccount": owner},
+			bson.M{"$set": accountToken},
+			options.Update().SetUpsert(true),
+		)
 
-			if err != nil {
-				return err
-			}
-			if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-				log.Warn("account token is not added or updated", zap.String("token_id", accountToken.ID))
-			}
-		} else {
-			_, err := s.accountTokenCollection.DeleteOne(ctx, bson.M{"ownerAccount": owner, "indexID": accountToken.IndexID})
-			if err != nil {
-				return err
-			}
+		if err != nil {
+			return err
+		}
+		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
+			log.Warn("account token is not added or updated", zap.String("token_id", accountToken.ID))
 		}
 	}
 
@@ -1343,7 +1352,15 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 		ownerList = append(ownerList, owner)
 	}
 
-	_, err := s.accountTokenCollection.DeleteMany(ctx, bson.M{"indexID": bson.M{"$eq": indexID}, "ownerAccount": bson.M{"$nin": ownerList}})
+	_, err := s.accountTokenCollection.UpdateMany(ctx, bson.M{
+		"indexID": bson.M{"$eq": indexID}, "ownerAccount": bson.M{"$nin": ownerList},
+	}, bson.M{
+		"$set": bson.M{
+			"balance":           0,
+			"lastRefreshedTime": time.Now(),
+			"lastActivityTime":  lastActivityTime,
+		},
+	})
 
 	return err
 }
@@ -1486,6 +1503,7 @@ func (s *MongodbIndexerStore) DeleteDemoTokens(ctx context.Context, owner string
 	return nil
 }
 
+// UpdateOwnerForFungibleToken adds a new owner to a fungible token
 func (s *MongodbIndexerStore) UpdateOwnerForFungibleToken(ctx context.Context, indexID string, lockedTime time.Time, to string, total int64) error {
 	r, err := s.tokenCollection.UpdateOne(ctx,
 		bson.M{
@@ -1662,7 +1680,10 @@ func (s *MongodbIndexerStore) UpdateTokenSugesstedMIMEType(ctx context.Context, 
 		return err
 	}
 
-	updates := bson.D{{Key: "$set", Value: bson.D{{Key: "projectMetadata.latest.suggestionMimeType", Value: mimeType}}}}
+	updates := bson.D{{Key: "$set", Value: bson.D{
+		{Key: "projectMetadata.latest.suggestionMimeType", Value: mimeType},
+		{Key: "lastRefreshedTime", Value: time.Now()},
+	}}}
 
 	_, err := s.assetCollection.UpdateOne(
 		ctx,
@@ -1671,4 +1692,173 @@ func (s *MongodbIndexerStore) UpdateTokenSugesstedMIMEType(ctx context.Context, 
 	)
 
 	return err
+}
+
+// GetPresignedThumbnailTokens gets tokens that have presigned thumbnail
+func (s *MongodbIndexerStore) GetPresignedThumbnailTokens(ctx context.Context) ([]Token, error) {
+	tokens := []Token{}
+
+	cursor, err := s.assetCollection.Find(ctx, bson.M{
+		"source":                              SourceTZKT,
+		"projectMetadata.latest.thumbnailURL": bson.M{"$regex": PresignedFxhash},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for cursor.Next(ctx) {
+		var currentAsset struct {
+			ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
+		}
+
+		if err := cursor.Decode(&currentAsset); err != nil {
+			return nil, err
+		}
+
+		r := s.tokenCollection.FindOne(ctx, bson.M{"assetID": currentAsset.ProjectMetadata.Latest.AssetID})
+		if r.Err() != nil {
+			log.Error("cannot find asset ID", zap.String("assetID", currentAsset.ProjectMetadata.Latest.AssetID), zap.Error(r.Err()))
+			continue
+		}
+
+		var token Token
+
+		if err := r.Decode(&token); err != nil {
+			log.Error("cannot decode token", zap.Error(err))
+			continue
+		}
+
+		tokens = append(tokens, token)
+	}
+
+	return tokens, nil
+}
+
+// MarkAccountTokenChanged sets the lastRefreshedTime to now
+func (s *MongodbIndexerStore) MarkAccountTokenChanged(ctx context.Context, indexIDs []string) error {
+	_, err := s.accountTokenCollection.UpdateMany(ctx, bson.M{
+		"indexID": bson.M{"$in": indexIDs},
+	}, bson.M{
+		"$set": bson.M{"lastRefreshedTime": time.Now()},
+	})
+
+	if err != nil {
+		log.Error("cannot update account tokens", zap.Any("indexIDs", indexIDs))
+	}
+
+	return err
+}
+
+// GetDetailedAccountTokensByOwners returns a list of DetailedToken by owner
+func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, lastUpdatedAt time.Time, offset, size int64) ([]DetailedTokenV2, error) {
+	findOptions := options.Find().SetSort(bson.D{{Key: "lastRefreshedTime", Value: -1}, {Key: "_id", Value: -1}}).SetLimit(size).SetSkip(offset)
+
+	filter := bson.M{
+		"ownerAccount":      bson.M{"$in": owner},
+		"lastRefreshedTime": bson.M{"$gte": lastUpdatedAt},
+	}
+
+	cursor, err := s.accountTokenCollection.Find(ctx, filter, findOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	defer cursor.Close(ctx)
+
+	indexIDs := make([]string, 0)
+	accountTokenMap := map[string]AccountToken{}
+	for cursor.Next(ctx) {
+		var token AccountToken
+
+		if err := cursor.Decode(&token); err != nil {
+			return nil, err
+		}
+
+		indexIDs = append(indexIDs, token.IndexID)
+		accountTokenMap[token.IndexID] = token
+	}
+
+	if len(indexIDs) == 0 {
+		return []DetailedTokenV2{}, nil
+	}
+
+	filterParameter.IDs = indexIDs
+	tokens, err := s.GetDetailedTokensV2(ctx, filterParameter, 0, int64(len(indexIDs)))
+
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range tokens {
+		token := &tokens[i]
+
+		token.Balance = accountTokenMap[token.IndexID].Balance
+		token.Owner = accountTokenMap[token.IndexID].OwnerAccount
+		token.LastRefreshedTime = accountTokenMap[token.IndexID].LastRefreshedTime
+	}
+
+	return tokens, nil
+}
+
+// GetDetailedTokensV2 returns a list of tokens information based on ids
+func (s *MongodbIndexerStore) GetDetailedTokensV2(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error) {
+	tokens := []DetailedTokenV2{}
+
+	log.Debug("GetDetailedTokensV2",
+		zap.Any("filterParameter", filterParameter),
+		zap.Int64("offset", offset),
+		zap.Int64("size", size))
+	startTime := time.Now()
+	if length := len(filterParameter.IDs); length > 0 {
+		queryIDsEnd := int(offset + size)
+		if queryIDsEnd > length {
+			queryIDsEnd = length
+		}
+		queryIDs := filterParameter.IDs[offset:queryIDsEnd]
+		queryLen := len(queryIDs)
+		for i := 0; i < getPageCounts(queryLen, QueryPageSize); i++ {
+			log.Debug("doc page", zap.Int("page", i))
+			start := i * QueryPageSize
+			end := (i + 1) * QueryPageSize
+			if end > queryLen {
+				end = queryLen
+			}
+
+			pagedTokens, err := s.getDetailedTokensV2InView(ctx,
+				FilterParameter{IDs: queryIDs[start:end]}, 0, int64(end-start))
+			if err != nil {
+				return nil, err
+			}
+			tokens = append(tokens, pagedTokens...)
+		}
+	} else {
+		return s.getDetailedTokensV2InView(ctx, filterParameter, offset, size)
+	}
+	log.Debug("GetDetailedTokensV2 End", zap.Duration("queryTime", time.Since(startTime)))
+
+	return tokens, nil
+}
+
+// getDetailedTokensV2InView returns detail tokens from mongodb custom view
+func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error) {
+	tokens := []DetailedTokenV2{}
+
+	findOptions := options.Find().SetSort(bson.D{{Key: "lastRefreshedTime", Value: -1}, {Key: "_id", Value: -1}}).SetLimit(size).SetSkip(offset)
+
+	cursor, err := s.tokenAssetCollection.Find(ctx, bson.M{
+		"indexID": bson.M{"$in": filterParameter.IDs},
+		"burned":  bson.M{"$ne": true},
+	}, findOptions)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer cursor.Close(ctx)
+
+	if err := cursor.All(ctx, &tokens); err != nil {
+		return nil, err
+	}
+
+	return tokens, nil
 }

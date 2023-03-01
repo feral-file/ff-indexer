@@ -13,7 +13,7 @@ server:
   secret_symmetric_key: PASSPHRASEWHICHNEEDSTOBE32BYTES
 
 jwt:
-  pubkeyfile: jwt.key.pub
+  public_key_name: /autonomy/development/jwtPublicKey
 
 store:
   db_uri: mongodb://localhost:27017/

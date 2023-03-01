@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nft-event-processor-tezos-emitter.fullname" . }}
+  labels:
+    {{- include "nft-event-processor-tezos-emitter.labels" . | nindent 4 }}
+data:
+  dappetizer.feralfile.config.json: |
+    {
+      "indexing": {
+        "fromBlockLevel": 2845033,
+        "contractBoost": {
+          "type": "tzkt",
+          "apiUrl": "{{ .Values.serviceConfig.contractBoostUrl }}"
+        },
+        "contracts": [
+          {
+            "name": "FeralFileV1",
+            "addresses": {{ .Values.serviceConfig.contractAddresses | toJson }}
+          }
+        ]
+      },
+      "tezosNode": {
+        "url": "{{ .Values.serviceConfig.tezosNodeRPCURL }}"
+      }
+    }
+  dappetizer.marketplace.config.json: |
+    {
+      "indexing": {
+        "fromBlockLevel": 2845173,
+        "contractBoost": {
+          "type": "tzkt"
+        },
+        "contracts": [
+          {
+            "name": "fxhash",
+            "addresses": [
+              "KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE"
+            ]
+          },
+          {
+            "name": "hicetniuc",
+            "addresses": [
+              "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton"
+            ]
+          },
+          {
+            "name": "versum",
+            "addresses": [
+              "KT1LjmAdYQCLBjwv4S2oFkEzyHVkomAf5MrW"
+            ]
+          },
+          {
+            "name": "fxhashv2",
+            "addresses": [
+              "KT1U6EHmNxJTkvaWJ4ThczG4FSDaHC21ssvi"
+            ]
+          }
+        ]
+      },
+      "tezosNode": {
+        "url": "{{ .Values.serviceConfig.tezosNodeRPCURL }}"
+      }
+    }

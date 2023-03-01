@@ -1,0 +1,18 @@
+replicaCount: 1
+
+image:
+  tags:
+    tezosMarketplaceIndexer:
+    tezosFeralfileIndexer: tezos-feralfile-indexer-2.2.1-1
+
+serviceConfig:
+  tezosNodeRPCURL: https://rpc.lima.tzstats.com
+  contractAddresses: [
+    "KT1VZ6Zkoae9DtXkbuw4wtFCg9WH8eywcvEX"
+  ]
+  contractBoostUrl: "https://api.limanet.tzkt.io/"
+  environment: development
+  network:
+    tezos: testnet
+    ethereum: testnet
+    bitmark: testnet

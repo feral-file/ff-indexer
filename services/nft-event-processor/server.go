@@ -113,7 +113,6 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 		}
 
 		if event == nil {
-			log.Info("event queue empty")
 			time.Sleep(WaitingTime)
 
 			continue
@@ -152,6 +151,7 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 					IndexID:           indexID,
 					OwnerAccount:      to,
 					Balance:           int64(1),
+					LastActivityTime:  event.UpdatedAt,
 					LastRefreshedTime: token.LastActivityTime,
 				}
 
@@ -234,13 +234,12 @@ func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 		}
 
 		if event == nil {
-			log.Info("event queue empty")
 			time.Sleep(WaitingTime)
 
 			continue
 		}
 
-		eventType := event.EventType
+		eventType := event.Type
 		eventID := event.ID
 		blockchain := event.Blockchain
 		contract := event.Contract
@@ -318,7 +317,6 @@ func (e *EventProcessor) NotifyChangeTokenOwner() {
 		}
 
 		if event == nil {
-			log.Info("event queue empty")
 			time.Sleep(WaitingTime)
 
 			continue
@@ -365,7 +363,6 @@ func (e *EventProcessor) SendEventToFeedServer() {
 		}
 
 		if event == nil {
-			log.Info("event queue empty")
 			time.Sleep(WaitingTime)
 
 			continue
@@ -376,7 +373,7 @@ func (e *EventProcessor) SendEventToFeedServer() {
 		contract := event.Contract
 		tokenID := event.TokenID
 		to := event.To
-		eventType := event.EventType
+		eventType := event.Type
 
 		e.logStartStage(event, stage)
 

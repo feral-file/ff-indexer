@@ -10,7 +10,7 @@ import (
 
 func TestDownloadFile(t *testing.T) {
 	url := "https://openseauserdata.com/files/dccefc262d24e3c43c1421efbc0e56f1.svg"
-	_, _, err := DownloadFile(url)
+	_, _, _, err := DownloadFile(url)
 
 	assert.NoError(t, err)
 }

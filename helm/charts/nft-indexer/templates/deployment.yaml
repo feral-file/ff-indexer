@@ -37,6 +37,16 @@ spec:
               containerPort: 8089
               protocol: TCP
           env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: aws_access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: aws_secret_access_key
             - name: NFT_INDEXER_STORE_DB_URI
               valueFrom:
                 secretKeyRef:

@@ -303,3 +303,24 @@ func (w *NFTIndexerWorker) UpdateSuggestedMIMETypeWorkflow(ctx workflow.Context,
 
 	return nil
 }
+
+func (w *NFTIndexerWorker) DetectAssetChangeWorkflow(ctx workflow.Context) error {
+	ao := workflow.ActivityOptions{
+		TaskList:               w.AccountTokenTaskListName,
+		ScheduleToStartTimeout: 10 * time.Minute,
+		StartToCloseTimeout:    time.Hour,
+	}
+
+	log := workflow.GetLogger(ctx)
+
+	ctx = workflow.WithActivityOptions(ctx, ao)
+
+	log.Debug("start DetectAssetChangeWorkflow")
+
+	if err := workflow.ExecuteActivity(ctx, w.UpdatePresignedThumbnailAssets).Get(ctx, nil); err != nil {
+		log.Error("fail to update asset")
+		return err
+	}
+
+	return nil
+}

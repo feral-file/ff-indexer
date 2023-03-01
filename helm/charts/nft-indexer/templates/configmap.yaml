@@ -13,7 +13,7 @@ data:
       port: :8089
 
     jwt:
-      pubkeyfile: /usr/share/nft-indexer/jwt-pubkey.pem
+      public_key_name: /autonomy/development/jwtPublicKey
 
     environment: {{ .Values.serviceConfig.environment }}
     network:

@@ -168,6 +168,24 @@ type DetailedToken struct {
 	ProjectMetadata VersionedProjectMetadata `json:"projectMetadata" bson:"projectMetadata"`
 }
 
+type DetailedTokenV2 struct {
+	Token      `bson:",inline"`
+	IPFSPinned bool             `json:"ipfsPinned"`
+	Attributes *AssetAttributes `json:"attributes,omitempty"`
+	Asset      AssetV2          `json:"asset" bson:"asset"`
+}
+
+type AssetV2 struct {
+	IndexID           string        `json:"indexID" bson:"indexID"`
+	ThumbnailID       string        `json:"thumbnailID" bson:"thumbnailID"`
+	LastRefreshedTime time.Time     `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
+	Metadata          AssetMetadata `json:"metadata" bson:"metadata"`
+}
+
+type AssetMetadata struct {
+	Project VersionedProjectMetadata `json:"project" bson:"project"`
+}
+
 type AbsentMIMETypeToken struct {
 	IndexID    string `json:"indexID"`
 	PreviewURL string `json:"previewURL"`
@@ -205,6 +223,7 @@ type AccountToken struct {
 	LastActivityTime  time.Time        `json:"lastActivityTime" bson:"lastActivityTime"`
 	LastRefreshedTime time.Time        `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
 	LastPendingTime   []time.Time      `json:"-" bson:"lastPendingTime"`
+	LastUpdatedAt     time.Time        `json:"lastUpdatedAt" bson:"lastUpdatedAt"`
 	PendingTxs        []string         `json:"pendingTxs" bson:"pendingTxs"`
 }
 

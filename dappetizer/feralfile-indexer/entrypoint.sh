@@ -5,7 +5,6 @@ rm database.sqlite
 [ -f ".env" ] && source .env
 
 export NETWORK=${NETWORK:-livenet}
-export EVENT_PROCESSOR_URL=${EVENT_PROCESSOR_URL:-http://localhost:8089/events}
 export TEZOS_NODE_RPC_URL=${TEZOS_NODE_RPC_URL:-https://mainnet-tezos.autonomy.io}
 
 export CURRENT_LAST_BLOCK=$(curl $TEZOS_NODE_RPC_URL/chains/main/blocks/head/header | jq .level)

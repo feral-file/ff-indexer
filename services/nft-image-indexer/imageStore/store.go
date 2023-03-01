@@ -1,8 +1,11 @@
 package imageStore
 
 import (
+	"bytes"
 	"context"
 	"io"
+	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 	"time"
@@ -20,8 +23,10 @@ import (
 type Metadata map[string]interface{}
 
 type ImageDownloader interface {
-	Download() (io.Reader, string, error)
+	Download() (io.Reader, string, int, error)
 }
+
+const ImageSizeThreshold = 10 * 1024 * 1024 // 10MB
 
 // IsSupportedImageType validates if an image is supported
 func IsSupportedImageType(mimeType string) bool {
@@ -115,7 +120,7 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 		}
 
 		downloadStartTime := time.Now()
-		file, mimeType, err := imageDownloader.Download()
+		file, mimeType, imageSize, err := imageDownloader.Download()
 		if err != nil {
 			return NewImageCachingError(ReasonDownloadFileFailed)
 		}
@@ -135,6 +140,13 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 			metadata["mime_type"] = "image/png"
 		} else {
 			metadata["mime_type"] = mimeType
+		}
+
+		if imageSize > ImageSizeThreshold {
+			file, err = compressImage(file)
+			if err != nil {
+				log.Error("cannot compress the thumbnail with ffmpeg", zap.Error(err))
+			}
 		}
 
 		uploadRequest := cloudflare.ImageUploadRequest{
@@ -171,4 +183,55 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 	}
 
 	return image, err
+}
+
+// compressImage compresses an image by reducing width (iw), height (ih) and quality (compression_level)
+func compressImage(file io.Reader) (io.Reader, error) {
+	resultBuffer := bytes.NewBuffer(make([]byte, 0))
+	buf := &bytes.Buffer{}
+	_, err := io.Copy(buf, file)
+	if err != nil {
+		return file, err
+	}
+
+	// Compress the image
+	// If it is a gif, we select the first frame
+	// To make sure the size is less than a threshold, the new image has 90% of the width and height
+	// of the input image
+	// FIXME: adapt the command with various image size to make sure we get the best quality with output size < 10MB
+	cmd := exec.Command("ffmpeg", "-y",
+		"-f", "image2pipe",
+		"-i", "pipe:0",
+		"-vsync", "0",
+		"-vf", "select=eq(n\\,0)",
+		"-vf", "scale=-1:min'(10000,ih*0.9)':force_original_aspect_ratio=decrease",
+		"-q:v", "5",
+		"-update", "1",
+		"-f", "image2", "pipe:1")
+
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = resultBuffer
+
+	stdin, _ := cmd.StdinPipe()
+	if err = cmd.Start(); err != nil {
+		return file, err
+	}
+
+	if _, err = stdin.Write(buf.Bytes()); err != nil {
+		return file, err
+	}
+
+	if err = stdin.Close(); err != nil {
+		return file, err
+	}
+
+	if err = cmd.Wait(); err != nil {
+		return file, err
+	}
+
+	if resultBuffer.Len() > ImageSizeThreshold {
+		return compressImage(resultBuffer)
+	}
+
+	return file, nil
 }

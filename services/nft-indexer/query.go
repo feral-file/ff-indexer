@@ -92,7 +92,20 @@ func (s *NFTIndexerServer) QueryNFTsV1(c *gin.Context) {
 		return
 	}
 
-	go s.IndexMissingTokens(c, reqParams.IDs, tokenInfo)
+	// check and IndexMissingTokens
+	if len(reqParams.IDs) > len(tokenInfo) {
+		m := make(map[string]bool, len(reqParams.IDs))
+		for _, id := range reqParams.IDs {
+			m[id] = true
+		}
+
+		for _, info := range tokenInfo {
+			if m[info.IndexID] {
+				delete(m, info.IndexID)
+			}
+		}
+		go s.IndexMissingTokens(c, m)
+	}
 
 	c.JSON(http.StatusOK, tokenInfo)
 }
@@ -125,38 +138,24 @@ func PreprocessTokens(indexIDs []string, isConvertToDecimal bool) []string {
 }
 
 // IndexMissingTokens indexes tokens that have not been indexed yet.
-func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, reqParamsIDs []string, tokenInfo []indexer.DetailedToken) {
-	if len(reqParamsIDs) > len(tokenInfo) {
-		// find redundant reqParams.IDs to index
-		m := make(map[string]bool, len(reqParamsIDs))
-		for _, id := range reqParamsIDs {
-			m[id] = true
+func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, idMap map[string]bool) {
+	// index redundant reqParams.IDs
+	for redundantID := range idMap {
+		_, contract, tokenID, err := indexer.ParseTokenIndexID(redundantID)
+		if err != nil {
+			continue
 		}
 
-		for _, info := range tokenInfo {
-			if m[info.IndexID] {
-				delete(m, info.IndexID)
-			}
+		owner, err := s.indexerEngine.GetTokenOwnerAddress(contract, tokenID)
+		if err != nil {
+			log.Warn("unexpected error while getting token owner address of the contract",
+				zap.String("contract", contract),
+				zap.String("tokenId", tokenID),
+				zap.Error(err))
+			continue
 		}
 
-		// index redundant reqParams.IDs
-		for redundantID := range m {
-			_, contract, tokenID, err := indexer.ParseTokenIndexID(redundantID)
-			if err != nil {
-				continue
-			}
-
-			owner, err := s.indexerEngine.GetTokenOwnerAddress(contract, tokenID)
-			if err != nil {
-				log.Warn("unexpected error while getting token owner address of the contract",
-					zap.String("contract", contract),
-					zap.String("tokenId", tokenID),
-					zap.Error(err))
-				continue
-			}
-
-			go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, tokenID, false)
-		}
+		go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, tokenID, false)
 	}
 }
 
@@ -652,4 +651,91 @@ func (s *NFTIndexerServer) FeedbackMimeTypeTokens(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": 1})
+}
+
+// GetAccountNFTsV2 queries NFTsV2 based on by owners & lastUpdatedAt
+func (s *NFTIndexerServer) GetAccountNFTsV2(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "GetAccountNFTsV2")
+
+	var reqParams = NFTQueryParams{
+		Offset: 0,
+		Size:   50,
+	}
+
+	if err := c.BindQuery(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if reqParams.Owner == "" {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("owner is required"))
+		return
+	}
+
+	owners := strings.Split(reqParams.Owner, ",")
+	lastUpdatedAt := time.Unix(reqParams.LastUpdatedAt, 0)
+
+	tokensInfo, err := s.indexerStore.GetDetailedAccountTokensByOwners(
+		c,
+		owners,
+		indexer.FilterParameter{
+			Source: reqParams.Source,
+		},
+		lastUpdatedAt,
+		reqParams.Offset,
+		reqParams.Size,
+	)
+
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, tokensInfo)
+}
+
+// QueryNFTsV2 queries NFTsV2 based on given criteria (decimal input)
+func (s *NFTIndexerServer) QueryNFTsV2(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "QueryNFTsV2")
+
+	var reqParams = NFTQueryParams{
+		Offset: 0,
+		Size:   50,
+	}
+
+	if err := c.BindQuery(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if err := c.Bind(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	checksumIDs := PreprocessTokens(reqParams.IDs, false)
+	tokenInfo, err := s.indexerStore.GetDetailedTokensV2(c, indexer.FilterParameter{
+		IDs: checksumIDs,
+	}, reqParams.Offset, reqParams.Size)
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
+		return
+	}
+
+	// check and IndexMissingTokens
+	if len(reqParams.IDs) > len(tokenInfo) {
+		m := make(map[string]bool, len(reqParams.IDs))
+		for _, id := range reqParams.IDs {
+			m[id] = true
+		}
+
+		for _, info := range tokenInfo {
+			if m[info.IndexID] {
+				delete(m, info.IndexID)
+			}
+		}
+		go s.IndexMissingTokens(c, m)
+	}
+
+	c.JSON(http.StatusOK, tokenInfo)
 }
