@@ -10,6 +10,9 @@ image:
   # Overrides the image tag whose default is the chart appVersion.
   tag: "image-indexer-0.0.9"
 
+serviceConfig:
+  logLevel: info
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
