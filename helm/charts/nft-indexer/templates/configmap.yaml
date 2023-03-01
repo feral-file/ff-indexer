@@ -13,7 +13,7 @@ data:
       port: :8089
 
     jwt:
-      public_key_name: /autonomy/development/jwtPublicKey
+      public_key_name: {{ .Values.serviceConfig.jwt_public_key_name }}
 
     environment: {{ .Values.serviceConfig.environment }}
     network:
