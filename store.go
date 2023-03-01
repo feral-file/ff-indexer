@@ -1783,7 +1783,7 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 	}
 
 	filterParameter.IDs = indexIDs
-	tokens, err := s.GetDetailedTokensV2(ctx, filterParameter, offset, size)
+	tokens, err := s.GetDetailedTokensV2(ctx, filterParameter, 0, int64(len(indexIDs)))
 
 	if err != nil {
 		return nil, err
@@ -1810,17 +1810,22 @@ func (s *MongodbIndexerStore) GetDetailedTokensV2(ctx context.Context, filterPar
 		zap.Int64("size", size))
 	startTime := time.Now()
 	if length := len(filterParameter.IDs); length > 0 {
-		for i := 0; i < getPageCounts(length, QueryPageSize); i++ {
+		queryIDsEnd := int(offset + size)
+		if queryIDsEnd > length {
+			queryIDsEnd = length
+		}
+		queryIDs := filterParameter.IDs[offset:queryIDsEnd]
+		queryLen := len(queryIDs)
+		for i := 0; i < getPageCounts(queryLen, QueryPageSize); i++ {
 			log.Debug("doc page", zap.Int("page", i))
 			start := i * QueryPageSize
 			end := (i + 1) * QueryPageSize
-			if end > length {
-				end = length
+			if end > queryLen {
+				end = queryLen
 			}
 
 			pagedTokens, err := s.getDetailedTokensV2InView(ctx,
-				FilterParameter{IDs: filterParameter.IDs[start:end]},
-				offset, size)
+				FilterParameter{IDs: queryIDs[start:end]}, 0, int64(end-start))
 			if err != nil {
 				return nil, err
 			}
