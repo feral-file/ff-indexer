@@ -20,20 +20,15 @@ releases:
   secrets:
   - helm/environments/nft-indexer/{{ .Environment.Name }}/secrets.yaml
 
-- name: nft-event-subscriber # name of this release
+- name: nft-event-processor-tezos-emitter # name of this release
   namespace: autonomy{{ if eq .Environment.Name "staging" }}-staging{{ end }}
-  chart: helm/charts/nft-event-subscriber  # the chart being installed to create this release, referenced by relative path to local helmfile
+  chart: helm/charts/nft-event-processor-tezos-emitter  # the chart being installed to create this release, referenced by relative path to local helmfile
   labels:
-    app: event-subscriber
+    app: nft-event-processor-tezos-emitter
   values:
-  - helm/environments/nft-event-subscriber/{{ .Environment.Name }}/values.yaml
-  {{- if env "GITHUB_SHA" }}
-  - image:
-      tags:
-        eventSubscriber: "event-subscriber-{{ env "GITHUB_SHA" }}"
-  {{- end }}
+  - helm/environments/nft-event-processor-tezos-emitter/{{ .Environment.Name }}/values.yaml
   secrets:
-  - helm/environments/nft-event-subscriber/{{ .Environment.Name }}/secrets.yaml
+  - helm/environments/nft-event-processor-tezos-emitter/{{ .Environment.Name }}/secrets.yaml
 
 - name: nft-event-processor # name of this release
   namespace: autonomy{{ if eq .Environment.Name "staging" }}-staging{{ end }}

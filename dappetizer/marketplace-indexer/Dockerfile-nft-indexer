@@ -1,5 +1,9 @@
 # Prepare files and a temp image to build.
-FROM node:16-alpine3.11 AS builder
+FROM node:16-alpine3.16 AS builder
+
+RUN apk add git
+RUN npm install -g npm@9.5.1
+
 COPY package.json dappetizer.config.ts tsconfig.json /app/
 COPY src /app/src
 

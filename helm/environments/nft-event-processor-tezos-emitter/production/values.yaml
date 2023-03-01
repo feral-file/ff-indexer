@@ -1,0 +1,32 @@
+replicaCount: 1
+
+image:
+  tags:
+    tezosMarketplaceIndexer: tezos-marketplace-indexer-2.2.1-1
+    tezosFeralfileIndexer: tezos-feralfile-indexer-2.2.1-1
+
+serviceConfig:
+  tezosNodeRPCURL: https://mainnet-tezos.autonomy.io
+  cadence_hostport: cadenceau-frontend.cadenceau.svc.cluster.local:7933
+  contractAddresses: [
+    "KT1EyVFCmLFqzgwSBNbdnwfqGeCPRWPvH9QF", # test contract on production
+    "KT1RnhKKsAD7ScFi3Nb7HKK2hnPCqXcbNG3k", # gamma
+    "KT1U1KFWkAR8ea9GUi8fAH1jPKRMmAHJLhpN", # Doppelganger
+    "KT1WgvCKC8vvjbAYEgaXHo9A6GprKDyaw7N3", # Ecotone
+    "KT1GbUx4MFBWHi3YhofDDvDYyeDeqahpKAGD", # Harbingers
+    "KT1Q4SBM941oAeu69v8LsrfwSiEkhMWJiVrp", # Simulation Sketchbook: Works in Process
+    "KT1Mkhkz1XLSAxdadViQCjnaRLpWzfdxyWHM", # airdrop 1
+    "KT1TNsJJKYqxdVAwcZKXzgypGU2kainW3gJm", # airdrop MoMA R&D Salon 40: The Third Web
+    "KT1F6EKvGq8CKJhgsBy3GUJMSS9KPKn1UD5D", # Luxembourg Art Week
+    "KT1CPeE8YGVG16xkpoE9sviUYoEzS7hWfu39", # airdrop Memento 1 - Study for Unsupervised
+    "KT1RcZU4sphiF4b2mxW7zGkrfV8S2puKBFT3", # Catalog of Peer to Peer
+    "KT1U49F46ZRK2WChpVpkUvwwQme7Z595V3nt", # airdrop Memento 2 - Unsupervised Installation
+    "KT1TkBmhjz65awMWoPBvmtfBCcVnwaXXTrmy", # airdrop I KNOW - On the aesthetic of truth - Digital Memento
+    "KT1CnEoyTFyJaLR3CB6N5Avw91fp4Q6bvS8x", # Field guide
+    "KT19rZLpAurqKuDXtkMcJZWvWqGJz1CwWHzr", # airdrop MoMA 3
+  ]
+  environment: production
+  network:
+    tezos: livenet
+    ethereum: livenet
+    bitmark: livenet

@@ -1,4 +1,4 @@
-# Default values for nft-event-subscriber.
+# Default values for nft-event-processor-tezos-emitter.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
@@ -10,8 +10,8 @@ image:
   # Overrides the image tag whose default is the chart appVersion.
   tags:
     eventSubscriber: "event-subscriber-0.0.14-11"
-    tezosIndexer: tezos-event-indexer-0.0.1-4
-    feralfileIndexer: tezos-feralfile-indexer-0.0.1-8
+    tezosIndexer: tezos-event-indexer-3.0.0-1
+    feralfileIndexer: tezos-feralfile-indexer-3.0.0-1
 
 
 serviceConfig:
@@ -19,6 +19,8 @@ serviceConfig:
   cadence_hostport: cadence-frontend.cadence.svc.cluster.local:7933
   feedEndpoint: http://autonomy-event-feed.autonomy.svc.cluster.local:80
   tezosNodeRPCURL: https://rpc.ghost.tzstats.com
+  eventProcessorURI: nft-event-processor.autonomy.svc.cluster.local:8765
+  eventSubscriberURL:
   contractAddresses: []
   contractBoostUrl: "https://api.tzkt.io/"
 
