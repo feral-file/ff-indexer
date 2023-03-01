@@ -178,7 +178,7 @@ type DetailedTokenV2 struct {
 type AssetV2 struct {
 	IndexID           string        `json:"indexID" bson:"indexID"`
 	ThumbnailID       string        `json:"thumbnailID" bson:"thumbnailID"`
-	LastRefreshedTime time.Time     `json:"lastRefreshedTime" bson:"LastRefreshedTime"`
+	LastRefreshedTime time.Time     `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
 	Metadata          AssetMetadata `json:"metadata" bson:"metadata"`
 }
 
