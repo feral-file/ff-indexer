@@ -54,9 +54,9 @@ releases:
     app: image-indexer
   values:
   - helm/environments/nft-image-indexer/{{ .Environment.Name }}/values.yaml
-  {{- if env "IMAGE_TAG" }}
+  {{- if env "GITHUB_SHA" }}
   - image:
-      tag: {{ env "IMAGE_TAG" | quote }}
+      tag: "image-indexer-{{ env "GITHUB_SHA" }}"
   {{- end }}
   secrets:
   - helm/environments/nft-image-indexer/{{ .Environment.Name }}/secrets.yaml
