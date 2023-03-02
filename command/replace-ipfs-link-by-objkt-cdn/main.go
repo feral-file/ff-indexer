@@ -52,7 +52,8 @@ func main() {
 	for cursor.Next(ctx) {
 		err = cursor.Decode(&asset)
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			continue
 		}
 
 		// get token by assetID
@@ -83,7 +84,8 @@ func main() {
 				continue
 			}
 
-			panic(err)
+			fmt.Println(err)
+			continue
 		}
 
 		assetMetadataDetail.FromObjkt(objktToken)
@@ -102,7 +104,8 @@ func main() {
 		)
 
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			continue
 		}
 
 		fmt.Println("update asset url for asset ID: ", asset.ID)
