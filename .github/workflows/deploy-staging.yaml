@@ -104,25 +104,6 @@ jobs:
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
 
     - name: Build, tag, and push image to Amazon ECR
-      id: build-image-event-subscriber
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: nft-indexer
-        IMAGE_TAG: event-subscriber-${{ github.sha }}
-        DOCKERFILE: Dockerfile-event-subscriber
-        GITHUB_USER: bitmark-bot
-        GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
-      run: |
-        # Build a docker container and push it to ECR so that it can be deployed.
-        # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
-        if ! aws ecr describe-images --repository-name="${ECR_REPOSITORY}" --image-ids="imageTag=${IMAGE_TAG}" > /dev/null 2>&1
-        then
-          docker build --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} --tag="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" --file="${DOCKERFILE}" "."
-          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-        fi
-        echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-
-    - name: Build, tag, and push image to Amazon ECR
       id: build-image-image-indexer
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -140,6 +121,64 @@ jobs:
           docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: nft-indexer
+          IMAGE_TAG: event-processor-${{ github.sha }}
+          DOCKERFILE: Dockerfile-event-processor
+          GITHUB_USER: bitmark-bot
+          GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+        run: |
+          # Build a docker container and push it to ECR so that it can be deployed.
+          # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
+          if ! aws ecr describe-images --repository-name="${ECR_REPOSITORY}" --image-ids="imageTag=${IMAGE_TAG}" > /dev/null 2>&1
+          then
+            docker build --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} --tag="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" --file="${DOCKERFILE}" "."
+            docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          fi
+          echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image-nft-ethereum-emitter
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: nft-indexer
+          IMAGE_TAG: ethereum-emitter-${{ github.sha }}
+          DOCKERFILE: Dockerfile-ethereum-emitter
+          GITHUB_USER: bitmark-bot
+          GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+        run: |
+          # Build a docker container and push it to ECR so that it can be deployed.
+          # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
+          if ! aws ecr describe-images --repository-name="${ECR_REPOSITORY}" --image-ids="imageTag=${IMAGE_TAG}" > /dev/null 2>&1
+          then
+            docker build --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} --tag="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" --file="${DOCKERFILE}" "."
+            docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          fi
+          echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image-nft-bitmark-emitter
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: nft-indexer
+          IMAGE_TAG: bitmark-emitter-${{ github.sha }}
+          DOCKERFILE: Dockerfile-bitmark-emitter
+          GITHUB_USER: bitmark-bot
+          GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+        run: |
+          # Build a docker container and push it to ECR so that it can be deployed.
+          # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
+          if ! aws ecr describe-images --repository-name="${ECR_REPOSITORY}" --image-ids="imageTag=${IMAGE_TAG}" > /dev/null 2>&1
+          then
+            docker build --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} --tag="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" --file="${DOCKERFILE}" "."
+            docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          fi
+          echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+
 
     - name: Sops Binary Installer
       uses: mdgreenwald/mozilla-sops-action@v1.1.0
@@ -165,5 +204,6 @@ jobs:
         IMAGE_TAG: image-indexer-${{ github.sha }}
       run: |
         helmfile --environment staging -l app=indexer apply
-        helmfile --environment staging -l app=event-subscriber apply
         helmfile --environment staging -l app=image-indexer apply
+        helmfile --environment staging -l app=event-processor apply
+        helmfile --environment staging -l app=event-processor-tezos-emitter apply

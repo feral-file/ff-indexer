@@ -37,6 +37,8 @@ spec:
               containerPort: 8089
               protocol: TCP
           env:
+            - name: AWS_REGION
+              value: ap-northeast-1
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:

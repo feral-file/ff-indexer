@@ -1,0 +1,21 @@
+replicaCount: 1
+
+image:
+  tags:
+    eventProcessor: "event-processor-0.1.0-2"
+    ethereumEmitter: "ethereum-emitter-0.1.0-2"
+    bitmarkEmitter: "bitmark-emitter-0.1.0-2"
+
+serviceConfig:
+  tezosNodeRPCURL: https://mainnet-tezos.autonomy.io
+  contractAddresses: [
+    "KT1QWATcHYpBVDxvNoxw5CbkaMGpjm4SxXa2",
+  ]
+  environment: staging
+  eventProcessorEndpoint: nft-event-processor.autonomy-staging.svc.cluster.local:8765
+  feedEndpoint: http://autonomy-event-feed.autonomy-staging.svc.cluster.local:80
+  notificationEndpoint: http://autonomy-notification.autonomy-staging.svc.cluster.local:80
+  network:
+    tezos: livenet
+    ethereum: livenet
+    bitmark: livenet

@@ -24,7 +24,7 @@ releases:
   namespace: autonomy{{ if eq .Environment.Name "staging" }}-staging{{ end }}
   chart: helm/charts/nft-event-processor-tezos-emitter  # the chart being installed to create this release, referenced by relative path to local helmfile
   labels:
-    app: nft-event-processor-tezos-emitter
+    app: event-processor-tezos-emitter
   values:
   - helm/environments/nft-event-processor-tezos-emitter/{{ .Environment.Name }}/values.yaml
   secrets:
