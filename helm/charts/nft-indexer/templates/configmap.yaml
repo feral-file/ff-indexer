@@ -7,13 +7,13 @@ metadata:
 data:
   config.yaml: |
     log:
-      level: info
+      level: {{ .Values.serviceConfig.logLevel | default "info" }}
 
     server:
       port: :8089
 
     jwt:
-      public_key_name: /autonomy/development/jwtPublicKey
+      public_key_name: {{ .Values.serviceConfig.jwt_public_key_name }}
 
     environment: {{ .Values.serviceConfig.environment }}
     network:
@@ -43,7 +43,7 @@ data:
 
   background.yaml: |
     log:
-      level: info
+      level: {{ .Values.serviceConfig.logLevel | default "info" }}
 
     cadence:
       host_port: {{ .Values.serviceConfig.cadence_hostport }}

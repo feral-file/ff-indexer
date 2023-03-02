@@ -19,6 +19,7 @@ image:
     account_token_indexer: "account-token-indexer-07930973f2792f4e20370d06bdbbbe7c7726035d"
 
 serviceConfig:
+  jwt_public_key_name: /autonomy/staging/jwtPublicKey
   cadence_hostport: cadence-frontend.cadence.svc.cluster.local:7933
   cadence_domain: nft-indexer
   feralfile_api_url: https://feralfile.staging.bitmark.com

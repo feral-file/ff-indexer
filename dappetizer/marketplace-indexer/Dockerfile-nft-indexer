@@ -12,7 +12,7 @@ WORKDIR /app
 RUN npm install && npm run build
 
 # Publish files to a final image.
-FROM node:16-alpine3.11
+FROM node:16-alpine3.16
 RUN apk add curl jq
 
 COPY --from=builder /app/package.json /app/dappetizer.config.ts /app/

@@ -10,6 +10,7 @@ serviceConfig:
   contractAddresses: [
     "KT1QWATcHYpBVDxvNoxw5CbkaMGpjm4SxXa2",
   ]
+  eventProcessorURI: nft-event-processor.autonomy-staging.svc.cluster.local:8765
   environment: staging
   network:
     tezos: livenet

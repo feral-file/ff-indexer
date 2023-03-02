@@ -19,6 +19,7 @@ image:
     account_token_indexer: "account-token-indexer-18f9e757a58fe05f92e929af43a58f56d0519aa0"
 
 serviceConfig:
+  jwt_public_key_name: /autonomy/production/jwtPublicKey
   cadence_hostport: cadenceau-frontend.cadenceau.svc.cluster.local:7933
   feralfile_api_url: https://feralfile.com
   cache_bucket_name: autonomy-cached-full-artwork

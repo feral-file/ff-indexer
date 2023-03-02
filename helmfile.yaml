@@ -24,7 +24,7 @@ releases:
   namespace: autonomy{{ if eq .Environment.Name "staging" }}-staging{{ end }}
   chart: helm/charts/nft-event-processor-tezos-emitter  # the chart being installed to create this release, referenced by relative path to local helmfile
   labels:
-    app: nft-event-processor-tezos-emitter
+    app: event-processor-tezos-emitter
   values:
   - helm/environments/nft-event-processor-tezos-emitter/{{ .Environment.Name }}/values.yaml
   secrets:
@@ -54,9 +54,9 @@ releases:
     app: image-indexer
   values:
   - helm/environments/nft-image-indexer/{{ .Environment.Name }}/values.yaml
-  {{- if env "IMAGE_TAG" }}
+  {{- if env "GITHUB_SHA" }}
   - image:
-      tag: {{ env "IMAGE_TAG" | quote }}
+      tag: "image-indexer-{{ env "GITHUB_SHA" }}"
   {{- end }}
   secrets:
   - helm/environments/nft-image-indexer/{{ .Environment.Name }}/secrets.yaml

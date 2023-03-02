@@ -27,7 +27,7 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
 
-    - name: Build, tag, and push image to Amazon ECR
+    - name: Build Indexer Image
       id: build-indexer-api-image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -46,7 +46,7 @@ jobs:
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
 
-    - name: Build, tag, and push image to Amazon ECR
+    - name: Build Indexer Background Image
       id: build-indexer-background-image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -65,8 +65,8 @@ jobs:
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
 
-    - name: Build, tag, and push image to Amazon ECR
-      id: build-image-provenance-indexer
+    - name: Build Provenance Indexer Image
+      id: build-provenance-indexer-image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: nft-indexer
@@ -84,8 +84,8 @@ jobs:
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
 
-    - name: Build, tag, and push image to Amazon ECR
-      id: build-image-nft-account-token-indexer
+    - name: Build Account Token Indexer Image
+      id: build-account-token-indexer-image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: nft-indexer
@@ -103,13 +103,13 @@ jobs:
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
 
-    - name: Build, tag, and push image to Amazon ECR
-      id: build-image-event-subscriber
+    - name: Build, Image Indexer Image
+      id: build-image-indexer-image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: nft-indexer
-        IMAGE_TAG: event-subscriber-${{ github.sha }}
-        DOCKERFILE: Dockerfile-event-subscriber
+        IMAGE_TAG: image-indexer-${{ github.sha }}
+        DOCKERFILE: Dockerfile-image-indexer
         GITHUB_USER: bitmark-bot
         GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
       run: |
@@ -122,13 +122,51 @@ jobs:
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
 
-    - name: Build, tag, and push image to Amazon ECR
-      id: build-image-image-indexer
+    - name: Build Event Processor Image
+      id: build-event-processor-image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: nft-indexer
-        IMAGE_TAG: image-indexer-${{ github.sha }}
-        DOCKERFILE: Dockerfile-image-indexer
+        IMAGE_TAG: event-processor-${{ github.sha }}
+        DOCKERFILE: Dockerfile-event-processor
+        GITHUB_USER: bitmark-bot
+        GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+      run: |
+        # Build a docker container and push it to ECR so that it can be deployed.
+        # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
+        if ! aws ecr describe-images --repository-name="${ECR_REPOSITORY}" --image-ids="imageTag=${IMAGE_TAG}" > /dev/null 2>&1
+        then
+          docker build --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} --tag="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" --file="${DOCKERFILE}" "."
+          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+        fi
+        echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+
+    - name: Build Event Processor Ethereum Emitter Image
+      id: build-event-processor-ethereum-emitter-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: nft-indexer
+        IMAGE_TAG: ethereum-emitter-${{ github.sha }}
+        DOCKERFILE: Dockerfile-ethereum-emitter
+        GITHUB_USER: bitmark-bot
+        GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+      run: |
+        # Build a docker container and push it to ECR so that it can be deployed.
+        # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
+        if ! aws ecr describe-images --repository-name="${ECR_REPOSITORY}" --image-ids="imageTag=${IMAGE_TAG}" > /dev/null 2>&1
+        then
+          docker build --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} --tag="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" --file="${DOCKERFILE}" "."
+          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+        fi
+        echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+
+    - name: Build Event Processor Bitmark Emitter Image
+      id: build-event-processor-bitmark-emitter-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: nft-indexer
+        IMAGE_TAG: bitmark-emitter-${{ github.sha }}
+        DOCKERFILE: Dockerfile-bitmark-emitter
         GITHUB_USER: bitmark-bot
         GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
       run: |
@@ -162,8 +200,8 @@ jobs:
     - name: Deploy
       env:
         GITHUB_SHA: ${{ github.sha }}
-        IMAGE_TAG: image-indexer-${{ github.sha }}
       run: |
         helmfile --environment staging -l app=indexer apply
-        helmfile --environment staging -l app=event-subscriber apply
         helmfile --environment staging -l app=image-indexer apply
+        helmfile --environment staging -l app=event-processor apply
+        helmfile --environment staging -l app=event-processor-tezos-emitter apply

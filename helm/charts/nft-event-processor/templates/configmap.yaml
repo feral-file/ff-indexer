@@ -31,7 +31,7 @@ data:
       log_level: 0
     
     feed:
-      endpoint: http://autonomy-event-feed.autonomy.svc.cluster.local:80
+      endpoint: {{ .Values.serviceConfig.feedEndpoint }}
       api_token:
       debug: true
     
@@ -39,7 +39,7 @@ data:
       db_uri:
     
     notification:
-      endpoint: http://autonomy-notification.autonomy.svc.cluster.local:80
+      endpoint: {{ .Values.serviceConfig.notificationEndpoint }}
 
   ethereum.yaml: |
     ethereum:
@@ -50,7 +50,7 @@ data:
 
     event_processor_server:
       network: tcp
-      address: nft-event-processor.autonomy.svc.cluster.local:8765
+      address: {{ .Values.serviceConfig.eventProcessorEndpoint }}
 
   bitmark.yaml: |
     network:
@@ -67,6 +67,6 @@ data:
 
     event_processor_server:
       network: tcp
-      address: nft-event-processor.autonomy.svc.cluster.local:8765
+      address: {{ .Values.serviceConfig.eventProcessorEndpoint }}
 
 
