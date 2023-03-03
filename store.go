@@ -1374,7 +1374,9 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwner(ctx context.Contex
 		zap.Int64("offset", offset),
 		zap.Int64("size", size))
 
-	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{"ownerAccount": account}, findOptions)
+	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{
+		"ownerAccount": account,
+		"balance":      bson.M{"$gt": 0}}, findOptions)
 	if err != nil {
 		return nil, err
 	}
