@@ -142,7 +142,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		default:
 			// fallback marketplace
 			tokenDetail.Fungible = true
-			objktToken, err := e.getObjktToken(tzktToken.Contract.Address, tzktToken.ID.String())
+			objktToken, err := e.GetObjktToken(tzktToken.Contract.Address, tzktToken.ID.String())
 			if err != nil {
 				log.Error("fail to get token detail from objkt", zap.Error(err), log.SourceObjkt)
 			} else {
@@ -299,7 +299,7 @@ func (e *IndexEngine) IndexTezosTokenOwners(ctx context.Context, contract, token
 	return ownersMap, nil
 }
 
-func (e *IndexEngine) getObjktToken(contract, tokenID string) (objkt.Token, error) {
+func (e *IndexEngine) GetObjktToken(contract, tokenID string) (objkt.Token, error) {
 	if e.environment == DevelopmentEnvironment {
 		return objkt.Token{}, nil
 	}

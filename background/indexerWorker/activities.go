@@ -322,6 +322,7 @@ func (w *NFTIndexerWorker) fetchTezosProvenance(ctx context.Context, tokenID, co
 func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs []string, delay time.Duration) error {
 	tokens, err := w.indexerStore.GetTokensByIndexIDs(ctx, indexIDs)
 	if err != nil {
+		log.Error("cannot find tokens in DB", zap.Any("indexIDs", indexIDs), zap.Error(err))
 		return err
 	}
 
@@ -343,6 +344,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 		case indexer.BitmarkBlockchain:
 			provenance, err := w.fetchBitmarkProvenance(token.ID)
 			if err != nil {
+				log.Error("cannot fetch bitmark provenance", zap.String("tokenID: ", token.ID), zap.Error(err))
 				return err
 			}
 
@@ -350,12 +352,14 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 		case indexer.EthereumBlockchain:
 			provenance, err := w.fetchEthereumProvenance(ctx, token.ID, token.ContractAddress)
 			if err != nil {
+				log.Error("cannot fetch ethereum provenance", zap.String("contractAddress: ", token.ContractAddress), zap.String("tokenID: ", token.ID), zap.Error(err))
 				return err
 			}
 			totalProvenances = append(totalProvenances, provenance...)
 		case indexer.TezosBlockchain:
 			lastActivityTime, err := w.indexerEngine.IndexTezosTokenLastActivityTime(ctx, token.ContractAddress, token.ID)
 			if err != nil {
+				log.Error("cannot fetch lastActivityTime", zap.String("contractAddress: ", token.ContractAddress), zap.String("tokenID: ", token.ID), zap.Error(err))
 				return err
 			}
 
@@ -366,6 +370,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 
 			provenance, err := w.fetchTezosProvenance(ctx, token.ID, token.ContractAddress)
 			if err != nil {
+				log.Error("cannot fetch tezos provenance", zap.String("contractAddress: ", token.ContractAddress), zap.String("tokenID: ", token.ID), zap.Error(err))
 				return err
 			}
 			totalProvenances = append(totalProvenances, provenance...)
@@ -377,19 +382,22 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 			case indexer.BitmarkBlockchain:
 				provenance, err := w.fetchBitmarkProvenance(tokenInfo.ID)
 				if err != nil {
+					log.Error("cannot fetch bitmark provenance", zap.String("tokenID: ", tokenInfo.ID), zap.Error(err))
 					return err
 				}
 
 				totalProvenances = append(totalProvenances, provenance...)
 			case indexer.EthereumBlockchain:
-				provenance, err := w.fetchEthereumProvenance(ctx, token.ID, token.ContractAddress)
+				provenance, err := w.fetchEthereumProvenance(ctx, tokenInfo.ID, tokenInfo.ContractAddress)
 				if err != nil {
+					log.Error("cannot fetch ethereum provenance", zap.String("contractAddress: ", token.ContractAddress), zap.String("tokenID: ", token.ID), zap.Error(err))
 					return err
 				}
 				totalProvenances = append(totalProvenances, provenance...)
 			case indexer.TezosBlockchain:
-				provenance, err := w.fetchTezosProvenance(ctx, token.ID, token.ContractAddress)
+				provenance, err := w.fetchTezosProvenance(ctx, tokenInfo.ID, tokenInfo.ContractAddress)
 				if err != nil {
+					log.Error("cannot fetch tezos provenance", zap.String("contractAddress: ", token.ContractAddress), zap.String("tokenID: ", token.ID), zap.Error(err))
 					return err
 				}
 				totalProvenances = append(totalProvenances, provenance...)
@@ -397,13 +405,17 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 		}
 
 		if err := w.indexerStore.UpdateTokenProvenance(ctx, token.IndexID, totalProvenances); err != nil {
+			log.Error("cannot update token provenance", zap.String("contractAddress: ", token.ContractAddress), zap.String("tokenID: ", token.ID), zap.Error(err))
 			return err
 		}
 
 		if len(totalProvenances) != 0 {
 			owner := map[string]int64{totalProvenances[0].Owner: 1}
 			if err := w.indexerStore.UpdateAccountTokenOwners(ctx, token.IndexID, totalProvenances[0].Timestamp, owner); err != nil {
+				log.Error("cannot update account token owners", zap.String("tokenID: ", token.IndexID), zap.Error(err))
 				return err
+			} else {
+				log.Debug("finish updating token owners")
 			}
 		}
 	}
@@ -417,6 +429,7 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 
 	accountTokens, err := w.indexerStore.GetAccountTokensByIndexIDs(ctx, indexIDs)
 	if err != nil {
+		log.Error("fail to get account tokens", zap.Any("indexIDs", indexIDs), zap.Error(err))
 		return err
 	}
 
@@ -426,6 +439,7 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 
 	tokens, err := w.indexerStore.GetTokensByIndexIDs(ctx, indexIDs)
 	if err != nil {
+		log.Error("fail to get tokens", zap.Any("indexIDs", indexIDs), zap.Error(err))
 		return err
 	}
 
@@ -467,6 +481,7 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 		case indexer.EthereumBlockchain:
 			lastActivityTime, err = w.indexerEngine.IndexETHTokenLastActivityTime(ctx, token.ContractAddress, token.ID)
 			if err != nil {
+				log.Error("fail to get lastActivityTime", zap.String("indexID", token.IndexID), zap.Error(err))
 				return err
 			}
 
@@ -478,11 +493,13 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 			log.Debug("fetch eth ownership for the token", zap.String("indexID", token.IndexID))
 			owners, err = w.indexerEngine.IndexETHTokenOwners(ctx, token.ContractAddress, token.ID)
 			if err != nil {
+				log.Error("fail to fetch ownership", zap.String("indexID", token.IndexID), zap.Error(err))
 				return err
 			}
 		case indexer.TezosBlockchain:
 			lastActivityTime, err = w.indexerEngine.IndexTezosTokenLastActivityTime(ctx, token.ContractAddress, token.ID)
 			if err != nil {
+				log.Error("fail to get lastActivityTime", zap.String("indexID", token.IndexID), zap.Error(err))
 				return err
 			}
 
@@ -494,15 +511,18 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 			log.Debug("fetch tezos ownership for the token", zap.String("indexID", token.IndexID))
 			owners, err = w.indexerEngine.IndexTezosTokenOwners(ctx, token.ContractAddress, token.ID)
 			if err != nil {
+				log.Error("fail to fetch ownership", zap.String("indexID", token.IndexID), zap.Error(err))
 				return err
 			}
 		}
 
 		if err := w.indexerStore.UpdateTokenOwners(ctx, token.IndexID, lastActivityTime, owners); err != nil {
+			log.Error("fail to update token owners", zap.String("indexID", token.IndexID), zap.Any("owners", owners), zap.Error(err))
 			return err
 		}
 
 		if err := w.indexerStore.UpdateAccountTokenOwners(ctx, token.IndexID, lastActivityTime, owners); err != nil {
+			log.Error("fail to update account token owners", zap.String("indexID", token.IndexID), zap.Any("owners", owners), zap.Error(err))
 			return err
 		}
 	}
