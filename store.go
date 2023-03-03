@@ -1848,12 +1848,15 @@ func (s *MongodbIndexerStore) GetDetailedTokensV2(ctx context.Context, filterPar
 func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error) {
 	tokens := []DetailedTokenV2{}
 
-	findOptions := options.Find().SetSort(bson.D{{Key: "lastRefreshedTime", Value: -1}, {Key: "_id", Value: -1}}).SetLimit(size).SetSkip(offset)
+	pipelines := []bson.M{
+		{"$match": bson.M{"indexID": bson.M{"$in": filterParameter.IDs}, "burned": bson.M{"$ne": true}}},
+		{"$addFields": bson.M{"__order": bson.M{"$indexOfArray": bson.A{filterParameter.IDs, "$indexID"}}}},
+		{"$sort": bson.M{"__order": 1}},
+		{"$skip": offset},
+		{"$limit": size},
+	}
 
-	cursor, err := s.tokenAssetCollection.Find(ctx, bson.M{
-		"indexID": bson.M{"$in": filterParameter.IDs},
-		"burned":  bson.M{"$ne": true},
-	}, findOptions)
+	cursor, err := s.tokenAssetCollection.Aggregate(ctx, pipelines)
 
 	if err != nil {
 		return nil, err
