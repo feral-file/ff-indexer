@@ -636,7 +636,10 @@ func (s *MongodbIndexerStore) PushProvenance(ctx context.Context, indexID string
 func (s *MongodbIndexerStore) GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
 	tokens := make([]string, 0)
 
-	c, err := s.accountTokenCollection.Find(ctx, bson.M{"ownerAccount": owner},
+	c, err := s.accountTokenCollection.Find(ctx, bson.M{
+		"ownerAccount": owner,
+		"balance":      bson.M{"$gt": 0},
+	},
 		options.Find().SetProjection(bson.M{"indexID": 1, "_id": 0}))
 	if err != nil {
 		return nil, err
