@@ -414,9 +414,8 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 			if err := w.indexerStore.UpdateAccountTokenOwners(ctx, token.IndexID, totalProvenances[0].Timestamp, owner); err != nil {
 				log.Error("cannot update account token owners", zap.String("tokenID: ", token.IndexID), zap.Error(err))
 				return err
-			} else {
-				log.Debug("finish updating token owners")
 			}
+			log.Debug("finish updating token owners")
 		}
 	}
 
