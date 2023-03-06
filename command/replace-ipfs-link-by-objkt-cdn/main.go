@@ -18,9 +18,7 @@ import (
 )
 
 type NFTAsset struct {
-	ID              string                           `bson:"id"`
-	IndexID         string                           `bson:"indexID"`
-	ProjectMetadata indexer.VersionedProjectMetadata `bson:"projectMetadata"`
+	ID string `bson:"id"`
 }
 
 func main() {
@@ -40,19 +38,34 @@ func main() {
 	assetsCollection := db.Collection("assets")
 	tokenCollection := db.Collection("tokens")
 
-	cursor, err := assetsCollection.Find(ctx, bson.M{"$or": bson.A{
-		bson.M{"projectMetadata.latest.thumbnailURL": bson.M{"$regex": "https://ipfs.io/ipfs/"}},
-		bson.M{"projectMetadata.latest.previewURL": bson.M{"$regex": "https://ipfs.io/ipfs/"}},
-		bson.M{"projectMetadata.latest.lastUpdatedAt": bson.M{"$gt": time.Now().Add(24 * time.Hour)}},
-	}})
+	for {
+		filter := bson.M{
+			"projectMetadata.latest.lastUpdatedAt": bson.M{"$lt": time.Now().Add(-2 * 24 * time.Hour)},
+			"$or": bson.A{
+				bson.M{"projectMetadata.latest.thumbnailURL": bson.M{"$regex": "https://ipfs.io/ipfs/"}},
+				bson.M{"projectMetadata.latest.previewURL": bson.M{"$regex": "https://ipfs.io/ipfs/"}},
+			},
+		}
+		err = assetsCollection.FindOne(ctx, filter).Decode(&asset)
+		if err != nil {
+			if err == mongo.ErrNoDocuments {
+				fmt.Println("no more asset need to update")
+				break
+			}
+			panic(err)
+		}
 
-	if err != nil {
-		panic(err)
-	}
-	defer cursor.Close(ctx)
+		// update lastUpdatedAt of asset
+		_, err = assetsCollection.UpdateOne(
+			ctx,
+			bson.M{"id": asset.ID},
+			bson.M{
+				"$set": bson.M{
+					"projectMetadata.latest.lastUpdatedAt": time.Now(),
+				},
+			},
+		)
 
-	for cursor.Next(ctx) {
-		err = cursor.Decode(&asset)
 		if err != nil {
 			fmt.Println(err)
 			continue
@@ -101,7 +114,6 @@ func main() {
 					"projectMetadata.latest.previewURL":          assetMetadataDetail.PreviewURI,
 					"projectMetadata.latest.thumbnailURL":        assetMetadataDetail.DisplayURI,
 					"projectMetadata.latest.galleryThumbnailURL": assetMetadataDetail.DisplayURI,
-					"projectMetadata.latest.lastUpdatedAt":       time.Now(),
 				},
 			},
 		)
