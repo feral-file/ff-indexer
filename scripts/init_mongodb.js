@@ -61,6 +61,9 @@ db.assets.createIndex({
   "thumbnailLastCheck": 1
 })
 db.assets.createIndex({
+  "thumbnailFailedReason": 1
+})
+db.assets.createIndex({
   "projectMetadata.latest.source": 1
 })
 db.assets.createIndex({
@@ -84,6 +87,12 @@ db.account_tokens.createIndex({
   unique: true,
   sparse: true
 })
+
+db.account_tokens.createIndexes([{
+  "lastRefreshedTime": -1
+}, {
+  "lastActivityTime": -1
+}])
 
 db.identities.createIndex({
   accountNumber: 1,
