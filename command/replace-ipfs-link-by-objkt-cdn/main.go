@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -42,6 +43,7 @@ func main() {
 	cursor, err := assetsCollection.Find(ctx, bson.M{"$or": bson.A{
 		bson.M{"projectMetadata.latest.thumbnailURL": bson.M{"$regex": "https://ipfs.io/ipfs/"}},
 		bson.M{"projectMetadata.latest.previewURL": bson.M{"$regex": "https://ipfs.io/ipfs/"}},
+		bson.M{"projectMetadata.latest.lastUpdatedAt": bson.M{"$gt": time.Now().Add(24 * time.Hour)}},
 	}})
 
 	if err != nil {
@@ -99,6 +101,7 @@ func main() {
 					"projectMetadata.latest.previewURL":          assetMetadataDetail.PreviewURI,
 					"projectMetadata.latest.thumbnailURL":        assetMetadataDetail.DisplayURI,
 					"projectMetadata.latest.galleryThumbnailURL": assetMetadataDetail.DisplayURI,
+					"projectMetadata.latest.lastUpdatedAt":       time.Now(),
 				},
 			},
 		)
