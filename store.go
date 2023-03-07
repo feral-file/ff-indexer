@@ -1771,7 +1771,7 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 	defer cursor.Close(ctx)
 
 	indexIDs := make([]string, 0)
-	accountTokenMap := map[string]AccountToken{}
+	accountTokens := []AccountToken{}
 	for cursor.Next(ctx) {
 		var token AccountToken
 
@@ -1780,7 +1780,7 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 		}
 
 		indexIDs = append(indexIDs, token.IndexID)
-		accountTokenMap[token.IndexID] = token
+		accountTokens = append(accountTokens, token)
 	}
 
 	if len(indexIDs) == 0 {
@@ -1794,15 +1794,22 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 		return nil, err
 	}
 
-	for i := range tokens {
-		token := &tokens[i]
+	results := []DetailedTokenV2{}
 
-		token.Balance = accountTokenMap[token.IndexID].Balance
-		token.Owner = accountTokenMap[token.IndexID].OwnerAccount
-		token.LastRefreshedTime = accountTokenMap[token.IndexID].LastRefreshedTime
+	for _, a := range accountTokens {
+		for i := range tokens {
+			if tokens[i].IndexID == a.IndexID {
+				token := tokens[i]
+				token.Balance = a.Balance
+				token.Owner = a.OwnerAccount
+				token.LastRefreshedTime = a.LastRefreshedTime
+				results = append(results, token)
+				break
+			}
+		}
 	}
 
-	return tokens, nil
+	return results, nil
 }
 
 // GetDetailedTokensV2 returns a list of tokens information based on ids
