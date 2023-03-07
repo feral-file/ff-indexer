@@ -40,7 +40,7 @@ func (e *EthereumEventsEmitter) Watch(ctx context.Context) {
 
 	for {
 		subscription, err := e.wsClient.SubscribeFilterLogs(ctx, goethereum.FilterQuery{Topics: [][]common.Hash{
-			{common.HexToHash(indexer.TransferEventSignature)}, // transfer event
+			{common.HexToHash(indexer.TransferEventSignature), common.HexToHash(indexer.TransferSingleEventSignature)}, // transfer event
 		}}, e.ethLogChan)
 		if err != nil {
 			log.Error("fail to start subscription connection", zap.Error(err), log.SourceETHClient)

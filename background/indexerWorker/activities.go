@@ -269,7 +269,7 @@ func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID,
 	transferLogs, err := w.wallet.RPCClient().FilterLogs(ctx, goethereum.FilterQuery{
 		Addresses: []common.Address{common.HexToAddress(contractAddress)},
 		Topics: [][]common.Hash{
-			{common.HexToHash(indexer.TransferEventSignature)},
+			{common.HexToHash(indexer.TransferEventSignature), common.HexToHash(indexer.TransferSingleEventSignature)},
 			nil, nil,
 			{common.HexToHash(hexID)},
 		},
