@@ -1556,8 +1556,8 @@ func (s *MongodbIndexerStore) GetAbsentMimeTypeTokens(ctx context.Context, limit
 	c, err := s.assetCollection.Aggregate(ctx, []bson.M{
 		{
 			"$match": bson.D{{Key: "$or", Value: []interface{}{
-				bson.D{{Key: "projectMetadata.lastest.mimeType", Value: ""}},
-				bson.D{{Key: "projectMetadata.lastest.mimeType", Value: bson.M{"$exists": false}}},
+				bson.D{{Key: "projectMetadata.latest.mimeType", Value: ""}},
+				bson.D{{Key: "projectMetadata.latest.mimeType", Value: bson.M{"$exists": false}}},
 			}}},
 		},
 		{"$sample": bson.M{"size": limit}},

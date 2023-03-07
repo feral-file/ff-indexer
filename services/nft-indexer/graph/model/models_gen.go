@@ -81,6 +81,6 @@ type Token struct {
 }
 
 type VersionedProjectMetadata struct {
-	Origin  *ProjectMetadata `json:"origin"`
-	Lastest *ProjectMetadata `json:"lastest"`
+	Origin *ProjectMetadata `json:"origin"`
+	Latest *ProjectMetadata `json:"latest"`
 }

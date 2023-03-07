@@ -124,8 +124,8 @@ type ComplexityRoot struct {
 	}
 
 	VersionedProjectMetadata struct {
-		Lastest func(childComplexity int) int
-		Origin  func(childComplexity int) int
+		Latest func(childComplexity int) int
+		Origin func(childComplexity int) int
 	}
 }
 
@@ -544,12 +544,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Token.Swapped(childComplexity), true
 
-	case "VersionedProjectMetadata.lastest":
-		if e.complexity.VersionedProjectMetadata.Lastest == nil {
+	case "VersionedProjectMetadata.latest":
+		if e.complexity.VersionedProjectMetadata.Latest == nil {
 			break
 		}
 
-		return e.complexity.VersionedProjectMetadata.Lastest(childComplexity), true
+		return e.complexity.VersionedProjectMetadata.Latest(childComplexity), true
 
 	case "VersionedProjectMetadata.origin":
 		if e.complexity.VersionedProjectMetadata.Origin == nil {
@@ -1010,8 +1010,8 @@ func (ec *executionContext) fieldContext_AssetMetadata_project(ctx context.Conte
 			switch field.Name {
 			case "origin":
 				return ec.fieldContext_VersionedProjectMetadata_origin(ctx, field)
-			case "lastest":
-				return ec.fieldContext_VersionedProjectMetadata_lastest(ctx, field)
+			case "latest":
+				return ec.fieldContext_VersionedProjectMetadata_latest(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type VersionedProjectMetadata", field.Name)
 		},
@@ -3461,8 +3461,8 @@ func (ec *executionContext) fieldContext_VersionedProjectMetadata_origin(ctx con
 	return fc, nil
 }
 
-func (ec *executionContext) _VersionedProjectMetadata_lastest(ctx context.Context, field graphql.CollectedField, obj *model.VersionedProjectMetadata) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_VersionedProjectMetadata_lastest(ctx, field)
+func (ec *executionContext) _VersionedProjectMetadata_latest(ctx context.Context, field graphql.CollectedField, obj *model.VersionedProjectMetadata) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_VersionedProjectMetadata_latest(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -3475,7 +3475,7 @@ func (ec *executionContext) _VersionedProjectMetadata_lastest(ctx context.Contex
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Lastest, nil
+		return obj.Latest, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3492,7 +3492,7 @@ func (ec *executionContext) _VersionedProjectMetadata_lastest(ctx context.Contex
 	return ec.marshalNProjectMetadata2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐProjectMetadata(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_VersionedProjectMetadata_lastest(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_VersionedProjectMetadata_latest(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "VersionedProjectMetadata",
 		Field:      field,
@@ -5916,9 +5916,9 @@ func (ec *executionContext) _VersionedProjectMetadata(ctx context.Context, sel a
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "lastest":
+		case "latest":
 
-			out.Values[i] = ec._VersionedProjectMetadata_lastest(ctx, field, obj)
+			out.Values[i] = ec._VersionedProjectMetadata_latest(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++

@@ -53,7 +53,7 @@ type AssetMetadata {
 
 type VersionedProjectMetadata {
   	origin:   ProjectMetadata!
-  	lastest:  ProjectMetadata!
+  	latest:  ProjectMetadata!
 }
 
 type ProjectMetadata {

@@ -51,8 +51,8 @@ func (r *Resolver) mapGraphQLToken(t indexer.DetailedTokenV2) *model.Token {
 			LastRefreshedTime: &t.Asset.LastRefreshedTime,
 			Metadata: &model.AssetMetadata{
 				Project: &model.VersionedProjectMetadata{
-					Origin:  r.mapGraphQLProjectMetadata(t.Asset.Metadata.Project.Origin),
-					Lastest: r.mapGraphQLProjectMetadata(t.Asset.Metadata.Project.Latest),
+					Origin: r.mapGraphQLProjectMetadata(t.Asset.Metadata.Project.Origin),
+					Latest: r.mapGraphQLProjectMetadata(t.Asset.Metadata.Project.Latest),
 				},
 			},
 		},
