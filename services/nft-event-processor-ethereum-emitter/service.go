@@ -65,6 +65,8 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 			zap.Uint("logIndex", eLog.Index),
 			zap.Time("time", paringStartTime))
 
+		log.Debug("topicLen", zap.Int("length: ", len(eLog.Topics)))
+
 		if topicLen := len(eLog.Topics); topicLen == 4 {
 
 			fromAddress := indexer.EthereumChecksumAddress(eLog.Topics[1].Hex())
