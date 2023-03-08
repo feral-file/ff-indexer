@@ -1794,19 +1794,19 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 		return nil, err
 	}
 
+	detailedTokenMap := map[string]DetailedTokenV2{}
 	results := []DetailedTokenV2{}
 
+	for _, t := range tokens {
+		detailedTokenMap[t.IndexID] = t
+	}
+
 	for _, a := range accountTokens {
-		for i := range tokens {
-			if tokens[i].IndexID == a.IndexID {
-				token := tokens[i]
-				token.Balance = a.Balance
-				token.Owner = a.OwnerAccount
-				token.LastRefreshedTime = a.LastRefreshedTime
-				results = append(results, token)
-				break
-			}
-		}
+		token := detailedTokenMap[a.IndexID]
+		token.Balance = a.Balance
+		token.Owner = a.OwnerAccount
+		token.LastRefreshedTime = a.LastRefreshedTime
+		results = append(results, token)
 	}
 
 	return results, nil
