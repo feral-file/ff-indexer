@@ -12,6 +12,8 @@ db.createUser({
   ]
 })
 
+
+// tokens index
 db.tokens.createIndex({
   indexID: 1
 }, {
@@ -37,11 +39,16 @@ db.tokens.createIndex({
   lastRefreshedTime: 1
 }, )
 db.tokens.createIndex({
+  lastRefreshedTime: -1
+}, )
+db.tokens.createIndex({
   contractAddress: 1
 }, )
 db.tokens.createIndex({
   swapped: 1
 }, )
+
+// assets index
 db.assets.createIndex({
   id: 1
 }, )
@@ -66,13 +73,18 @@ db.assets.createIndex({
 db.assets.createIndex({
   "projectMetadata.latest.source": 1
 })
-db.assets.createIndex({
+db.assets.createIndexes([{
   "projectMetadata.latest.thumbnailURL": 1
-})
+}, {
+  "projectMetadata.latest.galleryThumbnailURL": 1
+}, {
+  "projectMetadata.latest.previewURL": 1
+}])
 db.assets.createIndex({
   "projectMetadata.latest.lastUpdatedAt": 1
 })
 
+// accounts index
 db.accounts.createIndex({
   account: 1
 }, {
@@ -80,6 +92,7 @@ db.accounts.createIndex({
   sparse: true
 })
 
+// account_tokens index
 db.account_tokens.createIndex({
   indexID: 1,
   ownerAccount: 1
@@ -87,13 +100,24 @@ db.account_tokens.createIndex({
   unique: true,
   sparse: true
 })
-
 db.account_tokens.createIndexes([{
-  "lastRefreshedTime": -1
+  "ownerAccount": 1,
+  "lastActivityTime": -1
+}, {
+  "ownerAccount": 1
+}, {
+  "blockchain": 1
+}, {
+  "ownerAccount": 1,
+  "runID": 1
 }, {
   "lastActivityTime": -1
+}, {
+  "lastRefreshedTime": -1
 }])
 
+
+// identities index
 db.identities.createIndex({
   accountNumber: 1,
   blockchain: 1
@@ -102,8 +126,7 @@ db.identities.createIndex({
   sparse: true
 })
 
-db.createView("token_assets", "tokens", [
-  {
+db.createView("token_assets", "tokens", [{
     "$lookup": {
       "from": "assets",
       "localField": "assetID",
@@ -111,10 +134,12 @@ db.createView("token_assets", "tokens", [
       "as": "asset"
     }
   },
-  { "$unwind": "$asset" },
+  {
+    "$unwind": "$asset"
+  },
   {
     "$addFields": {
-    "asset.metadata.project": "$asset.projectMetadata"
+      "asset.metadata.project": "$asset.projectMetadata"
     }
   },
   {
