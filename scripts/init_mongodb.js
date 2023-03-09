@@ -36,6 +36,9 @@ db.tokens.createIndex({
   blockchain: 1
 }, )
 db.tokens.createIndex({
+  assetID: 1
+}, )
+db.tokens.createIndex({
   lastRefreshedTime: 1
 }, )
 db.tokens.createIndex({
