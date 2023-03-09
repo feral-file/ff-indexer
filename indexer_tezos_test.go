@@ -107,3 +107,13 @@ func TestIndexTezosToken(t *testing.T) {
 	//assert.Equal(t, strings.Contains(assetUpdates.ProjectMetadata.ThumbnailURL, "https://assets.objkt.media/file/assets-003/"), true)
 	//assert.Equal(t, assetUpdates.ProjectMetadata.Title == "", false)
 }
+
+func TestIndexTezosTokenByOwner(t *testing.T) {
+	if err := log.Initialize("", false); err != nil {
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
+	}
+
+	engine := New("", nil, tzkt.New(""), nil, objkt.New("https://data.objkt.com/v3/graphql"))
+	_, _, err := engine.IndexTezosTokenByOwner(context.Background(), "tz1eZUHkQDC1bBEbvrrUxkbWEagdZJXQyszc", time.Now().Add(-100*24*time.Hour), 0)
+	assert.NoError(t, err)
+}

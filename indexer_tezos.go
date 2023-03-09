@@ -65,7 +65,7 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 	}
 
 	if len(ownedTokens) > 0 {
-		newLastTime = ownedTokens[len(tokenUpdates)-1].LastTime
+		newLastTime = ownedTokens[len(ownedTokens)-1].LastTime
 	}
 
 	return tokenUpdates, newLastTime, nil
