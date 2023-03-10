@@ -193,10 +193,10 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 	go func() {
 		defer s.wg.Done()
 
-		assets := make(chan NFTAsset, 200)
+		assets := make(chan NFTAsset, 20)
 		defer close(assets)
 
-		s.spawnThumbnailWorker(ctx, assets, 100)
+		s.spawnThumbnailWorker(ctx, assets, 10)
 
 		log.Info("start the loop the get assets without thumbnail cached",
 			zap.Duration("thumbnailCachePeriod", s.thumbnailCachePeriod),
