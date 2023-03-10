@@ -110,11 +110,14 @@ func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) 
 			},
 			// filter assets which does not have thumbnailID or the thumbnailID is empty
 			"thumbnailID": bson.M{
-				"$not": bson.M{"$exists": true, "$ne": ""},
+				// "$not": bson.M{"$exists": true, "$ne": ""},
+				"$in": bson.A{nil, ""},
 			},
+
 			// filter assets which does not have thumbnailFailure or the thumbnailFailure is empty
 			"thumbnailFailedReason": bson.M{
-				"$not": bson.M{"$exists": true},
+				// "$not": bson.M{"$exists": true},
+				"$in": bson.A{nil, ""},
 			},
 			// filter assets which are qualified to generate thumbnails in cloudflare.
 			// "$or": bson.A{
