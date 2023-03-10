@@ -78,6 +78,7 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 
 					sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
 					log.Error("fail to upload image", zap.String("indexID", asset.IndexID), zap.Error(err))
+					continue
 				}
 				log.Debug("thumbnail image uploaded",
 					zap.Duration("duration", time.Since(uploadImageStartTime)),
@@ -86,9 +87,9 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 				// Update the thumbnail by image ID returned from cloudflare, it the whol process is succeed.
 				// Otherwise, it would update to an empty value
 				if err := s.updateAssetThumbnail(ctx, img.AssetID, img.ImageID); err != nil {
-					log.Error("update token thumbnail to indexer", zap.Error(err))
+					log.Error("fail to update token thumbnail back to indexer", zap.Error(err))
+					continue
 				}
-
 				log.Info("thumbnail generating process finished", zap.String("indexID", asset.IndexID))
 			}
 			log.Debug("ThumbnailWorker stopped")
