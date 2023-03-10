@@ -144,7 +144,7 @@ func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) 
 		},
 		bson.M{"$set": bson.M{"thumbnailLastCheck": time.Now()}},
 		options.FindOneAndUpdate().
-			SetSort(bson.D{{Key: "projectMetadata.latest.lastUpdatedAt", Value: 1}}).
+			SetSort(bson.D{{Key: "projectMetadata.latest.lastUpdatedAt", Value: -1}}).
 			SetProjection(bson.M{"indexID": 1, "projectMetadata.latest.thumbnailURL": 1}),
 	)
 
