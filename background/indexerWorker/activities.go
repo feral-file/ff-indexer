@@ -63,6 +63,7 @@ func (w *NFTIndexerWorker) GetOwnedERC721TokenIDByContract(ctx context.Context, 
 
 // IndexETHTokenByOwner indexes ETH token data for an owner into the format of AssetUpdates
 func (w *NFTIndexerWorker) IndexETHTokenByOwner(ctx context.Context, owner string, offset int) (int, error) {
+	log.Debug("IndexETHTokenByOwner", zap.String("owner", owner))
 	updates, err := w.indexerEngine.IndexETHTokenByOwner(ctx, owner, offset)
 	if err != nil {
 		return 0, err
