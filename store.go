@@ -146,7 +146,7 @@ type UpdateSet struct {
 	Edition            int64                    `structs:"edition,omitempty"`
 	EditionName        string                   `structs:"editionName,omitempty"`
 	ContractAddress    string                   `structs:"contractAddress,omitempty"`
-	LastRefreshedTime  time.Time                `struct:"lastRefreshedTime"`
+	LastRefreshedTime  time.Time                `structs:"lastRefreshedTime"`
 }
 
 // checkIfTokenNeedToUpdate returns true if the new token data is suppose to be
