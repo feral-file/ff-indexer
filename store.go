@@ -147,6 +147,7 @@ type UpdateSet struct {
 	EditionName        string                   `structs:"editionName,omitempty"`
 	ContractAddress    string                   `structs:"contractAddress,omitempty"`
 	LastRefreshedTime  time.Time                `structs:"lastRefreshedTime"`
+	LastActivityTime   time.Time                `structs:"lastActivityTime"`
 }
 
 // checkIfTokenNeedToUpdate returns true if the new token data is suppose to be
@@ -290,12 +291,13 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 
 		if checkIfTokenNeedToUpdate(assetUpdates.Source, currentToken, token) {
 			tokenUpdateSet := UpdateSet{
-				Fungible:        token.Fungible,
-				Source:          token.Source,
-				AssetID:         id,
-				Edition:         token.Edition,
-				EditionName:     token.EditionName,
-				ContractAddress: token.ContractAddress,
+				Fungible:         token.Fungible,
+				Source:           token.Source,
+				AssetID:          id,
+				Edition:          token.Edition,
+				EditionName:      token.EditionName,
+				ContractAddress:  token.ContractAddress,
+				LastActivityTime: token.LastActivityTime,
 			}
 
 			tokenUpdate := bson.M{"$set": structs.Map(tokenUpdateSet)}
@@ -1199,22 +1201,10 @@ func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ow
 			return err
 		}
 	} else {
-		// if pendingTxs is not nil, or doesn't exist,
-		// then we push a new pendingTx to the pendingTxs
-		_, err := s.accountTokenCollection.UpdateOne(ctx,
-			bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "pendingTxs": bson.M{"$nin": bson.A{pendingTx}}},
-			bson.M{
-				"$push": bson.M{
-					"pendingTxs":      pendingTx,
-					"lastPendingTime": time.Now(),
-				},
-			},
-		)
-
-		if err != nil {
-			return err
-		}
-
+		log.Debug("pending token is already added",
+			zap.String("IndexID", indexID),
+			zap.String("ownerAccount", ownerAccount))
+		return nil
 	}
 	return nil
 }
@@ -1775,11 +1765,11 @@ func (s *MongodbIndexerStore) MarkAccountTokenChanged(ctx context.Context, index
 
 // GetDetailedAccountTokensByOwners returns a list of DetailedToken by owner
 func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, lastUpdatedAt time.Time, offset, size int64) ([]DetailedTokenV2, error) {
-	findOptions := options.Find().SetSort(bson.D{{Key: "lastRefreshedTime", Value: -1}, {Key: "_id", Value: -1}}).SetLimit(size).SetSkip(offset)
+	findOptions := options.Find().SetSort(bson.D{{Key: "lastActivityTime", Value: -1}, {Key: "_id", Value: -1}}).SetLimit(size).SetSkip(offset)
 
 	filter := bson.M{
-		"ownerAccount":      bson.M{"$in": owner},
-		"lastRefreshedTime": bson.M{"$gte": lastUpdatedAt},
+		"ownerAccount":     bson.M{"$in": owner},
+		"lastActivityTime": bson.M{"$gte": lastUpdatedAt},
 	}
 
 	cursor, err := s.accountTokenCollection.Find(ctx, filter, findOptions)
