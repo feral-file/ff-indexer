@@ -437,6 +437,7 @@ func (c *TZKT) GetTokenBalanceAndLastTimeForOwner(contract, tokenID, owner strin
 		"balance.gt":     []string{"0"},
 		"account":        []string{owner},
 		"token.standard": []string{"fa2"},
+		"select":         []string{"lastTime,account.address as address,balance"},
 	}
 
 	u := url.URL{
