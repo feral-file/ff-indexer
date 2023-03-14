@@ -3,7 +3,9 @@ package imageStore
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"regexp"
@@ -19,6 +21,8 @@ import (
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
 )
+
+const CloudflareImageDeilverURL = "https://imagedelivery.net/%s/%s/public"
 
 type Metadata map[string]interface{}
 
@@ -37,11 +41,30 @@ type ImageStore struct {
 	db *gorm.DB
 
 	// cloudflare
-	cloudflareAccountID string
-	cloudflareAPI       *cloudflare.API
+	cloudflareAccountHash string
+	cloudflareAccountID   string
+	cloudflareAPI         *cloudflare.API
 }
 
-func New(dsn string, cloudflareAccountID, cloudflareAPIToken string) *ImageStore {
+// imageIDExisted checks if a given image id is presence in cloudflare
+func (s *ImageStore) imageIDExisted(imageID string) (bool, error) {
+	// FIXME: not use default client
+	resp, err := http.Head(fmt.Sprintf(CloudflareImageDeilverURL, s.cloudflareAccountHash, imageID))
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		return true, nil
+	} else if resp.StatusCode == http.StatusNotFound {
+		return false, nil
+	}
+
+	return false, fmt.Errorf("incorrect http status(%d) on checking image existence", resp.StatusCode)
+}
+
+func New(dsn string, cloudflareAccountHash, cloudflareAccountID, cloudflareAPIToken string) *ImageStore {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.LogLevel(viper.GetInt("image_db.log_level"))),
 	})
@@ -63,9 +86,10 @@ func New(dsn string, cloudflareAccountID, cloudflareAPIToken string) *ImageStore
 	}
 
 	return &ImageStore{
-		db:                  db,
-		cloudflareAccountID: cloudflareAccountID,
-		cloudflareAPI:       cloudflareAPI,
+		db:                    db,
+		cloudflareAccountHash: cloudflareAccountHash,
+		cloudflareAccountID:   cloudflareAccountID,
+		cloudflareAPI:         cloudflareAPI,
 	}
 }
 
@@ -113,9 +137,20 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 		}
 
 		if image.ImageID != "" {
-			// remove the existent image before create a new one
-			if err := s.cloudflareAPI.DeleteImage(ctx, s.cloudflareAccountID, image.ImageID); err != nil {
+			imageExisted, err := s.imageIDExisted(image.ImageID)
+			if err != nil {
 				return err
+			}
+			log.Debug("check thumbnail cache existent",
+				zap.Bool("imageExisted", imageExisted),
+				zap.String("assetID", assetID))
+			if imageExisted {
+				// remove the existent image before create a new one
+				if err := s.cloudflareAPI.DeleteImage(ctx, s.cloudflareAccountID, image.ImageID); err != nil {
+					log.Warn("fail to delete image cache",
+						zap.String("assetID", assetID), zap.Error(err))
+					return err
+				}
 			}
 		}
 
