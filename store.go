@@ -146,7 +146,7 @@ type UpdateSet struct {
 	Edition            int64                    `structs:"edition,omitempty"`
 	EditionName        string                   `structs:"editionName,omitempty"`
 	ContractAddress    string                   `structs:"contractAddress,omitempty"`
-	LastRefreshedTime  time.Time                `struct:"lastRefreshedTime"`
+	LastRefreshedTime  time.Time                `structs:"lastRefreshedTime"`
 }
 
 // checkIfTokenNeedToUpdate returns true if the new token data is suppose to be
@@ -636,7 +636,10 @@ func (s *MongodbIndexerStore) PushProvenance(ctx context.Context, indexID string
 func (s *MongodbIndexerStore) GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
 	tokens := make([]string, 0)
 
-	c, err := s.accountTokenCollection.Find(ctx, bson.M{"ownerAccount": owner},
+	c, err := s.accountTokenCollection.Find(ctx, bson.M{
+		"ownerAccount": owner,
+		"balance":      bson.M{"$gt": 0},
+	},
 		options.Find().SetProjection(bson.M{"indexID": 1, "_id": 0}))
 	if err != nil {
 		return nil, err
@@ -1374,7 +1377,9 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwner(ctx context.Contex
 		zap.Int64("offset", offset),
 		zap.Int64("size", size))
 
-	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{"ownerAccount": account}, findOptions)
+	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{
+		"ownerAccount": account,
+		"balance":      bson.M{"$gt": 0}}, findOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -1551,8 +1556,8 @@ func (s *MongodbIndexerStore) GetAbsentMimeTypeTokens(ctx context.Context, limit
 	c, err := s.assetCollection.Aggregate(ctx, []bson.M{
 		{
 			"$match": bson.D{{Key: "$or", Value: []interface{}{
-				bson.D{{Key: "projectMetadata.lastest.mimeType", Value: ""}},
-				bson.D{{Key: "projectMetadata.lastest.mimeType", Value: bson.M{"$exists": false}}},
+				bson.D{{Key: "projectMetadata.latest.mimeType", Value: ""}},
+				bson.D{{Key: "projectMetadata.latest.mimeType", Value: bson.M{"$exists": false}}},
 			}}},
 		},
 		{"$sample": bson.M{"size": limit}},
@@ -1766,7 +1771,7 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 	defer cursor.Close(ctx)
 
 	indexIDs := make([]string, 0)
-	accountTokenMap := map[string]AccountToken{}
+	accountTokens := []AccountToken{}
 	for cursor.Next(ctx) {
 		var token AccountToken
 
@@ -1775,7 +1780,7 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 		}
 
 		indexIDs = append(indexIDs, token.IndexID)
-		accountTokenMap[token.IndexID] = token
+		accountTokens = append(accountTokens, token)
 	}
 
 	if len(indexIDs) == 0 {
@@ -1789,15 +1794,22 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 		return nil, err
 	}
 
-	for i := range tokens {
-		token := &tokens[i]
+	detailedTokenMap := map[string]DetailedTokenV2{}
+	results := []DetailedTokenV2{}
 
-		token.Balance = accountTokenMap[token.IndexID].Balance
-		token.Owner = accountTokenMap[token.IndexID].OwnerAccount
-		token.LastRefreshedTime = accountTokenMap[token.IndexID].LastRefreshedTime
+	for _, t := range tokens {
+		detailedTokenMap[t.IndexID] = t
 	}
 
-	return tokens, nil
+	for _, a := range accountTokens {
+		token := detailedTokenMap[a.IndexID]
+		token.Balance = a.Balance
+		token.Owner = a.OwnerAccount
+		token.LastRefreshedTime = a.LastRefreshedTime
+		results = append(results, token)
+	}
+
+	return results, nil
 }
 
 // GetDetailedTokensV2 returns a list of tokens information based on ids
@@ -1843,12 +1855,15 @@ func (s *MongodbIndexerStore) GetDetailedTokensV2(ctx context.Context, filterPar
 func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error) {
 	tokens := []DetailedTokenV2{}
 
-	findOptions := options.Find().SetSort(bson.D{{Key: "lastRefreshedTime", Value: -1}, {Key: "_id", Value: -1}}).SetLimit(size).SetSkip(offset)
+	pipelines := []bson.M{
+		{"$match": bson.M{"indexID": bson.M{"$in": filterParameter.IDs}, "burned": bson.M{"$ne": true}}},
+		{"$addFields": bson.M{"__order": bson.M{"$indexOfArray": bson.A{filterParameter.IDs, "$indexID"}}}},
+		{"$sort": bson.M{"__order": 1}},
+		{"$skip": offset},
+		{"$limit": size},
+	}
 
-	cursor, err := s.tokenAssetCollection.Find(ctx, bson.M{
-		"indexID": bson.M{"$in": filterParameter.IDs},
-		"burned":  bson.M{"$ne": true},
-	}, findOptions)
+	cursor, err := s.tokenAssetCollection.Aggregate(ctx, pipelines)
 
 	if err != nil {
 		return nil, err

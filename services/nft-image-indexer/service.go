@@ -78,6 +78,7 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 
 					sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
 					log.Error("fail to upload image", zap.String("indexID", asset.IndexID), zap.Error(err))
+					continue
 				}
 				log.Debug("thumbnail image uploaded",
 					zap.Duration("duration", time.Since(uploadImageStartTime)),
@@ -86,9 +87,9 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 				// Update the thumbnail by image ID returned from cloudflare, it the whol process is succeed.
 				// Otherwise, it would update to an empty value
 				if err := s.updateAssetThumbnail(ctx, img.AssetID, img.ImageID); err != nil {
-					log.Error("update token thumbnail to indexer", zap.Error(err))
+					log.Error("fail to update token thumbnail back to indexer", zap.Error(err))
+					continue
 				}
-
 				log.Info("thumbnail generating process finished", zap.String("indexID", asset.IndexID))
 			}
 			log.Debug("ThumbnailWorker stopped")
@@ -102,45 +103,48 @@ func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) 
 	r := s.nftAssets.FindOneAndUpdate(ctx,
 		bson.M{
 			// filter assets which have been viewed in the past 7 days.
-			"projectMetadata.latest.lastUpdatedAt": bson.M{"$gt": time.Now().Add(-s.thumbnailCachePeriod)},
+			// "projectMetadata.latest.lastUpdatedAt": bson.M{"$gt": time.Now().Add(-s.thumbnailCachePeriod)},
 			// filter assets which have not been processed in the last hour.
 			"thumbnailLastCheck": bson.M{
 				"$not": bson.M{"$gt": time.Now().Add(-s.thumbnailCacheRetryInterval)},
 			},
 			// filter assets which does not have thumbnailID or the thumbnailID is empty
 			"thumbnailID": bson.M{
-				"$not": bson.M{"$exists": true, "$ne": ""},
+				// "$not": bson.M{"$exists": true, "$ne": ""},
+				"$in": bson.A{nil, ""},
 			},
+
 			// filter assets which does not have thumbnailFailure or the thumbnailFailure is empty
-			"thumbnailFailure": bson.M{
-				"$not": bson.M{"$exists": true, "$ne": ""},
+			"thumbnailFailedReason": bson.M{
+				// "$not": bson.M{"$exists": true},
+				"$in": bson.A{nil, ""},
 			},
 			// filter assets which are qualified to generate thumbnails in cloudflare.
-			"$or": bson.A{
-				// filter all tokens that set SVG as the mime-type and their thumbnail URLs start with https
-				bson.M{
-					"projectMetadata.latest.mimeType":     "image/svg+xml",
-					"projectMetadata.latest.thumbnailURL": bson.M{"$regex": "^https://"},
-				},
-				// For tezos tokens, it parses tokens that starts with `https://ipfs.` which means
-				// all token that is uploaded to IPFS but is not cached by objkt.
-				bson.M{
-					"source":                              "tzkt",
-					"projectMetadata.latest.source":       bson.M{"$nin": []string{"fxhash"}},
-					"projectMetadata.latest.thumbnailURL": bson.M{"$regex": "^https://ipfs"}, // either ipfs.io or ipfs.bitmark
-				},
-				// For opensea tokens, we can only check the mime-type of an asset by its file extension.
-				bson.M{
-					"source": "opensea",
-					"projectMetadata.latest.thumbnailURL": bson.M{
-						"$regex": ".svg$",
-					},
-				},
-			},
+			// "$or": bson.A{
+			// 	// filter all tokens that set SVG as the mime-type and their thumbnail URLs start with https
+			// 	bson.M{
+			// 		"projectMetadata.latest.mimeType":     "image/svg+xml",
+			// 		"projectMetadata.latest.thumbnailURL": bson.M{"$regex": "^https://"},
+			// 	},
+			// 	// For tezos tokens, it parses tokens that starts with `https://ipfs.` which means
+			// 	// all token that is uploaded to IPFS but is not cached by objkt.
+			// 	bson.M{
+			// 		"source":                              "tzkt",
+			// 		"projectMetadata.latest.source":       bson.M{"$nin": []string{"fxhash"}},
+			// 		"projectMetadata.latest.thumbnailURL": bson.M{"$regex": "^https://ipfs"}, // either ipfs.io or ipfs.bitmark
+			// 	},
+			// 	// For opensea tokens, we can only check the mime-type of an asset by its file extension.
+			// 	bson.M{
+			// 		"source": "opensea",
+			// 		"projectMetadata.latest.thumbnailURL": bson.M{
+			// 			"$regex": ".svg$",
+			// 		},
+			// 	},
+			// },
 		},
 		bson.M{"$set": bson.M{"thumbnailLastCheck": time.Now()}},
 		options.FindOneAndUpdate().
-			SetSort(bson.D{{Key: "projectMetadata.latest.lastUpdatedAt", Value: 1}}).
+			SetSort(bson.D{{Key: "projectMetadata.latest.lastUpdatedAt", Value: -1}}).
 			SetProjection(bson.M{"indexID": 1, "projectMetadata.latest.thumbnailURL": 1}),
 	)
 
@@ -193,10 +197,10 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 	go func() {
 		defer s.wg.Done()
 
-		assets := make(chan NFTAsset, 200)
+		assets := make(chan NFTAsset, 20)
 		defer close(assets)
 
-		s.spawnThumbnailWorker(ctx, assets, 100)
+		s.spawnThumbnailWorker(ctx, assets, 10)
 
 		log.Info("start the loop the get assets without thumbnail cached",
 			zap.Duration("thumbnailCachePeriod", s.thumbnailCachePeriod),

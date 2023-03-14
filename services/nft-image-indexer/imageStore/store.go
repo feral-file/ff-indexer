@@ -163,6 +163,11 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 			if isErrSizeTooLarge {
 				return NewImageCachingError(ReasonFileSizeTooLarge)
 			}
+
+			if strings.Contains(err.Error(), "error unmarshalling the JSON response error body") {
+				return NewImageCachingError(ReasonUnknownCloudflareAPIFailure)
+			}
+
 			return err
 		}
 
