@@ -222,9 +222,9 @@ type AccountToken struct {
 	Balance           int64            `json:"balance" bson:"balance"`
 	LastActivityTime  time.Time        `json:"lastActivityTime" bson:"lastActivityTime"`
 	LastRefreshedTime time.Time        `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
-	LastPendingTime   []time.Time      `json:"-" bson:"lastPendingTime"`
+	LastPendingTime   []time.Time      `json:"-" bson:"lastPendingTime,omitempty"`
 	LastUpdatedAt     time.Time        `json:"lastUpdatedAt" bson:"lastUpdatedAt"`
-	PendingTxs        []string         `json:"pendingTxs" bson:"pendingTxs"`
+	PendingTxs        []string         `json:"pendingTxs" bson:"pendingTxs,omitempty"`
 }
 
 type PendingTxUpdate struct {
