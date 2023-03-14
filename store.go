@@ -1224,7 +1224,7 @@ func (s *MongodbIndexerStore) DeleteFailedAccountTokens(ctx context.Context, own
 
 // GetPendingAccountTokens gets all pending account tokens in the db
 func (s *MongodbIndexerStore) GetPendingAccountTokens(ctx context.Context) ([]AccountToken, error) {
-	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{"pendingTxs": bson.M{"$exists": true, "$nin": bson.A{nil, bson.A{}}}})
+	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{"pendingTxs": bson.M{"$nin": bson.A{nil, bson.A{}}}})
 	if err != nil {
 		return nil, err
 	}
@@ -1768,11 +1768,11 @@ func (s *MongodbIndexerStore) MarkAccountTokenChanged(ctx context.Context, index
 
 // GetDetailedAccountTokensByOwners returns a list of DetailedToken by owner
 func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, lastUpdatedAt time.Time, offset, size int64) ([]DetailedTokenV2, error) {
-	findOptions := options.Find().SetSort(bson.D{{Key: "lastActivityTime", Value: -1}, {Key: "_id", Value: -1}}).SetLimit(size).SetSkip(offset)
+	findOptions := options.Find().SetSort(bson.D{{Key: "lastRefreshedTime", Value: -1}, {Key: "_id", Value: -1}}).SetLimit(size).SetSkip(offset)
 
 	filter := bson.M{
-		"ownerAccount":     bson.M{"$in": owner},
-		"lastActivityTime": bson.M{"$gte": lastUpdatedAt},
+		"ownerAccount":      bson.M{"$in": owner},
+		"lastRefreshedTime": bson.M{"$gte": lastUpdatedAt},
 	}
 
 	cursor, err := s.accountTokenCollection.Find(ctx, filter, findOptions)
@@ -1818,6 +1818,7 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 		token.Balance = a.Balance
 		token.Owner = a.OwnerAccount
 		token.LastRefreshedTime = a.LastRefreshedTime
+		token.LastActivityTime = a.LastActivityTime
 		results = append(results, token)
 	}
 
