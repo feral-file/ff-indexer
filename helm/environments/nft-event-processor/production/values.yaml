@@ -1,0 +1,19 @@
+replicaCount: 1
+
+image:
+  tags:
+    eventProcessor: "event-processor-3704c56125f9cd93fbcd5101f49db7a98058e6ef"
+    ethereumEmitter: "ethereum-emitter-3704c56125f9cd93fbcd5101f49db7a98058e6ef"
+    bitmarkEmitter: "bitmark-emitter-3704c56125f9cd93fbcd5101f49db7a98058e6ef"
+
+serviceConfig:
+  tezosNodeRPCURL: https://mainnet-tezos.autonomy.io
+  environment: production
+  eventProcessorEndpoint: nft-event-processor.autonomy.svc.cluster.local:8765
+  cadence_hostport: cadenceau-frontend.cadenceau.svc.cluster.local:7933
+  feedEndpoint: http://autonomy-event-feed.autonomy.svc.cluster.local:80
+  notificationEndpoint: http://autonomy-notification.autonomy.svc.cluster.local:80
+  network:
+    tezos: livenet
+    ethereum: livenet
+    bitmark: livenet

@@ -17,9 +17,9 @@ serviceConfig:
   environment: development
   feedEndpoint: http://autonomy-event-feed.autonomy.svc.cluster.local:80
   notificationEndpoint: http://autonomy-notification.autonomy.svc.cluster.local:80
+  cadence_hostport: cadence-frontend.cadence.svc.cluster.local:7933
   eventProcessorEndpoint: nft-event-processor.autonomy.svc.cluster.local:8765
   tezosNodeRPCURL: https://rpc.ghost.tzstats.com
-  contractAddresses: []
   contractBoostUrl: "https://api.tzkt.io/"
 
 imagePullSecrets: []

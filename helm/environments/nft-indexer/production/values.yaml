@@ -13,10 +13,10 @@ image:
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tags:
-    api: "api-18f9e757a58fe05f92e929af43a58f56d0519aa0"
-    background: "background-18f9e757a58fe05f92e929af43a58f56d0519aa0"
-    provenance_indexer: "provenance-indexer-18f9e757a58fe05f92e929af43a58f56d0519aa0"
-    account_token_indexer: "account-token-indexer-18f9e757a58fe05f92e929af43a58f56d0519aa0"
+    api: "api-d9b08c6484c4bff745cef8c2c75eebc4dc6385df"
+    background: "background-d9b08c6484c4bff745cef8c2c75eebc4dc6385df"
+    provenance_indexer: "provenance-indexer-d9b08c6484c4bff745cef8c2c75eebc4dc6385df"
+    account_token_indexer: "account-token-indexer-d9b08c6484c4bff745cef8c2c75eebc4dc6385df"
 
 serviceConfig:
   jwt_public_key_name: /autonomy/production/jwtPublicKey
