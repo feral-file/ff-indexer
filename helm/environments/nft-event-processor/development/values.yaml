@@ -8,9 +8,6 @@ image:
 
 serviceConfig:
   tezosNodeRPCURL: https://rpc.lima.tzstats.com
-  contractAddresses: [
-    "KT1VZ6Zkoae9DtXkbuw4wtFCg9WH8eywcvEX"
-  ]
   contractBoostUrl: "https://api.limanet.tzkt.io/"
   environment: development
   network:

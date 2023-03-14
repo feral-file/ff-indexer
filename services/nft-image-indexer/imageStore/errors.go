@@ -7,17 +7,19 @@ import (
 
 // Reason keys for unsupported errors
 const (
-	ReasonUnsupportedImageType = "ErrUnsupportedImageType"
-	ReasonUnsupportedSVGFile   = "ErrUnsupportedSVGFile"
-	ReasonDownloadFileFailed   = "ErrDownloadFileFailed"
-	ReasonFileSizeTooLarge     = "ErrSizeTooLarge"
+	ReasonUnsupportedImageType        = "ErrUnsupportedImageType"
+	ReasonUnsupportedSVGFile          = "ErrUnsupportedSVGFile"
+	ReasonDownloadFileFailed          = "ErrDownloadFileFailed"
+	ReasonFileSizeTooLarge            = "ErrSizeTooLarge"
+	ReasonUnknownCloudflareAPIFailure = "ErrUnknownCloudflareAPIFailure"
 )
 
 var ImageCachingErrorReasons = map[string]string{ // string string
-	ReasonUnsupportedImageType: "unsupported image type",
-	ReasonUnsupportedSVGFile:   "unsupported SVG File",
-	ReasonDownloadFileFailed:   "download file error",
-	ReasonFileSizeTooLarge:     "size too large",
+	ReasonUnsupportedImageType:        "unsupported image type",
+	ReasonUnsupportedSVGFile:          "unsupported SVG File",
+	ReasonDownloadFileFailed:          "download file error",
+	ReasonFileSizeTooLarge:            "size too large",
+	ReasonUnknownCloudflareAPIFailure: "unknown cloudflare api error",
 }
 
 type UnsupportedImageCachingError interface {
