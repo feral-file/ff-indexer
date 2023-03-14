@@ -36,7 +36,9 @@ func main() {
 
 	store := imageStore.New(
 		viper.GetString("image_db.dsn"),
-		viper.GetString("cloudflare.account_id"), viper.GetString("cloudflare.api_token"))
+		viper.GetString("cloudflare.account_hash"),
+		viper.GetString("cloudflare.account_id"),
+		viper.GetString("cloudflare.api_token"))
 	if err := store.AutoMigrate(); err != nil {
 		panic(err)
 	}
