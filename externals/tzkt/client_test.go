@@ -73,9 +73,10 @@ func TestGetTokenActivityTimeNotExist(t *testing.T) {
 func TestGetTokenBalanceForOwner(t *testing.T) {
 	tc := New("")
 
-	owner, _, err := tc.GetTokenBalanceAndLastTimeForOwner("KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton", "751194", "tz1bpvbjRGW1XHkALp4hFee6PKbnZCcoN9hE")
+	owner, lastTime, err := tc.GetTokenBalanceAndLastTimeForOwner("KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton", "751194", "tz1bpvbjRGW1XHkALp4hFee6PKbnZCcoN9hE")
 	assert.NoError(t, err)
 	assert.Equal(t, owner, int64(1))
+	assert.NotEqual(t, lastTime, time.Time{})
 }
 
 func TestGetArtworkMIMEType(t *testing.T) {
