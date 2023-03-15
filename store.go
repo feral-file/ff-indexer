@@ -1269,13 +1269,10 @@ func (s *MongodbIndexerStore) IndexAccount(ctx context.Context, account Account)
 
 // IndexAccountTokens indexes the account tokens by inputs
 func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error {
+	margin := 15 * time.Second
 	for _, accountToken := range accountTokens {
 		r, err := s.accountTokenCollection.UpdateOne(ctx,
-			bson.M{"indexID": accountToken.IndexID, "ownerAccount": owner,
-				"$or": bson.A{
-					bson.M{"lastActivityTime": bson.M{"$lt": accountToken.LastActivityTime}},
-					bson.M{"lastActivityTime": bson.M{"$exists": false}},
-				}},
+			bson.M{"indexID": accountToken.IndexID, "ownerAccount": owner, "lastActivityTime": bson.M{"$lt": accountToken.LastActivityTime.Add(-margin)}},
 			bson.M{"$set": accountToken},
 			options.Update().SetUpsert(true),
 		)
