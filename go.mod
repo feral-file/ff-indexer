@@ -11,7 +11,7 @@ require (
 	github.com/bitmark-inc/bitmark-sdk-go v0.3.0
 	github.com/bitmark-inc/config-loader v0.0.5
 	github.com/chromedp/chromedp v0.8.6
-	github.com/cloudflare/cloudflare-go v0.45.0
+	github.com/cloudflare/cloudflare-go v0.62.0
 	github.com/ethereum/go-ethereum v1.10.23
 	github.com/fatih/structs v1.1.0
 	github.com/gabriel-vasile/mimetype v1.4.1
@@ -22,7 +22,7 @@ require (
 	github.com/lib/pq v1.10.2
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/viper v1.12.0
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.2
 	github.com/uber-go/tally v3.4.2+incompatible
 	github.com/vektah/gqlparser/v2 v2.5.1
 	github.com/wealdtech/go-ens/v3 v3.5.2
@@ -31,7 +31,7 @@ require (
 	go.uber.org/yarpc v1.58.0
 	go.uber.org/zap v1.17.0
 	golang.org/x/crypto v0.0.0-20220824171710-5757bc0c5503
-	golang.org/x/net v0.0.0-20220822230855-b0a4917ee28c
+	golang.org/x/net v0.7.0
 	golang.org/x/sync v0.0.0-20220819030929-7fc1605a5dde
 	google.golang.org/grpc v1.46.2
 	google.golang.org/protobuf v1.28.1
@@ -59,7 +59,7 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v2 v2.0.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/urfave/cli/v2 v2.11.0 // indirect
+	github.com/urfave/cli/v2 v2.24.4 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 )
 
@@ -67,14 +67,14 @@ replace github.com/apache/thrift => github.com/apache/thrift v0.0.0-201903091525
 
 require (
 	blockwatch.cc/tzgo v1.14.2
-	github.com/BurntSushi/toml v1.1.0 // indirect
+	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239 // indirect
 	github.com/apache/thrift v0.0.0-20161221203622-b2a4d4ae21c7 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bitmark-inc/bitmarkd v0.13.2 // indirect
 	github.com/bitmark-inc/go-utils v0.0.0-20220509034903-59f3369237d3 // indirect
 	github.com/bitmark-inc/logger v0.3.5 // indirect
-	github.com/bitmark-inc/traceutils v0.1.0 // indirect
+	github.com/bitmark-inc/traceutils v0.1.0
 	github.com/btcsuite/btcd v0.22.0-beta // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce // indirect
@@ -106,7 +106,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
-	github.com/hashicorp/go-retryablehttp v0.7.1 // indirect
+	github.com/hashicorp/go-retryablehttp v0.7.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/ipfs/go-cid v0.1.0 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
@@ -162,7 +162,7 @@ require (
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/objx v0.4.0 // indirect
+	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/subosito/gotenv v1.4.1 // indirect
 	github.com/tklauser/go-sysconf v0.3.9 // indirect
 	github.com/tklauser/numcpus v0.4.0 // indirect
@@ -184,9 +184,9 @@ require (
 	golang.org/x/exp/typeparams v0.0.0-20220613132600-b0d781184e0d // indirect
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
-	golang.org/x/sys v0.0.0-20220928140112-f11e5e49a4ec // indirect
-	golang.org/x/text v0.3.8 // indirect
-	golang.org/x/time v0.0.0-20220224211638-0e9765cccd65 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
+	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.1.12 // indirect
 	google.golang.org/genproto v0.0.0-20220519153652-3a47de7e79bd // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
