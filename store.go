@@ -290,13 +290,16 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 
 		if checkIfTokenNeedToUpdate(assetUpdates.Source, currentToken, token) {
 			tokenUpdateSet := UpdateSet{
-				Fungible:         token.Fungible,
-				Source:           token.Source,
-				AssetID:          id,
-				Edition:          token.Edition,
-				EditionName:      token.EditionName,
-				ContractAddress:  token.ContractAddress,
-				LastActivityTime: token.LastActivityTime,
+				Fungible:        token.Fungible,
+				Source:          token.Source,
+				AssetID:         id,
+				Edition:         token.Edition,
+				EditionName:     token.EditionName,
+				ContractAddress: token.ContractAddress,
+			}
+
+			if !token.LastActivityTime.IsZero() {
+				tokenUpdateSet.LastActivityTime = token.LastActivityTime
 			}
 
 			tokenUpdate := bson.M{"$set": structs.Map(tokenUpdateSet)}
@@ -1127,18 +1130,7 @@ func (s *MongodbIndexerStore) UpdateAccountTokenBalance(ctx context.Context, own
 			},
 		},
 	)
-	if err != nil {
-		log.Error("fail to remove pendingTx and lastPendingTime",
-			zap.String("indexID", indexID),
-			zap.String("ownerAccount", ownerAccount),
-			zap.String("pendingTx", pendingTx),
-			zap.Error(err))
-		return err
-	}
 
-	_, err = s.accountTokenCollection.UpdateMany(ctx,
-		bson.M{"pendingTxs": bson.M{"$in": bson.A{nil, bson.A{}}}},
-		bson.M{"$unset": bson.M{"pendingTxs": "", "lastPendingTime": ""}})
 	return err
 }
 
@@ -1169,11 +1161,7 @@ func (s *MongodbIndexerStore) DeletePendingFieldsAccountToken(ctx context.Contex
 			zap.String("pendingTx", pendingTx))
 	}
 
-	_, err = s.accountTokenCollection.UpdateMany(ctx,
-		bson.M{"pendingTxs": bson.M{"$in": bson.A{nil, bson.A{}}}},
-		bson.M{"$unset": bson.M{"pendingTxs": "", "lastPendingTime": ""}})
-
-	return err
+	return nil
 }
 
 // AddPendingTxToAccountToken add pendingTx to a specific account token if this pendingTx does not exist
@@ -1208,7 +1196,7 @@ func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ow
 		return err
 	}
 
-	if r.MatchedCount == 0 && r.ModifiedCount == 0 {
+	if r.MatchedCount == 0 || r.ModifiedCount == 0 {
 		// 1. We don't have this account token OR
 		// 2. This account token already has the pendingTx.
 		// We insert this account token. If 2. happens, err will not be nil, we need to log it.
@@ -1224,8 +1212,7 @@ func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ow
 			log.Warn("cannot insert a new account token",
 				zap.String("ownerAccount", ownerAccount),
 				zap.String("indexID", indexID),
-				zap.String("pendingTx", pendingTx),
-				zap.Error(err))
+				zap.String("pendingTx", pendingTx))
 		}
 	}
 
