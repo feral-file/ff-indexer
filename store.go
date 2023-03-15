@@ -1175,10 +1175,7 @@ func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ow
 		bson.M{
 			"indexID":      indexID,
 			"ownerAccount": ownerAccount,
-			"$or": bson.A{
-				bson.M{"pendingTxs": bson.M{"$exists": false}},
-				bson.M{"pendingTxs": bson.M{"$nin": bson.A{pendingTx}}},
-			},
+			"pendingTxs": bson.M{"$nin": bson.A{pendingTx}},
 		},
 		bson.M{
 			"$push": bson.M{
