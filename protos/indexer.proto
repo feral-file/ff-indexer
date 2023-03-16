@@ -7,6 +7,14 @@ service Indexer {
   rpc GetTokensByIndexID(IndexID) returns (Token);
   rpc PushProvenance(PushProvenanceRequest) returns (Empty);
   rpc UpdateOwner(UpdateOwnerRequest) returns (Empty);
+  rpc UpdateOwnerForFungibleToken(UpdateOwnerForFungibleTokenRequest) returns (Empty);
+}
+
+message UpdateOwnerForFungibleTokenRequest {
+  string IndexID = 1;
+  string LockedTime = 2;
+  string To = 3;
+  int64 Total = 4;
 }
 
 message UpdateOwnerRequest {

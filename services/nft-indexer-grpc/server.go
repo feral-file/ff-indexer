@@ -89,6 +89,21 @@ func (i *IndexerServer) UpdateOwner(ctx context.Context, in *pb.UpdateOwnerReque
 	return &pb.Empty{}, nil
 }
 
+// UpdateOwnerForFungibleToken updates the owner of a fungible token
+func (i *IndexerServer) UpdateOwnerForFungibleToken(ctx context.Context, in *pb.UpdateOwnerForFungibleTokenRequest) (*pb.Empty, error) {
+	lockedTime, err := indexerGRPCSDK.ParseTime(in.LockedTime)
+	if err != nil {
+		return nil, err
+	}
+
+	err = i.indexerStore.UpdateOwnerForFungibleToken(ctx, in.IndexID, lockedTime, in.To, in.Total)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.Empty{}, nil
+}
+
 // Run starts the IndexerServer
 func (i *IndexerServer) Run(context.Context) error {
 	listener, err := net.Listen(i.network, fmt.Sprintf("0.0.0.0:%d", i.port))
