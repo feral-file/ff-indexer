@@ -82,7 +82,10 @@ func (i *IndexerServer) Run(context.Context) error {
 	}
 
 	pb.RegisterIndexerServer(i.grpcServer, i)
-	i.grpcServer.Serve(listener)
+	err = i.grpcServer.Serve(listener)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -15,7 +15,6 @@ import (
 // implement main function here
 
 func main() {
-	// FIXME: add context for graceful shutdown
 	ctx := context.Background()
 
 	config.LoadConfig("NFT_INDEXER_GRPC")
@@ -38,5 +37,7 @@ func main() {
 		log.Panic("fail to initiate indexer GRPC server", zap.Error(err))
 	}
 
-	indexerServer.Run(ctx)
+	if err := indexerServer.Run(ctx); err != nil {
+		log.Panic("fail to run indexer GRPC server", zap.Error(err))
+	}
 }

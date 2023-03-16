@@ -63,7 +63,7 @@ func MapGRPCProvenancesToIndexerProvenances(provenance []*grpcIndexer.Provenance
 }
 
 // MapGrpcTokenToIndexerToken maps grpc indexer token to indexer token
-func MapGrpcTokenToIndexerToken(tokenBuffer grpcIndexer.Token) indexer.Token {
+func MapGrpcTokenToIndexerToken(tokenBuffer *grpcIndexer.Token) *indexer.Token {
 	mintAt, err := ParseTime(tokenBuffer.MintAt)
 
 	if err != nil {
@@ -80,7 +80,7 @@ func MapGrpcTokenToIndexerToken(tokenBuffer grpcIndexer.Token) indexer.Token {
 		log.Error("fail when parse lastRefreshedTime", zap.Error(err))
 	}
 
-	return indexer.Token{
+	return &indexer.Token{
 		BaseTokenInfo: indexer.BaseTokenInfo{
 			ID:              tokenBuffer.ID,
 			Blockchain:      tokenBuffer.Blockchain,
