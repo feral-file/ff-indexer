@@ -74,6 +74,21 @@ func (i *IndexerServer) PushProvenance(ctx context.Context, in *pb.PushProvenanc
 	return nil, nil
 }
 
+// UpdateOwner updates the owner of a token
+func (i *IndexerServer) UpdateOwner(ctx context.Context, in *pb.UpdateOwnerRequest) (*pb.Empty, error) {
+	updatedAt, err := indexerGRPCSDK.ParseTime(in.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	err = i.indexerStore.UpdateOwner(ctx, in.IndexID, in.Owner, updatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.Empty{}, nil
+}
+
 // Run starts the IndexerServer
 func (i *IndexerServer) Run(context.Context) error {
 	listener, err := net.Listen(i.network, fmt.Sprintf("0.0.0.0:%d", i.port))

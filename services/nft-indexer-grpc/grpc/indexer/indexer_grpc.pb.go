@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 type IndexerClient interface {
 	GetTokensByIndexID(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*Token, error)
 	PushProvenance(ctx context.Context, in *PushProvenanceRequest, opts ...grpc.CallOption) (*Error, error)
+	UpdateOwner(ctx context.Context, in *UpdateOwnerRequest, opts ...grpc.CallOption) (*Empty, error)
 }
 
 type indexerClient struct {
@@ -52,12 +53,22 @@ func (c *indexerClient) PushProvenance(ctx context.Context, in *PushProvenanceRe
 	return out, nil
 }
 
+func (c *indexerClient) UpdateOwner(ctx context.Context, in *UpdateOwnerRequest, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/Indexer/UpdateOwner", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // IndexerServer is the server API for Indexer service.
 // All implementations must embed UnimplementedIndexerServer
 // for forward compatibility
 type IndexerServer interface {
 	GetTokensByIndexID(context.Context, *IndexID) (*Token, error)
 	PushProvenance(context.Context, *PushProvenanceRequest) (*Error, error)
+	UpdateOwner(context.Context, *UpdateOwnerRequest) (*Empty, error)
 	mustEmbedUnimplementedIndexerServer()
 }
 
@@ -70,6 +81,9 @@ func (UnimplementedIndexerServer) GetTokensByIndexID(context.Context, *IndexID) 
 }
 func (UnimplementedIndexerServer) PushProvenance(context.Context, *PushProvenanceRequest) (*Error, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PushProvenance not implemented")
+}
+func (UnimplementedIndexerServer) UpdateOwner(context.Context, *UpdateOwnerRequest) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateOwner not implemented")
 }
 func (UnimplementedIndexerServer) mustEmbedUnimplementedIndexerServer() {}
 
@@ -120,6 +134,24 @@ func _Indexer_PushProvenance_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Indexer_UpdateOwner_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateOwnerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IndexerServer).UpdateOwner(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Indexer/UpdateOwner",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IndexerServer).UpdateOwner(ctx, req.(*UpdateOwnerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Indexer_ServiceDesc is the grpc.ServiceDesc for Indexer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -134,6 +166,10 @@ var Indexer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PushProvenance",
 			Handler:    _Indexer_PushProvenance_Handler,
+		},
+		{
+			MethodName: "UpdateOwner",
+			Handler:    _Indexer_UpdateOwner_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

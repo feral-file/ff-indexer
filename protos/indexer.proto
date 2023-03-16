@@ -6,7 +6,16 @@ option go_package = "./grpc/indexer";
 service Indexer {
   rpc GetTokensByIndexID(IndexID) returns (Token);
   rpc PushProvenance(PushProvenanceRequest) returns (Error);
+  rpc UpdateOwner(UpdateOwnerRequest) returns (Empty);
 }
+
+message UpdateOwnerRequest {
+  string IndexID = 1;
+  string Owner = 2;
+  string UpdatedAt = 3;
+}
+
+message Empty {}
 
 message Error {
   bool exist = 1;
