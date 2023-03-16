@@ -10,7 +10,7 @@ import (
 	grpcIndexer "github.com/bitmark-inc/nft-indexer/services/nft-indexer-grpc/grpc/indexer"
 )
 
-const timeLayout = "2023-02-27 09:58:55.181 +0000"
+const timeLayout = "2006-01-02T15:04:05Z07:00"
 
 // MapGRPCTokenInforToIndexerTokenInfor maps grpc token info to indexer token info
 func MapGRPCTokenInforToIndexerTokenInfor(token []*grpcIndexer.BaseTokenInfo) []indexer.BaseTokenInfo {
@@ -29,12 +29,21 @@ func MapGRPCTokenInforToIndexerTokenInfor(token []*grpcIndexer.BaseTokenInfo) []
 	return baseTokenInfors
 }
 
-// MapGRPCProvenanceToIndexerProvenance maps grpc provenance to indexer provenance
-func MapGRPCProvenanceToIndexerProvenance(provenance []*grpcIndexer.Provenance) []indexer.Provenance {
+func ParseTime(timeString string) (time.Time, error) {
+	timestamp, err := time.Parse(timeLayout, timeString)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return timestamp, nil
+}
+
+// MapGRPCProvenancesToIndexerProvenances maps grpc provenance to indexer provenance
+func MapGRPCProvenancesToIndexerProvenances(provenance []*grpcIndexer.Provenance) []indexer.Provenance {
 	provenances := make([]indexer.Provenance, len(provenance))
 
 	for i, v := range provenance {
-		timestamp, err := time.Parse(timeLayout, v.Timestamp)
+		timestamp, err := ParseTime(v.Timestamp)
 		if err != nil {
 			log.Error("fail when parse provenance timestamp time", zap.Error(err))
 		}
@@ -55,17 +64,18 @@ func MapGRPCProvenanceToIndexerProvenance(provenance []*grpcIndexer.Provenance) 
 
 // MapGrpcTokenToIndexerToken maps grpc indexer token to indexer token
 func MapGrpcTokenToIndexerToken(tokenBuffer grpcIndexer.Token) indexer.Token {
-	mintAt, err := time.Parse(timeLayout, tokenBuffer.MintAt)
+	mintAt, err := ParseTime(tokenBuffer.MintAt)
+
 	if err != nil {
 		log.Error("fail when parse mintAt time", zap.Error(err))
 	}
 
-	lastActivityTime, err := time.Parse(timeLayout, tokenBuffer.LastActivityTime)
+	lastActivityTime, err := ParseTime(tokenBuffer.LastRefreshedTime)
 	if err != nil {
 		log.Error("fail when parse lastActivityTime", zap.Error(err))
 	}
 
-	lastRefreshedTime, err := time.Parse(timeLayout, tokenBuffer.LastRefreshedTime)
+	lastRefreshedTime, err := ParseTime(tokenBuffer.LastRefreshedTime)
 	if err != nil {
 		log.Error("fail when parse lastRefreshedTime", zap.Error(err))
 	}
@@ -95,7 +105,7 @@ func MapGrpcTokenToIndexerToken(tokenBuffer grpcIndexer.Token) indexer.Token {
 		SwappedFrom:       &tokenBuffer.SwappedFrom,
 		SwappedTo:         &tokenBuffer.SwappedTo,
 		Burned:            tokenBuffer.Burned,
-		Provenances:       MapGRPCProvenanceToIndexerProvenance(tokenBuffer.Provenances),
+		Provenances:       MapGRPCProvenancesToIndexerProvenances(tokenBuffer.Provenances),
 		LastActivityTime:  lastActivityTime,
 		LastRefreshedTime: lastRefreshedTime,
 	}
@@ -124,7 +134,7 @@ func MapIndexerTokenToGrpcToken(token *indexer.Token) *grpcIndexer.Token {
 		SwappedFrom:       DerefString(token.SwappedFrom),
 		SwappedTo:         DerefString(token.SwappedTo),
 		Burned:            token.Burned,
-		Provenances:       MapIndexerProvenanceToGRPCProvenance(token.Provenances),
+		Provenances:       MapIndexerProvenancesToGRPCProvenances(token.Provenances),
 		LastActivityTime:  token.LastActivityTime.String(),
 		LastRefreshedTime: token.LastRefreshedTime.String(),
 	}
@@ -155,8 +165,8 @@ func DerefString(s *string) string {
 	return ""
 }
 
-// MapIndexerProvenanceToGRPCProvenance maps indexer provenance to grpc provenance
-func MapIndexerProvenanceToGRPCProvenance(provenance []indexer.Provenance) []*grpcIndexer.Provenance {
+// MapIndexerProvenancesToGRPCProvenances maps indexer provenance to grpc provenance
+func MapIndexerProvenancesToGRPCProvenances(provenance []indexer.Provenance) []*grpcIndexer.Provenance {
 	GRPCProvenances := make([]*grpcIndexer.Provenance, len(provenance))
 
 	for i, v := range provenance {

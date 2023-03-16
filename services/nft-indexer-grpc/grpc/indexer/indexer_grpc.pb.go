@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type IndexerClient interface {
 	GetTokensByIndexID(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*Token, error)
+	PushProvenance(ctx context.Context, in *PushProvenanceRequest, opts ...grpc.CallOption) (*Error, error)
 }
 
 type indexerClient struct {
@@ -42,11 +43,21 @@ func (c *indexerClient) GetTokensByIndexID(ctx context.Context, in *IndexID, opt
 	return out, nil
 }
 
+func (c *indexerClient) PushProvenance(ctx context.Context, in *PushProvenanceRequest, opts ...grpc.CallOption) (*Error, error) {
+	out := new(Error)
+	err := c.cc.Invoke(ctx, "/Indexer/PushProvenance", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // IndexerServer is the server API for Indexer service.
 // All implementations must embed UnimplementedIndexerServer
 // for forward compatibility
 type IndexerServer interface {
 	GetTokensByIndexID(context.Context, *IndexID) (*Token, error)
+	PushProvenance(context.Context, *PushProvenanceRequest) (*Error, error)
 	mustEmbedUnimplementedIndexerServer()
 }
 
@@ -56,6 +67,9 @@ type UnimplementedIndexerServer struct {
 
 func (UnimplementedIndexerServer) GetTokensByIndexID(context.Context, *IndexID) (*Token, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTokensByIndexID not implemented")
+}
+func (UnimplementedIndexerServer) PushProvenance(context.Context, *PushProvenanceRequest) (*Error, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PushProvenance not implemented")
 }
 func (UnimplementedIndexerServer) mustEmbedUnimplementedIndexerServer() {}
 
@@ -88,6 +102,24 @@ func _Indexer_GetTokensByIndexID_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Indexer_PushProvenance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PushProvenanceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IndexerServer).PushProvenance(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Indexer/PushProvenance",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IndexerServer).PushProvenance(ctx, req.(*PushProvenanceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Indexer_ServiceDesc is the grpc.ServiceDesc for Indexer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -98,6 +130,10 @@ var Indexer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetTokensByIndexID",
 			Handler:    _Indexer_GetTokensByIndexID_Handler,
+		},
+		{
+			MethodName: "PushProvenance",
+			Handler:    _Indexer_PushProvenance_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

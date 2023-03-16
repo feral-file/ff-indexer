@@ -51,6 +51,29 @@ func (i *IndexerServer) GetTokensByIndexID(ctx context.Context, indexID *pb.Inde
 	return pbToken, nil
 }
 
+// PushProvenance pushes a provenance to the indexer
+func (i *IndexerServer) PushProvenance(ctx context.Context, in *pb.PushProvenanceRequest) (*pb.Error, error) {
+	lockedTime, err := indexerGRPCSDK.ParseTime(in.LockedTime)
+	if err != nil {
+		return &pb.Error{Exist: true, Message: err.Error()}, err
+	}
+
+	provenance := indexerGRPCSDK.MapGRPCProvenancesToIndexerProvenances([]*pb.Provenance{in.Provenance})[0]
+
+	err = i.indexerStore.PushProvenance(
+		ctx,
+		in.IndexID,
+		lockedTime,
+		provenance,
+	)
+
+	if err != nil {
+		return &pb.Error{Exist: true, Message: err.Error()}, err
+	}
+
+	return nil, nil
+}
+
 // Run starts the IndexerServer
 func (i *IndexerServer) Run(context.Context) error {
 	listener, err := net.Listen(i.network, fmt.Sprintf("0.0.0.0:%d", i.port))

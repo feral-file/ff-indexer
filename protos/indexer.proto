@@ -5,6 +5,18 @@ option go_package = "./grpc/indexer";
 
 service Indexer {
   rpc GetTokensByIndexID(IndexID) returns (Token);
+  rpc PushProvenance(PushProvenanceRequest) returns (Error);
+}
+
+message Error {
+  bool exist = 1;
+  string message = 2;
+}
+
+message PushProvenanceRequest {
+  string IndexID = 1;
+  string LockedTime = 2;
+  Provenance Provenance = 3;
 }
 
 message IndexID {
