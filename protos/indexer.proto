@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+option go_package = "./grpc/indexer";
+
+
+service Indexer {
+  rpc GetTokensByIndexID(IndexID) returns (Token);
+}
+
+message IndexID {
+  string IndexID = 1;
+}
+
+message Token {
+  string ID = 1;
+  string Blockchain = 2;
+  bool Fungible = 3;
+  string ContractType = 4;
+  string ContractAddress = 5;
+
+  int64 Edition = 6;
+  string EditionName = 7;
+  string MintAt = 8; // time type is mapped by string
+  int64 Balance = 9;
+  string Owner = 10;
+  map<string,int64> Owners = 11;
+  repeated string OwnersArray = 12;
+
+  string AssetID = 13;
+  repeated BaseTokenInfo OriginTokenInfo = 14;
+  bool IsDemo = 15;
+
+  string IndexID = 16;
+  string Source = 17;
+  bool Swapped = 18;
+  string SwappedFrom = 19;
+  string SwappedTo = 20;
+  bool Burned = 21;
+
+  repeated Provenance Provenances = 22;
+  string LastActivityTime = 23;
+  string LastRefreshedTime = 24;
+}
+
+message Provenance {
+  string FormerOwner = 1;
+  string Type = 2;
+  string Owner = 3;
+  string Blockchain = 4;
+  int64 BlockNumber = 5;
+
+  string Timestamp = 6;
+  string TxID = 7;
+  string TxURL = 8;
+}
+
+message BaseTokenInfo {
+  string ID = 1;
+  string Blockchain = 2;
+  bool Fungible = 3;
+  string ContractType = 4;
+  string ContractAddress = 5;
+}

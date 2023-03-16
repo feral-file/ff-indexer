@@ -1,0 +1,8 @@
+
+indexer_store:
+  db_uri:
+  db_name:
+
+grpc:
+  network: tcp
+  port: 8888

@@ -26,7 +26,8 @@
   
 - generate protobuf golang code:
     ```
-    protoc --go-grpc_out=../services/nft-event-processor/grpc/ --go_out=../services/nft-event-processor/grpc/ event-processor.proto
+    protoc --go-grpc_out=../services/nft-event-processor/ --go_out=../services/nft-event-processor/ event-processor.proto
+    protoc --go-grpc_out=../services/nft-indexer-grpc/ --go_out=../services/nft-indexer-grpc/ indexer.proto
     ```
   
 - generate protobuf js code:
