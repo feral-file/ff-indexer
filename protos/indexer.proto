@@ -6,8 +6,32 @@ option go_package = "./grpc/indexer";
 service Indexer {
   rpc GetTokensByIndexID(IndexID) returns (Token);
   rpc PushProvenance(PushProvenanceRequest) returns (Empty);
+
   rpc UpdateOwner(UpdateOwnerRequest) returns (Empty);
   rpc UpdateOwnerForFungibleToken(UpdateOwnerForFungibleTokenRequest) returns (Empty);
+  rpc IndexAccountTokens(IndexAccountTokensRequest) returns (Empty);
+}
+
+message IndexAccountTokensRequest {
+  string Owner = 1;
+  repeated AccountToken AccountTokens = 2;
+}
+
+message AccountToken {
+  string ID = 1;
+  string Blockchain = 2;
+  bool Fungible = 3;
+  string ContractType = 4;
+  string ContractAddress = 5;
+
+  string IndexID = 6;
+  string OwnerAccount = 7;
+  int64 Balance = 8;
+  string LastActivityTime = 9;
+  string LastRefreshedTime = 10;
+  repeated string LastPendingTime = 11;
+  string LastUpdatedAt = 12;
+  repeated string PendingTxs = 13;
 }
 
 message UpdateOwnerForFungibleTokenRequest {

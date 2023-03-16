@@ -65,7 +65,6 @@ func MapGRPCProvenancesToIndexerProvenances(provenance []*grpcIndexer.Provenance
 // MapGrpcTokenToIndexerToken maps grpc indexer token to indexer token
 func MapGrpcTokenToIndexerToken(tokenBuffer *grpcIndexer.Token) *indexer.Token {
 	mintAt, err := ParseTime(tokenBuffer.MintAt)
-
 	if err != nil {
 		log.Error("fail when parse mintAt time", zap.Error(err))
 	}
@@ -182,4 +181,56 @@ func MapIndexerProvenancesToGRPCProvenances(provenance []indexer.Provenance) []*
 	}
 
 	return GRPCProvenances
+}
+
+func MapGRPCAccountTokensToIndexerAccountTokens(accountTokens []*grpcIndexer.AccountToken) ([]indexer.AccountToken, error) {
+	accountTokensIndexer := make([]indexer.AccountToken, len(accountTokens))
+
+	for i, v := range accountTokens {
+		lastActivityTime, err := ParseTime(v.LastActivityTime)
+		if err != nil {
+			return nil, err
+		}
+
+		lastRefreshedTime, err := ParseTime(v.LastRefreshedTime)
+		if err != nil {
+			return nil, err
+		}
+
+		lastPendingTime := make([]time.Time, len(v.LastPendingTime))
+
+		lastUpdatedAt, err := ParseTime(v.LastUpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, k := range v.LastPendingTime {
+			t, err := ParseTime(k)
+			if err != nil {
+				return nil, err
+			}
+
+			lastPendingTime = append(lastPendingTime, t)
+		}
+
+		accountTokensIndexer[i] = indexer.AccountToken{
+			BaseTokenInfo: indexer.BaseTokenInfo{
+				ID:              v.ID,
+				Blockchain:      v.Blockchain,
+				Fungible:        v.Fungible,
+				ContractType:    v.ContractType,
+				ContractAddress: v.ContractAddress,
+			},
+			IndexID:           v.IndexID,
+			OwnerAccount:      v.OwnerAccount,
+			Balance:           v.Balance,
+			LastActivityTime:  lastActivityTime,
+			LastRefreshedTime: lastRefreshedTime,
+			LastPendingTime:   lastPendingTime,
+			LastUpdatedAt:     lastUpdatedAt,
+			PendingTxs:        v.PendingTxs,
+		}
+	}
+
+	return accountTokensIndexer, nil
 }

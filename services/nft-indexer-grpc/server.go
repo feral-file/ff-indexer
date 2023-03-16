@@ -104,6 +104,21 @@ func (i *IndexerServer) UpdateOwnerForFungibleToken(ctx context.Context, in *pb.
 	return &pb.Empty{}, nil
 }
 
+// IndexAccountTokens indexes the Account tokens of an account
+func (i *IndexerServer) IndexAccountTokens(ctx context.Context, in *pb.IndexAccountTokensRequest) (*pb.Empty, error) {
+	accountTokens, err := indexerGRPCSDK.MapGRPCAccountTokensToIndexerAccountTokens(in.AccountTokens)
+	if err != nil {
+		return nil, err
+	}
+
+	err = i.indexerStore.IndexAccountTokens(ctx, in.Owner, accountTokens)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.Empty{}, nil
+}
+
 // Run starts the IndexerServer
 func (i *IndexerServer) Run(context.Context) error {
 	listener, err := net.Listen(i.network, fmt.Sprintf("0.0.0.0:%d", i.port))
