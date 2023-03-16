@@ -85,6 +85,9 @@ type Store interface {
 
 	GetDetailedTokensV2(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error)
 	GetDetailedAccountTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, lastUpdatedAt time.Time, offset, size int64) ([]DetailedTokenV2, error)
+
+	GetDetailedToken(ctx context.Context, indexID string) (DetailedToken, error)
+	GetTotalBalanceOfOwnerAccounts(ctx context.Context, addresses []string) (int, error)
 }
 
 type FilterParameter struct {
@@ -1876,4 +1879,49 @@ func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, fil
 	}
 
 	return tokens, nil
+}
+
+// GetDetailedToken returns a token information based on indexID
+func (s *MongodbIndexerStore) GetDetailedToken(ctx context.Context, indexID string) (DetailedToken, error) {
+	filterParameter := FilterParameter{
+		IDs: []string{indexID},
+	}
+
+	detailedTokens, err := s.GetDetailedTokens(ctx, filterParameter, 0, 1)
+	if err != nil {
+		return DetailedToken{}, err
+	}
+
+	if len(detailedTokens) == 0 {
+		return DetailedToken{}, fmt.Errorf("token not found")
+	}
+
+	return detailedTokens[0], nil
+}
+
+// GetTotalBalanceOfOwnerAccounts sum balance of ownerAccounts
+func (s *MongodbIndexerStore) GetTotalBalanceOfOwnerAccounts(ctx context.Context, addresses []string) (int, error) {
+	cursor, err := s.accountTokenCollection.Aggregate(ctx, []bson.M{
+		{"$match": bson.M{"ownerAccount": bson.M{"$in": addresses}}},
+		{"$group": bson.M{"_id": nil, "total": bson.M{"$sum": "$balance"}}},
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	var totalBalances []TotalBalance
+
+	if err = cursor.All(ctx, &totalBalances); err != nil {
+		return 0, err
+	}
+
+	if err := cursor.Close(ctx); err != nil {
+		return 0, err
+	}
+
+	if totalBalances == nil {
+		return 0, nil
+	}
+
+	return totalBalances[0].Total, nil
 }

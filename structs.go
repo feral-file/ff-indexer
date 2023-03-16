@@ -235,3 +235,8 @@ type PendingTxUpdate struct {
 	OwnerAccount    BlockchainAddress `json:"ownerAccount"`
 	PendingTx       string            `json:"pendingTx"`
 }
+
+type TotalBalance struct {
+	ID    string `bson:"_id"`
+	Total int    `bson:"total"`
+}
