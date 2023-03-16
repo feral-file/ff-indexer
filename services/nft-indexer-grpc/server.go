@@ -52,10 +52,10 @@ func (i *IndexerServer) GetTokensByIndexID(ctx context.Context, indexID *pb.Inde
 }
 
 // PushProvenance pushes a provenance to the indexer
-func (i *IndexerServer) PushProvenance(ctx context.Context, in *pb.PushProvenanceRequest) (*pb.Error, error) {
+func (i *IndexerServer) PushProvenance(ctx context.Context, in *pb.PushProvenanceRequest) (*pb.Empty, error) {
 	lockedTime, err := indexerGRPCSDK.ParseTime(in.LockedTime)
 	if err != nil {
-		return &pb.Error{Exist: true, Message: err.Error()}, err
+		return &pb.Empty{}, err
 	}
 
 	provenance := indexerGRPCSDK.MapGRPCProvenancesToIndexerProvenances([]*pb.Provenance{in.Provenance})[0]
@@ -68,10 +68,10 @@ func (i *IndexerServer) PushProvenance(ctx context.Context, in *pb.PushProvenanc
 	)
 
 	if err != nil {
-		return &pb.Error{Exist: true, Message: err.Error()}, err
+		return &pb.Empty{}, err
 	}
 
-	return nil, nil
+	return &pb.Empty{}, nil
 }
 
 // UpdateOwner updates the owner of a token

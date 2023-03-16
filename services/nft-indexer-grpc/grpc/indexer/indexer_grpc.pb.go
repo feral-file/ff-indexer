@@ -23,7 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type IndexerClient interface {
 	GetTokensByIndexID(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*Token, error)
-	PushProvenance(ctx context.Context, in *PushProvenanceRequest, opts ...grpc.CallOption) (*Error, error)
+	PushProvenance(ctx context.Context, in *PushProvenanceRequest, opts ...grpc.CallOption) (*Empty, error)
 	UpdateOwner(ctx context.Context, in *UpdateOwnerRequest, opts ...grpc.CallOption) (*Empty, error)
 }
 
@@ -44,8 +44,8 @@ func (c *indexerClient) GetTokensByIndexID(ctx context.Context, in *IndexID, opt
 	return out, nil
 }
 
-func (c *indexerClient) PushProvenance(ctx context.Context, in *PushProvenanceRequest, opts ...grpc.CallOption) (*Error, error) {
-	out := new(Error)
+func (c *indexerClient) PushProvenance(ctx context.Context, in *PushProvenanceRequest, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
 	err := c.cc.Invoke(ctx, "/Indexer/PushProvenance", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func (c *indexerClient) UpdateOwner(ctx context.Context, in *UpdateOwnerRequest,
 // for forward compatibility
 type IndexerServer interface {
 	GetTokensByIndexID(context.Context, *IndexID) (*Token, error)
-	PushProvenance(context.Context, *PushProvenanceRequest) (*Error, error)
+	PushProvenance(context.Context, *PushProvenanceRequest) (*Empty, error)
 	UpdateOwner(context.Context, *UpdateOwnerRequest) (*Empty, error)
 	mustEmbedUnimplementedIndexerServer()
 }
@@ -79,7 +79,7 @@ type UnimplementedIndexerServer struct {
 func (UnimplementedIndexerServer) GetTokensByIndexID(context.Context, *IndexID) (*Token, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTokensByIndexID not implemented")
 }
-func (UnimplementedIndexerServer) PushProvenance(context.Context, *PushProvenanceRequest) (*Error, error) {
+func (UnimplementedIndexerServer) PushProvenance(context.Context, *PushProvenanceRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PushProvenance not implemented")
 }
 func (UnimplementedIndexerServer) UpdateOwner(context.Context, *UpdateOwnerRequest) (*Empty, error) {
