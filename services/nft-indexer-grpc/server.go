@@ -20,6 +20,8 @@ type IndexerServer struct {
 
 	network string
 	port    int
+
+	mapper *indexerGRPCSDK.Mapper
 }
 
 // NewIndexerServer creates a new IndexerServer
@@ -30,12 +32,14 @@ func NewIndexerServer(
 ) (*IndexerServer, error) {
 
 	grpcServer := grpc.NewServer()
+	mapper := &indexerGRPCSDK.Mapper{}
 
 	return &IndexerServer{
-		grpcServer:   grpcServer,
-		indexerStore: indexerStore,
 		network:      network,
 		port:         port,
+		indexerStore: indexerStore,
+		grpcServer:   grpcServer,
+		mapper:       mapper,
 	}, nil
 }
 
@@ -46,7 +50,7 @@ func (i *IndexerServer) GetTokensByIndexID(ctx context.Context, indexID *pb.Inde
 		return nil, err
 	}
 
-	pbToken := indexerGRPCSDK.MapIndexerTokenToGrpcToken(token)
+	pbToken := i.mapper.MapIndexerTokenToGrpcToken(token)
 
 	return pbToken, nil
 }
@@ -58,7 +62,7 @@ func (i *IndexerServer) PushProvenance(ctx context.Context, in *pb.PushProvenanc
 		return &pb.Empty{}, err
 	}
 
-	provenance := indexerGRPCSDK.MapGRPCProvenancesToIndexerProvenances([]*pb.Provenance{in.Provenance})[0]
+	provenance := i.mapper.MapGRPCProvenancesToIndexerProvenances([]*pb.Provenance{in.Provenance})[0]
 
 	err = i.indexerStore.PushProvenance(
 		ctx,
@@ -106,7 +110,7 @@ func (i *IndexerServer) UpdateOwnerForFungibleToken(ctx context.Context, in *pb.
 
 // IndexAccountTokens indexes the Account tokens of an account
 func (i *IndexerServer) IndexAccountTokens(ctx context.Context, in *pb.IndexAccountTokensRequest) (*pb.Empty, error) {
-	accountTokens, err := indexerGRPCSDK.MapGRPCAccountTokensToIndexerAccountTokens(in.AccountTokens)
+	accountTokens, err := i.mapper.MapGRPCAccountTokensToIndexerAccountTokens(in.AccountTokens)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +130,7 @@ func (i *IndexerServer) GetDetailedToken(ctx context.Context, indexID *pb.IndexI
 		return nil, err
 	}
 
-	pbDetailedToken := indexerGRPCSDK.MapIndexerDetailedTokenToGRPCDetailedToken(detailedToken)
+	pbDetailedToken := i.mapper.MapIndexerDetailedTokenToGRPCDetailedToken(detailedToken)
 
 	return pbDetailedToken, nil
 }

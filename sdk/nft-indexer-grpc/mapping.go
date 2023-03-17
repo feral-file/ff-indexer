@@ -13,8 +13,43 @@ import (
 
 const timeLayout = "2006-01-02T15:04:05Z07:00"
 
+type Mapper struct{}
+
+type GRPCIndexerMapper interface {
+	MapGRPCTokenInforToIndexerTokenInfor(token []*grpcIndexer.BaseTokenInfo) []indexer.BaseTokenInfo
+	MapGRPCProvenancesToIndexerProvenances(provenance []*grpcIndexer.Provenance) []indexer.Provenance
+	MapGrpcTokenToIndexerToken(tokenBuffer *grpcIndexer.Token) *indexer.Token
+	MapIndexerTokenToGrpcToken(token *indexer.Token) *grpcIndexer.Token
+	MapIndexerTokenInforToGRPCTokenInfor(token []indexer.BaseTokenInfo) []*grpcIndexer.BaseTokenInfo
+
+	MapIndexerProvenancesToGRPCProvenances(provenance []indexer.Provenance) []*grpcIndexer.Provenance
+	MapGRPCAccountTokensToIndexerAccountTokens(accountTokens []*grpcIndexer.AccountToken) ([]indexer.AccountToken, error)
+	MapIndexerAttributesToGRPCAttributes(attributes *indexer.AssetAttributes) *grpcIndexer.AssetAttributes
+	MapIndexerProjectMetadataToGRPCProjectMetadata(projectMetadata *indexer.ProjectMetadata) *grpcIndexer.ProjectMetadata
+	MapIndexerDetailedTokenToGRPCDetailedToken(token indexer.DetailedToken) *grpcIndexer.DetailedToken
+}
+
+// DerefString de-reference string
+func DerefString(s *string) string {
+	if s != nil {
+		return *s
+	}
+
+	return ""
+}
+
+// ParseTime parses time string to time.Time
+func ParseTime(timeString string) (time.Time, error) {
+	timestamp, err := time.Parse(timeLayout, timeString)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return timestamp, nil
+}
+
 // MapGRPCTokenInforToIndexerTokenInfor maps grpc token info to indexer token info
-func MapGRPCTokenInforToIndexerTokenInfor(token []*grpcIndexer.BaseTokenInfo) []indexer.BaseTokenInfo {
+func (m *Mapper) MapGRPCTokenInforToIndexerTokenInfor(token []*grpcIndexer.BaseTokenInfo) []indexer.BaseTokenInfo {
 	baseTokenInfors := make([]indexer.BaseTokenInfo, len(token))
 
 	for i, v := range token {
@@ -30,17 +65,8 @@ func MapGRPCTokenInforToIndexerTokenInfor(token []*grpcIndexer.BaseTokenInfo) []
 	return baseTokenInfors
 }
 
-func ParseTime(timeString string) (time.Time, error) {
-	timestamp, err := time.Parse(timeLayout, timeString)
-	if err != nil {
-		return time.Time{}, err
-	}
-
-	return timestamp, nil
-}
-
 // MapGRPCProvenancesToIndexerProvenances maps grpc provenance to indexer provenance
-func MapGRPCProvenancesToIndexerProvenances(provenance []*grpcIndexer.Provenance) []indexer.Provenance {
+func (m *Mapper) MapGRPCProvenancesToIndexerProvenances(provenance []*grpcIndexer.Provenance) []indexer.Provenance {
 	provenances := make([]indexer.Provenance, len(provenance))
 
 	for i, v := range provenance {
@@ -64,7 +90,7 @@ func MapGRPCProvenancesToIndexerProvenances(provenance []*grpcIndexer.Provenance
 }
 
 // MapGrpcTokenToIndexerToken maps grpc indexer token to indexer token
-func MapGrpcTokenToIndexerToken(tokenBuffer *grpcIndexer.Token) *indexer.Token {
+func (m *Mapper) MapGrpcTokenToIndexerToken(tokenBuffer *grpcIndexer.Token) *indexer.Token {
 	mintAt, err := ParseTime(tokenBuffer.MintAt)
 	if err != nil {
 		log.Error("fail when parse mintAt time", zap.Error(err))
@@ -96,7 +122,7 @@ func MapGrpcTokenToIndexerToken(tokenBuffer *grpcIndexer.Token) *indexer.Token {
 		Owners:          tokenBuffer.Owners,
 		OwnersArray:     tokenBuffer.OwnersArray,
 		AssetID:         tokenBuffer.AssetID,
-		OriginTokenInfo: MapGRPCTokenInforToIndexerTokenInfor(tokenBuffer.OriginTokenInfo),
+		OriginTokenInfo: m.MapGRPCTokenInforToIndexerTokenInfor(tokenBuffer.OriginTokenInfo),
 		IsDemo:          tokenBuffer.IsDemo,
 
 		IndexID:           tokenBuffer.IndexID,
@@ -105,13 +131,13 @@ func MapGrpcTokenToIndexerToken(tokenBuffer *grpcIndexer.Token) *indexer.Token {
 		SwappedFrom:       &tokenBuffer.SwappedFrom,
 		SwappedTo:         &tokenBuffer.SwappedTo,
 		Burned:            tokenBuffer.Burned,
-		Provenances:       MapGRPCProvenancesToIndexerProvenances(tokenBuffer.Provenances),
+		Provenances:       m.MapGRPCProvenancesToIndexerProvenances(tokenBuffer.Provenances),
 		LastActivityTime:  lastActivityTime,
 		LastRefreshedTime: lastRefreshedTime,
 	}
 }
 
-func MapIndexerTokenToGrpcToken(token *indexer.Token) *grpcIndexer.Token {
+func (m *Mapper) MapIndexerTokenToGrpcToken(token *indexer.Token) *grpcIndexer.Token {
 	return &grpcIndexer.Token{
 		ID:                token.ID,
 		Blockchain:        token.Blockchain,
@@ -126,7 +152,7 @@ func MapIndexerTokenToGrpcToken(token *indexer.Token) *grpcIndexer.Token {
 		Owners:            token.Owners,
 		OwnersArray:       token.OwnersArray,
 		AssetID:           token.AssetID,
-		OriginTokenInfo:   MapIndexerTokenInforToGRPCTokenInfor(token.OriginTokenInfo),
+		OriginTokenInfo:   m.MapIndexerTokenInforToGRPCTokenInfor(token.OriginTokenInfo),
 		IsDemo:            token.IsDemo,
 		IndexID:           token.IndexID,
 		Source:            token.Source,
@@ -134,14 +160,14 @@ func MapIndexerTokenToGrpcToken(token *indexer.Token) *grpcIndexer.Token {
 		SwappedFrom:       DerefString(token.SwappedFrom),
 		SwappedTo:         DerefString(token.SwappedTo),
 		Burned:            token.Burned,
-		Provenances:       MapIndexerProvenancesToGRPCProvenances(token.Provenances),
+		Provenances:       m.MapIndexerProvenancesToGRPCProvenances(token.Provenances),
 		LastActivityTime:  token.LastActivityTime.String(),
 		LastRefreshedTime: token.LastRefreshedTime.String(),
 	}
 }
 
 // MapIndexerTokenInforToGRPCTokenInfor maps indexer token info to grpc token info
-func MapIndexerTokenInforToGRPCTokenInfor(token []indexer.BaseTokenInfo) []*grpcIndexer.BaseTokenInfo {
+func (m *Mapper) MapIndexerTokenInforToGRPCTokenInfor(token []indexer.BaseTokenInfo) []*grpcIndexer.BaseTokenInfo {
 	GRPCBaseTokenInfors := make([]*grpcIndexer.BaseTokenInfo, len(token))
 
 	for i, v := range token {
@@ -157,16 +183,8 @@ func MapIndexerTokenInforToGRPCTokenInfor(token []indexer.BaseTokenInfo) []*grpc
 	return GRPCBaseTokenInfors
 }
 
-func DerefString(s *string) string {
-	if s != nil {
-		return *s
-	}
-
-	return ""
-}
-
 // MapIndexerProvenancesToGRPCProvenances maps indexer provenance to grpc provenance
-func MapIndexerProvenancesToGRPCProvenances(provenance []indexer.Provenance) []*grpcIndexer.Provenance {
+func (m *Mapper) MapIndexerProvenancesToGRPCProvenances(provenance []indexer.Provenance) []*grpcIndexer.Provenance {
 	GRPCProvenances := make([]*grpcIndexer.Provenance, len(provenance))
 
 	for i, v := range provenance {
@@ -184,7 +202,7 @@ func MapIndexerProvenancesToGRPCProvenances(provenance []indexer.Provenance) []*
 	return GRPCProvenances
 }
 
-func MapGRPCAccountTokensToIndexerAccountTokens(accountTokens []*grpcIndexer.AccountToken) ([]indexer.AccountToken, error) {
+func (m *Mapper) MapGRPCAccountTokensToIndexerAccountTokens(accountTokens []*grpcIndexer.AccountToken) ([]indexer.AccountToken, error) {
 	accountTokensIndexer := make([]indexer.AccountToken, len(accountTokens))
 
 	for i, v := range accountTokens {
@@ -237,7 +255,7 @@ func MapGRPCAccountTokensToIndexerAccountTokens(accountTokens []*grpcIndexer.Acc
 }
 
 // MapIndexerAttributesToGRPCAttributes maps indexer attributes to grpc attributes
-func MapIndexerAttributesToGRPCAttributes(attributes *indexer.AssetAttributes) *grpcIndexer.AssetAttributes {
+func (m *Mapper) MapIndexerAttributesToGRPCAttributes(attributes *indexer.AssetAttributes) *grpcIndexer.AssetAttributes {
 	var GRPCattributes *grpcIndexer.AssetAttributes
 
 	if attributes == nil {
@@ -250,8 +268,8 @@ func MapIndexerAttributesToGRPCAttributes(attributes *indexer.AssetAttributes) *
 }
 
 // MapIndexerProjectMetadataToGRPCProjectMetadata maps indexer project metadata to grpc project metadata
-func MapIndexerProjectMetadataToGRPCProjectMetadata(projectMetadata *indexer.ProjectMetadata) *grpcIndexer.ProjectMetadata {
-	attributes := MapIndexerAttributesToGRPCAttributes(projectMetadata.Attributes)
+func (m *Mapper) MapIndexerProjectMetadataToGRPCProjectMetadata(projectMetadata *indexer.ProjectMetadata) *grpcIndexer.ProjectMetadata {
+	attributes := m.MapIndexerAttributesToGRPCAttributes(projectMetadata.Attributes)
 
 	return &grpcIndexer.ProjectMetadata{
 		ArtistID:            projectMetadata.ArtistID,
@@ -283,13 +301,13 @@ func MapIndexerProjectMetadataToGRPCProjectMetadata(projectMetadata *indexer.Pro
 }
 
 // MapIndexerDetailedTokenToGRPCDetailedToken maps indexer detailed token to grpc detailed token
-func MapIndexerDetailedTokenToGRPCDetailedToken(token indexer.DetailedToken) *grpcIndexer.DetailedToken {
-	origin := MapIndexerProjectMetadataToGRPCProjectMetadata(&token.ProjectMetadata.Origin)
-	latest := MapIndexerProjectMetadataToGRPCProjectMetadata(&token.ProjectMetadata.Latest)
-	attributes := MapIndexerAttributesToGRPCAttributes(token.Attributes)
+func (m *Mapper) MapIndexerDetailedTokenToGRPCDetailedToken(token indexer.DetailedToken) *grpcIndexer.DetailedToken {
+	origin := m.MapIndexerProjectMetadataToGRPCProjectMetadata(&token.ProjectMetadata.Origin)
+	latest := m.MapIndexerProjectMetadataToGRPCProjectMetadata(&token.ProjectMetadata.Latest)
+	attributes := m.MapIndexerAttributesToGRPCAttributes(token.Attributes)
 
 	return &grpcIndexer.DetailedToken{
-		Token:       MapIndexerTokenToGrpcToken(&token.Token),
+		Token:       m.MapIndexerTokenToGrpcToken(&token.Token),
 		ThumbnailID: token.ThumbnailID,
 		IPFSPinned:  token.IPFSPinned,
 		Attributes:  attributes,
