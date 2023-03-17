@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/log"
@@ -233,4 +234,68 @@ func MapGRPCAccountTokensToIndexerAccountTokens(accountTokens []*grpcIndexer.Acc
 	}
 
 	return accountTokensIndexer, nil
+}
+
+// MapIndexerAttributesToGRPCAttributes maps indexer attributes to grpc attributes
+func MapIndexerAttributesToGRPCAttributes(attributes *indexer.AssetAttributes) *grpcIndexer.AssetAttributes {
+	var GRPCattributes *grpcIndexer.AssetAttributes
+
+	if attributes == nil {
+		GRPCattributes = nil
+	} else {
+		GRPCattributes = &grpcIndexer.AssetAttributes{Scrollable: attributes.Scrollable}
+	}
+
+	return GRPCattributes
+}
+
+// MapIndexerProjectMetadataToGRPCProjectMetadata maps indexer project metadata to grpc project metadata
+func MapIndexerProjectMetadataToGRPCProjectMetadata(projectMetadata *indexer.ProjectMetadata) *grpcIndexer.ProjectMetadata {
+	attributes := MapIndexerAttributesToGRPCAttributes(projectMetadata.Attributes)
+
+	return &grpcIndexer.ProjectMetadata{
+		ArtistID:            projectMetadata.ArtistID,
+		ArtistName:          projectMetadata.ArtistName,
+		ArtistURL:           projectMetadata.ArtistURL,
+		AssetID:             projectMetadata.AssetID,
+		Title:               projectMetadata.Title,
+		Description:         projectMetadata.Description,
+		MIMEType:            projectMetadata.MIMEType,
+		Medium:              string(projectMetadata.Medium),
+		MaxEdition:          projectMetadata.MaxEdition,
+		BaseCurrency:        projectMetadata.BaseCurrency,
+		BasePrice:           projectMetadata.BasePrice,
+		Source:              projectMetadata.Source,
+		SourceURL:           projectMetadata.SourceURL,
+		PreviewURL:          projectMetadata.PreviewURL,
+		ThumbnailURL:        projectMetadata.ThumbnailURL,
+		GalleryThumbnailURL: projectMetadata.GalleryThumbnailURL,
+		AssetData:           projectMetadata.AssetData,
+		AssetURL:            projectMetadata.AssetURL,
+
+		Attributes: attributes,
+		// FIXME: convert ArtworkMetadata to protobuf
+		ArtworkMetadata:  map[string]*anypb.Any{},
+		LastUpdatedAt:    projectMetadata.LastUpdatedAt.String(),
+		InitialSaleModel: projectMetadata.InitialSaleModel,
+		OriginalFileURL:  projectMetadata.OriginalFileURL,
+	}
+}
+
+// MapIndexerDetailedTokenToGRPCDetailedToken maps indexer detailed token to grpc detailed token
+func MapIndexerDetailedTokenToGRPCDetailedToken(token indexer.DetailedToken) *grpcIndexer.DetailedToken {
+	origin := MapIndexerProjectMetadataToGRPCProjectMetadata(&token.ProjectMetadata.Origin)
+	latest := MapIndexerProjectMetadataToGRPCProjectMetadata(&token.ProjectMetadata.Latest)
+	attributes := MapIndexerAttributesToGRPCAttributes(token.Attributes)
+
+	return &grpcIndexer.DetailedToken{
+		Token:       MapIndexerTokenToGrpcToken(&token.Token),
+		ThumbnailID: token.ThumbnailID,
+		IPFSPinned:  token.IPFSPinned,
+		Attributes:  attributes,
+		ProjectMetadata: &grpcIndexer.VersionedProjectMetadata{
+			Origin: origin,
+			Latest: latest,
+		},
+	}
 }

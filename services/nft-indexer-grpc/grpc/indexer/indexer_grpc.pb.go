@@ -27,6 +27,7 @@ type IndexerClient interface {
 	UpdateOwner(ctx context.Context, in *UpdateOwnerRequest, opts ...grpc.CallOption) (*Empty, error)
 	UpdateOwnerForFungibleToken(ctx context.Context, in *UpdateOwnerForFungibleTokenRequest, opts ...grpc.CallOption) (*Empty, error)
 	IndexAccountTokens(ctx context.Context, in *IndexAccountTokensRequest, opts ...grpc.CallOption) (*Empty, error)
+	GetDetailedToken(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*DetailedToken, error)
 }
 
 type indexerClient struct {
@@ -82,6 +83,15 @@ func (c *indexerClient) IndexAccountTokens(ctx context.Context, in *IndexAccount
 	return out, nil
 }
 
+func (c *indexerClient) GetDetailedToken(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*DetailedToken, error) {
+	out := new(DetailedToken)
+	err := c.cc.Invoke(ctx, "/Indexer/GetDetailedToken", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // IndexerServer is the server API for Indexer service.
 // All implementations must embed UnimplementedIndexerServer
 // for forward compatibility
@@ -91,6 +101,8 @@ type IndexerServer interface {
 	UpdateOwner(context.Context, *UpdateOwnerRequest) (*Empty, error)
 	UpdateOwnerForFungibleToken(context.Context, *UpdateOwnerForFungibleTokenRequest) (*Empty, error)
 	IndexAccountTokens(context.Context, *IndexAccountTokensRequest) (*Empty, error)
+	GetDetailedToken(context.Context, *IndexID) (*DetailedToken, error)
+
 	mustEmbedUnimplementedIndexerServer()
 }
 
@@ -112,6 +124,9 @@ func (UnimplementedIndexerServer) UpdateOwnerForFungibleToken(context.Context, *
 }
 func (UnimplementedIndexerServer) IndexAccountTokens(context.Context, *IndexAccountTokensRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method IndexAccountTokens not implemented")
+}
+func (UnimplementedIndexerServer) GetDetailedToken(context.Context, *IndexID) (*DetailedToken, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetDetailedToken not implemented")
 }
 func (UnimplementedIndexerServer) mustEmbedUnimplementedIndexerServer() {}
 
@@ -216,6 +231,24 @@ func _Indexer_IndexAccountTokens_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Indexer_GetDetailedToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IndexID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IndexerServer).GetDetailedToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Indexer/GetDetailedToken",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IndexerServer).GetDetailedToken(ctx, req.(*IndexID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Indexer_ServiceDesc is the grpc.ServiceDesc for Indexer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -242,6 +275,10 @@ var Indexer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "IndexAccountTokens",
 			Handler:    _Indexer_IndexAccountTokens_Handler,
+		},
+		{
+			MethodName: "GetDetailedToken",
+			Handler:    _Indexer_GetDetailedToken_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

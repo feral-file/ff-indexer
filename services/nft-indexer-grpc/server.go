@@ -119,6 +119,18 @@ func (i *IndexerServer) IndexAccountTokens(ctx context.Context, in *pb.IndexAcco
 	return &pb.Empty{}, nil
 }
 
+// GetDetailedToken returns a detailed token by index ID
+func (i *IndexerServer) GetDetailedToken(ctx context.Context, indexID *pb.IndexID) (*pb.DetailedToken, error) {
+	detailedToken, err := i.indexerStore.GetDetailedToken(ctx, indexID.IndexID)
+	if err != nil {
+		return nil, err
+	}
+
+	pbDetailedToken := indexerGRPCSDK.MapIndexerDetailedTokenToGRPCDetailedToken(detailedToken)
+
+	return pbDetailedToken, nil
+}
+
 // Run starts the IndexerServer
 func (i *IndexerServer) Run(context.Context) error {
 	listener, err := net.Listen(i.network, fmt.Sprintf("0.0.0.0:%d", i.port))

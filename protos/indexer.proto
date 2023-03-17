@@ -1,7 +1,8 @@
 syntax = "proto3";
 
-option go_package = "./grpc/indexer";
+import "google/protobuf/any.proto";
 
+option go_package = "./grpc/indexer";
 
 service Indexer {
   rpc GetTokensByIndexID(IndexID) returns (Token);
@@ -10,6 +11,52 @@ service Indexer {
   rpc UpdateOwner(UpdateOwnerRequest) returns (Empty);
   rpc UpdateOwnerForFungibleToken(UpdateOwnerForFungibleTokenRequest) returns (Empty);
   rpc IndexAccountTokens(IndexAccountTokensRequest) returns (Empty);
+
+  rpc GetDetailedToken(IndexID) returns (DetailedToken);
+}
+
+message DetailedToken {
+  Token Token = 1;
+  string ThumbnailID = 2;
+  bool IPFSPinned = 3;
+  AssetAttributes Attributes = 4;
+  VersionedProjectMetadata ProjectMetadata = 5;
+}
+
+message AssetAttributes {
+  bool Scrollable = 1;
+}
+
+message VersionedProjectMetadata {
+  ProjectMetadata Origin = 1;
+  ProjectMetadata Latest = 2;
+}
+
+message ProjectMetadata {
+  string ArtistID = 1;
+  string ArtistName = 2;
+  string ArtistURL = 3;
+  string AssetID = 4;
+  string Title = 5;
+  string Description = 6;
+  string MIMEType = 7;
+  string Medium = 8;
+  int64 MaxEdition = 9;
+  string BaseCurrency = 10;
+  int64 BasePrice = 11;
+  string Source = 12;
+  string SourceURL = 13;
+  string PreviewURL = 14;
+  string ThumbnailURL = 15;
+  string GalleryThumbnailURL = 16;
+  string AssetData = 17;
+  string AssetURL = 18;
+
+  AssetAttributes Attributes = 19;
+  map<string, google.protobuf.Any> ArtworkMetadata = 20;
+  string LastUpdatedAt = 21;
+  string InitialSaleModel = 22;
+  string OriginalFileURL = 23;
 }
 
 message IndexAccountTokensRequest {
@@ -18,7 +65,7 @@ message IndexAccountTokensRequest {
 }
 
 message AccountToken {
-  string ID = 1;
+  string ID = 1; // FIXME: need implement BaseTokenInfo
   string Blockchain = 2;
   bool Fungible = 3;
   string ContractType = 4;
