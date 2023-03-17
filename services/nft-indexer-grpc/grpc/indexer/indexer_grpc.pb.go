@@ -102,7 +102,6 @@ type IndexerServer interface {
 	UpdateOwnerForFungibleToken(context.Context, *UpdateOwnerForFungibleTokenRequest) (*Empty, error)
 	IndexAccountTokens(context.Context, *IndexAccountTokensRequest) (*Empty, error)
 	GetDetailedToken(context.Context, *IndexID) (*DetailedToken, error)
-
 	mustEmbedUnimplementedIndexerServer()
 }
 

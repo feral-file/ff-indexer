@@ -3,8 +3,8 @@ package sdk
 import (
 	"time"
 
+	"encoding/json"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/types/known/anypb"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/log"
@@ -291,13 +291,22 @@ func (m *Mapper) MapIndexerProjectMetadataToGRPCProjectMetadata(projectMetadata 
 		AssetData:           projectMetadata.AssetData,
 		AssetURL:            projectMetadata.AssetURL,
 
-		Attributes: attributes,
-		// FIXME: convert ArtworkMetadata to protobuf
-		ArtworkMetadata:  map[string]*anypb.Any{},
+		Attributes:       attributes,
+		ArtworkMetadata:  m.MapIndexerArtworkMetadataToGRPCArtworkMetadata(projectMetadata.ArtworkMetadata),
 		LastUpdatedAt:    projectMetadata.LastUpdatedAt.String(),
 		InitialSaleModel: projectMetadata.InitialSaleModel,
 		OriginalFileURL:  projectMetadata.OriginalFileURL,
 	}
+}
+
+// MapIndexerArtworkMetadataToGRPCArtworkMetadata maps indexer artwork metadata to grpc artwork metadata
+func (m *Mapper) MapIndexerArtworkMetadataToGRPCArtworkMetadata(artworkMetadata map[string]interface{}) string {
+	b, err := json.Marshal(artworkMetadata)
+	if err != nil {
+		return ""
+	}
+
+	return string(b)
 }
 
 // MapIndexerDetailedTokenToGRPCDetailedToken maps indexer detailed token to grpc detailed token

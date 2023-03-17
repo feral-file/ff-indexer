@@ -1,7 +1,5 @@
 syntax = "proto3";
 
-import "google/protobuf/any.proto";
-
 option go_package = "./grpc/indexer";
 
 service Indexer {
@@ -53,7 +51,7 @@ message ProjectMetadata {
   string AssetURL = 18;
 
   AssetAttributes Attributes = 19;
-  map<string, google.protobuf.Any> ArtworkMetadata = 20;
+  string ArtworkMetadata = 20;
   string LastUpdatedAt = 21;
   string InitialSaleModel = 22;
   string OriginalFileURL = 23;
