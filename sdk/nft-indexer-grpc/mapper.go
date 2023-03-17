@@ -11,7 +11,7 @@ import (
 	grpcIndexer "github.com/bitmark-inc/nft-indexer/services/nft-indexer-grpc/grpc/indexer"
 )
 
-const timeLayout = "2006-01-02T15:04:05Z07:00"
+const timeLayout = "2006-01-02T15:04:05.999999999Z07:00"
 
 type Mapper struct{}
 
@@ -123,6 +123,7 @@ func (m *Mapper) MapGrpcTokenToIndexerToken(tokenBuffer *grpcIndexer.Token) *ind
 	}
 }
 
+// MapIndexerTokenToGrpcToken maps indexer token to grpc indexer token
 func (m *Mapper) MapIndexerTokenToGrpcToken(token *indexer.Token) *grpcIndexer.Token {
 	return &grpcIndexer.Token{
 		ID:                token.ID,
@@ -132,7 +133,7 @@ func (m *Mapper) MapIndexerTokenToGrpcToken(token *indexer.Token) *grpcIndexer.T
 		ContractAddress:   token.ContractAddress,
 		Edition:           token.Edition,
 		EditionName:       token.EditionName,
-		MintAt:            token.MintAt.String(),
+		MintAt:            token.MintAt.Format(timeLayout),
 		Balance:           token.Balance,
 		Owner:             token.Owner,
 		Owners:            token.Owners,
@@ -147,8 +148,8 @@ func (m *Mapper) MapIndexerTokenToGrpcToken(token *indexer.Token) *grpcIndexer.T
 		SwappedTo:         DerefString(token.SwappedTo),
 		Burned:            token.Burned,
 		Provenances:       m.MapIndexerProvenancesToGRPCProvenances(token.Provenances),
-		LastActivityTime:  token.LastActivityTime.String(),
-		LastRefreshedTime: token.LastRefreshedTime.String(),
+		LastActivityTime:  token.LastActivityTime.Format(timeLayout),
+		LastRefreshedTime: token.LastRefreshedTime.Format(timeLayout),
 	}
 }
 
@@ -179,8 +180,8 @@ func (m *Mapper) MapIndexerProvenancesToGRPCProvenances(provenance []indexer.Pro
 			Type:        v.Type,
 			Owner:       v.Owner,
 			Blockchain:  v.Blockchain,
-			Timestamp:   v.Timestamp.String(),
-			TxID:        v.Timestamp.String(),
+			Timestamp:   v.Timestamp.Format(timeLayout),
+			TxID:        v.Timestamp.Format(timeLayout),
 			TxURL:       v.TxURL,
 		}
 	}
@@ -277,9 +278,10 @@ func (m *Mapper) MapIndexerProjectMetadataToGRPCProjectMetadata(projectMetadata 
 		AssetData:           projectMetadata.AssetData,
 		AssetURL:            projectMetadata.AssetURL,
 
-		Attributes:       attributes,
+		Attributes: attributes,
+		// convert map[string]interface{} to string to transfer data via gRPC
 		ArtworkMetadata:  m.MapIndexerArtworkMetadataToGRPCArtworkMetadata(projectMetadata.ArtworkMetadata),
-		LastUpdatedAt:    projectMetadata.LastUpdatedAt.String(),
+		LastUpdatedAt:    projectMetadata.LastUpdatedAt.Format(timeLayout),
 		InitialSaleModel: projectMetadata.InitialSaleModel,
 		OriginalFileURL:  projectMetadata.OriginalFileURL,
 	}
