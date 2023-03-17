@@ -43,25 +43,59 @@ func (i *IndexerGRPCClient) GetTokensByIndexID(ctx context.Context, indexID stri
 
 // PushProvenance pushes provenance to indexer db
 func (i *IndexerGRPCClient) PushProvenance(ctx context.Context, indexID string, lockedTime time.Time, provenance indexer.Provenance) error {
-	return nil
+	_, err := i.client.PushProvenance(ctx, &pb.PushProvenanceRequest{
+		IndexID:    indexID,
+		LockedTime: lockedTime.Format(time.RFC3339Nano),
+		Provenance: i.mapper.MapIndexerProvenancesToGRPCProvenances([]indexer.Provenance{provenance})[0],
+	})
+
+	return err
 }
 
 // UpdateOwner updates owner of a token
 func (i *IndexerGRPCClient) UpdateOwner(ctx context.Context, indexID, owner string, updatedAt time.Time) error {
-	return nil
+	_, err := i.client.UpdateOwner(ctx, &pb.UpdateOwnerRequest{
+		IndexID:   indexID,
+		Owner:     owner,
+		UpdatedAt: updatedAt.Format(time.RFC3339Nano),
+	})
+
+	return err
 }
 
 // UpdateOwnerForFungibleToken updates owner of a fungible token
 func (i *IndexerGRPCClient) UpdateOwnerForFungibleToken(ctx context.Context, indexID string, lockedTime time.Time, to string, total int64) error {
-	return nil
+	_, err := i.client.UpdateOwnerForFungibleToken(ctx, &pb.UpdateOwnerForFungibleTokenRequest{
+		IndexID:    indexID,
+		LockedTime: lockedTime.Format(time.RFC3339Nano),
+		To:         to,
+		Total:      total,
+	})
+
+	return err
 }
 
 // IndexAccountTokens indexes account tokens
 func (i *IndexerGRPCClient) IndexAccountTokens(ctx context.Context, owner string, accountTokens []indexer.AccountToken) error {
-	return nil
+	_, err := i.client.IndexAccountTokens(ctx, &pb.IndexAccountTokensRequest{
+		Owner:         owner,
+		AccountTokens: i.mapper.MapIndexerAccountTokensToGRPCAccountTokens(accountTokens),
+	})
+
+	return err
 }
 
 // GetDetailedToken returns a detailed token by indexID
 func (i *IndexerGRPCClient) GetDetailedToken(ctx context.Context, indexID string) (indexer.DetailedToken, error) {
-	return indexer.DetailedToken{}, nil
+	detailedToken, err := i.client.GetDetailedToken(ctx, &pb.IndexID{IndexID: indexID})
+	if err != nil {
+		return indexer.DetailedToken{}, err
+	}
+
+	indexerDetailedToken, err := i.mapper.MapGrpcDetailedTokenToIndexerDetailedToken(detailedToken)
+	if err != nil {
+		return indexer.DetailedToken{}, err
+	}
+
+	return *indexerDetailedToken, nil
 }

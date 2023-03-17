@@ -11,8 +11,6 @@ import (
 	grpcIndexer "github.com/bitmark-inc/nft-indexer/services/nft-indexer-grpc/grpc/indexer"
 )
 
-const timeLayout = "2006-01-02T15:04:05.999999999Z07:00"
-
 type Mapper struct{}
 
 // DerefString de-reference string
@@ -26,7 +24,7 @@ func DerefString(s *string) string {
 
 // ParseTime parses time string to time.Time
 func ParseTime(timeString string) (time.Time, error) {
-	timestamp, err := time.Parse(timeLayout, timeString)
+	timestamp, err := time.Parse(time.RFC3339Nano, timeString)
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -133,7 +131,7 @@ func (m *Mapper) MapIndexerTokenToGrpcToken(token *indexer.Token) *grpcIndexer.T
 		ContractAddress:   token.ContractAddress,
 		Edition:           token.Edition,
 		EditionName:       token.EditionName,
-		MintAt:            token.MintAt.Format(timeLayout),
+		MintAt:            token.MintAt.Format(time.RFC3339Nano),
 		Balance:           token.Balance,
 		Owner:             token.Owner,
 		Owners:            token.Owners,
@@ -148,8 +146,8 @@ func (m *Mapper) MapIndexerTokenToGrpcToken(token *indexer.Token) *grpcIndexer.T
 		SwappedTo:         DerefString(token.SwappedTo),
 		Burned:            token.Burned,
 		Provenances:       m.MapIndexerProvenancesToGRPCProvenances(token.Provenances),
-		LastActivityTime:  token.LastActivityTime.Format(timeLayout),
-		LastRefreshedTime: token.LastRefreshedTime.Format(timeLayout),
+		LastActivityTime:  token.LastActivityTime.Format(time.RFC3339Nano),
+		LastRefreshedTime: token.LastRefreshedTime.Format(time.RFC3339Nano),
 	}
 }
 
@@ -180,13 +178,37 @@ func (m *Mapper) MapIndexerProvenancesToGRPCProvenances(provenance []indexer.Pro
 			Type:        v.Type,
 			Owner:       v.Owner,
 			Blockchain:  v.Blockchain,
-			Timestamp:   v.Timestamp.Format(timeLayout),
-			TxID:        v.Timestamp.Format(timeLayout),
+			Timestamp:   v.Timestamp.Format(time.RFC3339Nano),
+			TxID:        v.Timestamp.Format(time.RFC3339Nano),
 			TxURL:       v.TxURL,
 		}
 	}
 
 	return GRPCProvenances
+}
+
+func ConvertTimeStringsToTimes(timeStrings []string) ([]time.Time, error) {
+	times := make([]time.Time, len(timeStrings))
+
+	for _, k := range timeStrings {
+		t, err := ParseTime(k)
+		if err != nil {
+			return nil, err
+		}
+
+		times = append(times, t)
+	}
+
+	return times, nil
+}
+
+// ConvertTimesToTimeStrings converts times to time strings
+func ConvertTimesToTimeStrings(times []time.Time) (timeStrings []string) {
+	for _, k := range times {
+		timeStrings = append(timeStrings, k.Format(time.RFC3339Nano))
+	}
+
+	return
 }
 
 func (m *Mapper) MapGRPCAccountTokensToIndexerAccountTokens(accountTokens []*grpcIndexer.AccountToken) ([]indexer.AccountToken, error) {
@@ -203,20 +225,14 @@ func (m *Mapper) MapGRPCAccountTokensToIndexerAccountTokens(accountTokens []*grp
 			return nil, err
 		}
 
-		lastPendingTime := make([]time.Time, len(v.LastPendingTime))
-
 		lastUpdatedAt, err := ParseTime(v.LastUpdatedAt)
 		if err != nil {
 			return nil, err
 		}
 
-		for _, k := range v.LastPendingTime {
-			t, err := ParseTime(k)
-			if err != nil {
-				return nil, err
-			}
-
-			lastPendingTime = append(lastPendingTime, t)
+		lastPendingTime, err := ConvertTimeStringsToTimes(v.LastPendingTime)
+		if err != nil {
+			return nil, err
 		}
 
 		accountTokensIndexer[i] = indexer.AccountToken{
@@ -281,7 +297,7 @@ func (m *Mapper) MapIndexerProjectMetadataToGRPCProjectMetadata(projectMetadata 
 		Attributes: attributes,
 		// convert map[string]interface{} to string to transfer data via gRPC
 		ArtworkMetadata:  m.MapIndexerArtworkMetadataToGRPCArtworkMetadata(projectMetadata.ArtworkMetadata),
-		LastUpdatedAt:    projectMetadata.LastUpdatedAt.Format(timeLayout),
+		LastUpdatedAt:    projectMetadata.LastUpdatedAt.Format(time.RFC3339Nano),
 		InitialSaleModel: projectMetadata.InitialSaleModel,
 		OriginalFileURL:  projectMetadata.OriginalFileURL,
 	}
@@ -313,4 +329,108 @@ func (m *Mapper) MapIndexerDetailedTokenToGRPCDetailedToken(token indexer.Detail
 			Latest: latest,
 		},
 	}
+}
+
+// MapIndexerAccountTokensToGRPCAccountTokens maps indexer account tokens to grpc account tokens
+func (m *Mapper) MapIndexerAccountTokensToGRPCAccountTokens(accountTokens []indexer.AccountToken) []*grpcIndexer.AccountToken {
+	GRPCAccountTokens := make([]*grpcIndexer.AccountToken, len(accountTokens))
+
+	for i, v := range accountTokens {
+		GRPCAccountTokens[i] = &grpcIndexer.AccountToken{
+			ID:                v.ID,
+			Blockchain:        v.Blockchain,
+			Fungible:          v.Fungible,
+			ContractType:      v.ContractType,
+			ContractAddress:   v.ContractAddress,
+			IndexID:           v.IndexID,
+			OwnerAccount:      v.OwnerAccount,
+			Balance:           v.Balance,
+			LastActivityTime:  v.LastActivityTime.Format(time.RFC3339Nano),
+			LastRefreshedTime: v.LastRefreshedTime.Format(time.RFC3339Nano),
+			LastPendingTime:   ConvertTimesToTimeStrings(v.LastPendingTime),
+			LastUpdatedAt:     v.LastUpdatedAt.Format(time.RFC3339Nano),
+			PendingTxs:        v.PendingTxs,
+		}
+	}
+
+	return GRPCAccountTokens
+}
+
+// MapGrpcDetailedTokenToIndexerDetailedToken maps grpc detailed token to indexer detailed token
+func (m *Mapper) MapGrpcDetailedTokenToIndexerDetailedToken(token *grpcIndexer.DetailedToken) (*indexer.DetailedToken, error) {
+	origin, err := m.MapGrpcProjectMetadataToIndexerProjectMetadata(token.ProjectMetadata.Origin)
+	if err != nil {
+		return nil, err
+	}
+	latest, err := m.MapGrpcProjectMetadataToIndexerProjectMetadata(token.ProjectMetadata.Latest)
+	if err != nil {
+		return nil, err
+	}
+
+	attributes := m.MapGrpcAttributesToIndexerAttributes(token.Attributes)
+
+	return &indexer.DetailedToken{
+		Token:       *m.MapGrpcTokenToIndexerToken(token.Token),
+		ThumbnailID: token.ThumbnailID,
+		IPFSPinned:  token.IPFSPinned,
+		Attributes:  attributes,
+		ProjectMetadata: indexer.VersionedProjectMetadata{
+			Origin: *origin,
+			Latest: *latest,
+		},
+	}, nil
+}
+
+// MapGrpcAttributesToIndexerAttributes maps grpc attributes to indexer attributes
+func (m *Mapper) MapGrpcAttributesToIndexerAttributes(attributes *grpcIndexer.AssetAttributes) *indexer.AssetAttributes {
+	return &indexer.AssetAttributes{
+		Scrollable: attributes.Scrollable,
+	}
+}
+
+// MapGrpcProjectMetadataToIndexerProjectMetadata maps grpc project metadata to indexer project metadata
+func (m *Mapper) MapGrpcProjectMetadataToIndexerProjectMetadata(projectMetadata *grpcIndexer.ProjectMetadata) (*indexer.ProjectMetadata, error) {
+	attributes := m.MapGrpcAttributesToIndexerAttributes(projectMetadata.Attributes)
+	lastUpdatedAt, err := time.Parse(time.RFC3339Nano, projectMetadata.LastUpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	return &indexer.ProjectMetadata{
+		ArtistID:            projectMetadata.ArtistID,
+		ArtistName:          projectMetadata.ArtistName,
+		ArtistURL:           projectMetadata.ArtistURL,
+		AssetID:             projectMetadata.AssetID,
+		Title:               projectMetadata.Title,
+		Description:         projectMetadata.Description,
+		MIMEType:            projectMetadata.MIMEType,
+		Medium:              indexer.Medium(projectMetadata.Medium),
+		MaxEdition:          projectMetadata.MaxEdition,
+		BaseCurrency:        projectMetadata.BaseCurrency,
+		BasePrice:           projectMetadata.BasePrice,
+		Source:              projectMetadata.Source,
+		SourceURL:           projectMetadata.SourceURL,
+		PreviewURL:          projectMetadata.PreviewURL,
+		ThumbnailURL:        projectMetadata.ThumbnailURL,
+		GalleryThumbnailURL: projectMetadata.GalleryThumbnailURL,
+		AssetData:           projectMetadata.AssetData,
+		AssetURL:            projectMetadata.AssetURL,
+
+		Attributes:       attributes,
+		ArtworkMetadata:  m.MapGrpcArtworkMetadataToIndexerArtworkMetadata(projectMetadata.ArtworkMetadata),
+		LastUpdatedAt:    lastUpdatedAt,
+		InitialSaleModel: projectMetadata.InitialSaleModel,
+		OriginalFileURL:  projectMetadata.OriginalFileURL,
+	}, nil
+}
+
+// MapGrpcArtworkMetadataToIndexerArtworkMetadata maps grpc artwork metadata to indexer artwork metadata
+func (m *Mapper) MapGrpcArtworkMetadataToIndexerArtworkMetadata(artworkMetadata string) map[string]interface{} {
+	var b map[string]interface{}
+	err := json.Unmarshal([]byte(artworkMetadata), &b)
+	if err != nil {
+		return nil
+	}
+
+	return b
 }
