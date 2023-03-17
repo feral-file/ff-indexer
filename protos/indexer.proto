@@ -11,6 +11,15 @@ service Indexer {
   rpc IndexAccountTokens(IndexAccountTokensRequest) returns (Empty);
 
   rpc GetDetailedToken(IndexID) returns (DetailedToken);
+  rpc GetTotalBalanceOfOwnerAccounts(Addresses) returns (TotalBalance);
+}
+
+message Addresses {
+  repeated string Addresses = 1;
+}
+
+message TotalBalance {
+  int64 count = 1;
 }
 
 message DetailedToken {

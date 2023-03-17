@@ -99,3 +99,13 @@ func (i *IndexerGRPCClient) GetDetailedToken(ctx context.Context, indexID string
 
 	return *indexerDetailedToken, nil
 }
+
+// GetTotalBalanceOfOwnerAccounts returns total balance of owner accounts
+func (i *IndexerGRPCClient) GetTotalBalanceOfOwnerAccounts(ctx context.Context, addresses []string) (int64, error) {
+	totalBalance, err := i.client.GetTotalBalanceOfOwnerAccounts(ctx, &pb.Addresses{Addresses: addresses})
+	if err != nil {
+		return 0, err
+	}
+
+	return totalBalance.Count, nil
+}

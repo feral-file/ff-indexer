@@ -135,6 +135,17 @@ func (i *IndexerServer) GetDetailedToken(ctx context.Context, indexID *pb.IndexI
 	return pbDetailedToken, nil
 }
 
+// GetTotalBalanceOfOwnerAccounts returns the total balance of owner accounts
+func (i *IndexerServer) GetTotalBalanceOfOwnerAccounts(ctx context.Context, addresses *pb.Addresses) (*pb.TotalBalance, error) {
+	totalBalance, err := i.indexerStore.GetTotalBalanceOfOwnerAccounts(ctx, addresses.Addresses)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.TotalBalance{Count: int64(totalBalance)}, nil
+}
+
 // Run starts the IndexerServer
 func (i *IndexerServer) Run(context.Context) error {
 	listener, err := net.Listen(i.network, fmt.Sprintf("0.0.0.0:%d", i.port))

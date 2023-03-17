@@ -383,6 +383,10 @@ func (m *Mapper) MapGrpcDetailedTokenToIndexerDetailedToken(token *grpcIndexer.D
 
 // MapGrpcAttributesToIndexerAttributes maps grpc attributes to indexer attributes
 func (m *Mapper) MapGrpcAttributesToIndexerAttributes(attributes *grpcIndexer.AssetAttributes) *indexer.AssetAttributes {
+	if attributes == nil {
+		return nil
+	}
+
 	return &indexer.AssetAttributes{
 		Scrollable: attributes.Scrollable,
 	}
