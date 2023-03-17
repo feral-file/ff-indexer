@@ -15,20 +15,6 @@ const timeLayout = "2006-01-02T15:04:05Z07:00"
 
 type Mapper struct{}
 
-type GRPCIndexerMapper interface {
-	MapGRPCTokenInforToIndexerTokenInfor(token []*grpcIndexer.BaseTokenInfo) []indexer.BaseTokenInfo
-	MapGRPCProvenancesToIndexerProvenances(provenance []*grpcIndexer.Provenance) []indexer.Provenance
-	MapGrpcTokenToIndexerToken(tokenBuffer *grpcIndexer.Token) *indexer.Token
-	MapIndexerTokenToGrpcToken(token *indexer.Token) *grpcIndexer.Token
-	MapIndexerTokenInforToGRPCTokenInfor(token []indexer.BaseTokenInfo) []*grpcIndexer.BaseTokenInfo
-
-	MapIndexerProvenancesToGRPCProvenances(provenance []indexer.Provenance) []*grpcIndexer.Provenance
-	MapGRPCAccountTokensToIndexerAccountTokens(accountTokens []*grpcIndexer.AccountToken) ([]indexer.AccountToken, error)
-	MapIndexerAttributesToGRPCAttributes(attributes *indexer.AssetAttributes) *grpcIndexer.AssetAttributes
-	MapIndexerProjectMetadataToGRPCProjectMetadata(projectMetadata *indexer.ProjectMetadata) *grpcIndexer.ProjectMetadata
-	MapIndexerDetailedTokenToGRPCDetailedToken(token indexer.DetailedToken) *grpcIndexer.DetailedToken
-}
-
 // DerefString de-reference string
 func DerefString(s *string) string {
 	if s != nil {
