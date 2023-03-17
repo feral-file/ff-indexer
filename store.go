@@ -1206,6 +1206,8 @@ func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ow
 			bson.M{
 				"indexID":         indexID,
 				"ownerAccount":    ownerAccount,
+				"blockchain":      blockchain,
+				"id":              ID,
 				"lastPendingTime": bson.A{time.Now()},
 				"pendingTxs":      bson.A{pendingTx},
 			},
