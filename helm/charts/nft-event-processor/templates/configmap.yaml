@@ -9,35 +9,35 @@ data:
     server:
       network: tcp
       address: 0.0.0.0:8765
-      
+
     store:
       dsn:
       cache_expiry: 24h
       log_level: 1
-    
+
     log:
       level: debug
-    
+
     sentry:
       dsn:
-    
+
     indexer_store:
       db_uri:
       db_name:
-    
+
     cadence:
       host_port: cadence-frontend.cadence.svc.cluster.local:7933
       domain: nft-indexer
       log_level: 0
-    
+
     feed:
       endpoint: {{ .Values.serviceConfig.feedEndpoint }}
       api_token:
       debug: true
-    
+
     account:
       db_uri:
-    
+
     notification:
       endpoint: {{ .Values.serviceConfig.notificationEndpoint }}
 
@@ -54,7 +54,7 @@ data:
 
   bitmark.yaml: |
     network:
-      bitmark: testnet
+      bitmark: {{ .Values.serviceConfig.network.bitmark }}
 
     bitmark:
       db_uri:
