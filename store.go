@@ -323,23 +323,6 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (string, error) {
 	originalTokenIndexID := TokenIndexID(swap.OriginalBlockchain, swap.OriginalContractAddress, swap.OriginalTokenID)
 
-	tokenResult := s.tokenCollection.FindOne(ctx, bson.M{
-		"indexID": originalTokenIndexID,
-	})
-	if err := tokenResult.Err(); err != nil {
-		return "", err
-	}
-
-	var originalToken Token
-	if err := tokenResult.Decode(&originalToken); err != nil {
-		return "", err
-	}
-
-	if originalToken.Burned && originalToken.SwappedTo != nil {
-		return "", fmt.Errorf("token has burned")
-	}
-	originalBaseTokenInfo := originalToken.BaseTokenInfo
-
 	var newTokenIndexID string
 
 	switch swap.NewBlockchain {
@@ -354,6 +337,28 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 	default:
 		return "", fmt.Errorf("blockchain is not supported")
 	}
+
+	tokenResult := s.tokenCollection.FindOne(ctx, bson.M{
+		"indexID": originalTokenIndexID,
+	})
+	if err := tokenResult.Err(); err != nil {
+		return "", err
+	}
+
+	var originalToken Token
+	if err := tokenResult.Decode(&originalToken); err != nil {
+		return "", err
+	}
+
+	if originalToken.Burned && originalToken.SwappedTo != nil {
+		// return burned token if the SwappedTo is identical to newTokenIndexID
+		if *originalToken.SwappedTo == newTokenIndexID {
+			return newTokenIndexID, nil
+		}
+		return "", fmt.Errorf("token has burned into different id")
+	}
+
+	originalBaseTokenInfo := originalToken.BaseTokenInfo
 
 	newToken := originalToken
 	newToken.ID = swap.NewTokenID
