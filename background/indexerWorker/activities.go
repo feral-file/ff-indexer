@@ -30,7 +30,7 @@ var (
 )
 
 // GetOwnedERC721TokenIDByContract returns a list of token id belongs to an owner for a specific contract
-func (w *NFTIndexerWorker) GetOwnedERC721TokenIDByContract(ctx context.Context, contractAddress, ownerAddress string) ([]*big.Int, error) {
+func (w *NFTIndexerWorker) GetOwnedERC721TokenIDByContract(contractAddress, ownerAddress string) ([]*big.Int, error) {
 	rpcClient, err := ethclient.Dial(viper.GetString("ethereum.rpc_url"))
 	if err != nil {
 		return nil, err
