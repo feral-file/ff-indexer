@@ -192,9 +192,8 @@ func (s *NFTIndexerServer) IndexNFTByOwner(c *gin.Context) {
 
 		if len(u) == 0 {
 			break
-		} else {
-			offset += len(u)
 		}
+		offset += len(u)
 
 		updates = append(updates, u...)
 	}
