@@ -1168,7 +1168,7 @@ func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ow
 		bson.M{
 			"indexID":      indexID,
 			"ownerAccount": ownerAccount,
-			"pendingTxs": bson.M{"$nin": bson.A{pendingTx}},
+			"pendingTxs":   bson.M{"$nin": bson.A{pendingTx}},
 		},
 		bson.M{
 			"$push": bson.M{
@@ -1810,7 +1810,6 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 		token.Balance = a.Balance
 		token.Owner = a.OwnerAccount
 		token.LastRefreshedTime = a.LastRefreshedTime
-		token.LastActivityTime = a.LastActivityTime
 		results = append(results, token)
 	}
 
