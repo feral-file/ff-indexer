@@ -23,6 +23,7 @@ serviceConfig:
     "KT1TkBmhjz65awMWoPBvmtfBCcVnwaXXTrmy", # airdrop I KNOW - On the aesthetic of truth - Digital Memento
     "KT1CnEoyTFyJaLR3CB6N5Avw91fp4Q6bvS8x", # Field guide
     "KT19rZLpAurqKuDXtkMcJZWvWqGJz1CwWHzr", # airdrop MoMA 3
+    "KT1CtDPiLjHiU1LVLrhshDry8jkR9h29tXNo", # FF029
   ]
   eventProcessorURI: nft-event-processor.autonomy.svc.cluster.local:8765
   environment: production
