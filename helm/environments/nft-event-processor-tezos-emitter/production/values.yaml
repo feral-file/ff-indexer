@@ -7,7 +7,6 @@ image:
 
 serviceConfig:
   tezosNodeRPCURL: https://mainnet-tezos.autonomy.io
-  cadence_hostport: cadenceau-frontend.cadenceau.svc.cluster.local:7933
   contractAddresses: [
     "KT1EyVFCmLFqzgwSBNbdnwfqGeCPRWPvH9QF", # test contract on production
     "KT1RnhKKsAD7ScFi3Nb7HKK2hnPCqXcbNG3k", # gamma
@@ -25,6 +24,7 @@ serviceConfig:
     "KT1CnEoyTFyJaLR3CB6N5Avw91fp4Q6bvS8x", # Field guide
     "KT19rZLpAurqKuDXtkMcJZWvWqGJz1CwWHzr", # airdrop MoMA 3
   ]
+  eventProcessorURI: nft-event-processor.autonomy.svc.cluster.local:8765
   environment: production
   network:
     tezos: livenet

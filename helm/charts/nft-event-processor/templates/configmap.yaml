@@ -26,7 +26,7 @@ data:
       db_name:
 
     cadence:
-      host_port: cadence-frontend.cadence.svc.cluster.local:7933
+      host_port: {{ .Values.serviceConfig.cadence_hostport }}
       domain: nft-indexer
       log_level: 0
 
