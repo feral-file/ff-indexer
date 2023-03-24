@@ -40,13 +40,18 @@ func main() {
 
 	for {
 		filter := bson.M{
+			"source":                               "tzkt",
+			"thumbnailID":                          bson.M{"$in": bson.A{nil}},
+			"projectMetadata.latest.source":        bson.M{"$nin": bson.A{"fxhash"}},
 			"projectMetadata.latest.lastUpdatedAt": bson.M{"$lt": time.Now().Add(-2 * 24 * time.Hour)},
-			"$or": bson.A{
-				bson.M{"projectMetadata.latest.thumbnailURL": bson.M{"$regex": "https://ipfs.io/ipfs/"}},
-				bson.M{"projectMetadata.latest.previewURL": bson.M{"$regex": "https://ipfs.io/ipfs/"}},
-			},
+			"projectMetadata.latest.thumbnailURL":  bson.M{"$regex": "https://ipfs.io/ipfs/"},
 		}
-		err = assetsCollection.FindOne(ctx, filter).Decode(&asset)
+		fmt.Println(time.Now(), "query token")
+		err = assetsCollection.FindOneAndUpdate(ctx, filter, bson.M{
+			"$set": bson.M{
+				"projectMetadata.latest.lastUpdatedAt": time.Now(),
+			},
+		}).Decode(&asset)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
 				fmt.Println("no more asset need to update")
@@ -54,22 +59,7 @@ func main() {
 			}
 			panic(err)
 		}
-
-		// update lastUpdatedAt of asset
-		_, err = assetsCollection.UpdateOne(
-			ctx,
-			bson.M{"id": asset.ID},
-			bson.M{
-				"$set": bson.M{
-					"projectMetadata.latest.lastUpdatedAt": time.Now(),
-				},
-			},
-		)
-
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
+		fmt.Println(time.Now(), "get token")
 
 		// get token by assetID
 		var token indexer.Token
@@ -96,6 +86,7 @@ func main() {
 		if err != nil {
 			fmt.Println(err)
 			if strings.Contains(fmt.Sprint(err), "there is no token in objkt") {
+				fmt.Println(asset.ID, "there is no token in objkt")
 				continue
 			}
 
@@ -104,8 +95,15 @@ func main() {
 		}
 
 		assetMetadataDetail.FromObjkt(objktToken)
-
+		fmt.Println(time.Now(), "DisplayURI", assetMetadataDetail.DisplayURI)
+		fmt.Println(time.Now(), "PreviewURI", assetMetadataDetail.PreviewURI)
+		if !strings.HasPrefix(assetMetadataDetail.PreviewURI, "https://assets.objkt.media/") ||
+			!strings.HasPrefix(assetMetadataDetail.DisplayURI, "https://assets.objkt.media/") {
+			fmt.Println("url not from objkt\n------")
+			continue
+		}
 		// replace asset thumbnail url
+		fmt.Println(time.Now(), "update token")
 		_, err = assetsCollection.UpdateOne(
 			ctx,
 			bson.M{"id": asset.ID},
@@ -119,10 +117,11 @@ func main() {
 		)
 
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println(err, "\n------")
 			continue
 		}
 
-		fmt.Println("update asset url for asset ID: ", asset.ID)
+		fmt.Println(time.Now(), "update asset url for asset ID: ", asset.ID)
+		fmt.Println("------")
 	}
 }

@@ -24,6 +24,7 @@ RUN go mod download
 ADD . .
 
 RUN go build -o /go/bin/nft-indexer ./services/nft-indexer
+RUN go build -o /go/bin/replace-ipfs-link-by-objkt-cdn ./commands/replace-ipfs-link-by-objkt-cdn
 
 # ---
 
@@ -33,5 +34,6 @@ ARG dist=0.0
 RUN apk add --no-cache curl
 
 COPY --from=build /go/bin/nft-indexer /nft-indexer
+COPY --from=build /go/bin/replace-ipfs-link-by-objkt-cdn /tools/replace-ipfs-link-by-objkt-cdn
 
 ADD services/nft-indexer/config.yaml.sample /.config/config.yaml
