@@ -24,7 +24,7 @@ RUN go mod download
 ADD . .
 
 RUN go build -o /go/bin/nft-indexer ./services/nft-indexer
-RUN go build -o /go/bin/replace-ipfs-link-by-objkt-cdn ./commands/replace-ipfs-link-by-objkt-cdn
+RUN go build -o /go/bin/replace-ipfs-link-by-objkt-cdn ./command/replace-ipfs-link-by-objkt-cdn
 
 # ---
 
