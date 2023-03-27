@@ -21,9 +21,10 @@ const VersumContractAddress = "KT1LjmAdYQCLBjwv4S2oFkEzyHVkomAf5MrW"
 const HicEtNuncContractAddress = "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton"
 
 const (
-	SourceFeralFile = "feralfile"
-	SourceOpensea   = "opensea"
-	SourceTZKT      = "tzkt"
+	SourceFeralFile        = "feralfile"
+	SourceOpensea          = "opensea"
+	SourceTZKT             = "tzkt"
+	SourceAutonomyPostcard = "autonomy-postcard"
 )
 
 const (
