@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type IndexerClient interface {
-	GetTokensByIndexID(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*Token, error)
+	GetTokenByIndexID(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*Token, error)
 	PushProvenance(ctx context.Context, in *PushProvenanceRequest, opts ...grpc.CallOption) (*Empty, error)
 	UpdateOwner(ctx context.Context, in *UpdateOwnerRequest, opts ...grpc.CallOption) (*Empty, error)
 	UpdateOwnerForFungibleToken(ctx context.Context, in *UpdateOwnerForFungibleTokenRequest, opts ...grpc.CallOption) (*Empty, error)
@@ -39,9 +39,9 @@ func NewIndexerClient(cc grpc.ClientConnInterface) IndexerClient {
 	return &indexerClient{cc}
 }
 
-func (c *indexerClient) GetTokensByIndexID(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*Token, error) {
+func (c *indexerClient) GetTokenByIndexID(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*Token, error) {
 	out := new(Token)
-	err := c.cc.Invoke(ctx, "/Indexer/GetTokensByIndexID", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/Indexer/GetTokenByIndexID", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (c *indexerClient) GetTotalBalanceOfOwnerAccounts(ctx context.Context, in *
 // All implementations must embed UnimplementedIndexerServer
 // for forward compatibility
 type IndexerServer interface {
-	GetTokensByIndexID(context.Context, *IndexID) (*Token, error)
+	GetTokenByIndexID(context.Context, *IndexID) (*Token, error)
 	PushProvenance(context.Context, *PushProvenanceRequest) (*Empty, error)
 	UpdateOwner(context.Context, *UpdateOwnerRequest) (*Empty, error)
 	UpdateOwnerForFungibleToken(context.Context, *UpdateOwnerForFungibleTokenRequest) (*Empty, error)
@@ -120,8 +120,8 @@ type IndexerServer interface {
 type UnimplementedIndexerServer struct {
 }
 
-func (UnimplementedIndexerServer) GetTokensByIndexID(context.Context, *IndexID) (*Token, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetTokensByIndexID not implemented")
+func (UnimplementedIndexerServer) GetTokenByIndexID(context.Context, *IndexID) (*Token, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTokenByIndexID not implemented")
 }
 func (UnimplementedIndexerServer) PushProvenance(context.Context, *PushProvenanceRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PushProvenance not implemented")
@@ -154,20 +154,20 @@ func RegisterIndexerServer(s grpc.ServiceRegistrar, srv IndexerServer) {
 	s.RegisterService(&Indexer_ServiceDesc, srv)
 }
 
-func _Indexer_GetTokensByIndexID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Indexer_GetTokenByIndexID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(IndexID)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(IndexerServer).GetTokensByIndexID(ctx, in)
+		return srv.(IndexerServer).GetTokenByIndexID(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Indexer/GetTokensByIndexID",
+		FullMethod: "/Indexer/GetTokenByIndexID",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IndexerServer).GetTokensByIndexID(ctx, req.(*IndexID))
+		return srv.(IndexerServer).GetTokenByIndexID(ctx, req.(*IndexID))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -288,8 +288,8 @@ var Indexer_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*IndexerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "GetTokensByIndexID",
-			Handler:    _Indexer_GetTokensByIndexID_Handler,
+			MethodName: "GetTokenByIndexID",
+			Handler:    _Indexer_GetTokenByIndexID_Handler,
 		},
 		{
 			MethodName: "PushProvenance",

@@ -2,10 +2,10 @@ package sdk
 
 import (
 	"context"
-	"google.golang.org/grpc/credentials/insecure"
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/bitmark-inc/nft-indexer"
 	pb "github.com/bitmark-inc/nft-indexer/services/nft-indexer-grpc/grpc/indexer"
@@ -31,9 +31,9 @@ func NewIndexerClient(ServerURL string) (*IndexerGRPCClient, error) {
 	}, nil
 }
 
-// GetTokensByIndexID returns a token by indexID
-func (i *IndexerGRPCClient) GetTokensByIndexID(ctx context.Context, indexID string) (*indexer.Token, error) {
-	token, err := i.client.GetTokensByIndexID(ctx, &pb.IndexID{IndexID: indexID})
+// GetTokenByIndexID returns a token by indexID
+func (i *IndexerGRPCClient) GetTokenByIndexID(ctx context.Context, indexID string) (*indexer.Token, error) {
+	token, err := i.client.GetTokenByIndexID(ctx, &pb.IndexID{IndexID: indexID})
 	if err != nil {
 		return nil, err
 	}

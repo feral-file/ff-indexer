@@ -12,8 +12,6 @@ import (
 	"github.com/bitmark-inc/nft-indexer/log"
 )
 
-// implement main function here
-
 func main() {
 	ctx := context.Background()
 
@@ -28,7 +26,7 @@ func main() {
 		log.Panic("fail to initiate indexer store", zap.Error(err))
 	}
 
-	indexerServer, err := NewIndexerServer(
+	indexerServer, err := NewIndexerGRPCServer(
 		viper.GetString("grpc.network"),
 		viper.GetInt("grpc.port"),
 		indexerStore,

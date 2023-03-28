@@ -24,8 +24,8 @@ type IndexerServer struct {
 	mapper *indexerGRPCSDK.Mapper
 }
 
-// NewIndexerServer creates a new IndexerServer
-func NewIndexerServer(
+// NewIndexerGRPCServer creates a new IndexerServer
+func NewIndexerGRPCServer(
 	network string,
 	port int,
 	indexerStore *indexer.MongodbIndexerStore,
@@ -43,8 +43,8 @@ func NewIndexerServer(
 	}, nil
 }
 
-// GetTokensByIndexID returns a token by index ID
-func (i *IndexerServer) GetTokensByIndexID(ctx context.Context, indexID *pb.IndexID) (*pb.Token, error) {
+// GetTokenByIndexID returns a token by index ID
+func (i *IndexerServer) GetTokenByIndexID(ctx context.Context, indexID *pb.IndexID) (*pb.Token, error) {
 	token, err := i.indexerStore.GetTokensByIndexID(ctx, indexID.IndexID)
 	if err != nil {
 		return nil, err

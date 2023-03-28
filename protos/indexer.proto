@@ -3,7 +3,7 @@ syntax = "proto3";
 option go_package = "./grpc/indexer";
 
 service Indexer {
-  rpc GetTokensByIndexID(IndexID) returns (Token);
+  rpc GetTokenByIndexID(IndexID) returns (Token);
   rpc PushProvenance(PushProvenanceRequest) returns (Empty);
 
   rpc UpdateOwner(UpdateOwnerRequest) returns (Empty);

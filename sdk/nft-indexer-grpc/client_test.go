@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetTokensByIndexID(t *testing.T) {
+func TestGetTokenByIndexID(t *testing.T) {
 	indexID := "tez-KT1VZ6Zkoae9DtXkbuw4wtFCg9WH8eywcvEX-23798030035473632618901897089878275372960165372586891230635421889000008911882"
 
 	client, err := NewIndexerClient("localhost:8889")
@@ -19,12 +19,11 @@ func TestGetTokensByIndexID(t *testing.T) {
 		return
 	}
 
-	token, err := client.GetTokensByIndexID(
+	_, err = client.GetTokenByIndexID(
 		context.Background(),
 		indexID,
 	)
 
-	fmt.Println("token: ", token)
 	assert.NoError(t, err)
 }
 
@@ -84,9 +83,7 @@ func TestGetDetailedToken(t *testing.T) {
 
 	indexID := "tez-KT1VZ6Zkoae9DtXkbuw4wtFCg9WH8eywcvEX-23798030035473632618901897089878275372960165372586891230635421889000008911882"
 
-	token, err := client.GetDetailedToken(context.Background(), indexID)
-
-	fmt.Println("token: ", token)
+	_, err = client.GetDetailedToken(context.Background(), indexID)
 
 	assert.NoError(t, err)
 }

@@ -48,6 +48,10 @@
 	  --proto_path="../../protos/" \
          event-processor.proto
       ```
+    
+## Docs:
+1. indexer.proto function define:
+https://hackmd.io/aJv6_PYORyedDxDwzY5IDg
 
 
 
