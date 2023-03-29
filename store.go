@@ -1911,17 +1911,13 @@ func (s *MongodbIndexerStore) GetTotalBalanceOfOwnerAccounts(ctx context.Context
 
 	defer cursor.Close(ctx)
 
-	var totalBalances []TotalBalance
+	var totalBalance TotalBalance
 
 	if cursor.Next(ctx) {
-		if err := cursor.Decode(&totalBalances); err != nil {
+		if err := cursor.Decode(&totalBalance); err != nil {
 			return 0, err
 		}
 	}
 
-	if totalBalances == nil {
-		return 0, nil
-	}
-
-	return totalBalances[0].Total, nil
+	return totalBalance.Total, nil
 }
