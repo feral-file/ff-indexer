@@ -102,12 +102,10 @@ func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) 
 	var asset NFTAsset
 	r := s.nftAssets.FindOneAndUpdate(ctx,
 		bson.M{
-			// filter assets which have been viewed in the past 7 days.
-			// "projectMetadata.latest.lastUpdatedAt": bson.M{"$gt": time.Now().Add(-s.thumbnailCachePeriod)},
 			// filter assets which have not been processed in the last hour.
-			"thumbnailLastCheck": bson.M{
-				"$not": bson.M{"$gt": time.Now().Add(-s.thumbnailCacheRetryInterval)},
-			},
+			// NOTE: the $lt query will exclude nil values so we need to ensure `thumbnailLastCheck`
+			// has a default value
+			"thumbnailLastCheck": bson.M{"$lt": time.Now().Add(-s.thumbnailCacheRetryInterval)},
 			// filter assets which does not have thumbnailID or the thumbnailID is empty
 			"thumbnailID": bson.M{
 				// "$not": bson.M{"$exists": true, "$ne": ""},
