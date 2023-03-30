@@ -153,7 +153,6 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 					Balance:           int64(1),
 					LastActivityTime:  event.UpdatedAt,
 					LastRefreshedTime: time.Now(),
-					LastUpdatedAt:     event.UpdatedAt,
 				}
 
 				if err := e.indexerStore.IndexAccountTokens(ctx, to, []indexer.AccountToken{accountToken}); err != nil {
@@ -287,7 +286,6 @@ func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 				OwnerAccount:      to,
 				Balance:           int64(1),
 				LastActivityTime:  event.UpdatedAt,
-				LastUpdatedAt:     event.UpdatedAt,
 				LastRefreshedTime: time.Now(),
 			}
 
