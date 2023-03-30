@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -77,11 +76,6 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 				zap.String("to", toAddress),
 				zap.String("contractAddress", contractAddress),
 				zap.Any("tokenIDHash", tokenIDHash))
-
-			if eLog.Topics[1].Big().Cmp(big.NewInt(0)) == 0 {
-				// ignore minting events
-				continue
-			}
 
 			eventType := "transfer"
 			if fromAddress == indexer.EthereumZeroAddress {
