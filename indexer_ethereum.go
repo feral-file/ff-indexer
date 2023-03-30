@@ -234,7 +234,8 @@ func (e *IndexEngine) GetETHTransactionDetailsByPendingTx(ctx context.Context, c
 
 	transactionDetails := []TransactionDetails{}
 	for _, log := range receipt.Logs {
-		if len(log.Topics) != 4 || log.Topics[3].Big().String() != tokenID || log.Topics[0].String() != TransferEventSignature {
+		if len(log.Topics) != 4 || log.Topics[3].Big().String() != tokenID ||
+			(log.Topics[0].String() != TransferEventSignature && log.Topics[0].String() != TransferSingleEventSignature) {
 			continue
 		}
 

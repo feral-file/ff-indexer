@@ -64,10 +64,7 @@ func (m *MIMEFormat) UnmarshalJSON(data []byte) error {
 		data = bytes.Trim(data, "[]")
 	}
 
-	if err := json.Unmarshal(data, (*string)(m)); err != nil {
-		return err
-	}
-	return nil
+	return json.Unmarshal(data, (*string)(m))
 }
 
 type FileFormats []FileFormat
@@ -437,7 +434,7 @@ func (c *TZKT) GetTokenBalanceAndLastTimeForOwner(contract, tokenID, owner strin
 		"balance.gt":     []string{"0"},
 		"account":        []string{owner},
 		"token.standard": []string{"fa2"},
-		"select":         []string{"account.address as address,balance"},
+		"select":         []string{"lastTime,account.address as address,balance"},
 	}
 
 	u := url.URL{

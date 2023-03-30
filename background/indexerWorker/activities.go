@@ -30,7 +30,7 @@ var (
 )
 
 // GetOwnedERC721TokenIDByContract returns a list of token id belongs to an owner for a specific contract
-func (w *NFTIndexerWorker) GetOwnedERC721TokenIDByContract(ctx context.Context, contractAddress, ownerAddress string) ([]*big.Int, error) {
+func (w *NFTIndexerWorker) GetOwnedERC721TokenIDByContract(_ context.Context, contractAddress, ownerAddress string) ([]*big.Int, error) {
 	rpcClient, err := ethclient.Dial(viper.GetString("ethereum.rpc_url"))
 	if err != nil {
 		return nil, err
@@ -63,6 +63,7 @@ func (w *NFTIndexerWorker) GetOwnedERC721TokenIDByContract(ctx context.Context, 
 
 // IndexETHTokenByOwner indexes ETH token data for an owner into the format of AssetUpdates
 func (w *NFTIndexerWorker) IndexETHTokenByOwner(ctx context.Context, owner string, offset int) (int, error) {
+	log.Debug("IndexETHTokenByOwner", zap.String("owner", owner))
 	updates, err := w.indexerEngine.IndexETHTokenByOwner(ctx, owner, offset)
 	if err != nil {
 		return 0, err
@@ -541,7 +542,11 @@ func (w *NFTIndexerWorker) UpdateAccountTokens(ctx context.Context) error {
 		for idx, pendingTx := range pendingAccountToken.PendingTxs {
 			if pendingAccountToken.LastPendingTime[idx].Unix() < time.Now().Add(-delay).Unix() {
 				log.Warn("pending too long", zap.Any("pendingTxs", pendingAccountToken.PendingTxs))
-				_ = w.indexerStore.DeletePendingFieldsAccountToken(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID, pendingTx, pendingAccountToken.LastPendingTime[idx])
+				err := w.indexerStore.DeletePendingFieldsAccountToken(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID, pendingTx, pendingAccountToken.LastPendingTime[idx])
+				if err != nil {
+					log.Error("fail to clean up pending field", zap.Error(err),
+						zap.String("indexID", pendingAccountToken.IndexID))
+				}
 				continue
 			}
 
@@ -549,31 +554,50 @@ func (w *NFTIndexerWorker) UpdateAccountTokens(ctx context.Context) error {
 			switch pendingAccountToken.Blockchain {
 			case indexer.TezosBlockchain:
 				transactionDetails, err := w.indexerEngine.GetTransactionDetailsByPendingTx(pendingTx)
-				if err != nil || len(transactionDetails) == 0 {
+				if err != nil {
+					log.Error("fail to get pending txs for tezos", zap.Error(err),
+						zap.String("indexID", pendingAccountToken.IndexID))
+					continue
+				}
+
+				if len(transactionDetails) == 0 {
+					log.Error("pending txs not found", zap.String("indexID", pendingAccountToken.IndexID))
 					continue
 				}
 
 				accountTokens, err = w.GetBalanceDiffFromTezosTransaction(transactionDetails[0], pendingAccountToken)
 				if err != nil {
+					log.Error("fail to calculate balance difference from tezos tx", zap.Error(err),
+						zap.String("indexID", pendingAccountToken.IndexID))
 					continue
 				}
 			case indexer.EthereumBlockchain:
 				txHash := common.HexToHash(pendingTx)
 				transactionDetails, err := w.indexerEngine.GetETHTransactionDetailsByPendingTx(ctx, w.wallet.RPCClient(), txHash, pendingAccountToken.ID)
 				if err != nil {
+					log.Error("fail to get pending txs for ethereum", zap.Error(err),
+						zap.String("indexID", pendingAccountToken.IndexID))
+					continue
+				}
+
+				if len(transactionDetails) == 0 {
+					log.Error("pending txs not found", zap.String("indexID", pendingAccountToken.IndexID))
 					continue
 				}
 
 				accountTokens, err = w.GetBalanceDiffFromETHTransaction(transactionDetails)
 				if err != nil {
+					log.Error("fail to calculate balance difference from ethereum tx", zap.Error(err),
+						zap.String("indexID", pendingAccountToken.IndexID))
 					continue
 				}
 			}
 
 			for _, accountToken := range accountTokens {
 				err = w.indexerStore.UpdateAccountTokenBalance(ctx, accountToken.OwnerAccount, accountToken.IndexID, accountToken.Balance, accountToken.LastActivityTime, pendingTx, pendingAccountToken.LastPendingTime[idx])
-
 				if err != nil {
+					log.Error("fail to update account token balance", zap.Error(err),
+						zap.String("indexID", pendingAccountToken.IndexID))
 					continue
 				}
 			}

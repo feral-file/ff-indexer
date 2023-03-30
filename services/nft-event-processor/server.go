@@ -152,7 +152,7 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 					OwnerAccount:      to,
 					Balance:           int64(1),
 					LastActivityTime:  event.UpdatedAt,
-					LastRefreshedTime: token.LastActivityTime,
+					LastRefreshedTime: time.Now(),
 				}
 
 				if err := e.indexerStore.IndexAccountTokens(ctx, to, []indexer.AccountToken{accountToken}); err != nil {
@@ -280,17 +280,16 @@ func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 				}
 			}
 
-			var accountTokens []indexer.AccountToken
-			var accountToken indexer.AccountToken
+			accountToken := indexer.AccountToken{
+				BaseTokenInfo:     token.BaseTokenInfo,
+				IndexID:           indexID,
+				OwnerAccount:      to,
+				Balance:           int64(1),
+				LastActivityTime:  event.UpdatedAt,
+				LastRefreshedTime: time.Now(),
+			}
 
-			accountToken.IndexID = indexID
-			accountToken.OwnerAccount = to
-			accountToken.Balance = 1
-			accountToken.ContractAddress = contract
-			accountToken.ID = tokenID
-
-			accountTokens = append(accountTokens, accountToken)
-			if err := e.indexerStore.IndexAccountTokens(ctx, to, accountTokens); err != nil {
+			if err := e.indexerStore.IndexAccountTokens(ctx, to, []indexer.AccountToken{accountToken}); err != nil {
 				log.Error("fail to index account token", zap.Error(err))
 				continue
 			}

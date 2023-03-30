@@ -3,7 +3,6 @@ package indexer
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"strings"
 	"time"
 
@@ -62,7 +61,6 @@ type Store interface {
 	DeletePendingFieldsAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx string, lastPendingTime time.Time) error
 	GetPendingAccountTokens(ctx context.Context) ([]AccountToken, error)
 	AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx, blockchain, ID string) error
-	DeleteFailedAccountTokens(ctx context.Context, ownerAccount, indexID string) error
 
 	IndexAccount(ctx context.Context, account Account) error
 	IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error
@@ -85,6 +83,9 @@ type Store interface {
 
 	GetDetailedTokensV2(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error)
 	GetDetailedAccountTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, lastUpdatedAt time.Time, offset, size int64) ([]DetailedTokenV2, error)
+
+	GetDetailedToken(ctx context.Context, indexID string) (DetailedToken, error)
+	GetTotalBalanceOfOwnerAccounts(ctx context.Context, addresses []string) (int, error)
 }
 
 type FilterParameter struct {
@@ -147,6 +148,7 @@ type UpdateSet struct {
 	EditionName        string                   `structs:"editionName,omitempty"`
 	ContractAddress    string                   `structs:"contractAddress,omitempty"`
 	LastRefreshedTime  time.Time                `structs:"lastRefreshedTime"`
+	LastActivityTime   time.Time                `structs:"lastActivityTime"`
 }
 
 // checkIfTokenNeedToUpdate returns true if the new token data is suppose to be
@@ -160,6 +162,11 @@ func checkIfTokenNeedToUpdate(assetSource string, currentToken, newToken Token) 
 	// check if we need to update an existent token
 	if assetSource == SourceFeralFile {
 		return true
+	}
+
+	// ignore replacement of autonomy-postcard source
+	if assetSource != SourceAutonomyPostcard && currentToken.Source == SourceAutonomyPostcard {
+		return false
 	}
 
 	// assetSource is not feral file
@@ -298,6 +305,10 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 				ContractAddress: token.ContractAddress,
 			}
 
+			if !token.LastActivityTime.IsZero() {
+				tokenUpdateSet.LastActivityTime = token.LastActivityTime
+			}
+
 			tokenUpdate := bson.M{"$set": structs.Map(tokenUpdateSet)}
 
 			log.Debug("token data for updated", zap.String("token_id", token.ID), zap.Any("tokenUpdate", tokenUpdate))
@@ -319,6 +330,15 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (string, error) {
 	originalTokenIndexID := TokenIndexID(swap.OriginalBlockchain, swap.OriginalContractAddress, swap.OriginalTokenID)
 
+	var newTokenIndexID string
+
+	switch swap.NewBlockchain {
+	case EthereumBlockchain, TezosBlockchain:
+		newTokenIndexID = TokenIndexID(swap.NewBlockchain, swap.NewContractAddress, swap.NewTokenID)
+	default:
+		return "", fmt.Errorf("blockchain is not supported")
+	}
+
 	tokenResult := s.tokenCollection.FindOne(ctx, bson.M{
 		"indexID": originalTokenIndexID,
 	})
@@ -332,24 +352,14 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 	}
 
 	if originalToken.Burned && originalToken.SwappedTo != nil {
-		return "", fmt.Errorf("token has burned")
-	}
-	originalBaseTokenInfo := originalToken.BaseTokenInfo
-
-	var newTokenIndexID string
-
-	switch swap.NewBlockchain {
-	case EthereumBlockchain:
-		tokenID, ok := big.NewInt(0).SetString(swap.NewTokenID, 16)
-		if !ok {
-			return "", fmt.Errorf("invalid token id")
+		// return burned token if the SwappedTo is identical to newTokenIndexID
+		if *originalToken.SwappedTo == newTokenIndexID {
+			return newTokenIndexID, nil
 		}
-		newTokenIndexID = TokenIndexID(swap.NewBlockchain, swap.NewContractAddress, tokenID.String())
-	case TezosBlockchain:
-		newTokenIndexID = TokenIndexID(swap.NewBlockchain, swap.NewContractAddress, swap.NewTokenID)
-	default:
-		return "", fmt.Errorf("blockchain is not supported")
+		return "", fmt.Errorf("token has burned into different id")
 	}
+
+	originalBaseTokenInfo := originalToken.BaseTokenInfo
 
 	newToken := originalToken
 	newToken.ID = swap.NewTokenID
@@ -1079,13 +1089,18 @@ func (s *MongodbIndexerStore) IndexIdentity(ctx context.Context, identity Accoun
 
 // UpdateAccountTokenBalance updates account tokens' balance from transaction details
 func (s *MongodbIndexerStore) UpdateAccountTokenBalance(ctx context.Context, ownerAccount, indexID string, balance int64, transactionTime time.Time, pendingTx string, lastPendingTime time.Time) error {
+	log.Debug("UpdateAccountTokenBalance",
+		zap.String("ownerAccount", ownerAccount),
+		zap.String("indexID", indexID),
+		zap.Int64("balance", balance),
+		zap.Time("transactionTime", transactionTime))
 	r, err := s.accountTokenCollection.UpdateOne(ctx,
 		bson.M{
 			"indexID":      indexID,
 			"ownerAccount": ownerAccount,
 			"$or": bson.A{
-				bson.M{"lastRefreshedTime": bson.M{"$lt": transactionTime}},
-				bson.M{"lastRefreshedTime": bson.M{"$exists": false}},
+				bson.M{"lastActivityTime": bson.M{"$lt": transactionTime}},
+				bson.M{"lastActivityTime": bson.M{"$exists": false}},
 			},
 		},
 		bson.M{
@@ -1106,7 +1121,7 @@ func (s *MongodbIndexerStore) UpdateAccountTokenBalance(ctx context.Context, own
 
 	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
 		log.Debug("the account token's balance is not updated/added",
-			zap.String("IndexID", indexID),
+			zap.String("indexID", indexID),
 			zap.String("ownerAccount", ownerAccount),
 			zap.String("pendingTx", pendingTx))
 	}
@@ -1126,6 +1141,7 @@ func (s *MongodbIndexerStore) UpdateAccountTokenBalance(ctx context.Context, own
 			},
 		},
 	)
+
 	return err
 }
 
@@ -1161,58 +1177,61 @@ func (s *MongodbIndexerStore) DeletePendingFieldsAccountToken(ctx context.Contex
 
 // AddPendingTxToAccountToken add pendingTx to a specific account token if this pendingTx does not exist
 func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx, blockchain, ID string) error {
-	r := s.accountTokenCollection.FindOne(ctx,
-		bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "pendingTxs": bson.M{"$in": bson.A{pendingTx}}},
+	r, err := s.accountTokenCollection.UpdateOne(ctx,
+		bson.M{
+			"indexID":      indexID,
+			"ownerAccount": ownerAccount,
+			"pendingTxs":   bson.M{"$nin": bson.A{pendingTx}},
+		},
+		bson.M{
+			"$push": bson.M{
+				"pendingTxs":      pendingTx,
+				"lastPendingTime": time.Now(),
+			},
+			"$set": bson.M{
+				"blockchain": blockchain,
+				"id":         ID,
+			},
+		},
 	)
 
-	if err := r.Err(); err != nil {
-		if err == mongo.ErrNoDocuments {
-
-			// only update account if its pendingTx is not recorded
-			r, err := s.accountTokenCollection.UpdateOne(ctx,
-				bson.M{"indexID": indexID, "ownerAccount": ownerAccount},
-				bson.M{
-					"$push": bson.M{
-						"pendingTxs":      pendingTx,
-						"lastPendingTime": time.Now(),
-					},
-					"$set": bson.M{
-						"blockchain": blockchain,
-						"id":         ID,
-					},
-				},
-				options.Update().SetUpsert(true),
-			)
-
-			if err != nil {
-				return err
-			}
-
-			if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-				log.Warn("pending token is not added", zap.String("indexID", indexID))
-			}
-		} else {
-			return err
-		}
-	} else {
-		log.Debug("pending token is already added",
-			zap.String("IndexID", indexID),
-			zap.String("ownerAccount", ownerAccount))
-		return nil
+	if err != nil {
+		log.Error("cannot add pendingTx to account token",
+			zap.String("ownerAccount", ownerAccount),
+			zap.String("indexID", indexID),
+			zap.String("pendingTx", pendingTx),
+			zap.Error(err))
+		return err
 	}
+
+	if r.MatchedCount == 0 || r.ModifiedCount == 0 {
+		// 1. We don't have this account token OR
+		// 2. This account token already has the pendingTx.
+		// We insert this account token. If 2. happens, err will not be nil, we need to log it.
+		_, err := s.accountTokenCollection.InsertOne(ctx,
+			bson.M{
+				"indexID":         indexID,
+				"ownerAccount":    ownerAccount,
+				"blockchain":      blockchain,
+				"id":              ID,
+				"lastPendingTime": bson.A{time.Now()},
+				"pendingTxs":      bson.A{pendingTx},
+			},
+		)
+		if err != nil {
+			log.Warn("cannot insert a new account token",
+				zap.String("ownerAccount", ownerAccount),
+				zap.String("indexID", indexID),
+				zap.String("pendingTx", pendingTx))
+		}
+	}
+
 	return nil
-}
-
-// DeleteFailedAccountTokens deletes a specific account tokens whose transaction is failed
-func (s *MongodbIndexerStore) DeleteFailedAccountTokens(ctx context.Context, ownerAccount, indexID string) error {
-	_, err := s.accountTokenCollection.DeleteOne(ctx, bson.M{"ownerAccount": bson.M{"$eq": ownerAccount}, "indexID": bson.M{"$eq": indexID}})
-
-	return err
 }
 
 // GetPendingAccountTokens gets all pending account tokens in the db
 func (s *MongodbIndexerStore) GetPendingAccountTokens(ctx context.Context) ([]AccountToken, error) {
-	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{"pendingTxs": bson.M{"$exists": true, "$ne": bson.A{}}})
+	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{"pendingTxs": bson.M{"$nin": bson.A{nil, bson.A{}}}})
 	if err != nil {
 		return nil, err
 	}
@@ -1253,14 +1272,16 @@ func (s *MongodbIndexerStore) IndexAccount(ctx context.Context, account Account)
 
 // IndexAccountTokens indexes the account tokens by inputs
 func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error {
+	margin := 15 * time.Second
 	for _, accountToken := range accountTokens {
 		r, err := s.accountTokenCollection.UpdateOne(ctx,
-			bson.M{"indexID": accountToken.IndexID, "ownerAccount": owner},
+			bson.M{"indexID": accountToken.IndexID, "ownerAccount": owner, "lastActivityTime": bson.M{"$lt": accountToken.LastActivityTime.Add(-margin)}},
 			bson.M{"$set": accountToken},
 			options.Update().SetUpsert(true),
 		)
 
 		if err != nil {
+			log.Error("cannot index account token", zap.String("indexID", accountToken.IndexID), zap.String("owner", owner), zap.Error(err))
 			return err
 		}
 		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
@@ -1349,6 +1370,7 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 			options.Update().SetUpsert(true),
 		)
 		if err != nil {
+			log.Error("could not update balance ", zap.String("indexID", indexID), zap.String("owner", owner), zap.Error(err))
 			continue
 		}
 
@@ -1806,6 +1828,7 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 		token.Balance = a.Balance
 		token.Owner = a.OwnerAccount
 		token.LastRefreshedTime = a.LastRefreshedTime
+		token.LastActivityTime = a.LastActivityTime
 		results = append(results, token)
 	}
 
@@ -1876,4 +1899,45 @@ func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, fil
 	}
 
 	return tokens, nil
+}
+
+// GetDetailedToken returns a token information based on indexID
+func (s *MongodbIndexerStore) GetDetailedToken(ctx context.Context, indexID string) (DetailedToken, error) {
+	filterParameter := FilterParameter{
+		IDs: []string{indexID},
+	}
+
+	detailedTokens, err := s.GetDetailedTokens(ctx, filterParameter, 0, 1)
+	if err != nil {
+		return DetailedToken{}, err
+	}
+
+	if len(detailedTokens) == 0 {
+		return DetailedToken{}, fmt.Errorf("token not found")
+	}
+
+	return detailedTokens[0], nil
+}
+
+// GetTotalBalanceOfOwnerAccounts sum balance of ownerAccounts
+func (s *MongodbIndexerStore) GetTotalBalanceOfOwnerAccounts(ctx context.Context, addresses []string) (int, error) {
+	cursor, err := s.accountTokenCollection.Aggregate(ctx, []bson.M{
+		{"$match": bson.M{"ownerAccount": bson.M{"$in": addresses}}},
+		{"$group": bson.M{"_id": nil, "total": bson.M{"$sum": "$balance"}}},
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	defer cursor.Close(ctx)
+
+	var totalBalance TotalBalance
+
+	if cursor.Next(ctx) {
+		if err := cursor.Decode(&totalBalance); err != nil {
+			return 0, err
+		}
+	}
+
+	return totalBalance.Total, nil
 }

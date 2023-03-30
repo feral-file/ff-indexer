@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -40,7 +39,7 @@ func (e *EthereumEventsEmitter) Watch(ctx context.Context) {
 
 	for {
 		subscription, err := e.wsClient.SubscribeFilterLogs(ctx, goethereum.FilterQuery{Topics: [][]common.Hash{
-			{common.HexToHash(indexer.TransferEventSignature)}, // transfer event
+			{common.HexToHash(indexer.TransferEventSignature), common.HexToHash(indexer.TransferSingleEventSignature)}, // transfer event
 		}}, e.ethLogChan)
 		if err != nil {
 			log.Error("fail to start subscription connection", zap.Error(err), log.SourceETHClient)
@@ -77,11 +76,6 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 				zap.String("to", toAddress),
 				zap.String("contractAddress", contractAddress),
 				zap.Any("tokenIDHash", tokenIDHash))
-
-			if eLog.Topics[1].Big().Cmp(big.NewInt(0)) == 0 {
-				// ignore minting events
-				continue
-			}
 
 			eventType := "transfer"
 			if fromAddress == indexer.EthereumZeroAddress {

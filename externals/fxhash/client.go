@@ -64,6 +64,9 @@ type ObjectDetail struct {
 	}
 }
 
+// This is a special type of fxhash graphql
+type ObjktId int64 //nolint
+
 // GetObjectDetail returns an object detail for fxhash nfts
 func (api *Client) GetObjectDetail(c context.Context, id big.Int) (ObjectDetail, error) {
 	var query struct {
@@ -71,7 +74,7 @@ func (api *Client) GetObjectDetail(c context.Context, id big.Int) (ObjectDetail,
 	}
 
 	if err := api.client.Query(c, &query, map[string]interface{}{
-		"id": graphql.Float(id.Int64()),
+		"id": ObjktId(id.Int64()),
 	}); err != nil {
 		return ObjectDetail{}, err
 	}

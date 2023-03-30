@@ -1,0 +1,165 @@
+syntax = "proto3";
+
+option go_package = "./grpc/indexer";
+
+service Indexer {
+  rpc GetTokenByIndexID(IndexID) returns (Token);
+  rpc PushProvenance(PushProvenanceRequest) returns (Empty);
+
+  rpc UpdateOwner(UpdateOwnerRequest) returns (Empty);
+  rpc UpdateOwnerForFungibleToken(UpdateOwnerForFungibleTokenRequest) returns (Empty);
+  rpc IndexAccountTokens(IndexAccountTokensRequest) returns (Empty);
+
+  rpc GetDetailedToken(IndexID) returns (DetailedToken);
+  rpc GetTotalBalanceOfOwnerAccounts(Addresses) returns (TotalBalance);
+}
+
+message Addresses {
+  repeated string Addresses = 1;
+}
+
+message TotalBalance {
+  int64 count = 1;
+}
+
+message DetailedToken {
+  Token Token = 1;
+  string ThumbnailID = 2;
+  bool IPFSPinned = 3;
+  AssetAttributes Attributes = 4;
+  VersionedProjectMetadata ProjectMetadata = 5;
+}
+
+message AssetAttributes {
+  bool Scrollable = 1;
+}
+
+message VersionedProjectMetadata {
+  ProjectMetadata Origin = 1;
+  ProjectMetadata Latest = 2;
+}
+
+message ProjectMetadata {
+  string ArtistID = 1;
+  string ArtistName = 2;
+  string ArtistURL = 3;
+  string AssetID = 4;
+  string Title = 5;
+  string Description = 6;
+  string MIMEType = 7;
+  string Medium = 8;
+  int64 MaxEdition = 9;
+  string BaseCurrency = 10;
+  int64 BasePrice = 11;
+  string Source = 12;
+  string SourceURL = 13;
+  string PreviewURL = 14;
+  string ThumbnailURL = 15;
+  string GalleryThumbnailURL = 16;
+  string AssetData = 17;
+  string AssetURL = 18;
+
+  AssetAttributes Attributes = 19;
+  string ArtworkMetadata = 20;
+  string LastUpdatedAt = 21;
+  string InitialSaleModel = 22;
+  string OriginalFileURL = 23;
+}
+
+message IndexAccountTokensRequest {
+  string Owner = 1;
+  repeated AccountToken AccountTokens = 2;
+}
+
+message AccountToken {
+  string ID = 1; // FIXME: need implement BaseTokenInfo
+  string Blockchain = 2;
+  bool Fungible = 3;
+  string ContractType = 4;
+  string ContractAddress = 5;
+
+  string IndexID = 6;
+  string OwnerAccount = 7;
+  int64 Balance = 8;
+  string LastActivityTime = 9;
+  string LastRefreshedTime = 10;
+  repeated string LastPendingTime = 11;
+  string LastUpdatedAt = 12;
+  repeated string PendingTxs = 13;
+}
+
+message UpdateOwnerForFungibleTokenRequest {
+  string IndexID = 1;
+  string LockedTime = 2;
+  string To = 3;
+  int64 Total = 4;
+}
+
+message UpdateOwnerRequest {
+  string IndexID = 1;
+  string Owner = 2;
+  string UpdatedAt = 3;
+}
+
+message Empty {}
+
+message PushProvenanceRequest {
+  string IndexID = 1;
+  string LockedTime = 2;
+  Provenance Provenance = 3;
+}
+
+message IndexID {
+  string IndexID = 1;
+}
+
+message Token {
+  string ID = 1;
+  string Blockchain = 2;
+  bool Fungible = 3;
+  string ContractType = 4;
+  string ContractAddress = 5;
+
+  int64 Edition = 6;
+  string EditionName = 7;
+  string MintAt = 8; // time type is mapped by string
+  int64 Balance = 9;
+  string Owner = 10;
+  map<string,int64> Owners = 11;
+  repeated string OwnersArray = 12;
+
+  string AssetID = 13;
+  repeated BaseTokenInfo OriginTokenInfo = 14;
+  bool IsDemo = 15;
+
+  string IndexID = 16;
+  string Source = 17;
+  bool Swapped = 18;
+  string SwappedFrom = 19;
+  string SwappedTo = 20;
+  bool Burned = 21;
+
+  repeated Provenance Provenances = 22;
+  string LastActivityTime = 23;
+  string LastRefreshedTime = 24;
+}
+
+message Provenance {
+  string FormerOwner = 1;
+  string Type = 2;
+  string Owner = 3;
+  string Blockchain = 4;
+  int64 BlockNumber = 5;
+
+  string Timestamp = 6;
+  string TxID = 7;
+  string TxURL = 8;
+}
+
+message BaseTokenInfo {
+  string ID = 1;
+  string Blockchain = 2;
+  bool Fungible = 3;
+  string ContractType = 4;
+  string ContractAddress = 5;
+}

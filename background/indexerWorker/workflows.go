@@ -283,7 +283,7 @@ func (w *NFTIndexerWorker) UpdateAccountTokensWorkflow(ctx workflow.Context, del
 }
 
 // UpdateSuggestedMimeTypeWorkflow is a workflow to update suggested mimeType from token feedback
-func (w *NFTIndexerWorker) UpdateSuggestedMIMETypeWorkflow(ctx workflow.Context, delay time.Duration) error {
+func (w *NFTIndexerWorker) UpdateSuggestedMIMETypeWorkflow(ctx workflow.Context, _ time.Duration) error {
 	ao := workflow.ActivityOptions{
 		TaskList:               w.AccountTokenTaskListName,
 		ScheduleToStartTimeout: 10 * time.Minute,

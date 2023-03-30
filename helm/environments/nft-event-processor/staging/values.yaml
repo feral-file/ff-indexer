@@ -2,9 +2,9 @@ replicaCount: 1
 
 image:
   tags:
-    eventProcessor: "event-processor-0.1.0-2"
-    ethereumEmitter: "ethereum-emitter-0.1.0-2"
-    bitmarkEmitter: "bitmark-emitter-0.1.0-2"
+    eventProcessor: "event-processor-cf214336e927325e2ab76fc0d1868fc9e7fb1288"
+    ethereumEmitter: "ethereum-emitter-cf214336e927325e2ab76fc0d1868fc9e7fb1288"
+    bitmarkEmitter: "bitmark-emitter-cf214336e927325e2ab76fc0d1868fc9e7fb1288"
 
 serviceConfig:
   tezosNodeRPCURL: https://mainnet-tezos.autonomy.io
