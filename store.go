@@ -1276,7 +1276,7 @@ func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner stri
 
 		if err != nil {
 			log.Error("cannot index account token", zap.String("indexID", accountToken.IndexID), zap.String("owner", owner), zap.Error(err))
-			continue
+			return err
 		}
 		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
 			log.Warn("account token is not added or updated", zap.String("token_id", accountToken.ID))
