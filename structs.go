@@ -223,7 +223,6 @@ type AccountToken struct {
 	LastActivityTime  time.Time        `json:"lastActivityTime" bson:"lastActivityTime"`
 	LastRefreshedTime time.Time        `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
 	LastPendingTime   []time.Time      `json:"-" bson:"lastPendingTime,omitempty"`
-	LastUpdatedAt     time.Time        `json:"lastUpdatedAt" bson:"lastUpdatedAt"`
 	PendingTxs        []string         `json:"pendingTxs" bson:"pendingTxs,omitempty"`
 }
 

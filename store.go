@@ -3,7 +3,6 @@ package indexer
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"strings"
 	"time"
 
@@ -331,6 +330,15 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (string, error) {
 	originalTokenIndexID := TokenIndexID(swap.OriginalBlockchain, swap.OriginalContractAddress, swap.OriginalTokenID)
 
+	var newTokenIndexID string
+
+	switch swap.NewBlockchain {
+	case EthereumBlockchain, TezosBlockchain:
+		newTokenIndexID = TokenIndexID(swap.NewBlockchain, swap.NewContractAddress, swap.NewTokenID)
+	default:
+		return "", fmt.Errorf("blockchain is not supported")
+	}
+
 	tokenResult := s.tokenCollection.FindOne(ctx, bson.M{
 		"indexID": originalTokenIndexID,
 	})
@@ -344,24 +352,14 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 	}
 
 	if originalToken.Burned && originalToken.SwappedTo != nil {
-		return "", fmt.Errorf("token has burned")
-	}
-	originalBaseTokenInfo := originalToken.BaseTokenInfo
-
-	var newTokenIndexID string
-
-	switch swap.NewBlockchain {
-	case EthereumBlockchain:
-		tokenID, ok := big.NewInt(0).SetString(swap.NewTokenID, 16)
-		if !ok {
-			return "", fmt.Errorf("invalid token id")
+		// return burned token if the SwappedTo is identical to newTokenIndexID
+		if *originalToken.SwappedTo == newTokenIndexID {
+			return newTokenIndexID, nil
 		}
-		newTokenIndexID = TokenIndexID(swap.NewBlockchain, swap.NewContractAddress, tokenID.String())
-	case TezosBlockchain:
-		newTokenIndexID = TokenIndexID(swap.NewBlockchain, swap.NewContractAddress, swap.NewTokenID)
-	default:
-		return "", fmt.Errorf("blockchain is not supported")
+		return "", fmt.Errorf("token has burned into different id")
 	}
+
+	originalBaseTokenInfo := originalToken.BaseTokenInfo
 
 	newToken := originalToken
 	newToken.ID = swap.NewTokenID
