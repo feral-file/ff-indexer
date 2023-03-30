@@ -377,7 +377,7 @@ func MakeCDNURIFromIPFSURI(assetURI, assetType, contract, tokenID string) (strin
 		return "", fmt.Errorf("CDN URL is not exist")
 	}
 
-	urlParsed.Path, err = url.JoinPath(ObjktCDNBasePath, cid, assetType)
+	urlParsed.Path, err = url.JoinPath(ObjktCDNBasePath, cid, urlParsed.Path, assetType)
 	if err != nil {
 		return "", err
 	}
