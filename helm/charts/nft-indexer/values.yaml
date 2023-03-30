@@ -20,6 +20,7 @@ serviceConfig:
   feralfile_api_url: https://feralfile2.dev.bitmark.com
   opensea_ratelimit: 1
   environment: development
+  logLevel: debug
   network:
     tezos: testnet
     ethereum: testnet

@@ -25,7 +25,7 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 	go func() {
 		for {
 			subscription, err := s.wsClient.SubscribeFilterLogs(ctx, goethereum.FilterQuery{Topics: [][]common.Hash{
-				{common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")}, // transfer event
+				{common.HexToHash(indexer.TransferEventSignature), common.HexToHash(indexer.TransferSingleEventSignature)}, // transfer event
 			}}, s.ethLogChan)
 			if err != nil {
 				log.Error("fail to start subscription connection", zap.Error(err), log.SourceETHClient)
