@@ -35,11 +35,7 @@ func (e *BitmarkEventsEmitter) Watch() error {
 
 	e.bitmarkListener.Start()
 
-	if err := e.bitmarkListener.Watch("new_transfers"); err != nil {
-		return err
-	}
-
-	return nil
+	return e.bitmarkListener.Watch("new_transfers")
 }
 
 func (e *BitmarkEventsEmitter) Run(ctx context.Context) {

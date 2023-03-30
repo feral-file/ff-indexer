@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"net/http"
 	"time"
 
@@ -141,7 +140,7 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 	})
 }
 
-func (api *EventSubscriberAPI) Run(ctx context.Context) error {
+func (api *EventSubscriberAPI) Run() error {
 	r := gin.New()
 	r.POST("/events", api.ReceiveEvents)
 
