@@ -1349,21 +1349,26 @@ func (s *MongodbIndexerStore) GetAccountTokensByIndexIDs(ctx context.Context, in
 func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error {
 	ownerList := make([]string, 0, len(owners))
 
-	tokenResult := s.accountTokenCollection.FindOne(ctx, bson.M{"indexID": indexID})
+	tokenResult := s.tokenCollection.FindOne(ctx, bson.M{"indexID": indexID})
 	if err := tokenResult.Err(); err != nil {
 		return err
 	}
 
-	var tokenUpdate AccountToken
-	if err := tokenResult.Decode(&tokenUpdate); err != nil {
+	var token Token
+	if err := tokenResult.Decode(&token); err != nil {
 		return err
 	}
 
 	for owner, balance := range owners {
-		tokenUpdate.OwnerAccount = owner
-		tokenUpdate.Balance = balance
-		tokenUpdate.LastActivityTime = lastActivityTime
-		tokenUpdate.LastRefreshedTime = time.Now()
+		tokenUpdate := AccountToken{
+			BaseTokenInfo:     token.BaseTokenInfo,
+			IndexID:           indexID,
+			OwnerAccount:      owner,
+			Balance:           balance,
+			LastActivityTime:  lastActivityTime,
+			LastRefreshedTime: time.Now(),
+		}
+
 		_, err := s.accountTokenCollection.UpdateOne(ctx,
 			bson.M{"indexID": indexID, "ownerAccount": owner},
 			bson.M{"$set": tokenUpdate},
