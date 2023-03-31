@@ -127,7 +127,11 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 
 		e.logStartStage(event, stage)
 
-		accounts, _ := e.accountStore.GetAccountIDByAddress(to)
+		accounts, err := e.accountStore.GetAccountIDByAddress(to)
+		if err != nil {
+			log.Error("fail to check accounts by address", zap.Error(err))
+			return
+		}
 
 		indexID := indexer.TokenIndexID(blockchain, contract, tokenID)
 
@@ -223,6 +227,39 @@ func (e *EventProcessor) logEndStage(event *NFTEvent, stage int8) {
 	log.Info("finished stage for event: ", zap.Int8("stage", stage), zap.Any("event", event))
 }
 
+// processMintEvent process mint events
+func (e *EventProcessor) processMintEvent(ctx context.Context, event NFTEvent) {
+	eventID := event.ID
+	blockchain := event.Blockchain
+	contract := event.Contract
+	tokenID := event.TokenID
+	to := event.To
+	indexID := indexer.TokenIndexID(blockchain, contract, tokenID)
+
+	start := time.Now()
+	log.Info("start processing mint event: ", zap.String("indexID", indexID))
+
+	accounts, err := e.accountStore.GetAccountIDByAddress(to)
+	if err != nil {
+		log.Error("fail to check accounts by address", zap.Error(err))
+		return
+	}
+
+	if len(accounts) == 0 {
+		// close a minting event if it is not related to our users
+		if err := e.queueProcessor.store.CompleteEvent(eventID); err != nil {
+			log.Error("fail to mark an event completed", zap.Error(err))
+		}
+	} else {
+		log.Info("start indexing a new minted token",
+			zap.String("indexID", indexID),
+			zap.String("to", to))
+
+		indexerWorker.StartIndexTokenWorkflow(ctx, e.worker, to, contract, tokenID, false)
+	}
+	log.Info("end processing mint event: ", zap.String("indexID", indexID), zap.String("duration", time.Since(start).String()))
+}
+
 // UpdateLatestOwner [stage 1] update owner for nft and ft by event information
 func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 	var stage int8 = 1
@@ -235,7 +272,11 @@ func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 
 		if event == nil {
 			time.Sleep(WaitingTime)
+			continue
+		}
 
+		if event.Type == "mint" {
+			go e.processMintEvent(ctx, *event)
 			continue
 		}
 
@@ -245,10 +286,9 @@ func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 		contract := event.Contract
 		tokenID := event.TokenID
 		to := event.To
+		indexID := indexer.TokenIndexID(blockchain, contract, tokenID)
 
 		e.logStartStage(event, stage)
-
-		indexID := indexer.TokenIndexID(blockchain, contract, tokenID)
 
 		token, err := e.indexerStore.GetTokensByIndexID(ctx, indexID)
 		if err != nil {
@@ -293,6 +333,8 @@ func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 				log.Error("fail to index account token", zap.Error(err))
 				continue
 			}
+		} else {
+			log.Debug("token not found", zap.String("indexID", indexID))
 		}
 
 		if err := e.UpdateEvent(eventID, map[string]interface{}{
@@ -329,7 +371,11 @@ func (e *EventProcessor) NotifyChangeTokenOwner() {
 
 		e.logStartStage(event, stage)
 
-		accounts, _ := e.accountStore.GetAccountIDByAddress(to)
+		accounts, err := e.accountStore.GetAccountIDByAddress(to)
+		if err != nil {
+			log.Error("fail to check accounts by address", zap.Error(err))
+			return
+		}
 		indexID := indexer.TokenIndexID(blockchain, contract, tokenID)
 
 		for _, accountID := range accounts {
