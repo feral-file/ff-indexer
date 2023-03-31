@@ -155,7 +155,7 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 					IndexID:           indexID,
 					OwnerAccount:      to,
 					Balance:           int64(1),
-					LastActivityTime:  event.UpdatedAt,
+					LastActivityTime:  event.CreatedAt,
 					LastRefreshedTime: time.Now(),
 				}
 
@@ -167,7 +167,7 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 			if token.Fungible {
 				indexerWorker.StartRefreshTokenOwnershipWorkflow(ctx, e.worker, "processor", indexID, 0)
 			} else {
-				if err := e.indexerStore.UpdateOwner(ctx, indexID, to, time.Now()); err != nil {
+				if err := e.indexerStore.UpdateOwner(ctx, indexID, to, event.CreatedAt); err != nil {
 					log.Error("fail to update the token ownership",
 						zap.String("indexID", indexID), zap.Error(err),
 						zap.String("from", from), zap.String("to", to))
@@ -302,13 +302,15 @@ func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 					FormerOwner: &event.From,
 					Owner:       to,
 					Blockchain:  blockchain,
-					Timestamp:   time.Now(),
+					Timestamp:   event.CreatedAt,
 					TxID:        "",
 					TxURL:       "",
 				})
 
 				if err != nil {
-					err = e.indexerStore.UpdateOwner(ctx, indexID, to, time.Now())
+					log.Error("fail to push provenance", zap.Error(err))
+
+					err = e.indexerStore.UpdateOwner(ctx, indexID, to, event.CreatedAt)
 					if err != nil {
 						log.Error("fail to update owner", zap.Error(err))
 					}
@@ -325,7 +327,7 @@ func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 				IndexID:           indexID,
 				OwnerAccount:      to,
 				Balance:           int64(1),
-				LastActivityTime:  event.UpdatedAt,
+				LastActivityTime:  event.CreatedAt,
 				LastRefreshedTime: time.Now(),
 			}
 
