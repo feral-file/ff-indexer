@@ -633,11 +633,15 @@ func (s *MongodbIndexerStore) PushProvenance(ctx context.Context, indexID string
 		},
 	})
 
+	if err != nil {
+		return err
+	}
+
 	if u.ModifiedCount == 0 {
 		return ErrNoRecordUpdated
 	}
 
-	return err
+	return nil
 }
 
 // GetTokenIDsByOwner returns a list of tokens which belongs to an owner
