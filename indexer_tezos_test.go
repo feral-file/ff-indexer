@@ -100,6 +100,12 @@ func TestIndexTezosToken(t *testing.T) {
 	assert.Equal(t, strings.Contains(assetUpdates.ProjectMetadata.ThumbnailURL, "https://assets.objkt.media/file/assets-003/"), true)
 	assert.Equal(t, assetUpdates.ProjectMetadata.Title == "", false)
 
+	assetUpdates, err = engine.IndexTezosToken(context.Background(), "tz1T1nTR7FREghqvUi2UF3TUiUFyvLVtqe8a", "KT195VeAcEJ1wioXjDhqjmQ6CrgfZYKtqhro", "2")
+	assert.NoError(t, err)
+	assert.Equal(t, strings.Contains(assetUpdates.ProjectMetadata.PreviewURL, "https://assets.objkt.media/file/assets-003/"), true)
+	assert.Equal(t, strings.Contains(assetUpdates.ProjectMetadata.ThumbnailURL, "https://assets.objkt.media/file/assets-003/"), true)
+	assert.Equal(t, assetUpdates.ProjectMetadata.Title == "", false)
+
 	// case fxhash api fail
 	//assetUpdates, err := engine.IndexTezosToken(context.Background(), "tz1NkDtLboBk6gYG2jUyLmKcQHxzDDiSU3Kn", "KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE", "286488")
 	//assert.NoError(t, err)
