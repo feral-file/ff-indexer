@@ -79,7 +79,7 @@ func (s *PostgresEventStore) GetQueueEventByStage(stage int8) (*NFTEvent, error)
 		}
 
 		event.Status = EventStatusProcessing
-		return db.Save(event).Error
+		return db.Model(&NFTEvent{}).Where("id = ?", event.ID).Update("status", EventStatusProcessing).Error
 	})
 	if err != nil {
 		return nil, err
