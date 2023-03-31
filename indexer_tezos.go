@@ -223,7 +223,12 @@ func (e *IndexEngine) IndexTezosTokenProvenance(ctx context.Context, contract, t
 		zap.String("blockchain", TezosBlockchain),
 		zap.String("contract", contract), zap.String("tokenID", tokenID))
 
-	transfers, err := e.tzkt.GetTokenTransfers(contract, tokenID)
+	count, err := e.tzkt.GetTokenTransfersCount(contract, tokenID)
+	if err != nil {
+		return nil, err
+	}
+
+	transfers, err := e.tzkt.GetTokenTransfers(contract, tokenID, count)
 	if err != nil {
 		return nil, err
 	}

@@ -301,11 +301,43 @@ type TokenTransfer struct {
 	To            Account   `json:"to"`
 }
 
-func (c *TZKT) GetTokenTransfers(contract, tokenID string) ([]TokenTransfer, error) {
+func (c *TZKT) GetTokenTransfersCount(contract, tokenID string) (int, error) {
 	v := url.Values{
 		"token.contract": []string{contract},
 		"token.tokenId":  []string{tokenID},
 		"token.standard": []string{"fa2"},
+	}
+
+	u := url.URL{
+		Scheme:   "https",
+		Host:     c.endpoint,
+		Path:     "/v1/tokens/transfers/count",
+		RawQuery: v.Encode(),
+	}
+
+	var count int
+
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return 0, err
+	}
+	if err := c.request(req, &count); err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (c *TZKT) GetTokenTransfers(contract, tokenID string, limit int) ([]TokenTransfer, error) {
+	if limit == 0 {
+		limit = 100
+	}
+
+	v := url.Values{
+		"token.contract": []string{contract},
+		"token.tokenId":  []string{tokenID},
+		"token.standard": []string{"fa2"},
+		"limit":          []string{fmt.Sprint(limit)},
 		"select":         []string{"timestamp,from,to,transactionId,level"},
 	}
 
