@@ -227,39 +227,6 @@ func (e *EventProcessor) logEndStage(event *NFTEvent, stage int8) {
 	log.Info("finished stage for event: ", zap.Int8("stage", stage), zap.Any("event", event))
 }
 
-// processMintEvent process mint events
-func (e *EventProcessor) processMintEvent(ctx context.Context, event NFTEvent) {
-	eventID := event.ID
-	blockchain := event.Blockchain
-	contract := event.Contract
-	tokenID := event.TokenID
-	to := event.To
-	indexID := indexer.TokenIndexID(blockchain, contract, tokenID)
-
-	start := time.Now()
-	log.Info("start processing mint event: ", zap.String("indexID", indexID))
-
-	accounts, err := e.accountStore.GetAccountIDByAddress(to)
-	if err != nil {
-		log.Error("fail to check accounts by address", zap.Error(err))
-		return
-	}
-
-	if len(accounts) == 0 {
-		// close a minting event if it is not related to our users
-		if err := e.queueProcessor.store.CompleteEvent(eventID); err != nil {
-			log.Error("fail to mark an event completed", zap.Error(err))
-		}
-	} else {
-		log.Info("start indexing a new minted token",
-			zap.String("indexID", indexID),
-			zap.String("to", to))
-
-		indexerWorker.StartIndexTokenWorkflow(ctx, e.worker, to, contract, tokenID, false)
-	}
-	log.Info("end processing mint event: ", zap.String("indexID", indexID), zap.String("duration", time.Since(start).String()))
-}
-
 // UpdateLatestOwner [stage 1] update owner for nft and ft by event information
 func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 	var stage int8 = 1
@@ -275,11 +242,6 @@ func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 			continue
 		}
 
-		if event.Type == "mint" {
-			go e.processMintEvent(ctx, *event)
-			continue
-		}
-
 		eventType := event.Type
 		eventID := event.ID
 		blockchain := event.Blockchain
@@ -290,53 +252,59 @@ func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 
 		e.logStartStage(event, stage)
 
-		token, err := e.indexerStore.GetTokensByIndexID(ctx, indexID)
-		if err != nil {
-			log.Error("fail to get token by index id", zap.Error(err))
-		}
+		switch event.Type {
+		case "mint":
+			// do nothing here.
+		default:
+			token, err := e.indexerStore.GetTokensByIndexID(ctx, indexID)
+			if err != nil {
+				log.Error("fail to get token by index id", zap.Error(err))
+			}
 
-		if token != nil {
-			if !token.Fungible {
-				err := e.indexerStore.PushProvenance(ctx, indexID, token.LastRefreshedTime, indexer.Provenance{
-					Type:        eventType,
-					FormerOwner: &event.From,
-					Owner:       to,
-					Blockchain:  blockchain,
-					Timestamp:   event.CreatedAt,
-					TxID:        "",
-					TxURL:       "",
-				})
+			if token != nil {
+				if !token.Fungible {
+					err := e.indexerStore.PushProvenance(ctx, indexID, token.LastRefreshedTime, indexer.Provenance{
+						Type:        eventType,
+						FormerOwner: &event.From,
+						Owner:       to,
+						Blockchain:  blockchain,
+						Timestamp:   event.CreatedAt,
+						TxID:        "",
+						TxURL:       "",
+					})
 
-				if err != nil {
-					log.Error("fail to push provenance", zap.Error(err))
-
-					err = e.indexerStore.UpdateOwner(ctx, indexID, to, event.CreatedAt)
 					if err != nil {
-						log.Error("fail to update owner", zap.Error(err))
+						log.Error("fail to push provenance", zap.Error(err))
+
+						err = e.indexerStore.UpdateOwner(ctx, indexID, to, event.CreatedAt)
+						if err != nil {
+							log.Error("fail to update owner", zap.Error(err))
+						}
+					}
+				} else {
+					err := e.indexerStore.UpdateOwnerForFungibleToken(ctx, indexID, token.LastRefreshedTime, event.To, 1)
+					if err != nil {
+						log.Error("fail to update owner for fungible token", zap.Error(err))
 					}
 				}
-			} else {
-				err := e.indexerStore.UpdateOwnerForFungibleToken(ctx, indexID, token.LastRefreshedTime, event.To, 1)
-				if err != nil {
-					log.Error("fail to update owner for fungible token", zap.Error(err))
+
+				accountToken := indexer.AccountToken{
+					BaseTokenInfo:     token.BaseTokenInfo,
+					IndexID:           indexID,
+					OwnerAccount:      to,
+					Balance:           int64(1),
+					LastActivityTime:  event.CreatedAt,
+					LastRefreshedTime: time.Now(),
 				}
+
+				if err := e.indexerStore.IndexAccountTokens(ctx, to, []indexer.AccountToken{accountToken}); err != nil {
+					log.Error("fail to index account token", zap.Error(err))
+					continue
+				}
+			} else {
+				log.Debug("token not found", zap.String("indexID", indexID))
 			}
 
-			accountToken := indexer.AccountToken{
-				BaseTokenInfo:     token.BaseTokenInfo,
-				IndexID:           indexID,
-				OwnerAccount:      to,
-				Balance:           int64(1),
-				LastActivityTime:  event.CreatedAt,
-				LastRefreshedTime: time.Now(),
-			}
-
-			if err := e.indexerStore.IndexAccountTokens(ctx, to, []indexer.AccountToken{accountToken}); err != nil {
-				log.Error("fail to index account token", zap.Error(err))
-				continue
-			}
-		} else {
-			log.Debug("token not found", zap.String("indexID", indexID))
 		}
 
 		if err := e.UpdateEvent(eventID, map[string]interface{}{
