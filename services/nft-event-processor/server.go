@@ -59,7 +59,7 @@ func (e *EventProcessor) UpdateOwner(c context.Context, id, owner string, update
 // notifyChangeOwner notifies the arrival of a new token
 func (e *EventProcessor) notifyChangeOwner(accountID, toAddress, tokenID string) error {
 	return e.notification.SendNotification("",
-		notification.ISSUE_UPDATED,
+		notification.NEW_NFT_ARRIVED,
 		accountID,
 		gin.H{
 			"notification_type": "change_token_owner",
