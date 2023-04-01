@@ -68,7 +68,7 @@ func (s *PostgresEventStore) GetQueueEventByStage(stage int8) (*NFTEvent, error)
 
 	// TODO: return outdated queued events as well
 	err := s.db.Transaction(func(db *gorm.DB) error {
-		if err := db.Clauses(clause.Locking{Strength: "UPDATE"}).
+		if err := db.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).
 			Where("stage = ?", EventStages[stage]).
 			Where("status <> ?", EventStatusProcessed).
 			Order("created_at asc").First(&event).Error; err != nil {
