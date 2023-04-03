@@ -14,7 +14,7 @@ import (
 	"github.com/bitmark-inc/nft-indexer/log"
 )
 
-func StartIndexTokenWorkflow(c context.Context, client *cadence.WorkerClient, owner, contract, tokenID string, indexPreview bool) {
+func StartIndexTokenWorkflow(c context.Context, client *cadence.WorkerClient, owner, contract, tokenID string, indexPreview bool, fromEvent string) {
 	workflowContext := cadenceClient.StartWorkflowOptions{
 		ID:                           fmt.Sprintf("index-single-nft-%s-%s", contract, tokenID),
 		TaskList:                     TaskListName,
@@ -25,7 +25,7 @@ func StartIndexTokenWorkflow(c context.Context, client *cadence.WorkerClient, ow
 	var w NFTIndexerWorker
 
 	workflow, err := client.StartWorkflow(c, ClientName, workflowContext,
-		w.IndexTokenWorkflow, owner, contract, tokenID, indexPreview)
+		w.IndexTokenWorkflow, owner, contract, tokenID, indexPreview, fromEvent)
 	if err != nil {
 		log.Error("fail to start indexing workflow",
 			zap.Error(err),

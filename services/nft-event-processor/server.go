@@ -178,7 +178,7 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 					zap.String("indexID", indexID),
 					zap.String("from", from), zap.String("to", to))
 
-				indexerWorker.StartIndexTokenWorkflow(ctx, e.worker, to, contract, tokenID, false)
+				indexerWorker.StartIndexTokenWorkflow(ctx, e.worker, to, contract, tokenID, false, event.Type)
 			}
 		}
 
