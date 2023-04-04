@@ -30,7 +30,7 @@ func fxhashLink(ipfsLink string) string {
 	return u.String()
 }
 
-func (e *IndexEngine) GetTezosTokenByOwner(_ context.Context, owner string, lastTime time.Time, offset int) ([]tzkt.OwnedToken, error) {
+func (e *IndexEngine) GetTezosTokenByOwner(owner string, lastTime time.Time, offset int) ([]tzkt.OwnedToken, error) {
 	tokens, err := e.tzkt.RetrieveTokens(owner, lastTime, offset)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func (e *IndexEngine) GetTezosTokenByOwner(_ context.Context, owner string, last
 // IndexTezosTokenByOwner indexes all tokens owned by a specific tezos address
 func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, lastTime time.Time, offset int) ([]AssetUpdates, time.Time, error) {
 	var newLastTime = time.Time{}
-	ownedTokens, err := e.GetTezosTokenByOwner(ctx, owner, lastTime, offset)
+	ownedTokens, err := e.GetTezosTokenByOwner(owner, lastTime, offset)
 	if err != nil {
 		return nil, newLastTime, err
 	}
@@ -218,7 +218,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 }
 
 // IndexTezosTokenProvenance indexes provenance of a specific token
-func (e *IndexEngine) IndexTezosTokenProvenance(_ context.Context, contract, tokenID string) ([]Provenance, error) {
+func (e *IndexEngine) IndexTezosTokenProvenance(contract, tokenID string) ([]Provenance, error) {
 	log.Debug("index tezos token provenance",
 		zap.String("blockchain", TezosBlockchain),
 		zap.String("contract", contract), zap.String("tokenID", tokenID))
@@ -268,12 +268,12 @@ func (e *IndexEngine) IndexTezosTokenProvenance(_ context.Context, contract, tok
 }
 
 // IndexTezosTokenLastActivityTime indexes the last activity timestamp of a given token
-func (e *IndexEngine) IndexTezosTokenLastActivityTime(_ context.Context, contract, tokenID string) (time.Time, error) {
+func (e *IndexEngine) IndexTezosTokenLastActivityTime(contract, tokenID string) (time.Time, error) {
 	return e.tzkt.GetTokenLastActivityTime(contract, tokenID)
 }
 
 // IndexTezosTokenOwners indexes owners of a given token
-func (e *IndexEngine) IndexTezosTokenOwners(_ context.Context, contract, tokenID string) (map[string]int64, error) {
+func (e *IndexEngine) IndexTezosTokenOwners(contract, tokenID string) (map[string]int64, error) {
 	log.Debug("index tezos token owners",
 		zap.String("blockchain", TezosBlockchain),
 		zap.String("contract", contract), zap.String("tokenID", tokenID))

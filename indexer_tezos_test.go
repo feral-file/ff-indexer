@@ -16,35 +16,35 @@ import (
 
 func TestIndexTezosTokenProvenance(t *testing.T) {
 	engine := New("", nil, tzkt.New(""), nil, nil)
-	provenances, err := engine.IndexTezosTokenProvenance(context.Background(), "KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE", "178227")
+	provenances, err := engine.IndexTezosTokenProvenance("KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE", "178227")
 	assert.NoError(t, err)
 	assert.Len(t, provenances, 6)
 }
 
 func TestIndexTezosTokenOwnersWithNFT(t *testing.T) {
 	engine := New("", nil, tzkt.New(""), nil, nil)
-	owners, err := engine.IndexTezosTokenOwners(context.Background(), "KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE", "178227")
+	owners, err := engine.IndexTezosTokenOwners("KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE", "178227")
 	assert.NoError(t, err)
 	assert.Len(t, owners, 1)
 }
 
 func TestGetTezosTokenByOwner(t *testing.T) {
 	engine := New("", nil, tzkt.New(""), nil, nil)
-	owners, err := engine.GetTezosTokenByOwner(context.Background(), "tz1YiYx6TwBnsAgEnXSyhFiM9bqFD54QVhy4", time.Time{}, 0) // incorrect metadata format case
+	owners, err := engine.GetTezosTokenByOwner("tz1YiYx6TwBnsAgEnXSyhFiM9bqFD54QVhy4", time.Time{}, 0) // incorrect metadata format case
 	assert.NoError(t, err)
 	assert.NotEmpty(t, owners)
 }
 
 func TestIndexTezosTokenOwnersFT(t *testing.T) {
 	engine := New("", nil, tzkt.New(""), nil, nil)
-	owners, err := engine.IndexTezosTokenOwners(context.Background(), "KT1LjmAdYQCLBjwv4S2oFkEzyHVkomAf5MrW", "24216")
+	owners, err := engine.IndexTezosTokenOwners("KT1LjmAdYQCLBjwv4S2oFkEzyHVkomAf5MrW", "24216")
 	assert.NoError(t, err)
 	assert.Len(t, owners, 13)
 }
 
 func TestIndexTezosTokenOwnersWithNFTOwnByManyAddress(t *testing.T) {
 	engine := New("", nil, tzkt.New(""), nil, nil)
-	owners, err := engine.IndexTezosTokenOwners(context.Background(), "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton", "784317")
+	owners, err := engine.IndexTezosTokenOwners("KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton", "784317")
 	assert.NoError(t, err)
 	assert.Len(t, owners, 262)
 }

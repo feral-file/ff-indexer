@@ -169,7 +169,7 @@ func (s *NFTIndexerServer) IndexNFTByOwner(c *gin.Context) {
 	switch indexer.GetBlockchainByAddress(owner) {
 	case indexer.EthereumBlockchain:
 		ownerIndexFunc = func(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
-			return s.indexerEngine.IndexETHTokenByOwner(c, owner, offset)
+			return s.indexerEngine.IndexETHTokenByOwner(owner, offset)
 		}
 	case indexer.TezosBlockchain:
 		ownerIndexFunc = func(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
