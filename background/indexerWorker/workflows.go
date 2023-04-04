@@ -146,7 +146,7 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 }
 
 // IndexTokenWorkflow is a workflow to index a single token
-func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contract, tokenID string, indexPreview bool, fromEvent string) error {
+func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contract, tokenID string, indexProvenance, indexPreview bool) error {
 	ao := workflow.ActivityOptions{
 		TaskList:               w.TaskListName,
 		ScheduleToStartTimeout: 10 * time.Minute,
@@ -189,16 +189,32 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 		}
 	}
 
-	if fromEvent == "mint" {
+	if indexProvenance {
 		if update.Tokens[0].Fungible {
 			log.Debug("Start child workflow to update token ownership", zap.String("owner", owner), zap.String("indexID: ", update.Tokens[0].IndexID))
-			if err := w.indexOwnershipWorkflow(ctx, owner, []string{update.Tokens[0].IndexID}); err != nil {
+			cwoOwnership := workflow.ChildWorkflowOptions{
+				TaskList:                     ProvenanceTaskListName,
+				WorkflowID:                   WorkflowIDIndexTokenOwnershipByOwner(owner),
+				WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+				ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
+				ExecutionStartToCloseTimeout: time.Hour,
+			}
+			if err := workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoOwnership),
+				w.RefreshTokenOwnershipWorkflow, []string{update.Tokens[0].IndexID}, 0).Get(ctx, nil); err != nil {
 				sentry.CaptureException(err)
 				return err
 			}
 		} else {
 			log.Debug("Start child workflow to update token provenance", zap.String("owner", owner), zap.String("indexID: ", update.Tokens[0].IndexID))
-			if err := w.indexProvenanceWorkflow(ctx, owner, []string{update.Tokens[0].IndexID}); err != nil {
+			cwoProvenance := workflow.ChildWorkflowOptions{
+				TaskList:                     ProvenanceTaskListName,
+				WorkflowID:                   WorkflowIDIndexTokenProvenanceByOwner(owner),
+				WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+				ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
+				ExecutionStartToCloseTimeout: time.Hour,
+			}
+			if err := workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoProvenance),
+				w.RefreshTokenProvenanceWorkflow, []string{update.Tokens[0].IndexID}, 0).Get(ctx, nil); err != nil {
 				sentry.CaptureException(err)
 				return err
 			}
@@ -341,32 +357,4 @@ func (w *NFTIndexerWorker) DetectAssetChangeWorkflow(ctx workflow.Context) error
 	}
 
 	return nil
-}
-
-func (w *NFTIndexerWorker) indexProvenanceWorkflow(ctx workflow.Context, owner string, indexIDs []string) error {
-	cwoProvenance := workflow.ChildWorkflowOptions{
-		TaskList:                     ProvenanceTaskListName,
-		WorkflowID:                   WorkflowIDIndexTokenProvenanceByOwner(owner),
-		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-		ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-		ExecutionStartToCloseTimeout: time.Hour,
-	}
-	err := workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoProvenance),
-		w.RefreshTokenProvenanceWorkflow, indexIDs, 0).Get(ctx, nil)
-
-	return err
-}
-
-func (w *NFTIndexerWorker) indexOwnershipWorkflow(ctx workflow.Context, owner string, indexIDs []string) error {
-	cwoOwnership := workflow.ChildWorkflowOptions{
-		TaskList:                     ProvenanceTaskListName,
-		WorkflowID:                   WorkflowIDIndexTokenOwnershipByOwner(owner),
-		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-		ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-		ExecutionStartToCloseTimeout: time.Hour,
-	}
-	err := workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoOwnership),
-		w.RefreshTokenOwnershipWorkflow, indexIDs, 0).Get(ctx, nil)
-
-	return err
 }
