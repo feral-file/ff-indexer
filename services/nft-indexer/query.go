@@ -155,7 +155,7 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, idMap map[string]b
 			continue
 		}
 
-		go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, tokenID, false)
+		go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, tokenID, false, false)
 	}
 }
 

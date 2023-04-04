@@ -233,7 +233,7 @@ func (s *NFTIndexerServer) IndexOneNFT(c *gin.Context) {
 			"update": u,
 		})
 	} else {
-		indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, req.TokenID, req.Preview)
+		indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, req.TokenID, false, req.Preview)
 		c.JSON(200, gin.H{
 			"ok": 1,
 		})
