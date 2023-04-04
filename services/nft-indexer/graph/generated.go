@@ -3258,9 +3258,9 @@ func (ec *executionContext) _Token_originTokenInfo(ctx context.Context, field gr
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.BaseTokenInfo)
+	res := resTmp.([]*model.BaseTokenInfo)
 	fc.Result = res
-	return ec.marshalOBaseTokenInfo2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐBaseTokenInfo(ctx, field.Selections, res)
+	return ec.marshalOBaseTokenInfo2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐBaseTokenInfoᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Token_originTokenInfo(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6658,6 +6658,16 @@ func (ec *executionContext) marshalNAssetMetadata2ᚖgithubᚗcomᚋbitmarkᚑin
 	return ec._AssetMetadata(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNBaseTokenInfo2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐBaseTokenInfo(ctx context.Context, sel ast.SelectionSet, v *model.BaseTokenInfo) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._BaseTokenInfo(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -7123,11 +7133,51 @@ func (ec *executionContext) marshalOAssetAttributes2ᚖgithubᚗcomᚋbitmarkᚑ
 	return ec._AssetAttributes(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOBaseTokenInfo2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐBaseTokenInfo(ctx context.Context, sel ast.SelectionSet, v *model.BaseTokenInfo) graphql.Marshaler {
+func (ec *executionContext) marshalOBaseTokenInfo2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐBaseTokenInfoᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.BaseTokenInfo) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
-	return ec._BaseTokenInfo(ctx, sel, v)
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNBaseTokenInfo2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐBaseTokenInfo(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {

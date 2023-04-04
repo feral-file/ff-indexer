@@ -14,7 +14,7 @@ type Token {
 	mintAt:          	Time
 	balance:         	Int64!
 	owner:           	String!
-	originTokenInfo: 	BaseTokenInfo
+	originTokenInfo: 	[BaseTokenInfo!]
 
 	indexID:         	String!
 	source:          	String!  

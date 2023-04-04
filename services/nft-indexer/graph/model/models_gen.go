@@ -77,7 +77,7 @@ type Token struct {
 	MintAt            *time.Time       `json:"mintAt"`
 	Balance           int64            `json:"balance"`
 	Owner             string           `json:"owner"`
-	OriginTokenInfo   *BaseTokenInfo   `json:"originTokenInfo"`
+	OriginTokenInfo   []*BaseTokenInfo `json:"originTokenInfo"`
 	IndexID           string           `json:"indexID"`
 	Source            string           `json:"source"`
 	Swapped           bool             `json:"swapped"`
