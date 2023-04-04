@@ -78,6 +78,7 @@ func (r *Resolver) mapGraphQLProjectMetadata(p indexer.ProjectMetadata) *model.P
 		ThumbnailURL:        p.ThumbnailURL,
 		GalleryThumbnailURL: p.GalleryThumbnailURL,
 		AssetData:           p.AssetData,
+		AssetURL:            p.AssetURL,
 	}
 }
 
