@@ -21,6 +21,14 @@ type AssetMetadata struct {
 	Project *VersionedProjectMetadata `json:"project"`
 }
 
+type BaseTokenInfo struct {
+	ID              string `json:"id"`
+	Blockchain      string `json:"blockchain"`
+	Fungible        bool   `json:"fungible"`
+	ContractType    string `json:"contractType"`
+	ContractAddress string `json:"contractAddress"`
+}
+
 type Identity struct {
 	AccountNumber string `json:"accountNumber"`
 	Blockchain    string `json:"blockchain"`
@@ -69,6 +77,7 @@ type Token struct {
 	MintAt            *time.Time       `json:"mintAt"`
 	Balance           int64            `json:"balance"`
 	Owner             string           `json:"owner"`
+	OriginTokenInfo   *BaseTokenInfo   `json:"originTokenInfo"`
 	IndexID           string           `json:"indexID"`
 	Source            string           `json:"source"`
 	Swapped           bool             `json:"swapped"`
