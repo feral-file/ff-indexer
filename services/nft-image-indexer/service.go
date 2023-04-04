@@ -14,7 +14,7 @@ import (
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/log"
-	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/imageStore"
+	imageStore "github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/imageStore"
 )
 
 type NFTAsset struct {

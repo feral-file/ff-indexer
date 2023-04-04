@@ -1,4 +1,4 @@
-package indexerWorker
+package indexerworker
 
 import (
 	"time"

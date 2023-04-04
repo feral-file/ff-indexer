@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/imageStore"
+	imageStore "github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/imageStore"
 	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/utils"
 	"github.com/stretchr/testify/assert"
 )

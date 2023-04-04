@@ -1,4 +1,4 @@
-package imageStore
+package imagestore
 
 import (
 	"errors"

@@ -64,7 +64,7 @@ func NewGRPCHandler(queueProcessor *EventQueueProcessor) *GRPCHandler {
 
 // PushEvent handles PushEvent requests and save it to event store
 func (t *GRPCHandler) PushEvent(
-	ctx context.Context,
+	_ context.Context,
 	i *processor.EventInput,
 ) (*processor.EventOutput, error) {
 	log.Debug("receive event input", zap.Any("input", i))

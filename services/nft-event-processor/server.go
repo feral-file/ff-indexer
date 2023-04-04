@@ -6,7 +6,7 @@ import (
 
 	"github.com/bitmark-inc/autonomy-account/storage"
 	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
+	indexerWorker "github.com/bitmark-inc/nft-indexer/background/indexerWorker"
 	"github.com/bitmark-inc/nft-indexer/cadence"
 	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/gin-gonic/gin"
