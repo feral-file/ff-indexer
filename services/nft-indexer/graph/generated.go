@@ -59,6 +59,14 @@ type ComplexityRoot struct {
 		Project func(childComplexity int) int
 	}
 
+	BaseTokenInfo struct {
+		Blockchain      func(childComplexity int) int
+		ContractAddress func(childComplexity int) int
+		ContractType    func(childComplexity int) int
+		Fungible        func(childComplexity int) int
+		ID              func(childComplexity int) int
+	}
+
 	Identity struct {
 		AccountNumber func(childComplexity int) int
 		Blockchain    func(childComplexity int) int
@@ -117,6 +125,7 @@ type ComplexityRoot struct {
 		LastActivityTime  func(childComplexity int) int
 		LastRefreshedTime func(childComplexity int) int
 		MintAt            func(childComplexity int) int
+		OriginTokenInfo   func(childComplexity int) int
 		Owner             func(childComplexity int) int
 		Provenance        func(childComplexity int) int
 		Source            func(childComplexity int) int
@@ -190,6 +199,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AssetMetadata.Project(childComplexity), true
+
+	case "BaseTokenInfo.blockchain":
+		if e.complexity.BaseTokenInfo.Blockchain == nil {
+			break
+		}
+
+		return e.complexity.BaseTokenInfo.Blockchain(childComplexity), true
+
+	case "BaseTokenInfo.contractAddress":
+		if e.complexity.BaseTokenInfo.ContractAddress == nil {
+			break
+		}
+
+		return e.complexity.BaseTokenInfo.ContractAddress(childComplexity), true
+
+	case "BaseTokenInfo.contractType":
+		if e.complexity.BaseTokenInfo.ContractType == nil {
+			break
+		}
+
+		return e.complexity.BaseTokenInfo.ContractType(childComplexity), true
+
+	case "BaseTokenInfo.fungible":
+		if e.complexity.BaseTokenInfo.Fungible == nil {
+			break
+		}
+
+		return e.complexity.BaseTokenInfo.Fungible(childComplexity), true
+
+	case "BaseTokenInfo.id":
+		if e.complexity.BaseTokenInfo.ID == nil {
+			break
+		}
+
+		return e.complexity.BaseTokenInfo.ID(childComplexity), true
 
 	case "Identity.accountNumber":
 		if e.complexity.Identity.AccountNumber == nil {
@@ -515,6 +559,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Token.MintAt(childComplexity), true
+
+	case "Token.originTokenInfo":
+		if e.complexity.Token.OriginTokenInfo == nil {
+			break
+		}
+
+		return e.complexity.Token.OriginTokenInfo(childComplexity), true
 
 	case "Token.owner":
 		if e.complexity.Token.Owner == nil {
@@ -1014,6 +1065,226 @@ func (ec *executionContext) fieldContext_AssetMetadata_project(ctx context.Conte
 				return ec.fieldContext_VersionedProjectMetadata_latest(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type VersionedProjectMetadata", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BaseTokenInfo_id(ctx context.Context, field graphql.CollectedField, obj *model.BaseTokenInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BaseTokenInfo_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_BaseTokenInfo_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BaseTokenInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BaseTokenInfo_blockchain(ctx context.Context, field graphql.CollectedField, obj *model.BaseTokenInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BaseTokenInfo_blockchain(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Blockchain, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_BaseTokenInfo_blockchain(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BaseTokenInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BaseTokenInfo_fungible(ctx context.Context, field graphql.CollectedField, obj *model.BaseTokenInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BaseTokenInfo_fungible(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Fungible, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_BaseTokenInfo_fungible(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BaseTokenInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BaseTokenInfo_contractType(ctx context.Context, field graphql.CollectedField, obj *model.BaseTokenInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BaseTokenInfo_contractType(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ContractType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_BaseTokenInfo_contractType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BaseTokenInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BaseTokenInfo_contractAddress(ctx context.Context, field graphql.CollectedField, obj *model.BaseTokenInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BaseTokenInfo_contractAddress(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ContractAddress, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_BaseTokenInfo_contractAddress(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BaseTokenInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2303,6 +2574,8 @@ func (ec *executionContext) fieldContext_Query_tokens(ctx context.Context, field
 				return ec.fieldContext_Token_balance(ctx, field)
 			case "owner":
 				return ec.fieldContext_Token_owner(ctx, field)
+			case "originTokenInfo":
+				return ec.fieldContext_Token_originTokenInfo(ctx, field)
 			case "indexID":
 				return ec.fieldContext_Token_indexID(ctx, field)
 			case "source":
@@ -2957,6 +3230,59 @@ func (ec *executionContext) fieldContext_Token_owner(ctx context.Context, field 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Token_originTokenInfo(ctx context.Context, field graphql.CollectedField, obj *model.Token) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Token_originTokenInfo(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.OriginTokenInfo, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.BaseTokenInfo)
+	fc.Result = res
+	return ec.marshalOBaseTokenInfo2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐBaseTokenInfoᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Token_originTokenInfo(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Token",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_BaseTokenInfo_id(ctx, field)
+			case "blockchain":
+				return ec.fieldContext_BaseTokenInfo_blockchain(ctx, field)
+			case "fungible":
+				return ec.fieldContext_BaseTokenInfo_fungible(ctx, field)
+			case "contractType":
+				return ec.fieldContext_BaseTokenInfo_contractType(ctx, field)
+			case "contractAddress":
+				return ec.fieldContext_BaseTokenInfo_contractAddress(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BaseTokenInfo", field.Name)
 		},
 	}
 	return fc, nil
@@ -5426,6 +5752,62 @@ func (ec *executionContext) _AssetMetadata(ctx context.Context, sel ast.Selectio
 	return out
 }
 
+var baseTokenInfoImplementors = []string{"BaseTokenInfo"}
+
+func (ec *executionContext) _BaseTokenInfo(ctx context.Context, sel ast.SelectionSet, obj *model.BaseTokenInfo) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, baseTokenInfoImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BaseTokenInfo")
+		case "id":
+
+			out.Values[i] = ec._BaseTokenInfo_id(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "blockchain":
+
+			out.Values[i] = ec._BaseTokenInfo_blockchain(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "fungible":
+
+			out.Values[i] = ec._BaseTokenInfo_fungible(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "contractType":
+
+			out.Values[i] = ec._BaseTokenInfo_contractType(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "contractAddress":
+
+			out.Values[i] = ec._BaseTokenInfo_contractAddress(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var identityImplementors = []string{"Identity"}
 
 func (ec *executionContext) _Identity(ctx context.Context, sel ast.SelectionSet, obj *model.Identity) graphql.Marshaler {
@@ -5834,6 +6216,10 @@ func (ec *executionContext) _Token(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "originTokenInfo":
+
+			out.Values[i] = ec._Token_originTokenInfo(ctx, field, obj)
+
 		case "indexID":
 
 			out.Values[i] = ec._Token_indexID(ctx, field, obj)
@@ -6270,6 +6656,16 @@ func (ec *executionContext) marshalNAssetMetadata2ᚖgithubᚗcomᚋbitmarkᚑin
 		return graphql.Null
 	}
 	return ec._AssetMetadata(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNBaseTokenInfo2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐBaseTokenInfo(ctx context.Context, sel ast.SelectionSet, v *model.BaseTokenInfo) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._BaseTokenInfo(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
@@ -6735,6 +7131,53 @@ func (ec *executionContext) marshalOAssetAttributes2ᚖgithubᚗcomᚋbitmarkᚑ
 		return graphql.Null
 	}
 	return ec._AssetAttributes(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOBaseTokenInfo2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐBaseTokenInfoᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.BaseTokenInfo) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNBaseTokenInfo2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐBaseTokenInfo(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
