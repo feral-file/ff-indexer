@@ -94,6 +94,29 @@ func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, toke
 	return e.indexTezosToken(ctx, tzktToken, owner, balance, lastTime)
 }
 
+// indexTezosTokenFromFXHASH indexes token metadata by a given fxhash objkt id.
+// A fxhash objkt id is a new format from fxhash which is unified id but varied by contracts
+func (e *IndexEngine) indexTezosTokenFromFXHASH(ctx context.Context, fxhashObjectID string,
+	metadataDetail *AssetMetadataDetail, tokenDetail *TokenDetail) {
+
+	metadataDetail.SetMarketplace(
+		MarketplaceProfile{
+			"fxhash",
+			"https://www.fxhash.xyz",
+			fmt.Sprintf("https://www.fxhash.xyz/gentk/%s", fxhashObjectID),
+		},
+	)
+	metadataDetail.SetMedium(MediumSoftware)
+
+	if detail, err := e.fxhash.GetObjectDetail(ctx, fxhashObjectID); err != nil {
+		log.Error("fail to get token detail from fxhash", zap.Error(err), log.SourceFXHASH)
+	} else {
+		metadataDetail.FromFxhashObject(detail)
+		tokenDetail.MintedAt = detail.CreatedAt
+		tokenDetail.Edition = detail.Iteration
+	}
+}
+
 // indexTezosToken prepares indexing data for a tezos token using the
 // source API token object. It currently uses token objects from tzkt api
 func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token, owner string, balance int64, lastActivityTime time.Time) (*AssetUpdates, error) {
@@ -114,23 +137,14 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		case KALAMContractAddress, TezDaoContractAddress, TezosDNSContractAddress:
 			return nil, nil
 
-		case FXHASHV2ContractAddress, FXHASHContractAddress, FXHASHOldContractAddress:
-			metadataDetail.SetMarketplace(
-				MarketplaceProfile{
-					"fxhash",
-					"https://www.fxhash.xyz",
-					fmt.Sprintf("https://www.fxhash.xyz/gentk/%s", tzktToken.ID.String()),
-				},
-			)
-			metadataDetail.SetMedium(MediumSoftware)
+		case FXHASHContractAddressFX0_0, FXHASHContractAddressFX0_1, FXHASHContractAddressFX0_2:
+			fxObjktID := fmt.Sprintf("FX0-%s", tzktToken.ID.String())
+			e.indexTezosTokenFromFXHASH(ctx, fxObjktID, metadataDetail, &tokenDetail)
 
-			if detail, err := e.fxhash.GetObjectDetail(ctx, tzktToken.ID.Int); err != nil {
-				log.Error("fail to get token detail from fxhash", zap.Error(err), log.SourceFXHASH)
-			} else {
-				metadataDetail.FromFxhashObject(detail)
-				tokenDetail.MintedAt = detail.CreatedAt
-				tokenDetail.Edition = detail.Iteration
-			}
+		case FXHASHContractAddressFX1:
+			fxObjktID := fmt.Sprintf("FX1-%s", tzktToken.ID.String())
+			e.indexTezosTokenFromFXHASH(ctx, fxObjktID, metadataDetail, &tokenDetail)
+
 		case VersumContractAddress:
 			tokenDetail.Fungible = true
 			metadataDetail.SetMarketplace(MarketplaceProfile{"versum", "https://versum.xyz",
