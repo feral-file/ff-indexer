@@ -17,9 +17,9 @@ import (
 )
 
 const (
-	QueryPageSize  = 25
-	UnsignedFxhash = "QmYwSwa5hP4346GqD7hAjutwJSmeYTdiLQ7Wec2C7Cez1D"
-	EmptyFxhash    = "https://gateway.fxhash.xyz/ipfs//"
+	QueryPageSize       = 25
+	UnsignedFxhashCID   = "QmYwSwa5hP4346GqD7hAjutwJSmeYTdiLQ7Wec2C7Cez1D"
+	UnresolvedFxhashURL = "https://gateway.fxhash.xyz/ipfs//"
 )
 
 const (
@@ -1730,7 +1730,7 @@ func (s *MongodbIndexerStore) UpdateTokenSugesstedMIMEType(ctx context.Context, 
 // GetPresignedThumbnailTokens gets tokens that have presigned thumbnail
 func (s *MongodbIndexerStore) GetPresignedThumbnailTokens(ctx context.Context) ([]Token, error) {
 	tokens := []Token{}
-	pattern := fmt.Sprintf("%s|%s", UnsignedFxhash, EmptyFxhash)
+	pattern := fmt.Sprintf("%s|%s", UnsignedFxhashCID, UnresolvedFxhashURL)
 
 	cursor, err := s.assetCollection.Find(ctx, bson.M{
 		"source":                              SourceTZKT,
