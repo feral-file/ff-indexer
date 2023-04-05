@@ -319,6 +319,22 @@ func (detail *AssetMetadataDetail) FromObjkt(objktToken objkt.Token) {
 	detail.UpdateMetadataFromObjkt(objktToken)
 
 	if len(objktToken.Creators) > 0 {
+		var artists []Artist
+		for _, i := range objktToken.Creators {
+			artist := Artist{
+				ArtistID:   i.Holder.Address,
+				ArtistURL:  getArtistURL(i.Holder),
+				ArtistName: i.Holder.Alias,
+			}
+
+			if artist.ArtistName == "" && artist.ArtistID != "" {
+				artist.ArtistName = artist.ArtistID
+			}
+
+			artists = append(artists, artist)
+		}
+
+		detail.Artists = artists
 		detail.ArtistID = objktToken.Creators[0].Holder.Address
 		detail.ArtistURL = getArtistURL(objktToken.Creators[0].Holder)
 		detail.ArtistName = objktToken.Creators[0].Holder.Alias
