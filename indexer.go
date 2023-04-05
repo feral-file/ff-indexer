@@ -137,6 +137,7 @@ type AssetMetadataDetail struct {
 	PreviewURI string
 
 	ArtworkMetadata map[string]interface{}
+	Artists []Artist
 }
 
 func NewAssetMetadataDetail(assetID string) *AssetMetadataDetail {
@@ -211,6 +212,15 @@ func (detail *AssetMetadataDetail) FromTZIP21TokenMetadata(md tzkt.TokenMetadata
 	}
 
 	if len(md.Creators) > 0 {
+		var artists []Artist
+		for _, v := range md.Creators {
+			artists = append(artists, Artist{
+				ArtistID:   v,
+				ArtistName: v,
+			})
+		}
+
+		detail.Artists = artists
 		detail.ArtistID = md.Creators[0]
 		detail.ArtistName = md.Creators[0]
 	}

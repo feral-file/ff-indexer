@@ -294,6 +294,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		GalleryThumbnailURL: metadataDetail.DisplayURI,
 
 		ArtworkMetadata: metadataDetail.ArtworkMetadata,
+		Artists: metadataDetail.Artists,
 
 		LastUpdatedAt: time.Now(),
 	}
