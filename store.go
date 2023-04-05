@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	QueryPageSize   = 25
-	PresignedFxhash = "QmYwSwa5hP4346GqD7hAjutwJSmeYTdiLQ7Wec2C7Cez1D"
+	QueryPageSize       = 25
+	UnsignedFxhashCID   = "QmYwSwa5hP4346GqD7hAjutwJSmeYTdiLQ7Wec2C7Cez1D"
+	UnresolvedFxhashURL = "https://gateway.fxhash.xyz/ipfs//"
 )
 
 const (
@@ -1729,10 +1730,11 @@ func (s *MongodbIndexerStore) UpdateTokenSugesstedMIMEType(ctx context.Context, 
 // GetPresignedThumbnailTokens gets tokens that have presigned thumbnail
 func (s *MongodbIndexerStore) GetPresignedThumbnailTokens(ctx context.Context) ([]Token, error) {
 	tokens := []Token{}
+	pattern := fmt.Sprintf("%s|%s", UnsignedFxhashCID, UnresolvedFxhashURL)
 
 	cursor, err := s.assetCollection.Find(ctx, bson.M{
 		"source":                              SourceTZKT,
-		"projectMetadata.latest.thumbnailURL": bson.M{"$regex": PresignedFxhash},
+		"projectMetadata.latest.thumbnailURL": bson.M{"$regex": pattern},
 	})
 	if err != nil {
 		return nil, err
