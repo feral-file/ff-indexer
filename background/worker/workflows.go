@@ -1,4 +1,4 @@
-package indexerworker
+package worker
 
 import (
 	"fmt"

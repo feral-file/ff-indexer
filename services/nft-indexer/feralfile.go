@@ -5,7 +5,7 @@ import (
 	"time"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
-	indexerWorker "github.com/bitmark-inc/nft-indexer/background/indexerWorker"
+	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 	"github.com/gin-gonic/gin"
 )

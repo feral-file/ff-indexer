@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
-	indexerWorker "github.com/bitmark-inc/nft-indexer/background/indexerWorker"
+	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 )

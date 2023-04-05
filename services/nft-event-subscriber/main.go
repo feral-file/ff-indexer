@@ -18,7 +18,7 @@ import (
 	bitmarksdk "github.com/bitmark-inc/bitmark-sdk-go"
 	"github.com/bitmark-inc/config-loader"
 	indexer "github.com/bitmark-inc/nft-indexer"
-	indexerWorker "github.com/bitmark-inc/nft-indexer/background/indexerWorker"
+	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/cadence"
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
