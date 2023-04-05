@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/tzkt-go"
@@ -54,8 +55,11 @@ func TestIndexTezosToken(t *testing.T) {
 		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
 	}
 
-	engine := New("", nil, tzkt.New(""), nil, objkt.New("https://data.objkt.com/v3/graphql"))
-	assetUpdates, err := engine.IndexTezosToken(context.Background(), "tz1RBi5DCVBYh1EGrcoJszkte1hDjrFfXm5C", "KT1FDfoj9s7ZLE9ycGyTf2QDq32dfvrEsSp8", "0")
+	engine := New("", nil, tzkt.New(""), fxhash.New("https://api.fxhash.xyz/graphql"), objkt.New("https://data.objkt.com/v3/graphql"))
+	assetUpdates, err := engine.IndexTezosToken(context.Background(), "tz1fepn7jZsCYBqCDhpM63hzh9g2Ytqk4Tpv", "KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE", "0")
+	assert.NoError(t, err)
+
+	assetUpdates, err = engine.IndexTezosToken(context.Background(), "tz1RBi5DCVBYh1EGrcoJszkte1hDjrFfXm5C", "KT1FDfoj9s7ZLE9ycGyTf2QDq32dfvrEsSp8", "0")
 	assert.NoError(t, err)
 	assert.Equal(t, strings.Contains(assetUpdates.ProjectMetadata.PreviewURL, "https://assets.objkt.media/file/assets-003/"), true)
 	assert.Equal(t, strings.Contains(assetUpdates.ProjectMetadata.ThumbnailURL, "https://assets.objkt.media/file/assets-003/"), true)

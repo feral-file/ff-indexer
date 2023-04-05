@@ -137,7 +137,7 @@ type AssetMetadataDetail struct {
 	PreviewURI string
 
 	ArtworkMetadata map[string]interface{}
-	Artists []Artist
+	Artists         []Artist
 }
 
 func NewAssetMetadataDetail(assetID string) *AssetMetadataDetail {
@@ -245,6 +245,23 @@ func (detail *AssetMetadataDetail) FromFxhashObject(o fxhash.ObjectDetail) {
 	detail.MaxEdition = o.Issuer.Supply
 	detail.DisplayURI = ipfsURLToGatewayURL(FxhashGateway, o.Metadata.DisplayURI)
 	detail.PreviewURI = ipfsURLToGatewayURL(FxhashGateway, o.Metadata.ArtifactURI)
+
+	var artists []Artist
+	artists = append(artists, Artist{
+		ArtistID:   o.Issuer.Author.ID,
+		ArtistName: o.Issuer.Author.ID,
+		ArtistURL:  fmt.Sprintf("https://www.fxhash.xyz/u/%s", o.Issuer.Author.Name),
+	})
+
+	for _, v := range o.Issuer.Author.Collaborators {
+		artists = append(artists, Artist{
+			ArtistID:   v.ID,
+			ArtistName: v.Name,
+			ArtistURL:  fmt.Sprintf("https://www.fxhash.xyz/u/%s", v.Name),
+		})
+	}
+
+	detail.Artists = artists
 }
 
 // TokenDetail saves token specific detail from different sources
