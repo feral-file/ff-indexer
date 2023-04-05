@@ -269,6 +269,15 @@ func (m *Mapper) MapIndexerAttributesToGRPCAttributes(attributes *indexer.AssetA
 func (m *Mapper) MapIndexerProjectMetadataToGRPCProjectMetadata(projectMetadata *indexer.ProjectMetadata) *grpcIndexer.ProjectMetadata {
 	attributes := m.MapIndexerAttributesToGRPCAttributes(projectMetadata.Attributes)
 
+	var artists []*grpcIndexer.Artist
+	for _, i := range projectMetadata.Artists {
+		artists = append(artists, &grpcIndexer.Artist{
+			ArtistID:   i.ArtistID,
+			ArtistName: i.ArtistName,
+			ArtistURL:  i.ArtistURL,
+		})
+	}
+
 	return &grpcIndexer.ProjectMetadata{
 		ArtistID:            projectMetadata.ArtistID,
 		ArtistName:          projectMetadata.ArtistName,
@@ -295,6 +304,7 @@ func (m *Mapper) MapIndexerProjectMetadataToGRPCProjectMetadata(projectMetadata 
 		LastUpdatedAt:    projectMetadata.LastUpdatedAt.Format(time.RFC3339Nano),
 		InitialSaleModel: projectMetadata.InitialSaleModel,
 		OriginalFileURL:  projectMetadata.OriginalFileURL,
+		Artists:          artists,
 	}
 }
 
@@ -394,6 +404,16 @@ func (m *Mapper) MapGrpcProjectMetadataToIndexerProjectMetadata(projectMetadata 
 		return nil, err
 	}
 
+	var artists []indexer.Artist
+
+	for _, a := range projectMetadata.Artists {
+		artists = append(artists, indexer.Artist{
+			ArtistID:   a.ArtistID,
+			ArtistName: a.ArtistName,
+			ArtistURL:  a.ArtistURL,
+		})
+	}
+
 	return &indexer.ProjectMetadata{
 		ArtistID:            projectMetadata.ArtistID,
 		ArtistName:          projectMetadata.ArtistName,
@@ -419,6 +439,7 @@ func (m *Mapper) MapGrpcProjectMetadataToIndexerProjectMetadata(projectMetadata 
 		LastUpdatedAt:    lastUpdatedAt,
 		InitialSaleModel: projectMetadata.InitialSaleModel,
 		OriginalFileURL:  projectMetadata.OriginalFileURL,
+		Artists:          artists,
 	}, nil
 }
 
