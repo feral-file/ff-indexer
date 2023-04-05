@@ -615,7 +615,7 @@ func (s *MongodbIndexerStore) PushProvenance(ctx context.Context, indexID string
 	u, err := s.tokenCollection.UpdateOne(ctx, bson.M{
 		"indexID":           indexID,
 		"lastRefreshedTime": lockedTime,
-		"lastActivityTime":  bson.M{"$lt": provenance.Timestamp.Add(-15 * time.Second)},
+		"lastActivityTime":  bson.M{"$lt": provenance.Timestamp},
 	}, bson.M{
 		"$set": bson.M{
 			"owner":             provenance.Owner,
