@@ -58,6 +58,7 @@ func TestIndexTezosToken(t *testing.T) {
 	engine := New("", nil, tzkt.New(""), fxhash.New("https://api.fxhash.xyz/graphql"), objkt.New("https://data.objkt.com/v3/graphql"))
 	assetUpdates, err := engine.IndexTezosToken(context.Background(), "tz1fepn7jZsCYBqCDhpM63hzh9g2Ytqk4Tpv", "KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE", "0")
 	assert.NoError(t, err)
+	assert.NotEqual(t, assetUpdates.ProjectMetadata.Artists, nil)
 
 	assetUpdates, err = engine.IndexTezosToken(context.Background(), "tz1RBi5DCVBYh1EGrcoJszkte1hDjrFfXm5C", "KT1FDfoj9s7ZLE9ycGyTf2QDq32dfvrEsSp8", "0")
 	assert.NoError(t, err)
