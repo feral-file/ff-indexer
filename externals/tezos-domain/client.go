@@ -1,4 +1,4 @@
-package tezosDomain
+package tezosdomain
 
 import (
 	"context"

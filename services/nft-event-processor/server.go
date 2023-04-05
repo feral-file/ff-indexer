@@ -6,7 +6,7 @@ import (
 
 	"github.com/bitmark-inc/autonomy-account/storage"
 	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
+	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/cadence"
 	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/gin-gonic/gin"
@@ -178,7 +178,7 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 					zap.String("indexID", indexID),
 					zap.String("from", from), zap.String("to", to))
 
-				indexerWorker.StartIndexTokenWorkflow(ctx, e.worker, to, contract, tokenID, false)
+				indexerWorker.StartIndexTokenWorkflow(ctx, e.worker, to, contract, tokenID, true, false)
 			}
 		}
 

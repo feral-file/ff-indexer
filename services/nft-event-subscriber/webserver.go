@@ -5,7 +5,7 @@ import (
 	"time"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
+	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
@@ -115,7 +115,7 @@ func (api *EventSubscriberAPI) ReceiveEvents(c *gin.Context) {
 				zap.String("from", req.From),
 				zap.String("to", req.To))
 
-			indexerWorker.StartIndexTokenWorkflow(c, &api.subscriber.Worker, req.To, req.Contract, req.TokenID, false)
+			indexerWorker.StartIndexTokenWorkflow(c, &api.subscriber.Worker, req.To, req.Contract, req.TokenID, false, false)
 
 			// ensure the token successfully indexed in the end
 			// if token, err = api.subscriber.GetTokensByIndexID(c, indexID); err != nil || token == nil {

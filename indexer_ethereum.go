@@ -23,7 +23,7 @@ type TransactionDetails struct {
 }
 
 // IndexETHTokenByOwner indexes all tokens owned by a specific ethereum address
-func (e *IndexEngine) IndexETHTokenByOwner(ctx context.Context, owner string, offset int) ([]AssetUpdates, error) {
+func (e *IndexEngine) IndexETHTokenByOwner(owner string, offset int) ([]AssetUpdates, error) {
 	assets, err := e.opensea.RetrieveAssets(owner, offset)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func (e *IndexEngine) IndexETHTokenByOwner(ctx context.Context, owner string, of
 }
 
 // IndexETHToken indexes an Ethereum token with a specific contract and ID
-func (e *IndexEngine) IndexETHToken(ctx context.Context, owner, contract, tokenID string) (*AssetUpdates, error) {
+func (e *IndexEngine) IndexETHToken(owner, contract, tokenID string) (*AssetUpdates, error) {
 	a, err := e.opensea.RetrieveAsset(contract, tokenID)
 	if err != nil {
 		return nil, err
@@ -184,12 +184,12 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 }
 
 // IndexETHTokenLastActivityTime indexes the last activity timestamp of a given token
-func (e *IndexEngine) IndexETHTokenLastActivityTime(ctx context.Context, contract, tokenID string) (time.Time, error) {
+func (e *IndexEngine) IndexETHTokenLastActivityTime(contract, tokenID string) (time.Time, error) {
 	return e.opensea.GetTokenLastActivityTime(contract, tokenID)
 }
 
 // IndexETHTokenOwners indexes owners of a given token
-func (e *IndexEngine) IndexETHTokenOwners(ctx context.Context, contract, tokenID string) (map[string]int64, error) {
+func (e *IndexEngine) IndexETHTokenOwners(contract, tokenID string) (map[string]int64, error) {
 	log.Debug("index eth token owners",
 		zap.String("blockchain", EthereumBlockchain),
 		zap.String("contract", contract), zap.String("tokenID", tokenID))

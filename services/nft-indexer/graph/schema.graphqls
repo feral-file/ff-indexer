@@ -14,6 +14,7 @@ type Token {
 	mintAt:          	Time
 	balance:         	Int64!
 	owner:           	String!
+	originTokenInfo: 	[BaseTokenInfo!]
 
 	indexID:         	String!
 	source:          	String!  
@@ -24,6 +25,14 @@ type Token {
 	lastActivityTime:  	Time
 	lastRefreshedTime: 	Time
   	asset:           	Asset!
+}
+
+type BaseTokenInfo {
+	id:              String!
+	blockchain:      String!
+	fungible:        Boolean!
+	contractType:    String!
+	contractAddress: String!
 }
 
 type Provenance {

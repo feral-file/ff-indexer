@@ -33,7 +33,7 @@ type NullableInt int64
 func New(network string) *TZKT {
 	endpoint := "api.mainnet.tzkt.io"
 	if network == "testnet" {
-		endpoint = "api.limanet.tzkt.io"
+		endpoint = "api.ghostnet.tzkt.io"
 	}
 
 	return &TZKT{

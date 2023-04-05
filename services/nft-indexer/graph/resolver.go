@@ -21,6 +21,11 @@ func (r *Resolver) mapGraphQLToken(t indexer.DetailedTokenV2) *model.Token {
 		provenances = append(provenances, r.mapGraphQLProvenance(t))
 	}
 
+	originalTokenInfo := []*model.BaseTokenInfo{}
+	for _, t := range t.OriginTokenInfo {
+		originalTokenInfo = append(originalTokenInfo, r.mapGraphQLBaseTokenInfo(t))
+	}
+
 	var attributes model.AssetAttributes
 	if t.Attributes != nil {
 		attributes = model.AssetAttributes{Scrollable: t.Attributes.Scrollable}
@@ -33,6 +38,7 @@ func (r *Resolver) mapGraphQLToken(t indexer.DetailedTokenV2) *model.Token {
 		ContractAddress:   t.ContractAddress,
 		IndexID:           t.IndexID,
 		Owner:             t.Owner,
+		OriginTokenInfo:   originalTokenInfo,
 		Balance:           t.Balance,
 		Fungible:          t.Fungible,
 		Burned:            t.Burned,
@@ -104,5 +110,15 @@ func (r *Resolver) mapGraphQLIdentity(a indexer.AccountIdentity) *model.Identity
 		AccountNumber: a.AccountNumber,
 		Blockchain:    a.Blockchain,
 		Name:          a.Name,
+	}
+}
+
+func (r *Resolver) mapGraphQLBaseTokenInfo(t indexer.BaseTokenInfo) *model.BaseTokenInfo {
+	return &model.BaseTokenInfo{
+		ID:              t.ID,
+		Blockchain:      t.Blockchain,
+		Fungible:        t.Fungible,
+		ContractType:    t.ContractType,
+		ContractAddress: t.ContractAddress,
 	}
 }

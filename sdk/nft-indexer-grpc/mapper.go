@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"encoding/json"
+
 	"go.uber.org/zap"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -225,11 +226,6 @@ func (m *Mapper) MapGRPCAccountTokensToIndexerAccountTokens(accountTokens []*grp
 			return nil, err
 		}
 
-		lastUpdatedAt, err := ParseTime(v.LastUpdatedAt)
-		if err != nil {
-			return nil, err
-		}
-
 		lastPendingTime, err := ConvertTimeStringsToTimes(v.LastPendingTime)
 		if err != nil {
 			return nil, err
@@ -249,7 +245,6 @@ func (m *Mapper) MapGRPCAccountTokensToIndexerAccountTokens(accountTokens []*grp
 			LastActivityTime:  lastActivityTime,
 			LastRefreshedTime: lastRefreshedTime,
 			LastPendingTime:   lastPendingTime,
-			LastUpdatedAt:     lastUpdatedAt,
 			PendingTxs:        v.PendingTxs,
 		}
 	}
@@ -348,7 +343,6 @@ func (m *Mapper) MapIndexerAccountTokensToGRPCAccountTokens(accountTokens []inde
 			LastActivityTime:  v.LastActivityTime.Format(time.RFC3339Nano),
 			LastRefreshedTime: v.LastRefreshedTime.Format(time.RFC3339Nano),
 			LastPendingTime:   ConvertTimesToTimeStrings(v.LastPendingTime),
-			LastUpdatedAt:     v.LastUpdatedAt.Format(time.RFC3339Nano),
 			PendingTxs:        v.PendingTxs,
 		}
 	}

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/bitmark-inc/autonomy-account/storage"
-	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
+	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/cadence"
 	"github.com/bitmark-inc/nft-indexer/log"
 

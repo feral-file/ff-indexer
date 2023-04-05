@@ -285,9 +285,9 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 					return err
 				}
 				continue
-			} else {
-				return err
 			}
+
+			return err
 		}
 
 		var currentToken Token
