@@ -16,7 +16,7 @@ import (
 
 	"github.com/bitmark-inc/config-loader"
 	"github.com/bitmark-inc/nft-indexer/log"
-	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/imageStore"
+	imageStore "github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/store"
 )
 
 func main() {

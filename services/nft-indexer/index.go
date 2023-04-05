@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
+	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
@@ -169,7 +169,7 @@ func (s *NFTIndexerServer) IndexNFTByOwner(c *gin.Context) {
 	switch indexer.GetBlockchainByAddress(owner) {
 	case indexer.EthereumBlockchain:
 		ownerIndexFunc = func(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
-			return s.indexerEngine.IndexETHTokenByOwner(c, owner, offset)
+			return s.indexerEngine.IndexETHTokenByOwner(owner, offset)
 		}
 	case indexer.TezosBlockchain:
 		ownerIndexFunc = func(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {

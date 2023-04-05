@@ -258,7 +258,7 @@ func (e *IndexEngine) GetTokenOwnerAddress(contract, tokenID string) (string, er
 func (e *IndexEngine) IndexToken(c context.Context, owner, contract, tokenID string) (*AssetUpdates, error) {
 	switch GetBlockchainByAddress(contract) {
 	case EthereumBlockchain:
-		return e.IndexETHToken(c, owner, contract, tokenID)
+		return e.IndexETHToken(owner, contract, tokenID)
 	case TezosBlockchain:
 		return e.IndexTezosToken(c, owner, contract, tokenID)
 	default:
