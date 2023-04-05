@@ -108,6 +108,15 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 		}
 	}
 
+	// Opensea GET assets API just provide a creator, not multiple creator
+	artists := []Artist{
+		{
+			ArtistID:   artistID,
+			ArtistName: artistName,
+			ArtistURL:  artistURL,
+		},
+	}
+
 	metadata := ProjectMetadata{
 		ArtistID:            artistID,
 		ArtistName:          artistName,
@@ -124,6 +133,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 		GalleryThumbnailURL: a.ImagePreviewURL,
 		AssetURL:            a.Permalink,
 		LastUpdatedAt:       time.Now(),
+		Artists:             artists,
 	}
 
 	if a.AnimationURL != "" {

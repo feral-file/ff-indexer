@@ -122,7 +122,7 @@ type ProjectMetadata struct {
 	// Deprecated attributes
 	OriginalFileURL string `json:"originalFileURL" structs:"-" bson:"-"`
 
-	Artists []Artist `json:"artists" structs:"artists" bson:"artists"`
+	Artists []Artist `json:"artists,omitempty" structs:"artists" bson:"artists"`
 }
 
 type Artist struct {
