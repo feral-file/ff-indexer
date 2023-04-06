@@ -150,7 +150,7 @@ func (e *IndexEngine) indexTezosTokenFromFXHASH(ctx context.Context, fxhashObjec
 func (e *IndexEngine) fetchMetadataByLink(url string) (*tzkt.TokenMetadata, error) {
 	resp, err := e.http.Get(url)
 	if err != nil {
-
+		return nil, err
 	}
 	defer resp.Body.Close()
 
