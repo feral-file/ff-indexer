@@ -84,6 +84,7 @@ type ProjectMetadata {
 	galleryThumbnailURL: String!
 	assetData:           String!
 	assetURL:            String!
+	artworkMetadata:     JSON
 }
 
 type Identity {
@@ -99,3 +100,4 @@ type Query {
 
 scalar Time
 scalar Int64
+scalar JSON

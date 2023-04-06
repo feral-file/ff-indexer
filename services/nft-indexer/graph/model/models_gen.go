@@ -54,6 +54,7 @@ type ProjectMetadata struct {
 	GalleryThumbnailURL string `json:"galleryThumbnailURL"`
 	AssetData           string `json:"assetData"`
 	AssetURL            string `json:"assetURL"`
+	ArtworkMetadata     JSON   `json:"artworkMetadata"`
 }
 
 type Provenance struct {
