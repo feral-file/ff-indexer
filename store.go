@@ -165,11 +165,6 @@ func checkIfTokenNeedToUpdate(assetSource string, currentToken, newToken Token) 
 		return true
 	}
 
-	// ignore replacement of autonomy-postcard source
-	if assetSource != SourceAutonomyPostcard && currentToken.Source == SourceAutonomyPostcard {
-		return false
-	}
-
 	// assetSource is not feral file
 	// only update if token source is not feral file and token balance is greater than zero.
 	if newToken.Balance > 0 && currentToken.Source != SourceFeralFile {
