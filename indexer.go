@@ -116,6 +116,8 @@ type AssetMetadataDetail struct {
 
 	DisplayURI string
 	PreviewURI string
+
+	ArtworkMetadata map[string]interface{}
 }
 
 func NewAssetMetadataDetail(assetID string) *AssetMetadataDetail {
@@ -140,7 +142,9 @@ func (detail *AssetMetadataDetail) SetMedium(m Medium) {
 func (detail *AssetMetadataDetail) FromTZKT(t tzkt.Token) {
 	detail.MaxEdition = int64(t.TotalSupply)
 
-	detail.UpdateMetadataFromTZKT(t.Metadata)
+	if t.Metadata != nil {
+		detail.UpdateMetadataFromTZKT(*t.Metadata)
+	}
 }
 
 // UpdateMetadataFromTZKT update TZKT token metadata to AssetMetadataDetail
@@ -192,8 +196,14 @@ func (detail *AssetMetadataDetail) UpdateMetadataFromTZKT(md tzkt.TokenMetadata)
 		detail.ArtistName = md.Creators[0]
 	}
 
+	if len(md.Publishers) > 0 {
+		detail.Source = md.Publishers[0]
+	}
+
 	detail.DisplayURI = defaultIPFSLink(displayURI)
 	detail.PreviewURI = defaultIPFSLink(previewURI)
+
+	detail.ArtworkMetadata = md.ArtworkMetadata
 }
 
 // FromFxhashObject reads asset detail from an fxhash API object

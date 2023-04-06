@@ -170,3 +170,19 @@ func TestGetTokenOwnersNow(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, owners, 0)
 }
+
+func TestGetBigMapPointerForContractTokenMetadata(t *testing.T) {
+	tc := New("")
+
+	p, err := tc.GetBigMapPointerForContractTokenMetadata("KT1U6EHmNxJTkvaWJ4ThczG4FSDaHC21ssvi")
+	assert.NoError(t, err)
+	assert.Equal(t, 149772, p)
+}
+
+func TestGetBigMapValueByPointer(t *testing.T) {
+	tc := New("")
+
+	p, err := tc.GetBigMapValueByPointer(149772, "589146")
+	assert.NoError(t, err)
+	assert.Equal(t, `{"token_id":"589146","token_info":{"":"697066733a2f2f516d64453569635a4450476b623457754d7036377a3647463678543833765344385264415954635478375a6a764b"}}`, string(p))
+}
