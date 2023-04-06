@@ -77,6 +77,7 @@ type ComplexityRoot struct {
 		ArtistID            func(childComplexity int) int
 		ArtistName          func(childComplexity int) int
 		ArtistURL           func(childComplexity int) int
+		ArtworkMetadata     func(childComplexity int) int
 		AssetData           func(childComplexity int) int
 		AssetID             func(childComplexity int) int
 		AssetURL            func(childComplexity int) int
@@ -276,6 +277,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ProjectMetadata.ArtistURL(childComplexity), true
+
+	case "ProjectMetadata.artworkMetadata":
+		if e.complexity.ProjectMetadata.ArtworkMetadata == nil {
+			break
+		}
+
+		return e.complexity.ProjectMetadata.ArtworkMetadata(childComplexity), true
 
 	case "ProjectMetadata.assetData":
 		if e.complexity.ProjectMetadata.AssetData == nil {
@@ -2214,6 +2222,47 @@ func (ec *executionContext) fieldContext_ProjectMetadata_assetURL(ctx context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _ProjectMetadata_artworkMetadata(ctx context.Context, field graphql.CollectedField, obj *model.ProjectMetadata) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ProjectMetadata_artworkMetadata(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ArtworkMetadata, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(model.JSON)
+	fc.Result = res
+	return ec.marshalOJSON2githubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐJSON(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ProjectMetadata_artworkMetadata(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProjectMetadata",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type JSON does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Provenance_type(ctx context.Context, field graphql.CollectedField, obj *model.Provenance) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Provenance_type(ctx, field)
 	if err != nil {
@@ -3780,6 +3829,8 @@ func (ec *executionContext) fieldContext_VersionedProjectMetadata_origin(ctx con
 				return ec.fieldContext_ProjectMetadata_assetData(ctx, field)
 			case "assetURL":
 				return ec.fieldContext_ProjectMetadata_assetURL(ctx, field)
+			case "artworkMetadata":
+				return ec.fieldContext_ProjectMetadata_artworkMetadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ProjectMetadata", field.Name)
 		},
@@ -3862,6 +3913,8 @@ func (ec *executionContext) fieldContext_VersionedProjectMetadata_latest(ctx con
 				return ec.fieldContext_ProjectMetadata_assetData(ctx, field)
 			case "assetURL":
 				return ec.fieldContext_ProjectMetadata_assetURL(ctx, field)
+			case "artworkMetadata":
+				return ec.fieldContext_ProjectMetadata_artworkMetadata(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ProjectMetadata", field.Name)
 		},
@@ -5986,6 +6039,10 @@ func (ec *executionContext) _ProjectMetadata(ctx context.Context, sel ast.Select
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "artworkMetadata":
+
+			out.Values[i] = ec._ProjectMetadata_artworkMetadata(ctx, field, obj)
+
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7226,6 +7283,22 @@ func (ec *executionContext) marshalOInt642ᚖint64(ctx context.Context, sel ast.
 		return graphql.Null
 	}
 	res := graphql.MarshalInt64(*v)
+	return res
+}
+
+func (ec *executionContext) unmarshalOJSON2githubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐJSON(ctx context.Context, v interface{}) (model.JSON, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := model.UnmarshalJSON(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOJSON2githubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐJSON(ctx context.Context, sel ast.SelectionSet, v model.JSON) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	res := model.MarshalJSON(v)
 	return res
 }
 
