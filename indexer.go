@@ -18,7 +18,7 @@ import (
 const (
 	// broken-image.svg
 	DefaultDisplayURI  = "ipfs://QmX5rRzkZQfvEyaYc1Q78YZ83pFj3AgpFVSK8SmxUmZ85M"
-	DefaultIPFSGateway = "https://ipfs.io/ipfs/"
+	DefaultIPFSGateway = "https://ipfs.nftstorage.link/ipfs/"
 )
 
 // artblocksContracts indexes the addresses which are ERC721 contracts of Artblocks
