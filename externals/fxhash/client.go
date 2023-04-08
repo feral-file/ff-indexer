@@ -2,7 +2,6 @@ package fxhash
 
 import (
 	"context"
-	"math/big"
 	"net/http"
 	"time"
 
@@ -65,16 +64,16 @@ type ObjectDetail struct {
 }
 
 // This is a special type of fxhash graphql
-type ObjktId int64 //nolint
+type ObjktId string //nolint
 
 // GetObjectDetail returns an object detail for fxhash nfts
-func (api *Client) GetObjectDetail(c context.Context, id big.Int) (ObjectDetail, error) {
+func (api *Client) GetObjectDetail(c context.Context, id string) (ObjectDetail, error) {
 	var query struct {
 		Object ObjectDetail `graphql:"objkt(id: $id) "`
 	}
 
 	if err := api.client.Query(c, &query, map[string]interface{}{
-		"id": ObjktId(id.Int64()),
+		"id": ObjktId(id),
 	}); err != nil {
 		return ObjectDetail{}, err
 	}
