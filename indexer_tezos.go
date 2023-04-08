@@ -170,7 +170,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 	assetIDBytes := sha3.Sum256([]byte(fmt.Sprintf("%s-%s", tzktToken.Contract.Address, tzktToken.ID.String())))
 	assetID := hex.EncodeToString(assetIDBytes[:])
 
-	if tzktToken.Metadata == nil {
+	if tzktToken.Metadata == nil || time.Since(lastActivityTime) < 14*24*time.Hour {
 		p, err := e.tzkt.GetBigMapPointerForContractTokenMetadata(tzktToken.Contract.Address)
 		if err == nil {
 			b, err := e.tzkt.GetBigMapValueByPointer(p, tzktToken.ID.String())
@@ -187,8 +187,9 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			metadata, err := e.fetchMetadataByLink(metadataLink)
 			if err != nil {
 				log.Error("fail to read token metadata from blockchain", zap.Error(err), log.SourceTZKT)
+			} else {
+				tzktToken.Metadata = metadata
 			}
-			tzktToken.Metadata = metadata
 		} else {
 			log.Error("fail to read token metadata from blockchain", zap.Error(err), log.SourceTZKT)
 		}
