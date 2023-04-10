@@ -45,6 +45,7 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Asset struct {
+		Attributes        func(childComplexity int) int
 		IndexID           func(childComplexity int) int
 		LastRefreshedTime func(childComplexity int) int
 		Metadata          func(childComplexity int) int
@@ -112,7 +113,6 @@ type ComplexityRoot struct {
 
 	Token struct {
 		Asset             func(childComplexity int) int
-		Attributes        func(childComplexity int) int
 		Balance           func(childComplexity int) int
 		Blockchain        func(childComplexity int) int
 		Burned            func(childComplexity int) int
@@ -158,6 +158,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Asset.attributes":
+		if e.complexity.Asset.Attributes == nil {
+			break
+		}
+
+		return e.complexity.Asset.Attributes(childComplexity), true
 
 	case "Asset.indexID":
 		if e.complexity.Asset.IndexID == nil {
@@ -469,13 +476,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Token.Asset(childComplexity), true
-
-	case "Token.attributes":
-		if e.complexity.Token.Attributes == nil {
-			break
-		}
-
-		return e.complexity.Token.Attributes(childComplexity), true
 
 	case "Token.balance":
 		if e.complexity.Token.Balance == nil {
@@ -931,6 +931,51 @@ func (ec *executionContext) fieldContext_Asset_lastRefreshedTime(ctx context.Con
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Asset_attributes(ctx context.Context, field graphql.CollectedField, obj *model.Asset) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Asset_attributes(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Attributes, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.AssetAttributes)
+	fc.Result = res
+	return ec.marshalOAssetAttributes2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐAssetAttributes(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Asset_attributes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Asset",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "scrollable":
+				return ec.fieldContext_AssetAttributes_scrollable(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AssetAttributes", field.Name)
 		},
 	}
 	return fc, nil
@@ -2635,8 +2680,6 @@ func (ec *executionContext) fieldContext_Query_tokens(ctx context.Context, field
 				return ec.fieldContext_Token_burned(ctx, field)
 			case "provenance":
 				return ec.fieldContext_Token_provenance(ctx, field)
-			case "attributes":
-				return ec.fieldContext_Token_attributes(ctx, field)
 			case "lastActivityTime":
 				return ec.fieldContext_Token_lastActivityTime(ctx, field)
 			case "lastRefreshedTime":
@@ -3573,51 +3616,6 @@ func (ec *executionContext) fieldContext_Token_provenance(ctx context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Token_attributes(ctx context.Context, field graphql.CollectedField, obj *model.Token) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Token_attributes(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Attributes, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model.AssetAttributes)
-	fc.Result = res
-	return ec.marshalOAssetAttributes2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐAssetAttributes(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Token_attributes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Token",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "scrollable":
-				return ec.fieldContext_AssetAttributes_scrollable(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AssetAttributes", field.Name)
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Token_lastActivityTime(ctx context.Context, field graphql.CollectedField, obj *model.Token) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Token_lastActivityTime(ctx, field)
 	if err != nil {
@@ -3745,6 +3743,8 @@ func (ec *executionContext) fieldContext_Token_asset(ctx context.Context, field 
 				return ec.fieldContext_Asset_thumbnailID(ctx, field)
 			case "lastRefreshedTime":
 				return ec.fieldContext_Asset_lastRefreshedTime(ctx, field)
+			case "attributes":
+				return ec.fieldContext_Asset_attributes(ctx, field)
 			case "metadata":
 				return ec.fieldContext_Asset_metadata(ctx, field)
 			}
@@ -5731,6 +5731,10 @@ func (ec *executionContext) _Asset(ctx context.Context, sel ast.SelectionSet, ob
 
 			out.Values[i] = ec._Asset_lastRefreshedTime(ctx, field, obj)
 
+		case "attributes":
+
+			out.Values[i] = ec._Asset_attributes(ctx, field, obj)
+
 		case "metadata":
 
 			out.Values[i] = ec._Asset_metadata(ctx, field, obj)
@@ -6312,10 +6316,6 @@ func (ec *executionContext) _Token(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "attributes":
-
-			out.Values[i] = ec._Token_attributes(ctx, field, obj)
-
 		case "lastActivityTime":
 
 			out.Values[i] = ec._Token_lastActivityTime(ctx, field, obj)

@@ -7,10 +7,11 @@ import (
 )
 
 type Asset struct {
-	IndexID           string         `json:"indexID"`
-	ThumbnailID       string         `json:"thumbnailID"`
-	LastRefreshedTime *time.Time     `json:"lastRefreshedTime"`
-	Metadata          *AssetMetadata `json:"metadata"`
+	IndexID           string           `json:"indexID"`
+	ThumbnailID       string           `json:"thumbnailID"`
+	LastRefreshedTime *time.Time       `json:"lastRefreshedTime"`
+	Attributes        *AssetAttributes `json:"attributes"`
+	Metadata          *AssetMetadata   `json:"metadata"`
 }
 
 type AssetAttributes struct {
@@ -84,7 +85,6 @@ type Token struct {
 	Swapped           bool             `json:"swapped"`
 	Burned            bool             `json:"burned"`
 	Provenance        []*Provenance    `json:"provenance"`
-	Attributes        *AssetAttributes `json:"attributes"`
 	LastActivityTime  *time.Time       `json:"lastActivityTime"`
 	LastRefreshedTime *time.Time       `json:"lastRefreshedTime"`
 	Asset             *Asset           `json:"asset"`
