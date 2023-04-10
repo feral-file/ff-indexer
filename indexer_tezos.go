@@ -244,7 +244,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 	} else { // development indexing process
 		var metadataFromSource bool
 		switch tzktToken.Contract.Address {
-		case FXHASHContractAddressDev0:
+		case FXHASHContractAddressDev0_0, FXHASHContractAddressDev0_1:
 			metadataFromSource = true
 			gateway = FxhashDevIPFSGateway
 			metadataDetail.SetMarketplace(

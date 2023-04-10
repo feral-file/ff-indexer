@@ -25,7 +25,8 @@ const VersumContractAddress = "KT1LjmAdYQCLBjwv4S2oFkEzyHVkomAf5MrW"
 const HicEtNuncContractAddress = "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton"
 
 // development contract
-const FXHASHContractAddressDev0 = "KT1NkZho1yRkDdQnN4Mz93sDYyY2pPrEHTNs"
+const FXHASHContractAddressDev0_0 = "KT1NkZho1yRkDdQnN4Mz93sDYyY2pPrEHTNs"
+const FXHASHContractAddressDev0_1 = "KT1TtVAyjh4Ahdm8sLZwFnL7tqoLf59XrK2h"
 
 const (
 	SourceFeralFile = "feralfile"
