@@ -253,7 +253,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			metadataDetail.SetMarketplace(
 				MarketplaceProfile{
 					"fxhash-dev",
-					"",
+					"https://dev.fxhash-dev.xyz",
 					"",
 				},
 			)
