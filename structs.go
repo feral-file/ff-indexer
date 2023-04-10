@@ -170,16 +170,16 @@ type DetailedToken struct {
 
 type DetailedTokenV2 struct {
 	Token      `bson:",inline"`
-	IPFSPinned bool             `json:"ipfsPinned"`
-	Attributes *AssetAttributes `json:"attributes,omitempty"`
-	Asset      AssetV2          `json:"asset" bson:"asset"`
+	IPFSPinned bool    `json:"ipfsPinned"`
+	Asset      AssetV2 `json:"asset" bson:"asset"`
 }
 
 type AssetV2 struct {
-	IndexID           string        `json:"indexID" bson:"indexID"`
-	ThumbnailID       string        `json:"thumbnailID" bson:"thumbnailID"`
-	LastRefreshedTime time.Time     `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
-	Metadata          AssetMetadata `json:"metadata" bson:"metadata"`
+	IndexID           string           `json:"indexID" bson:"indexID"`
+	ThumbnailID       string           `json:"thumbnailID" bson:"thumbnailID"`
+	LastRefreshedTime time.Time        `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
+	Attributes        *AssetAttributes `json:"attributes" bson:"attributes,omitempty"`
+	Metadata          AssetMetadata    `json:"metadata" bson:"metadata"`
 }
 
 type AssetMetadata struct {
