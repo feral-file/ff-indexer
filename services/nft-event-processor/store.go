@@ -16,14 +16,14 @@ const (
 )
 
 type NFTEvent struct {
-	ID         string `gorm:"primaryKey;size:255;default:uuid_generate_v4()"`
-	Type       string
-	Blockchain string
-	Contract   string
-	TokenID    string
-	From       string
-	To         string
-	Stage      string
+	ID         string      `gorm:"primaryKey;size:255;default:uuid_generate_v4()"`
+	Type       string      `gorm:"index"`
+	Blockchain string      `gorm:"index"`
+	Contract   string      `gorm:"index"`
+	TokenID    string      `gorm:"index"`
+	From       string      `gorm:"index"`
+	To         string      `gorm:"index"`
+	Stage      string      `gorm:"index"`
 	Status     EventStatus `gorm:"index"`
 	CreatedAt  time.Time   `gorm:"default:now()"`
 	UpdatedAt  time.Time   `gorm:"default:now()"`
@@ -68,7 +68,7 @@ func (s *PostgresEventStore) GetQueueEventByStage(stage int8) (*NFTEvent, error)
 
 	// TODO: return outdated queued events as well
 	err := s.db.Transaction(func(db *gorm.DB) error {
-		if err := db.Clauses(clause.Locking{Strength: "UPDATE"}).
+		if err := db.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).
 			Where("stage = ?", EventStages[stage]).
 			Where("status <> ?", EventStatusProcessed).
 			Order("created_at asc").First(&event).Error; err != nil {
@@ -79,7 +79,7 @@ func (s *PostgresEventStore) GetQueueEventByStage(stage int8) (*NFTEvent, error)
 		}
 
 		event.Status = EventStatusProcessing
-		return db.Save(event).Error
+		return db.Model(&NFTEvent{}).Where("id = ?", event.ID).Update("status", EventStatusProcessing).Error
 	})
 	if err != nil {
 		return nil, err
