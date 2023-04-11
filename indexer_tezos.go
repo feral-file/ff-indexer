@@ -159,7 +159,6 @@ func (e *IndexEngine) getTokenMetadataURL(contractAddress, tokenID string) (stri
 	}
 
 	var tokenMetadata TezosTokenMetadata
-	fmt.Println("metadata", string(b))
 	if err := json.Unmarshal(b, &tokenMetadata); err != nil {
 		return "", err
 	}
