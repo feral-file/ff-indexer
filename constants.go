@@ -15,17 +15,17 @@ const TransferSingleEventSignature = "0xc3d58168c5ae7397731d063d5bbf3d6578544273
 const TezDaoContractAddress = "KT1C9X9s5rpVJGxwVuHEVBLYEdAQ1Qw8QDjH"
 const TezosDNSContractAddress = "KT1GBZmSxmnKJXGMdMLbugPfLyUPmuLSMwKS"
 const KALAMContractAddress = "KT1A5P4ejnLix13jtadsfV9GCnXLMNnab8UT"
-const FXHASHContractAddress = "KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE"
-const FXHASHV2ContractAddress = "KT1U6EHmNxJTkvaWJ4ThczG4FSDaHC21ssvi"
-const FXHASHOldContractAddress = "KT1AEVuykWeuuFX7QkEAMNtffzwhe1Z98hJS"
+const FXHASHContractAddressFX0_0 = "KT1U6EHmNxJTkvaWJ4ThczG4FSDaHC21ssvi"
+const FXHASHContractAddressFX0_1 = "KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE"
+const FXHASHContractAddressFX0_2 = "KT1AEVuykWeuuFX7QkEAMNtffzwhe1Z98hJS"
+const FXHASHContractAddressFX1 = "KT1EfsNuqwLAWDd3o4pvfUx1CAh5GMdTrRvr"
 const VersumContractAddress = "KT1LjmAdYQCLBjwv4S2oFkEzyHVkomAf5MrW"
 const HicEtNuncContractAddress = "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton"
 
 const (
-	SourceFeralFile        = "feralfile"
-	SourceOpensea          = "opensea"
-	SourceTZKT             = "tzkt"
-	SourceAutonomyPostcard = "autonomy-postcard"
+	SourceFeralFile = "feralfile"
+	SourceOpensea   = "opensea"
+	SourceTZKT      = "tzkt"
 )
 
 const (

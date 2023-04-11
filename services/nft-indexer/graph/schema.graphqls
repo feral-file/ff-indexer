@@ -21,7 +21,6 @@ type Token {
 	swapped:         	Boolean!
 	burned:          	Boolean!
 	provenance:			[Provenance!]!
-	attributes: 		AssetAttributes
 	lastActivityTime:  	Time
 	lastRefreshedTime: 	Time
   	asset:           	Asset!
@@ -50,10 +49,11 @@ type AssetAttributes {
 }
 
 type Asset {
-	indexID:       		String!
-	thumbnailID:   		String!
-	lastRefreshedTime:	Time
-	metadata:      		AssetMetadata!
+	indexID:            String!
+	thumbnailID:        String!
+	lastRefreshedTime:  Time
+	attributes:         AssetAttributes
+	metadata:           AssetMetadata!
 }
 
 type AssetMetadata {
@@ -84,6 +84,7 @@ type ProjectMetadata {
 	galleryThumbnailURL: String!
 	assetData:           String!
 	assetURL:            String!
+	artworkMetadata:     JSON
 }
 
 type Identity {
@@ -99,3 +100,4 @@ type Query {
 
 scalar Time
 scalar Int64
+scalar JSON

@@ -64,3 +64,6 @@ models:
   Int64:
     model:
       - github.com/99designs/gqlgen/graphql.Int64
+  JSON:
+    model:
+      - github.com/bitmark-inc/nft-indexer/services/nft-indexer/graph/model.JSON

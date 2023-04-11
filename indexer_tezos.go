@@ -3,6 +3,7 @@ package indexer
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"time"
@@ -14,6 +15,34 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 	"github.com/bitmark-inc/nft-indexer/log"
 )
+
+type HexString string
+
+func (s *HexString) UnmarshalJSON(data []byte) error {
+	var hexString string
+
+	if err := json.Unmarshal(data, &hexString); err != nil {
+		return err
+	}
+
+	b, err := hex.DecodeString(hexString)
+	if err != nil {
+		return err
+	}
+	*s = HexString(b)
+
+	return nil
+}
+
+func (s HexString) MarshalJSON() ([]byte, error) {
+	hexString := hex.EncodeToString([]byte(s))
+	return json.Marshal(hexString)
+}
+
+type TezosTokenMetadata struct {
+	TokenID   string               `json:"token_id"`
+	TokenInfo map[string]HexString `json:"token_info"`
+}
 
 // fxhashLink converts an IPFS link to a HTTP link by using fxhash ipfs gateway.
 // If a link is failed to parse, it returns the original link
@@ -94,6 +123,45 @@ func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, toke
 	return e.indexTezosToken(ctx, tzktToken, owner, balance, lastTime)
 }
 
+// indexTezosTokenFromFXHASH indexes token metadata by a given fxhash objkt id.
+// A fxhash objkt id is a new format from fxhash which is unified id but varied by contracts
+func (e *IndexEngine) indexTezosTokenFromFXHASH(ctx context.Context, fxhashObjectID string,
+	metadataDetail *AssetMetadataDetail, tokenDetail *TokenDetail) {
+
+	metadataDetail.SetMarketplace(
+		MarketplaceProfile{
+			"fxhash",
+			"https://www.fxhash.xyz",
+			fmt.Sprintf("https://www.fxhash.xyz/gentk/%s", fxhashObjectID),
+		},
+	)
+	metadataDetail.SetMedium(MediumSoftware)
+
+	if detail, err := e.fxhash.GetObjectDetail(ctx, fxhashObjectID); err != nil {
+		log.Error("fail to get token detail from fxhash", zap.Error(err), log.SourceFXHASH)
+	} else {
+		metadataDetail.FromFxhashObject(detail)
+		tokenDetail.MintedAt = detail.CreatedAt
+		tokenDetail.Edition = detail.Iteration
+	}
+}
+
+// fetchMetadataByLink reads tezos metadata by a given link
+func (e *IndexEngine) fetchMetadataByLink(url string) (*tzkt.TokenMetadata, error) {
+	resp, err := e.http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var metadata tzkt.TokenMetadata
+	if err := json.NewDecoder(resp.Body).Decode(&metadata); err != nil {
+		return nil, err
+	}
+
+	return &metadata, nil
+}
+
 // indexTezosToken prepares indexing data for a tezos token using the
 // source API token object. It currently uses token objects from tzkt api
 func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token, owner string, balance int64, lastActivityTime time.Time) (*AssetUpdates, error) {
@@ -101,6 +169,31 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 
 	assetIDBytes := sha3.Sum256([]byte(fmt.Sprintf("%s-%s", tzktToken.Contract.Address, tzktToken.ID.String())))
 	assetID := hex.EncodeToString(assetIDBytes[:])
+
+	if tzktToken.Metadata == nil || time.Since(lastActivityTime) < 14*24*time.Hour {
+		p, err := e.tzkt.GetBigMapPointerForContractTokenMetadata(tzktToken.Contract.Address)
+		if err == nil {
+			b, err := e.tzkt.GetBigMapValueByPointer(p, tzktToken.ID.String())
+			if err != nil {
+				log.Error("fail to read token metadata from blockchain", zap.Error(err), log.SourceTZKT)
+			}
+
+			var tokenMetadata TezosTokenMetadata
+			if err := json.Unmarshal(b, &tokenMetadata); err != nil {
+				log.Error("fail to read token metadata from blockchain", zap.Error(err), log.SourceTZKT)
+			}
+
+			metadataLink := defaultIPFSLink(string(tokenMetadata.TokenInfo[""]))
+			metadata, err := e.fetchMetadataByLink(metadataLink)
+			if err != nil {
+				log.Error("fail to read token metadata from blockchain", zap.Error(err), log.SourceTZKT)
+			} else {
+				tzktToken.Metadata = metadata
+			}
+		} else {
+			log.Error("fail to read token metadata from blockchain", zap.Error(err), log.SourceTZKT)
+		}
+	}
 
 	metadataDetail := NewAssetMetadataDetail(assetID)
 	metadataDetail.FromTZKT(tzktToken)
@@ -114,23 +207,14 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		case KALAMContractAddress, TezDaoContractAddress, TezosDNSContractAddress:
 			return nil, nil
 
-		case FXHASHV2ContractAddress, FXHASHContractAddress, FXHASHOldContractAddress:
-			metadataDetail.SetMarketplace(
-				MarketplaceProfile{
-					"fxhash",
-					"https://www.fxhash.xyz",
-					fmt.Sprintf("https://www.fxhash.xyz/gentk/%s", tzktToken.ID.String()),
-				},
-			)
-			metadataDetail.SetMedium(MediumSoftware)
+		case FXHASHContractAddressFX0_0, FXHASHContractAddressFX0_1, FXHASHContractAddressFX0_2:
+			fxObjktID := fmt.Sprintf("FX0-%s", tzktToken.ID.String())
+			e.indexTezosTokenFromFXHASH(ctx, fxObjktID, metadataDetail, &tokenDetail)
 
-			if detail, err := e.fxhash.GetObjectDetail(ctx, tzktToken.ID.Int); err != nil {
-				log.Error("fail to get token detail from fxhash", zap.Error(err), log.SourceFXHASH)
-			} else {
-				metadataDetail.FromFxhashObject(detail)
-				tokenDetail.MintedAt = detail.CreatedAt
-				tokenDetail.Edition = detail.Iteration
-			}
+		case FXHASHContractAddressFX1:
+			fxObjktID := fmt.Sprintf("FX1-%s", tzktToken.ID.String())
+			e.indexTezosTokenFromFXHASH(ctx, fxObjktID, metadataDetail, &tokenDetail)
+
 		case VersumContractAddress:
 			tokenDetail.Fungible = true
 			metadataDetail.SetMarketplace(MarketplaceProfile{"versum", "https://versum.xyz",
@@ -156,7 +240,11 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			case "OBJKT":
 				metadataDetail.SetMarketplace(MarketplaceProfile{"hic et nunc", "https://objkt.com", assetURL})
 			default:
-				metadataDetail.SetMarketplace(MarketplaceProfile{"unknown", "https://objkt.com", assetURL})
+				source := "unknown"
+				if metadataDetail.Source != "" {
+					source = metadataDetail.Source
+				}
+				metadataDetail.SetMarketplace(MarketplaceProfile{source, "https://objkt.com", assetURL})
 			}
 		}
 	}
@@ -180,6 +268,8 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		PreviewURL:          metadataDetail.PreviewURI,
 		ThumbnailURL:        metadataDetail.DisplayURI,
 		GalleryThumbnailURL: metadataDetail.DisplayURI,
+
+		ArtworkMetadata: metadataDetail.ArtworkMetadata,
 
 		LastUpdatedAt: time.Now(),
 	}
