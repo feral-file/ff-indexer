@@ -607,13 +607,11 @@ func (s *MongodbIndexerStore) PushProvenance(ctx context.Context, indexID string
 	if provenance.FormerOwner == nil {
 		return fmt.Errorf("invalid former owner")
 	}
-	formerOwner := *provenance.FormerOwner
 
 	u, err := s.tokenCollection.UpdateOne(ctx, bson.M{
-		"indexID":                indexID,
-		"lastRefreshedTime":      lockedTime,
-		"provenance.0.timestamp": bson.M{"$lt": provenance.Timestamp},
-		"provenance.0.owner":     formerOwner,
+		"indexID":           indexID,
+		"lastRefreshedTime": lockedTime,
+		"lastActivityTime":  bson.M{"$lt": provenance.Timestamp},
 	}, bson.M{
 		"$set": bson.M{
 			"owner":             provenance.Owner,
@@ -631,11 +629,15 @@ func (s *MongodbIndexerStore) PushProvenance(ctx context.Context, indexID string
 		},
 	})
 
+	if err != nil {
+		return err
+	}
+
 	if u.ModifiedCount == 0 {
 		return ErrNoRecordUpdated
 	}
 
-	return err
+	return nil
 }
 
 // GetTokenIDsByOwner returns a list of tokens which belongs to an owner
@@ -1277,10 +1279,17 @@ func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner stri
 		)
 
 		if err != nil {
+			if mongo.IsDuplicateKeyError(err) {
+				// when a duplicated error happens, it means the account token
+				// is in a state which is better than current event.
+				log.Warn("account token is in a future state", zap.String("token_id", accountToken.ID))
+				return nil
+			}
 			log.Error("cannot index account token", zap.String("indexID", accountToken.IndexID), zap.String("owner", owner), zap.Error(err))
 			return err
 		}
 		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
+			// TODO: not sure when will this happen. Figure this our later
 			log.Warn("account token is not added or updated", zap.String("token_id", accountToken.ID))
 		}
 	}
