@@ -82,8 +82,8 @@ type Store interface {
 
 	MarkAccountTokenChanged(ctx context.Context, indexIDs []string) error
 
-	GetDetailedTokensV2(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error)
-	GetDetailedAccountTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, lastUpdatedAt time.Time, offset, size int64) ([]DetailedTokenV2, error)
+	GetDetailedTokensV2(ctx context.Context, filterParameter FilterParameter, sortBy string, offset, size int64) ([]DetailedTokenV2, error)
+	GetDetailedAccountTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, lastUpdatedAt time.Time, sortBy string, offset, size int64) ([]DetailedTokenV2, error)
 
 	GetDetailedToken(ctx context.Context, indexID string) (DetailedToken, error)
 	GetTotalBalanceOfOwnerAccounts(ctx context.Context, addresses []string) (int, error)
@@ -1796,8 +1796,15 @@ func (s *MongodbIndexerStore) MarkAccountTokenChanged(ctx context.Context, index
 }
 
 // GetDetailedAccountTokensByOwners returns a list of DetailedToken by owner
-func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, lastUpdatedAt time.Time, offset, size int64) ([]DetailedTokenV2, error) {
-	findOptions := options.Find().SetSort(bson.D{{Key: "lastRefreshedTime", Value: -1}, {Key: "_id", Value: -1}}).SetLimit(size).SetSkip(offset)
+func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, lastUpdatedAt time.Time, sortBy string, offset, size int64) ([]DetailedTokenV2, error) {
+	var sortKey string
+	if sortBy == "lastActivityTime" {
+		sortKey = sortBy
+	} else {
+		sortKey = "lastRefreshedTime"
+	}
+
+	findOptions := options.Find().SetSort(bson.D{{Key: sortKey, Value: -1}, {Key: "_id", Value: -1}}).SetLimit(size).SetSkip(offset)
 
 	filter := bson.M{
 		"ownerAccount":      bson.M{"$in": owner},
@@ -1829,7 +1836,8 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 	}
 
 	filterParameter.IDs = indexIDs
-	tokens, err := s.GetDetailedTokensV2(ctx, filterParameter, 0, int64(len(indexIDs)))
+	// Use original sort from account_tokens, won't need to sort the detail token
+	tokens, err := s.GetDetailedTokensV2(ctx, filterParameter, "", 0, int64(len(indexIDs)))
 
 	if err != nil {
 		return nil, err
@@ -1854,7 +1862,7 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 }
 
 // GetDetailedTokensV2 returns a list of tokens information based on ids
-func (s *MongodbIndexerStore) GetDetailedTokensV2(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error) {
+func (s *MongodbIndexerStore) GetDetailedTokensV2(ctx context.Context, filterParameter FilterParameter, sortBy string, offset, size int64) ([]DetailedTokenV2, error) {
 	tokens := []DetailedTokenV2{}
 
 	log.Debug("GetDetailedTokensV2",
@@ -1863,29 +1871,33 @@ func (s *MongodbIndexerStore) GetDetailedTokensV2(ctx context.Context, filterPar
 		zap.Int64("size", size))
 	startTime := time.Now()
 	if length := len(filterParameter.IDs); length > 0 {
+		queryIDsOffset := int(offset)
 		queryIDsEnd := int(offset + size)
 		if queryIDsEnd > length {
 			queryIDsEnd = length
 		}
-		queryIDs := filterParameter.IDs[offset:queryIDsEnd]
-		queryLen := len(queryIDs)
-		for i := 0; i < getPageCounts(queryLen, QueryPageSize); i++ {
+		startPage := queryIDsOffset / QueryPageSize
+		for i := startPage; i < getPageCounts(queryIDsEnd, QueryPageSize); i++ {
 			log.Debug("doc page", zap.Int("page", i))
 			start := i * QueryPageSize
+			if queryIDsOffset > start {
+				start = queryIDsOffset
+			}
 			end := (i + 1) * QueryPageSize
-			if end > queryLen {
-				end = queryLen
+			if end > queryIDsEnd {
+				end = queryIDsEnd
 			}
 
 			pagedTokens, err := s.getDetailedTokensV2InView(ctx,
-				FilterParameter{IDs: queryIDs[start:end]}, 0, int64(end-start))
+				FilterParameter{IDs: filterParameter.IDs}, sortBy, int64(start), int64(end-start))
+
 			if err != nil {
 				return nil, err
 			}
 			tokens = append(tokens, pagedTokens...)
 		}
 	} else {
-		return s.getDetailedTokensV2InView(ctx, filterParameter, offset, size)
+		return s.getDetailedTokensV2InView(ctx, filterParameter, sortBy, offset, size)
 	}
 	log.Debug("GetDetailedTokensV2 End", zap.Duration("queryTime", time.Since(startTime)))
 
@@ -1893,16 +1905,29 @@ func (s *MongodbIndexerStore) GetDetailedTokensV2(ctx context.Context, filterPar
 }
 
 // getDetailedTokensV2InView returns detail tokens from mongodb custom view
-func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error) {
+func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, filterParameter FilterParameter, sortBy string, offset, size int64) ([]DetailedTokenV2, error) {
 	tokens := []DetailedTokenV2{}
 
 	pipelines := []bson.M{
 		{"$match": bson.M{"indexID": bson.M{"$in": filterParameter.IDs}, "burned": bson.M{"$ne": true}}},
-		{"$addFields": bson.M{"__order": bson.M{"$indexOfArray": bson.A{filterParameter.IDs, "$indexID"}}}},
-		{"$sort": bson.M{"__order": 1}},
-		{"$skip": offset},
-		{"$limit": size},
 	}
+
+	switch sortBy {
+	case "lastActivityTime":
+		pipelines = append(pipelines, bson.M{"$sort": bson.M{"lastActivityTime": -1}})
+	case "lastRefreshedTime":
+		pipelines = append(pipelines, bson.M{"$sort": bson.M{"lastRefreshedTime": -1}})
+	default:
+		pipelines = append(pipelines,
+			bson.M{"$addFields": bson.M{"__order": bson.M{"$indexOfArray": bson.A{filterParameter.IDs, "$indexID"}}}},
+			bson.M{"$sort": bson.M{"__order": 1}},
+		)
+	}
+
+	pipelines = append(pipelines,
+		bson.M{"$skip": offset},
+		bson.M{"$limit": size},
+	)
 
 	cursor, err := s.tokenAssetCollection.Aggregate(ctx, pipelines)
 

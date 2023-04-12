@@ -9,14 +9,19 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bitmark-inc/nft-indexer"
+	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/services/nft-indexer/graph/model"
 )
 
 // Tokens is the resolver for the tokens field.
-func (r *queryResolver) Tokens(ctx context.Context, owners []string, ids []string, lastUpdatedAt *time.Time, offset int64, size int64) ([]*model.Token, error) {
+func (r *queryResolver) Tokens(ctx context.Context, owners []string, ids []string, lastUpdatedAt *time.Time, sortBy *string, offset int64, size int64) ([]*model.Token, error) {
 	var tokensInfo []indexer.DetailedTokenV2
 	var err error
+
+	querySortBy := ""
+	if sortBy != nil {
+		querySortBy = *sortBy
+	}
 
 	if len(ids) == 0 && len(owners) > 0 {
 		queryLastUpdatedTime := time.Time{}
@@ -29,13 +34,18 @@ func (r *queryResolver) Tokens(ctx context.Context, owners []string, ids []strin
 			owners,
 			indexer.FilterParameter{},
 			queryLastUpdatedTime,
+			querySortBy,
 			offset,
 			size,
 		)
 	} else if len((owners)) == 0 && len(ids) > 0 {
-		tokensInfo, err = r.indexerStore.GetDetailedTokensV2(ctx, indexer.FilterParameter{
-			IDs: ids,
-		}, offset, size)
+		tokensInfo, err = r.indexerStore.GetDetailedTokensV2(
+			ctx, indexer.FilterParameter{
+				IDs: ids,
+			},
+			querySortBy,
+			offset,
+			size)
 	} else {
 		return []*model.Token{}, fmt.Errorf("invalid query")
 	}

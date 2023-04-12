@@ -108,7 +108,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Identity func(childComplexity int, account string) int
-		Tokens   func(childComplexity int, owners []string, ids []string, lastUpdatedAt *time.Time, offset int64, size int64) int
+		Tokens   func(childComplexity int, owners []string, ids []string, lastUpdatedAt *time.Time, sortBy *string, offset int64, size int64) int
 	}
 
 	Token struct {
@@ -140,7 +140,7 @@ type ComplexityRoot struct {
 }
 
 type QueryResolver interface {
-	Tokens(ctx context.Context, owners []string, ids []string, lastUpdatedAt *time.Time, offset int64, size int64) ([]*model.Token, error)
+	Tokens(ctx context.Context, owners []string, ids []string, lastUpdatedAt *time.Time, sortBy *string, offset int64, size int64) ([]*model.Token, error)
 	Identity(ctx context.Context, account string) (*model.Identity, error)
 }
 
@@ -468,7 +468,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Tokens(childComplexity, args["owners"].([]string), args["ids"].([]string), args["lastUpdatedAt"].(*time.Time), args["offset"].(int64), args["size"].(int64)), true
+		return e.complexity.Query.Tokens(childComplexity, args["owners"].([]string), args["ids"].([]string), args["lastUpdatedAt"].(*time.Time), args["sortBy"].(*string), args["offset"].(int64), args["size"].(int64)), true
 
 	case "Token.asset":
 		if e.complexity.Token.Asset == nil {
@@ -748,24 +748,33 @@ func (ec *executionContext) field_Query_tokens_args(ctx context.Context, rawArgs
 		}
 	}
 	args["lastUpdatedAt"] = arg2
-	var arg3 int64
-	if tmp, ok := rawArgs["offset"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
-		arg3, err = ec.unmarshalNInt642int64(ctx, tmp)
+	var arg3 *string
+	if tmp, ok := rawArgs["sortBy"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sortBy"))
+		arg3, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["offset"] = arg3
+	args["sortBy"] = arg3
 	var arg4 int64
-	if tmp, ok := rawArgs["size"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("size"))
+	if tmp, ok := rawArgs["offset"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
 		arg4, err = ec.unmarshalNInt642int64(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["size"] = arg4
+	args["offset"] = arg4
+	var arg5 int64
+	if tmp, ok := rawArgs["size"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("size"))
+		arg5, err = ec.unmarshalNInt642int64(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["size"] = arg5
 	return args, nil
 }
 
@@ -2624,7 +2633,7 @@ func (ec *executionContext) _Query_tokens(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Tokens(rctx, fc.Args["owners"].([]string), fc.Args["ids"].([]string), fc.Args["lastUpdatedAt"].(*time.Time), fc.Args["offset"].(int64), fc.Args["size"].(int64))
+		return ec.resolvers.Query().Tokens(rctx, fc.Args["owners"].([]string), fc.Args["ids"].([]string), fc.Args["lastUpdatedAt"].(*time.Time), fc.Args["sortBy"].(*string), fc.Args["offset"].(int64), fc.Args["size"].(int64))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
