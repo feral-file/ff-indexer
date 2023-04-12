@@ -137,19 +137,24 @@ type MongodbIndexerStore struct {
 	tokenAssetCollection    *mongo.Collection
 }
 
-type UpdateSet struct {
+type AssetUpdateSet struct {
 	ID                 string                   `structs:"id,omitempty"`
 	IndexID            string                   `structs:"indexID,omitempty"`
 	Source             string                   `structs:"source,omitempty"`
 	BlockchainMetadata interface{}              `structs:"blockchainMetadata,omitempty"`
 	ProjectMetadata    VersionedProjectMetadata `structs:"projectMetadata,omitempty"`
-	Fungible           bool                     `structs:"fungible,omitempty"`
-	AssetID            string                   `structs:"assetID,omitempty"`
-	Edition            int64                    `structs:"edition,omitempty"`
-	EditionName        string                   `structs:"editionName,omitempty"`
-	ContractAddress    string                   `structs:"contractAddress,omitempty"`
 	LastRefreshedTime  time.Time                `structs:"lastRefreshedTime"`
-	LastActivityTime   time.Time                `structs:"lastActivityTime"`
+}
+
+type TokenUpdateSet struct {
+	Source            string    `structs:"source,omitempty"`
+	AssetID           string    `structs:"assetID,omitempty"`
+	Fungible          bool      `structs:"fungible,omitempty"`
+	Edition           int64     `structs:"edition,omitempty"`
+	EditionName       string    `structs:"editionName,omitempty"`
+	ContractAddress   string    `structs:"contractAddress,omitempty"`
+	LastRefreshedTime time.Time `structs:"lastRefreshedTime"`
+	LastActivityTime  time.Time `structs:"lastActivityTime"`
 }
 
 // checkIfTokenNeedToUpdate returns true if the new token data is suppose to be
@@ -186,7 +191,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 	if err := assetResult.Err(); err != nil {
 		if assetResult.Err() == mongo.ErrNoDocuments {
 			// Create a new asset if it is not added
-			assetUpdateSet := UpdateSet{
+			assetUpdateSet := AssetUpdateSet{
 				ID:                 id,
 				IndexID:            assetIndexID,
 				Source:             assetUpdates.Source,
@@ -292,13 +297,14 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		}
 
 		if checkIfTokenNeedToUpdate(assetUpdates.Source, currentToken, token) {
-			tokenUpdateSet := UpdateSet{
-				Fungible:        token.Fungible,
-				Source:          token.Source,
-				AssetID:         id,
-				Edition:         token.Edition,
-				EditionName:     token.EditionName,
-				ContractAddress: token.ContractAddress,
+			tokenUpdateSet := TokenUpdateSet{
+				Fungible:          token.Fungible,
+				Source:            token.Source,
+				AssetID:           id,
+				Edition:           token.Edition,
+				EditionName:       token.EditionName,
+				ContractAddress:   token.ContractAddress,
+				LastRefreshedTime: token.LastRefreshedTime,
 			}
 
 			if !token.LastActivityTime.IsZero() {
