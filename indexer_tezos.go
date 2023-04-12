@@ -11,8 +11,8 @@ import (
 	"golang.org/x/crypto/sha3"
 
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
-	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 	"github.com/bitmark-inc/nft-indexer/log"
+	"github.com/bitmark-inc/tzkt-go"
 )
 
 type HexString string

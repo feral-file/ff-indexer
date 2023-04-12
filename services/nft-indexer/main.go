@@ -20,8 +20,8 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	tezosDomain "github.com/bitmark-inc/nft-indexer/externals/tezos-domain"
-	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 	"github.com/bitmark-inc/nft-indexer/log"
+	"github.com/bitmark-inc/tzkt-go"
 )
 
 func main() {

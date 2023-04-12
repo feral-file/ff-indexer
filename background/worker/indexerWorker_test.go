@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
+	"github.com/bitmark-inc/tzkt-go"
 	"github.com/stretchr/testify/assert"
 )
 
