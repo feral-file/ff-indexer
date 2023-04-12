@@ -727,6 +727,11 @@ func (w *NFTIndexerWorker) UpdatePresignedThumbnailAssets(ctx context.Context) e
 			continue
 		}
 
+		if strings.Contains(assetUpdates.ProjectMetadata.ThumbnailURL, "QmYwSwa5hP4346GqD7hAjutwJSmeYTdiLQ7Wec2C7Cez1D") {
+			log.Info("token is not signed", zap.String("indexID", token.IndexID))
+			continue
+		}
+
 		err = w.indexerStore.IndexAsset(ctx, token.AssetID, *assetUpdates)
 		if err != nil {
 			log.Error("fail to update a tezos asset", zap.String("assetID", token.AssetID), zap.Error(err))
