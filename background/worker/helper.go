@@ -137,7 +137,7 @@ func StartDetectAssetChangeWorkflow(c context.Context, client *cadence.WorkerCli
 		ID:                           "detect-asset-change-helper",
 		TaskList:                     AccountTokenTaskListName,
 		ExecutionStartToCloseTimeout: time.Hour,
-		CronSchedule:                 "0 * * * *", //every hour
+		CronSchedule:                 "*/5 * * * *", //every hour
 	}
 
 	var w NFTIndexerWorker
