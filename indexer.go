@@ -17,8 +17,10 @@ import (
 
 const (
 	// broken-image.svg
-	DefaultDisplayURI  = "ipfs://QmX5rRzkZQfvEyaYc1Q78YZ83pFj3AgpFVSK8SmxUmZ85M"
-	DefaultIPFSGateway = "https://ipfs.nftstorage.link/ipfs/"
+	DefaultDisplayURI    = "ipfs://QmX5rRzkZQfvEyaYc1Q78YZ83pFj3AgpFVSK8SmxUmZ85M"
+	DefaultIPFSGateway   = "ipfs.nftstorage.link"
+	FxhashGateway        = "gateway.fxhash.xyz"
+	FxhashDevIPFSGateway = "gateway.fxhash-dev2.xyz"
 )
 
 // artblocksContracts indexes the addresses which are ERC721 contracts of Artblocks
@@ -83,9 +85,24 @@ func mediumByMIMEType(mimeType string) Medium {
 	return MediumUnknown
 }
 
-// defaultIPFSLink converts an IPFS link to a HTTP link by using ipfs.io gateway.
-func defaultIPFSLink(ipfsLink string) string {
-	return strings.ReplaceAll(ipfsLink, "ipfs://", DefaultIPFSGateway)
+// ipfsURLToGatewayURL converts an IPFS link to a HTTP link by a given ipfs gateway.
+// If a link is failed to parse, it returns the original link
+func ipfsURLToGatewayURL(gateway, ipfsURL string) string {
+	u, err := url.Parse(ipfsURL)
+	if err != nil {
+		return ipfsURL
+	}
+
+	if u.Scheme != "ipfs" {
+		// not a valid URL
+		return ipfsURL
+	}
+
+	u.Path = fmt.Sprintf("ipfs/%s/", u.Host)
+	u.Host = gateway
+	u.Scheme = "https"
+
+	return u.String()
 }
 
 type MarketplaceProfile struct {
@@ -143,12 +160,12 @@ func (detail *AssetMetadataDetail) FromTZKT(t tzkt.Token) {
 	detail.MaxEdition = int64(t.TotalSupply)
 
 	if t.Metadata != nil {
-		detail.UpdateMetadataFromTZKT(*t.Metadata)
+		detail.FromTZIP21TokenMetadata(*t.Metadata)
 	}
 }
 
-// UpdateMetadataFromTZKT update TZKT token metadata to AssetMetadataDetail
-func (detail *AssetMetadataDetail) UpdateMetadataFromTZKT(md tzkt.TokenMetadata) {
+// FromTZIP21TokenMetadata update TZKT token metadata to AssetMetadataDetail
+func (detail *AssetMetadataDetail) FromTZIP21TokenMetadata(md tzkt.TokenMetadata) {
 	var mimeType string
 
 	for _, f := range md.Formats {
@@ -200,8 +217,8 @@ func (detail *AssetMetadataDetail) UpdateMetadataFromTZKT(md tzkt.TokenMetadata)
 		detail.Source = md.Publishers[0]
 	}
 
-	detail.DisplayURI = defaultIPFSLink(displayURI)
-	detail.PreviewURI = defaultIPFSLink(previewURI)
+	detail.DisplayURI = displayURI
+	detail.PreviewURI = previewURI
 
 	detail.ArtworkMetadata = md.ArtworkMetadata
 }
@@ -214,8 +231,8 @@ func (detail *AssetMetadataDetail) FromFxhashObject(o fxhash.ObjectDetail) {
 	detail.ArtistName = o.Issuer.Author.ID
 	detail.ArtistURL = fmt.Sprintf("https://www.fxhash.xyz/u/%s", o.Issuer.Author.Name)
 	detail.MaxEdition = o.Issuer.Supply
-	detail.DisplayURI = fxhashLink(o.Metadata.DisplayURI)
-	detail.PreviewURI = fxhashLink(o.Metadata.ArtifactURI)
+	detail.DisplayURI = ipfsURLToGatewayURL(FxhashGateway, o.Metadata.DisplayURI)
+	detail.PreviewURI = ipfsURLToGatewayURL(FxhashGateway, o.Metadata.ArtifactURI)
 }
 
 // TokenDetail saves token specific detail from different sources
@@ -316,13 +333,13 @@ func (detail *AssetMetadataDetail) UpdateMetadataFromObjkt(token objkt.Token) {
 	}
 
 	if detail.DisplayURI == "" || detail.DisplayURI == hicetnuncDefaultThumbnailURL {
-		detail.DisplayURI = defaultIPFSLink(DefaultDisplayURI)
+		detail.DisplayURI = ipfsURLToGatewayURL(DefaultIPFSGateway, DefaultDisplayURI)
 	}
 
 	if token.ArtifactURI != "" {
 		detail.PreviewURI = detail.ReplaceIPFSURIByObjktCDNURI(ObjktCDNArtifactType, token.ArtifactURI, token.FaContract, token.TokenID)
 	} else {
-		detail.PreviewURI = defaultIPFSLink(DefaultDisplayURI)
+		detail.PreviewURI = ipfsURLToGatewayURL(DefaultIPFSGateway, DefaultDisplayURI)
 	}
 }
 
@@ -354,7 +371,7 @@ func (detail *AssetMetadataDetail) ReplaceIPFSURIByObjktCDNURI(assetType, assetU
 		return uri
 	}
 
-	return defaultIPFSLink(assetURI)
+	return ipfsURLToGatewayURL(DefaultIPFSGateway, assetURI)
 }
 
 // MakeCDNURIFromIPFSURI create Objkt CDN uri from IPFS Uri(extract cid)
@@ -411,5 +428,5 @@ func MakeCDNURIFromIPFSURI(assetURI, assetType, contract, tokenID string) (strin
 		}
 	}
 
-	return defaultIPFSLink(assetURI), nil
+	return ipfsURLToGatewayURL(DefaultIPFSGateway, assetURI), nil
 }
