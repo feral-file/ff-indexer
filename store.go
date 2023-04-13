@@ -1258,7 +1258,9 @@ func (s *MongodbIndexerStore) GetPendingAccountTokens(ctx context.Context) ([]Ac
 
 // IndexAccount indexes the account by inputs
 func (s *MongodbIndexerStore) IndexAccount(ctx context.Context, account Account) error {
-	account.LastUpdatedTime = time.Now()
+	if account.LastUpdatedTime.IsZero() {
+		account.LastUpdatedTime = time.Now()
+	}
 
 	r, err := s.accountCollection.UpdateOne(ctx,
 		bson.M{"account": account.Account},
