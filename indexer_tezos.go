@@ -241,10 +241,8 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			}
 		}
 	} else { // development indexing process
-		var metadataFromSource bool
 		switch tzktToken.Contract.Address {
 		case FXHASHContractAddressDev0_0, FXHASHContractAddressDev0_1:
-			metadataFromSource = true
 			gateway = FxhashDevIPFSGateway
 			metadataDetail.SetMarketplace(
 				MarketplaceProfile{
@@ -256,20 +254,18 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			metadataDetail.SetMedium(MediumSoftware)
 		}
 
-		if metadataFromSource {
-			tokenMetadataURL, err := e.getTokenMetadataURL(tzktToken.Contract.Address, tzktToken.ID.String())
-			if err != nil {
-				log.Error("fail to get token metadata url from blockchain", zap.Error(err), log.SourceTZKT)
-				return nil, err
-			}
+		tokenMetadataURL, err := e.getTokenMetadataURL(tzktToken.Contract.Address, tzktToken.ID.String())
+		if err != nil {
+			log.Error("fail to get token metadata url from blockchain", zap.Error(err), log.SourceTZKT)
+			return nil, err
+		}
 
-			metadataLink := ipfsURLToGatewayURL(gateway, tokenMetadataURL)
-			metadata, err := e.fetchMetadataByLink(metadataLink)
-			if err != nil {
-				log.Error("fail to read token metadata from ipfs", zap.Error(err), log.SourceTZKT)
-			} else {
-				metadataDetail.FromTZIP21TokenMetadata(*metadata)
-			}
+		metadataLink := ipfsURLToGatewayURL(gateway, tokenMetadataURL)
+		metadata, err := e.fetchMetadataByLink(metadataLink)
+		if err != nil {
+			log.Error("fail to read token metadata from ipfs", zap.Error(err), log.SourceTZKT)
+		} else {
+			metadataDetail.FromTZIP21TokenMetadata(*metadata)
 		}
 	}
 
