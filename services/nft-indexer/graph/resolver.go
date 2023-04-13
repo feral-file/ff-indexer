@@ -27,8 +27,8 @@ func (r *Resolver) mapGraphQLToken(t indexer.DetailedTokenV2) *model.Token {
 	}
 
 	var attributes model.AssetAttributes
-	if t.Attributes != nil {
-		attributes = model.AssetAttributes{Scrollable: t.Attributes.Scrollable}
+	if t.Asset.Attributes != nil {
+		attributes = model.AssetAttributes{Scrollable: t.Asset.Attributes.Scrollable}
 	}
 
 	return &model.Token{
@@ -48,13 +48,13 @@ func (r *Resolver) mapGraphQLToken(t indexer.DetailedTokenV2) *model.Token {
 		MintAt:            &t.MintAt,
 		Swapped:           t.Swapped,
 		Provenance:        provenances,
-		Attributes:        &attributes,
 		LastActivityTime:  &t.LastActivityTime,
 		LastRefreshedTime: &t.LastRefreshedTime,
 		Asset: &model.Asset{
 			IndexID:           t.Asset.IndexID,
 			ThumbnailID:       t.Asset.ThumbnailID,
 			LastRefreshedTime: &t.Asset.LastRefreshedTime,
+			Attributes:        &attributes,
 			Metadata: &model.AssetMetadata{
 				Project: &model.VersionedProjectMetadata{
 					Origin: r.mapGraphQLProjectMetadata(t.Asset.Metadata.Project.Origin),
@@ -85,6 +85,7 @@ func (r *Resolver) mapGraphQLProjectMetadata(p indexer.ProjectMetadata) *model.P
 		GalleryThumbnailURL: p.GalleryThumbnailURL,
 		AssetData:           p.AssetData,
 		AssetURL:            p.AssetURL,
+		ArtworkMetadata:     p.ArtworkMetadata,
 	}
 }
 

@@ -1,14 +1,18 @@
 package indexer
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
-	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
+	"github.com/bitmark-inc/tzkt-go"
 )
 
 type IndexEngine struct {
 	environment string
+	http        *http.Client
 	opensea     *opensea.Client
 	tzkt        *tzkt.TZKT
 	fxhash      *fxhash.Client
@@ -24,9 +28,12 @@ func New(
 ) *IndexEngine {
 	return &IndexEngine{
 		environment: environment,
-		opensea:     opensea,
-		tzkt:        tzkt,
-		fxhash:      fxhash,
-		objkt:       objkt,
+		http: &http.Client{
+			Timeout: 10 * time.Second,
+		},
+		opensea: opensea,
+		tzkt:    tzkt,
+		fxhash:  fxhash,
+		objkt:   objkt,
 	}
 }

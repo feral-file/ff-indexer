@@ -3,31 +3,44 @@ package indexer
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
-	"net/url"
 	"time"
 
 	"go.uber.org/zap"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
-	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 	"github.com/bitmark-inc/nft-indexer/log"
+	"github.com/bitmark-inc/tzkt-go"
 )
 
-// fxhashLink converts an IPFS link to a HTTP link by using fxhash ipfs gateway.
-// If a link is failed to parse, it returns the original link
-func fxhashLink(ipfsLink string) string {
-	u, err := url.Parse(ipfsLink)
-	if err != nil {
-		return ipfsLink
+type HexString string
+
+func (s *HexString) UnmarshalJSON(data []byte) error {
+	var hexString string
+
+	if err := json.Unmarshal(data, &hexString); err != nil {
+		return err
 	}
 
-	u.Path = fmt.Sprintf("ipfs/%s/", u.Host)
-	u.Host = "gateway.fxhash.xyz"
-	u.Scheme = "https"
+	b, err := hex.DecodeString(hexString)
+	if err != nil {
+		return err
+	}
+	*s = HexString(b)
 
-	return u.String()
+	return nil
+}
+
+func (s HexString) MarshalJSON() ([]byte, error) {
+	hexString := hex.EncodeToString([]byte(s))
+	return json.Marshal(hexString)
+}
+
+type TezosTokenMetadata struct {
+	TokenID   string               `json:"token_id"`
+	TokenInfo map[string]HexString `json:"token_info"`
 }
 
 func (e *IndexEngine) GetTezosTokenByOwner(owner string, lastTime time.Time, offset int) ([]tzkt.OwnedToken, error) {
@@ -94,43 +107,107 @@ func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, toke
 	return e.indexTezosToken(ctx, tzktToken, owner, balance, lastTime)
 }
 
+// indexTezosTokenFromFXHASH indexes token metadata by a given fxhash objkt id.
+// A fxhash objkt id is a new format from fxhash which is unified id but varied by contracts
+func (e *IndexEngine) indexTezosTokenFromFXHASH(ctx context.Context, fxhashObjectID string,
+	metadataDetail *AssetMetadataDetail, tokenDetail *TokenDetail) {
+
+	metadataDetail.SetMarketplace(
+		MarketplaceProfile{
+			"fxhash",
+			"https://www.fxhash.xyz",
+			fmt.Sprintf("https://www.fxhash.xyz/gentk/%s", fxhashObjectID),
+		},
+	)
+	metadataDetail.SetMedium(MediumSoftware)
+
+	if detail, err := e.fxhash.GetObjectDetail(ctx, fxhashObjectID); err != nil {
+		log.Error("fail to get token detail from fxhash", zap.Error(err), log.SourceFXHASH)
+	} else {
+		metadataDetail.FromFxhashObject(detail)
+		tokenDetail.MintedAt = detail.CreatedAt
+		tokenDetail.Edition = detail.Iteration
+	}
+}
+
+// fetchMetadataByLink reads tezos metadata by a given link
+func (e *IndexEngine) fetchMetadataByLink(url string) (*tzkt.TokenMetadata, error) {
+	resp, err := e.http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var metadata tzkt.TokenMetadata
+	if err := json.NewDecoder(resp.Body).Decode(&metadata); err != nil {
+		return nil, err
+	}
+
+	return &metadata, nil
+}
+
+// getTokenMetadataURL fetches token metadata URL from blockchain
+func (e *IndexEngine) getTokenMetadataURL(contractAddress, tokenID string) (string, error) {
+	p, err := e.tzkt.GetBigMapPointerForContractTokenMetadata(contractAddress)
+	if err != nil {
+		return "", err
+	}
+
+	b, err := e.tzkt.GetBigMapValueByPointer(p, tokenID)
+	if err != nil {
+		return "", err
+	}
+
+	var tokenMetadata TezosTokenMetadata
+	if err := json.Unmarshal(b, &tokenMetadata); err != nil {
+		return "", err
+	}
+
+	return string(tokenMetadata.TokenInfo[""]), nil
+}
+
 // indexTezosToken prepares indexing data for a tezos token using the
 // source API token object. It currently uses token objects from tzkt api
 func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token, owner string, balance int64, lastActivityTime time.Time) (*AssetUpdates, error) {
 	log.Debug("index tezos token", zap.Any("token", tzktToken))
-
 	assetIDBytes := sha3.Sum256([]byte(fmt.Sprintf("%s-%s", tzktToken.Contract.Address, tzktToken.ID.String())))
 	assetID := hex.EncodeToString(assetIDBytes[:])
 
 	metadataDetail := NewAssetMetadataDetail(assetID)
 	metadataDetail.FromTZKT(tzktToken)
-
+	gateway := DefaultIPFSGateway
 	tokenDetail := TokenDetail{
 		MintedAt: tzktToken.Timestamp,
 	}
 
-	if e.environment != DevelopmentEnvironment {
+	if e.environment != DevelopmentEnvironment { // production indexing process
+		if tzktToken.Metadata == nil || time.Since(lastActivityTime) < 14*24*time.Hour {
+			tokenMetadataURL, err := e.getTokenMetadataURL(tzktToken.Contract.Address, tzktToken.ID.String())
+			if err != nil {
+				log.Error("fail to get token metadata url from blockchain", zap.Error(err), log.SourceTZKT)
+			} else {
+				metadataLink := ipfsURLToGatewayURL(gateway, tokenMetadataURL)
+				metadata, err := e.fetchMetadataByLink(metadataLink)
+				if err != nil {
+					log.Error("fail to read token metadata from ipfs", zap.Error(err), log.SourceTZKT)
+				} else {
+					metadataDetail.FromTZIP21TokenMetadata(*metadata)
+				}
+			}
+		}
+
 		switch tzktToken.Contract.Address {
 		case KALAMContractAddress, TezDaoContractAddress, TezosDNSContractAddress:
 			return nil, nil
 
-		case FXHASHV2ContractAddress, FXHASHContractAddress, FXHASHOldContractAddress:
-			metadataDetail.SetMarketplace(
-				MarketplaceProfile{
-					"fxhash",
-					"https://www.fxhash.xyz",
-					fmt.Sprintf("https://www.fxhash.xyz/gentk/%s", tzktToken.ID.String()),
-				},
-			)
-			metadataDetail.SetMedium(MediumSoftware)
+		case FXHASHContractAddressFX0_0, FXHASHContractAddressFX0_1, FXHASHContractAddressFX0_2:
+			fxObjktID := fmt.Sprintf("FX0-%s", tzktToken.ID.String())
+			e.indexTezosTokenFromFXHASH(ctx, fxObjktID, metadataDetail, &tokenDetail)
 
-			if detail, err := e.fxhash.GetObjectDetail(ctx, tzktToken.ID.Int); err != nil {
-				log.Error("fail to get token detail from fxhash", zap.Error(err), log.SourceFXHASH)
-			} else {
-				metadataDetail.FromFxhashObject(detail)
-				tokenDetail.MintedAt = detail.CreatedAt
-				tokenDetail.Edition = detail.Iteration
-			}
+		case FXHASHContractAddressFX1:
+			fxObjktID := fmt.Sprintf("FX1-%s", tzktToken.ID.String())
+			e.indexTezosTokenFromFXHASH(ctx, fxObjktID, metadataDetail, &tokenDetail)
+
 		case VersumContractAddress:
 			tokenDetail.Fungible = true
 			metadataDetail.SetMarketplace(MarketplaceProfile{"versum", "https://versum.xyz",
@@ -156,10 +233,45 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			case "OBJKT":
 				metadataDetail.SetMarketplace(MarketplaceProfile{"hic et nunc", "https://objkt.com", assetURL})
 			default:
-				metadataDetail.SetMarketplace(MarketplaceProfile{"unknown", "https://objkt.com", assetURL})
+				source := "unknown"
+				if metadataDetail.Source != "" {
+					source = metadataDetail.Source
+				}
+				metadataDetail.SetMarketplace(MarketplaceProfile{source, "https://objkt.com", assetURL})
 			}
 		}
+	} else { // development indexing process
+		switch tzktToken.Contract.Address {
+		case FXHASHContractAddressDev0_0, FXHASHContractAddressDev0_1:
+			gateway = FxhashDevIPFSGateway
+			metadataDetail.SetMarketplace(
+				MarketplaceProfile{
+					"fxhash-dev",
+					"https://dev.fxhash-dev.xyz",
+					"",
+				},
+			)
+			metadataDetail.SetMedium(MediumSoftware)
+		}
+
+		tokenMetadataURL, err := e.getTokenMetadataURL(tzktToken.Contract.Address, tzktToken.ID.String())
+		if err != nil {
+			log.Error("fail to get token metadata url from blockchain", zap.Error(err), log.SourceTZKT)
+			return nil, err
+		}
+
+		metadataLink := ipfsURLToGatewayURL(gateway, tokenMetadataURL)
+		metadata, err := e.fetchMetadataByLink(metadataLink)
+		if err != nil {
+			log.Error("fail to read token metadata from ipfs", zap.Error(err), log.SourceTZKT)
+		} else {
+			metadataDetail.FromTZIP21TokenMetadata(*metadata)
+		}
 	}
+
+	// ensure ipfs urls are converted to http links
+	metadataDetail.DisplayURI = ipfsURLToGatewayURL(gateway, metadataDetail.DisplayURI)
+	metadataDetail.PreviewURI = ipfsURLToGatewayURL(gateway, metadataDetail.PreviewURI)
 
 	pm := ProjectMetadata{
 		AssetID:   metadataDetail.AssetID,
@@ -180,6 +292,8 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		PreviewURL:          metadataDetail.PreviewURI,
 		ThumbnailURL:        metadataDetail.DisplayURI,
 		GalleryThumbnailURL: metadataDetail.DisplayURI,
+
+		ArtworkMetadata: metadataDetail.ArtworkMetadata,
 
 		LastUpdatedAt: time.Now(),
 	}

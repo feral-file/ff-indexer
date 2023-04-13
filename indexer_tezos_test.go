@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
-	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
 	"github.com/bitmark-inc/nft-indexer/log"
+	"github.com/bitmark-inc/tzkt-go"
 )
 
 func TestIndexTezosTokenProvenance(t *testing.T) {
