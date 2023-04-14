@@ -293,12 +293,13 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 
 		if checkIfTokenNeedToUpdate(assetUpdates.Source, currentToken, token) {
 			tokenUpdateSet := UpdateSet{
-				Fungible:        token.Fungible,
-				Source:          token.Source,
-				AssetID:         id,
-				Edition:         token.Edition,
-				EditionName:     token.EditionName,
-				ContractAddress: token.ContractAddress,
+				Fungible:          token.Fungible,
+				Source:            token.Source,
+				AssetID:           id,
+				Edition:           token.Edition,
+				EditionName:       token.EditionName,
+				ContractAddress:   token.ContractAddress,
+				LastRefreshedTime: time.Now(),
 			}
 
 			if !token.LastActivityTime.IsZero() {
