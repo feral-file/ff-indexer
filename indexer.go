@@ -76,7 +76,7 @@ func mediumByMIMEType(mimeType string) Medium {
 			return MediumImage
 		case "video":
 			return MediumVideo
-		case "application/x-directory":
+		case "application":
 			return MediumSoftware
 		case "":
 			return MediumUnknown
