@@ -111,9 +111,9 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 	// Opensea GET assets API just provide a creator, not multiple creator
 	artists := []Artist{
 		{
-			ArtistID:   artistID,
-			ArtistName: artistName,
-			ArtistURL:  artistURL,
+			ID:   artistID,
+			Name: artistName,
+			URL:  artistURL,
 		},
 	}
 

@@ -272,9 +272,9 @@ func (m *Mapper) MapIndexerProjectMetadataToGRPCProjectMetadata(projectMetadata 
 	var artists []*grpcIndexer.Artist
 	for _, i := range projectMetadata.Artists {
 		artists = append(artists, &grpcIndexer.Artist{
-			ArtistID:   i.ArtistID,
-			ArtistName: i.ArtistName,
-			ArtistURL:  i.ArtistURL,
+			ArtistID:   i.ID,
+			ArtistName: i.Name,
+			ArtistURL:  i.URL,
 		})
 	}
 
@@ -408,9 +408,9 @@ func (m *Mapper) MapGrpcProjectMetadataToIndexerProjectMetadata(projectMetadata 
 
 	for _, a := range projectMetadata.Artists {
 		artists = append(artists, indexer.Artist{
-			ArtistID:   a.ArtistID,
-			ArtistName: a.ArtistName,
-			ArtistURL:  a.ArtistURL,
+			ID:   a.ArtistID,
+			Name: a.ArtistName,
+			URL:  a.ArtistURL,
 		})
 	}
 

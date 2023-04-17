@@ -215,8 +215,8 @@ func (detail *AssetMetadataDetail) FromTZIP21TokenMetadata(md tzkt.TokenMetadata
 		var artists []Artist
 		for _, v := range md.Creators {
 			artists = append(artists, Artist{
-				ArtistID:   v,
-				ArtistName: v,
+				ID:   v,
+				Name: v,
 			})
 		}
 
@@ -247,17 +247,21 @@ func (detail *AssetMetadataDetail) FromFxhashObject(o fxhash.ObjectDetail) {
 	detail.PreviewURI = ipfsURLToGatewayURL(FxhashGateway, o.Metadata.ArtifactURI)
 
 	var artists []Artist
-	artists = append(artists, Artist{
-		ArtistID:   o.Issuer.Author.ID,
-		ArtistName: o.Issuer.Author.ID,
-		ArtistURL:  fmt.Sprintf("https://www.fxhash.xyz/u/%s", o.Issuer.Author.Name),
-	})
 
 	for _, v := range o.Issuer.Author.Collaborators {
 		artists = append(artists, Artist{
-			ArtistID:   v.ID,
-			ArtistName: v.Name,
-			ArtistURL:  fmt.Sprintf("https://www.fxhash.xyz/u/%s", v.Name),
+			ID:   v.ID,
+			Name: v.Name,
+			URL:  fmt.Sprintf("https://www.fxhash.xyz/u/%s", v.Name),
+		})
+	}
+
+	// in case just have one artist
+	if len(artists) == 0 {
+		artists = append(artists, Artist{
+			ID:   o.Issuer.Author.ID,
+			Name: o.Issuer.Author.Name,
+			URL:  fmt.Sprintf("https://www.fxhash.xyz/u/%s", o.Issuer.Author.Name),
 		})
 	}
 
@@ -339,13 +343,13 @@ func (detail *AssetMetadataDetail) FromObjkt(objktToken objkt.Token) {
 		var artists []Artist
 		for _, i := range objktToken.Creators {
 			artist := Artist{
-				ArtistID:   i.Holder.Address,
-				ArtistURL:  getArtistURL(i.Holder),
-				ArtistName: i.Holder.Alias,
+				ID:   i.Holder.Address,
+				URL:  getArtistURL(i.Holder),
+				Name: i.Holder.Alias,
 			}
 
-			if artist.ArtistName == "" && artist.ArtistID != "" {
-				artist.ArtistName = artist.ArtistID
+			if artist.Name == "" && artist.ID != "" {
+				artist.Name = artist.ID
 			}
 
 			artists = append(artists, artist)
