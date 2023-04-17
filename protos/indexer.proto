@@ -64,6 +64,14 @@ message ProjectMetadata {
   string LastUpdatedAt = 21;
   string InitialSaleModel = 22;
   string OriginalFileURL = 23;
+
+  repeated Artist Artists = 24;
+}
+
+message Artist {
+  string ArtistID = 1;
+  string ArtistName = 2;
+  string ArtistURL = 3;
 }
 
 message IndexAccountTokensRequest {

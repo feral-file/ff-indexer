@@ -287,6 +287,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		ArtistID:   metadataDetail.ArtistID,
 		ArtistName: metadataDetail.ArtistName,
 		ArtistURL:  metadataDetail.ArtistURL,
+		Artists:    metadataDetail.Artists,
 		MaxEdition: metadataDetail.MaxEdition,
 
 		PreviewURL:          metadataDetail.PreviewURI,
