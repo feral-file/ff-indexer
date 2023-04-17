@@ -1744,6 +1744,7 @@ func (s *MongodbIndexerStore) GetPresignedThumbnailTokens(ctx context.Context) (
 
 	cursor, err := s.assetCollection.Find(ctx, bson.M{
 		"source":                              SourceTZKT,
+		"projectMetadata.latest.source":       "fxhash",
 		"projectMetadata.latest.thumbnailURL": bson.M{"$regex": pattern},
 	})
 	if err != nil {
