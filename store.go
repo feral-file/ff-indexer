@@ -1740,7 +1740,7 @@ func (s *MongodbIndexerStore) UpdateTokenSugesstedMIMEType(ctx context.Context, 
 // GetPresignedThumbnailTokens gets tokens that have presigned thumbnail
 func (s *MongodbIndexerStore) GetPresignedThumbnailTokens(ctx context.Context) ([]Token, error) {
 	tokens := []Token{}
-	pattern := fmt.Sprintf("%s|%s", UnsignedFxhashCID, UnresolvedFxhashURL)
+	pattern := fmt.Sprintf("%s|%s|^$", UnsignedFxhashCID, UnresolvedFxhashURL)
 
 	cursor, err := s.assetCollection.Find(ctx, bson.M{
 		"source":                              SourceTZKT,
