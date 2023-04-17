@@ -237,15 +237,6 @@ func (detail *AssetMetadataDetail) FromTZIP21TokenMetadata(md tzkt.TokenMetadata
 
 // FromFxhashObject reads asset detail from an fxhash API object
 func (detail *AssetMetadataDetail) FromFxhashObject(o fxhash.ObjectDetail) {
-	detail.Name = o.Name
-	detail.Description = o.Metadata.Description
-	detail.ArtistID = o.Issuer.Author.ID
-	detail.ArtistName = o.Issuer.Author.ID
-	detail.ArtistURL = fmt.Sprintf("https://www.fxhash.xyz/u/%s", o.Issuer.Author.Name)
-	detail.MaxEdition = o.Issuer.Supply
-	detail.DisplayURI = ipfsURLToGatewayURL(FxhashGateway, o.Metadata.DisplayURI)
-	detail.PreviewURI = ipfsURLToGatewayURL(FxhashGateway, o.Metadata.ArtifactURI)
-
 	var artists []Artist
 
 	for _, v := range o.Issuer.Author.Collaborators {
@@ -265,6 +256,15 @@ func (detail *AssetMetadataDetail) FromFxhashObject(o fxhash.ObjectDetail) {
 		})
 	}
 
+	detail.ArtistID = artists[0].ID
+	detail.ArtistName = artists[0].Name
+	detail.ArtistURL = artists[0].URL
+
+	detail.Name = o.Name
+	detail.Description = o.Metadata.Description
+	detail.MaxEdition = o.Issuer.Supply
+	detail.DisplayURI = ipfsURLToGatewayURL(FxhashGateway, o.Metadata.DisplayURI)
+	detail.PreviewURI = ipfsURLToGatewayURL(FxhashGateway, o.Metadata.ArtifactURI)
 	detail.Artists = artists
 }
 
