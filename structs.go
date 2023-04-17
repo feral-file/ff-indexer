@@ -125,9 +125,9 @@ type ProjectMetadata struct {
 }
 
 type Artist struct {
-	ID   string `json:"ID" structs:"ID" bson:"ID"`       // Artist blockchain address
-	Name string `json:"Name" structs:"Name" bson:"Name"` // <creator.user.username>,
-	URL  string `json:"URL" structs:"URL" bson:"URL"`    // <OpenseaAPI/creator.address>,
+	ID   string `json:"artistID" structs:"artistID" bson:"artistID"`       // Artist blockchain address
+	Name string `json:"artistName" structs:"artistName" bson:"artistName"` // <creator.user.username>,
+	URL  string `json:"artistURL" structs:"artistURL" bson:"artistURL"`    // <OpenseaAPI/creator.address>,
 }
 
 // AssetUpdates is the inputs payload of IndexAsset. It includes project metadata, blockchain metadata and
@@ -224,13 +224,13 @@ type Account struct {
 
 type AccountToken struct {
 	BaseTokenInfo     `bson:",inline"` // the latest token info
-	IndexID           string           `json:"indexID" bson:"indexID"`
-	OwnerAccount      string           `json:"ownerAccount" bson:"ownerAccount"`
-	Balance           int64            `json:"balance" bson:"balance"`
-	LastActivityTime  time.Time        `json:"lastActivityTime" bson:"lastActivityTime"`
-	LastRefreshedTime time.Time        `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
-	LastPendingTime   []time.Time      `json:"-" bson:"lastPendingTime,omitempty"`
-	PendingTxs        []string         `json:"pendingTxs" bson:"pendingTxs,omitempty"`
+	IndexID           string      `json:"indexID" bson:"indexID"`
+	OwnerAccount      string      `json:"ownerAccount" bson:"ownerAccount"`
+	Balance           int64       `json:"balance" bson:"balance"`
+	LastActivityTime  time.Time   `json:"lastActivityTime" bson:"lastActivityTime"`
+	LastRefreshedTime time.Time   `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
+	LastPendingTime   []time.Time `json:"-" bson:"lastPendingTime,omitempty"`
+	PendingTxs        []string    `json:"pendingTxs" bson:"pendingTxs,omitempty"`
 }
 
 type PendingTxUpdate struct {
@@ -243,6 +243,6 @@ type PendingTxUpdate struct {
 }
 
 type TotalBalance struct {
-	ID    string `bson:"_id"`
+	ID string `bson:"_id"`
 	Total int    `bson:"total"`
 }
