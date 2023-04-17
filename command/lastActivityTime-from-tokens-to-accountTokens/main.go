@@ -42,7 +42,7 @@ func main() {
 	for _, indexID := range indexIDs {
 		lastActivityTime, err := getTokenLastActivityTime(ctx, tokensCollection, indexID)
 		if err != nil {
-			fmt.Println("error occur when get token lastActivityTime", indexID, err)
+			fmt.Println("error occurs when getting token's lastActivityTime", indexID, err)
 			continue
 		}
 
