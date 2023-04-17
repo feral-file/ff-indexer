@@ -57,8 +57,7 @@ type ObjectDetail struct {
 	Issuer    struct {
 		Supply int64
 		Author struct {
-			ID            string
-			Name          string
+			User
 			Collaborators []User
 		}
 	}
