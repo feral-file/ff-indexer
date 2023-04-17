@@ -224,13 +224,13 @@ type Account struct {
 
 type AccountToken struct {
 	BaseTokenInfo     `bson:",inline"` // the latest token info
-	IndexID           string      `json:"indexID" bson:"indexID"`
-	OwnerAccount      string      `json:"ownerAccount" bson:"ownerAccount"`
-	Balance           int64       `json:"balance" bson:"balance"`
-	LastActivityTime  time.Time   `json:"lastActivityTime" bson:"lastActivityTime"`
-	LastRefreshedTime time.Time   `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
-	LastPendingTime   []time.Time `json:"-" bson:"lastPendingTime,omitempty"`
-	PendingTxs        []string    `json:"pendingTxs" bson:"pendingTxs,omitempty"`
+	IndexID           string           `json:"indexID" bson:"indexID"`
+	OwnerAccount      string           `json:"ownerAccount" bson:"ownerAccount"`
+	Balance           int64            `json:"balance" bson:"balance"`
+	LastActivityTime  time.Time        `json:"lastActivityTime" bson:"lastActivityTime"`
+	LastRefreshedTime time.Time        `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
+	LastPendingTime   []time.Time      `json:"-" bson:"lastPendingTime,omitempty"`
+	PendingTxs        []string         `json:"pendingTxs" bson:"pendingTxs,omitempty"`
 }
 
 type PendingTxUpdate struct {
@@ -243,6 +243,6 @@ type PendingTxUpdate struct {
 }
 
 type TotalBalance struct {
-	ID string `bson:"_id"`
+	ID    string `bson:"_id"`
 	Total int    `bson:"total"`
 }
