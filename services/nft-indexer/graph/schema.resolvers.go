@@ -18,15 +18,15 @@ func (r *queryResolver) Tokens(ctx context.Context, owners []string, ids []strin
 	var tokensInfo []indexer.DetailedTokenV2
 	var err error
 
-	querySortBy := ""
-	if sortBy != nil {
-		querySortBy = *sortBy
-	}
-
 	if len(ids) == 0 && len(owners) > 0 {
 		queryLastUpdatedTime := time.Time{}
 		if lastUpdatedAt != nil {
 			queryLastUpdatedTime = *lastUpdatedAt
+		}
+
+		querySortBy := ""
+		if sortBy != nil {
+			querySortBy = *sortBy
 		}
 
 		tokensInfo, err = r.indexerStore.GetDetailedAccountTokensByOwners(
@@ -43,7 +43,6 @@ func (r *queryResolver) Tokens(ctx context.Context, owners []string, ids []strin
 			ctx, indexer.FilterParameter{
 				IDs: ids,
 			},
-			querySortBy,
 			offset,
 			size)
 	} else {

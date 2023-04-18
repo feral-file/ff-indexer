@@ -717,7 +717,7 @@ func (s *NFTIndexerServer) QueryNFTsV2(c *gin.Context) {
 	checksumIDs := PreprocessTokens(reqParams.IDs, false)
 	tokenInfo, err := s.indexerStore.GetDetailedTokensV2(c, indexer.FilterParameter{
 		IDs: checksumIDs,
-	}, reqParams.SortBy, reqParams.Offset, reqParams.Size)
+	}, reqParams.Offset, reqParams.Size)
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
 		return
