@@ -1,10 +1,22 @@
 package main
 
 import (
+	"context"
 	"time"
 
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+
+	"github.com/bitmark-inc/nft-indexer/log"
+)
+
+type EventType string
+
+const (
+	EventTypeMint         EventType = "mint"
+	EventTypeTransfer     EventType = "transfer"
+	EventTypeTokenUpdated EventType = "token_updated"
 )
 
 type EventStatus string
@@ -33,6 +45,7 @@ type EventStore interface {
 	CreateEvent(event NFTEvent) error
 	UpdateEvent(id string, updates map[string]interface{}) error
 	GetQueueEventByStage(stage int8) (*NFTEvent, error)
+	ProcessTokenUpdatedEvent(ctx context.Context, processor func(event NFTEvent) error) (bool, error)
 	CompleteEvent(id string) error
 }
 
@@ -62,6 +75,31 @@ func (s *PostgresEventStore) CompleteEvent(id string) error {
 	return s.db.Updates(&NFTEvent{ID: id, Status: EventStatusProcessed}).Error
 }
 
+// ProcessTokenUpdatedEvent searches and processes a token_updated event
+func (s *PostgresEventStore) ProcessTokenUpdatedEvent(ctx context.Context, processor func(event NFTEvent) error) (bool, error) {
+	var hasEvent bool
+	return hasEvent, s.db.WithContext(ctx).Transaction(func(db *gorm.DB) error {
+		var event NFTEvent
+		if err := db.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).
+			Where("type = ?", EventTypeTokenUpdated).
+			Where("status <> ?", EventStatusProcessed).
+			Order("created_at asc").First(&event).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return nil
+			}
+			return err
+		}
+
+		hasEvent = true
+		if err := processor(event); err != nil {
+			// FIXME provide a fine-grain EventStatus. For example, EventStatusError
+			log.Error("fail to process event", zap.Error(err))
+		}
+
+		return db.Model(&NFTEvent{}).Where("id = ?", event.ID).Update("status", EventStatusProcessed).Error
+	})
+}
+
 // GetQueueEventByStage returns all queued events which need to process
 func (s *PostgresEventStore) GetQueueEventByStage(stage int8) (*NFTEvent, error) {
 	var event NFTEvent
@@ -70,6 +108,7 @@ func (s *PostgresEventStore) GetQueueEventByStage(stage int8) (*NFTEvent, error)
 	err := s.db.Transaction(func(db *gorm.DB) error {
 		if err := db.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).
 			Where("stage = ?", EventStages[stage]).
+			Where("type <> ?", EventTypeTokenUpdated).
 			Where("status <> ?", EventStatusProcessed).
 			Order("created_at asc").First(&event).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {

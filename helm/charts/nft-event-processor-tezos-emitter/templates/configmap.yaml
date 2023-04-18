@@ -24,6 +24,25 @@ data:
         "url": "{{ .Values.serviceConfig.tezosNodeRPCURL }}"
       }
     }
+  dappetizer.postcard.config.json: |
+    {
+      "indexing": {
+        "fromBlockLevel": 2845033,
+        "contractBoost": {
+          "type": "tzkt",
+          "apiUrl": "{{ .Values.serviceConfig.contractBoostUrl }}"
+        },
+        "contracts": [
+          {
+            "name": "postcard",
+            "addresses": {{ .Values.serviceConfig.postcardAddresses | toJson }}
+          }
+        ]
+      },
+      "tezosNode": {
+        "url": "{{ .Values.serviceConfig.tezosNodeRPCURL }}"
+      }
+    }
   dappetizer.marketplace.config.json: |
     {
       "indexing": {
