@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   tags:
     tezosMarketplaceIndexer:
-    tezosPostcardIndexer: tezos-postcard-indexer-2.2.2-1
+    tezosPostcardIndexer: tezos-postcard-indexer-2.2.2-2
     tezosFeralfileIndexer: tezos-feralfile-indexer-2.2.1-1
 
 serviceConfig:

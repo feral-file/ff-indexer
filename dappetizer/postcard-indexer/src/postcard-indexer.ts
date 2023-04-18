@@ -1,3 +1,4 @@
+import BigNumber from 'bignumber.js';
 import { DbContext } from '@tezos-dappetizer/database';
 import {
     contractFilter,
@@ -45,7 +46,7 @@ import {
     PostcardUpdateOperatorsParameter,
 } from './postcard-indexer-interfaces.generated';
 
-import { outputStampUpdate } from './callback'
+import { outputTransfer, outputStampUpdate } from './callback'
 
 @contractFilter({ name: 'postcard' })
 export class PostcardIndexer {
@@ -118,6 +119,11 @@ export class PostcardIndexer {
         dbContext: DbContext,
         indexingContext: TransactionIndexingContext,
     ): Promise<void> {
+        parameter.forEach((p) => {
+            outputTransfer([
+                { from_: "", txs: [{ amount: BigNumber(1), to_: p.owner, token_id: p.token_id }] }
+            ], indexingContext)
+        })
         // Implement your indexing logic here or delete the method if not needed.
     }
 
