@@ -6,8 +6,10 @@ import (
 
 	indexer "github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 // IndexAsset indexes the data of assets and tokens
@@ -31,12 +33,27 @@ func (s *NFTIndexerServer) IndexAsset(c *gin.Context) {
 
 	updatedIndexIDs := []string{}
 	for _, token := range input.Tokens {
+		if token.IndexID == "" {
+			token.IndexID = indexer.TokenIndexID(token.Blockchain, token.ContractAddress, token.ID)
+		}
 		updatedIndexIDs = append(updatedIndexIDs, token.IndexID)
 	}
 
 	if err := s.indexerStore.MarkAccountTokenChanged(c, updatedIndexIDs); err != nil {
 		abortWithError(c, http.StatusInternalServerError, "unable to update asset data", err)
 		return
+	}
+
+	nullProvenanceIDs, err := s.indexerStore.GetNulProvenanceTokensByIndexIDs(c, updatedIndexIDs)
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "unable to find null provenance tokens", err)
+		return
+	}
+
+	log.Info("start refresh null provenance tokens", zap.Any("tokenIDs", nullProvenanceIDs))
+	for _, nullProvenanceID := range nullProvenanceIDs {
+		go indexerWorker.StartRefreshTokenProvenanceWorkflow(c, s.cadenceWorker, "api-indexAsset", nullProvenanceID, 0)
+
 	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": 1})

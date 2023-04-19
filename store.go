@@ -87,6 +87,8 @@ type Store interface {
 
 	GetDetailedToken(ctx context.Context, indexID string) (DetailedToken, error)
 	GetTotalBalanceOfOwnerAccounts(ctx context.Context, addresses []string) (int, error)
+
+	GetNulProvenanceTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
 }
 
 type FilterParameter struct {
@@ -1956,4 +1958,30 @@ func (s *MongodbIndexerStore) GetTotalBalanceOfOwnerAccounts(ctx context.Context
 	}
 
 	return totalBalance.Total, nil
+}
+
+// GetNulProvenanceTokensByIndexIDs returns indexIDs that have null provenance
+func (s *MongodbIndexerStore) GetNulProvenanceTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error) {
+	var nullProvenanceIDs []string
+	var tokens []Token
+
+	c, err := s.tokenCollection.Find(ctx, bson.M{
+		"indexID":    bson.M{"$in": indexIDs},
+		"fungible":   false,
+		"provenance": nil,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := c.All(ctx, &tokens); err != nil {
+		return nil, err
+	}
+
+	for _, token := range tokens {
+		nullProvenanceIDs = append(nullProvenanceIDs, token.IndexID)
+	}
+
+	return nullProvenanceIDs, nil
 }
