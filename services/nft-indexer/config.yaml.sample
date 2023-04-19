@@ -45,3 +45,11 @@ fxhash:
 
 objkt:
   api_endpoint: https://data.objkt.com/v3/graphql
+
+ipfs:
+  preferred_gateways:
+  - nftstorage.link
+  - ipfs.nftstorage.link
+  - ipfs.bitmark.com
+  - ipfs.test.bitmark.com
+  - ipfs.io

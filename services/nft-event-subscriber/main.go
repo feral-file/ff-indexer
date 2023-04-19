@@ -83,6 +83,7 @@ func main() {
 
 	engine := indexer.New(
 		environment,
+		viper.GetStringSlice("ipfs.preferred_gateways"),
 		opensea.New(viper.GetString("network.ethereum"), viper.GetString("opensea.api_key"), viper.GetInt("opensea.ratelimit")),
 		tzkt.New(viper.GetString("network.tezos")),
 		fxhash.New(viper.GetString("fxhash.api_endpoint")),

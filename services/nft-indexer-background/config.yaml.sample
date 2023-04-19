@@ -35,3 +35,11 @@ aws:
 
 cache:
   bucket_name:
+
+ipfs:
+  preferred_gateways:
+  - nftstorage.link
+  - ipfs.nftstorage.link
+  - ipfs.bitmark.com
+  - ipfs.test.bitmark.com
+  - ipfs.io
