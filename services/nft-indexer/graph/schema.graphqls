@@ -76,7 +76,7 @@ type ProjectMetadata {
 	medium:              String!
 	maxEdition:          Int64!
 	baseCurrency:        String!
-	basePrice:           Int64!
+	basePrice:           Float!
 	source:              String!
 	sourceURL:           String!
 	previewURL:          String!

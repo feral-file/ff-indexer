@@ -50,7 +50,7 @@ message ProjectMetadata {
   string Medium = 8;
   int64 MaxEdition = 9;
   string BaseCurrency = 10;
-  int64 BasePrice = 11;
+  double BasePrice = 11;
   string Source = 12;
   string SourceURL = 13;
   string PreviewURL = 14;

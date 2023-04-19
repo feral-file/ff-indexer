@@ -99,7 +99,7 @@ type ProjectMetadata struct {
 	Medium              Medium   `json:"medium" structs:"medium" bson:"medium"`                                        // <"image" if image_url is present; "other" if animation_url is present> ,
 	MaxEdition          int64    `json:"maxEdition" structs:"maxEdition" bson:"maxEdition"`                            // 0,
 	BaseCurrency        string   `json:"baseCurrency,omitempty" structs:"baseCurrency" bson:"baseCurrency"`            // null,
-	BasePrice           int64    `json:"basePrice,omitempty" structs:"basePrice" bson:"basePrice"`                     // null,
+	BasePrice           float64  `json:"basePrice,omitempty" structs:"basePrice" bson:"basePrice"`                     // null,
 	Source              string   `json:"source" structs:"source" bson:"source"`                                        // <Opeasea/Artblock>,
 	SourceURL           string   `json:"sourceURL" structs:"sourceURL" bson:"sourceURL"`                               // <linktoSourceWebsite>,
 	PreviewURL          string   `json:"previewURL" structs:"previewURL" bson:"previewURL"`                            // <image_url or animation_url>,
