@@ -41,6 +41,14 @@ data:
     feralfile:
       api_url: {{ .Values.serviceConfig.feralfile_api_url }}
 
+    ipfs:
+      preferred_gateways:
+      - nftstorage.link
+      - ipfs.nftstorage.link
+      - ipfs.bitmark.com
+      - ipfs.test.bitmark.com
+      - ipfs.io
+
   background.yaml: |
     log:
       level: {{ .Values.serviceConfig.logLevel | default "info" }}
@@ -70,3 +78,11 @@ data:
 
     cache:
       bucket_name: {{ .Values.serviceConfig.cache_bucket_name }}
+
+    ipfs:
+      preferred_gateways:
+      - nftstorage.link
+      - ipfs.nftstorage.link
+      - ipfs.bitmark.com
+      - ipfs.test.bitmark.com
+      - ipfs.io

@@ -2,9 +2,10 @@ package indexer
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	"github.com/stretchr/testify/assert"
-	"testing"
 
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
@@ -19,6 +20,7 @@ func TestIndexETHToken(t *testing.T) {
 
 	engine := New(
 		"",
+		[]string{},
 		opensea.New("livenet", "", 1),
 		tzkt.New(""),
 		fxhash.New("https://api.fxhash.xyz/graphql"),
