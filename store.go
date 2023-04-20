@@ -1280,6 +1280,7 @@ func (s *MongodbIndexerStore) IndexAccount(ctx context.Context, account Account)
 func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error {
 	margin := 15 * time.Second
 	for _, accountToken := range accountTokens {
+		log.Debug("account token is in a future state", zap.String("indexID", accountToken.IndexID), zap.Any("accountToken", accountToken))
 		r, err := s.accountTokenCollection.UpdateOne(ctx,
 			bson.M{"indexID": accountToken.IndexID, "ownerAccount": owner, "lastActivityTime": bson.M{"$lt": accountToken.LastActivityTime.Add(-margin)}},
 			bson.M{"$set": accountToken},
@@ -1290,8 +1291,8 @@ func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner stri
 			if mongo.IsDuplicateKeyError(err) {
 				// when a duplicated error happens, it means the account token
 				// is in a state which is better than current event.
-				log.Warn("account token is in a future state", zap.String("token_id", accountToken.ID))
-				return nil
+				log.Warn("account token is in a future state", zap.String("indexID", accountToken.IndexID))
+				continue
 			}
 			log.Error("cannot index account token", zap.String("indexID", accountToken.IndexID), zap.String("owner", owner), zap.Error(err))
 			return err
