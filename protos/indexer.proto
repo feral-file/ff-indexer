@@ -50,7 +50,7 @@ message ProjectMetadata {
   string Medium = 8;
   int64 MaxEdition = 9;
   string BaseCurrency = 10;
-  int64 BasePrice = 11;
+  double BasePrice = 11;
   string Source = 12;
   string SourceURL = 13;
   string PreviewURL = 14;
@@ -64,6 +64,14 @@ message ProjectMetadata {
   string LastUpdatedAt = 21;
   string InitialSaleModel = 22;
   string OriginalFileURL = 23;
+
+  repeated Artist Artists = 24;
+}
+
+message Artist {
+  string ArtistID = 1;
+  string ArtistName = 2;
+  string ArtistURL = 3;
 }
 
 message IndexAccountTokensRequest {

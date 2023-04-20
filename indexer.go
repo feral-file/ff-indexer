@@ -12,7 +12,7 @@ import (
 
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
-	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
+	"github.com/bitmark-inc/tzkt-go"
 )
 
 const (
@@ -76,6 +76,8 @@ func mediumByMIMEType(mimeType string) Medium {
 			return MediumImage
 		case "video":
 			return MediumVideo
+		case "application":
+			return MediumSoftware
 		case "":
 			return MediumUnknown
 		default:
@@ -135,6 +137,7 @@ type AssetMetadataDetail struct {
 	PreviewURI string
 
 	ArtworkMetadata map[string]interface{}
+	Artists         []Artist
 }
 
 func NewAssetMetadataDetail(assetID string) *AssetMetadataDetail {
@@ -209,6 +212,15 @@ func (detail *AssetMetadataDetail) FromTZIP21TokenMetadata(md tzkt.TokenMetadata
 	}
 
 	if len(md.Creators) > 0 {
+		var artists []Artist
+		for _, v := range md.Creators {
+			artists = append(artists, Artist{
+				ID:   v,
+				Name: v,
+			})
+		}
+
+		detail.Artists = artists
 		detail.ArtistID = md.Creators[0]
 		detail.ArtistName = md.Creators[0]
 	}
@@ -225,14 +237,35 @@ func (detail *AssetMetadataDetail) FromTZIP21TokenMetadata(md tzkt.TokenMetadata
 
 // FromFxhashObject reads asset detail from an fxhash API object
 func (detail *AssetMetadataDetail) FromFxhashObject(o fxhash.ObjectDetail) {
+	var artists []Artist
+
+	for _, v := range o.Issuer.Author.Collaborators {
+		artists = append(artists, Artist{
+			ID:   v.ID,
+			Name: v.Name,
+			URL:  fmt.Sprintf("https://www.fxhash.xyz/u/%s", v.Name),
+		})
+	}
+
+	// in case just have one artist
+	if len(artists) == 0 {
+		artists = append(artists, Artist{
+			ID:   o.Issuer.Author.ID,
+			Name: o.Issuer.Author.Name,
+			URL:  fmt.Sprintf("https://www.fxhash.xyz/u/%s", o.Issuer.Author.Name),
+		})
+	}
+
+	detail.ArtistID = artists[0].ID
+	detail.ArtistName = artists[0].Name
+	detail.ArtistURL = artists[0].URL
+
 	detail.Name = o.Name
 	detail.Description = o.Metadata.Description
-	detail.ArtistID = o.Issuer.Author.ID
-	detail.ArtistName = o.Issuer.Author.ID
-	detail.ArtistURL = fmt.Sprintf("https://www.fxhash.xyz/u/%s", o.Issuer.Author.Name)
 	detail.MaxEdition = o.Issuer.Supply
 	detail.DisplayURI = ipfsURLToGatewayURL(FxhashGateway, o.Metadata.DisplayURI)
 	detail.PreviewURI = ipfsURLToGatewayURL(FxhashGateway, o.Metadata.ArtifactURI)
+	detail.Artists = artists
 }
 
 // TokenDetail saves token specific detail from different sources
@@ -307,6 +340,22 @@ func (detail *AssetMetadataDetail) FromObjkt(objktToken objkt.Token) {
 	detail.UpdateMetadataFromObjkt(objktToken)
 
 	if len(objktToken.Creators) > 0 {
+		var artists []Artist
+		for _, i := range objktToken.Creators {
+			artist := Artist{
+				ID:   i.Holder.Address,
+				URL:  getArtistURL(i.Holder),
+				Name: i.Holder.Alias,
+			}
+
+			if artist.Name == "" && artist.ID != "" {
+				artist.Name = artist.ID
+			}
+
+			artists = append(artists, artist)
+		}
+
+		detail.Artists = artists
 		detail.ArtistID = objktToken.Creators[0].Holder.Address
 		detail.ArtistURL = getArtistURL(objktToken.Creators[0].Holder)
 		detail.ArtistName = objktToken.Creators[0].Holder.Alias

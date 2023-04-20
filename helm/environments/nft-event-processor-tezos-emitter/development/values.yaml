@@ -3,12 +3,16 @@ replicaCount: 1
 image:
   tags:
     tezosMarketplaceIndexer:
+    tezosPostcardIndexer: tezos-postcard-indexer-2.2.2-2
     tezosFeralfileIndexer: tezos-feralfile-indexer-2.2.1-1
 
 serviceConfig:
   tezosNodeRPCURL: https://rpc.ghost.tzstats.com
   contractAddresses: [
     "KT1RyzdjGfSx3eXeztdwbxKDUTQSch3dkTqw"
+  ]
+  postcardAddresses: [
+    "KT1ESGez4dEuDjjNt4k2HPAK5Nzh7e8X8jyX"
   ]
   contractBoostUrl: "https://api.ghostnet.tzkt.io/"
   environment: development

@@ -13,7 +13,7 @@ import (
 	"github.com/bitmark-inc/config-loader"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
-	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
+	"github.com/bitmark-inc/tzkt-go"
 	"github.com/spf13/viper"
 )
 
@@ -24,7 +24,7 @@ type NFTAsset struct {
 func main() {
 	var asset NFTAsset
 	var assetMetadataDetail indexer.AssetMetadataDetail
-	engine := indexer.New("", nil, tzkt.New(""), nil, objkt.New("https://data.objkt.com/v3/graphql"))
+	engine := indexer.New("", []string{}, nil, tzkt.New(""), nil, objkt.New("https://data.objkt.com/v3/graphql"))
 
 	config.LoadConfig("NFT_INDEXER")
 	ctx := context.Background()

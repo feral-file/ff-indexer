@@ -57,10 +57,15 @@ type ObjectDetail struct {
 	Issuer    struct {
 		Supply int64
 		Author struct {
-			ID   string
-			Name string
+			User
+			Collaborators []User
 		}
 	}
+}
+
+type User struct {
+	ID   string
+	Name string
 }
 
 // This is a special type of fxhash graphql

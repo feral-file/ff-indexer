@@ -21,6 +21,7 @@ serviceConfig:
   eventProcessorURI: nft-event-processor.autonomy.svc.cluster.local:8765
   eventSubscriberURL:
   contractAddresses: []
+  postcardAddresses: []
   contractBoostUrl: "https://api.tzkt.io/"
 
 imagePullSecrets: []

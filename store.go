@@ -83,10 +83,12 @@ type Store interface {
 	MarkAccountTokenChanged(ctx context.Context, indexIDs []string) error
 
 	GetDetailedTokensV2(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error)
-	GetDetailedAccountTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, lastUpdatedAt time.Time, offset, size int64) ([]DetailedTokenV2, error)
+	GetDetailedAccountTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, lastUpdatedAt time.Time, sortBy string, offset, size int64) ([]DetailedTokenV2, error)
 
 	GetDetailedToken(ctx context.Context, indexID string) (DetailedToken, error)
 	GetTotalBalanceOfOwnerAccounts(ctx context.Context, addresses []string) (int, error)
+
+	GetNullProvenanceTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
 }
 
 type FilterParameter struct {
@@ -1795,8 +1797,15 @@ func (s *MongodbIndexerStore) MarkAccountTokenChanged(ctx context.Context, index
 }
 
 // GetDetailedAccountTokensByOwners returns a list of DetailedToken by owner
-func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, lastUpdatedAt time.Time, offset, size int64) ([]DetailedTokenV2, error) {
-	findOptions := options.Find().SetSort(bson.D{{Key: "lastRefreshedTime", Value: -1}, {Key: "_id", Value: -1}}).SetLimit(size).SetSkip(offset)
+func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, lastUpdatedAt time.Time, sortBy string, offset, size int64) ([]DetailedTokenV2, error) {
+	var sortKey string
+	if sortBy == "lastActivityTime" {
+		sortKey = sortBy
+	} else {
+		sortKey = "lastRefreshedTime"
+	}
+
+	findOptions := options.Find().SetSort(bson.D{{Key: sortKey, Value: -1}, {Key: "_id", Value: -1}}).SetLimit(size).SetSkip(offset)
 
 	filter := bson.M{
 		"ownerAccount":      bson.M{"$in": owner},
@@ -1957,4 +1966,30 @@ func (s *MongodbIndexerStore) GetTotalBalanceOfOwnerAccounts(ctx context.Context
 	}
 
 	return totalBalance.Total, nil
+}
+
+// GetNullProvenanceTokensByIndexIDs returns indexIDs that have null provenance
+func (s *MongodbIndexerStore) GetNullProvenanceTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error) {
+	var nullProvenanceIDs []string
+	var tokens []Token
+
+	c, err := s.tokenCollection.Find(ctx, bson.M{
+		"indexID":    bson.M{"$in": indexIDs},
+		"fungible":   false,
+		"provenance": nil,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := c.All(ctx, &tokens); err != nil {
+		return nil, err
+	}
+
+	for _, token := range tokens {
+		nullProvenanceIDs = append(nullProvenanceIDs, token.IndexID)
+	}
+
+	return nullProvenanceIDs, nil
 }

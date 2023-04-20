@@ -4,12 +4,12 @@ import (
 	"testing"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/externals/tzkt"
+	"github.com/bitmark-inc/tzkt-go"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetBalanceDiffFromTezosTransaction(t *testing.T) {
-	indexerEngine := indexer.New("", nil, tzkt.New(""), nil, nil)
+	indexerEngine := indexer.New("", []string{}, nil, tzkt.New(""), nil, nil)
 	w := NFTIndexerWorker{
 		Environment:   "",
 		indexerEngine: indexerEngine,
@@ -60,7 +60,7 @@ func TestGetBalanceDiffFromTezosTransaction(t *testing.T) {
 }
 
 func TestGetBalanceDiffFromETHTransaction(t *testing.T) {
-	indexerEngine := indexer.New("", nil, tzkt.New(""), nil, nil)
+	indexerEngine := indexer.New("", []string{}, nil, tzkt.New(""), nil, nil)
 	w := NFTIndexerWorker{
 		Environment:   "",
 		indexerEngine: indexerEngine,

@@ -76,7 +76,7 @@ type ProjectMetadata {
 	medium:              String!
 	maxEdition:          Int64!
 	baseCurrency:        String!
-	basePrice:           Int64!
+	basePrice:           Float!
 	source:              String!
 	sourceURL:           String!
 	previewURL:          String!
@@ -94,7 +94,7 @@ type Identity {
 }
 
 type Query {
-  tokens(owners: [String!]! = [], ids: [String!]! = [], lastUpdatedAt: Time, offset: Int64! = 0, size: Int64! = 50): [Token!]!
+  tokens(owners: [String!]! = [], ids: [String!]! = [], lastUpdatedAt: Time, sortBy: String, offset: Int64! = 0, size: Int64! = 50): [Token!]!
   identity(account: String!): Identity
 }
 

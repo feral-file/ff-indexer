@@ -682,6 +682,7 @@ func (s *NFTIndexerServer) GetAccountNFTsV2(c *gin.Context) {
 			Source: reqParams.Source,
 		},
 		lastUpdatedAt,
+		reqParams.SortBy,
 		reqParams.Offset,
 		reqParams.Size,
 	)
