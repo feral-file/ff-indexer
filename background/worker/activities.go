@@ -607,7 +607,7 @@ func (w *NFTIndexerWorker) UpdateAccountTokens(ctx context.Context) error {
 }
 
 // GetBalanceDiffFromTezosTransaction gets the balance difference of TEZOS account tokens in a transaction.
-func (w *NFTIndexerWorker) GetBalanceDiffFromTezosTransaction(transactionDetails tzkt.TransactionDetails, accountToken indexer.AccountToken) ([]indexer.AccountToken, error) {
+func (w *NFTIndexerWorker) GetBalanceDiffFromTezosTransaction(transactionDetails tzkt.DetailedTransaction, accountToken indexer.AccountToken) ([]indexer.AccountToken, error) {
 	var updatedAccountTokens = []indexer.AccountToken{}
 	var totalTransferredAmount = int64(0)
 

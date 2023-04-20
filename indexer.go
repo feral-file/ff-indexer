@@ -326,7 +326,7 @@ func (e *IndexEngine) IndexToken(c context.Context, owner, contract, tokenID str
 	}
 }
 
-func (e *IndexEngine) GetTransactionDetailsByPendingTx(pendingTx string) ([]tzkt.TransactionDetails, error) {
+func (e *IndexEngine) GetTransactionDetailsByPendingTx(pendingTx string) ([]tzkt.DetailedTransaction, error) {
 	detailedTransactions, err := e.tzkt.GetTransactionByTx(pendingTx)
 	if err != nil {
 		return nil, err
