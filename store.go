@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	QueryPageSize   = 25
-	PresignedFxhash = "QmYwSwa5hP4346GqD7hAjutwJSmeYTdiLQ7Wec2C7Cez1D"
+	QueryPageSize       = 25
+	UnsignedFxhashCID   = "QmYwSwa5hP4346GqD7hAjutwJSmeYTdiLQ7Wec2C7Cez1D"
+	UnresolvedFxhashURL = "https://gateway.fxhash.xyz/ipfs//"
 )
 
 const (
@@ -136,19 +137,24 @@ type MongodbIndexerStore struct {
 	tokenAssetCollection    *mongo.Collection
 }
 
-type UpdateSet struct {
+type AssetUpdateSet struct {
 	ID                 string                   `structs:"id,omitempty"`
 	IndexID            string                   `structs:"indexID,omitempty"`
 	Source             string                   `structs:"source,omitempty"`
 	BlockchainMetadata interface{}              `structs:"blockchainMetadata,omitempty"`
 	ProjectMetadata    VersionedProjectMetadata `structs:"projectMetadata,omitempty"`
-	Fungible           bool                     `structs:"fungible,omitempty"`
-	AssetID            string                   `structs:"assetID,omitempty"`
-	Edition            int64                    `structs:"edition,omitempty"`
-	EditionName        string                   `structs:"editionName,omitempty"`
-	ContractAddress    string                   `structs:"contractAddress,omitempty"`
 	LastRefreshedTime  time.Time                `structs:"lastRefreshedTime"`
-	LastActivityTime   time.Time                `structs:"lastActivityTime"`
+}
+
+type TokenUpdateSet struct {
+	Source            string    `structs:"source,omitempty"`
+	AssetID           string    `structs:"assetID,omitempty"`
+	Fungible          bool      `structs:"fungible,omitempty"`
+	Edition           int64     `structs:"edition,omitempty"`
+	EditionName       string    `structs:"editionName,omitempty"`
+	ContractAddress   string    `structs:"contractAddress,omitempty"`
+	LastRefreshedTime time.Time `structs:"lastRefreshedTime"`
+	LastActivityTime  time.Time `structs:"lastActivityTime"`
 }
 
 // checkIfTokenNeedToUpdate returns true if the new token data is suppose to be
@@ -162,11 +168,6 @@ func checkIfTokenNeedToUpdate(assetSource string, currentToken, newToken Token) 
 	// check if we need to update an existent token
 	if assetSource == SourceFeralFile {
 		return true
-	}
-
-	// ignore replacement of autonomy-postcard source
-	if assetSource != SourceAutonomyPostcard && currentToken.Source == SourceAutonomyPostcard {
-		return false
 	}
 
 	// assetSource is not feral file
@@ -190,7 +191,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 	if err := assetResult.Err(); err != nil {
 		if assetResult.Err() == mongo.ErrNoDocuments {
 			// Create a new asset if it is not added
-			assetUpdateSet := UpdateSet{
+			assetUpdateSet := AssetUpdateSet{
 				ID:                 id,
 				IndexID:            assetIndexID,
 				Source:             assetUpdates.Source,
@@ -285,9 +286,9 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 					return err
 				}
 				continue
-			} else {
-				return err
 			}
+
+			return err
 		}
 
 		var currentToken Token
@@ -296,13 +297,14 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		}
 
 		if checkIfTokenNeedToUpdate(assetUpdates.Source, currentToken, token) {
-			tokenUpdateSet := UpdateSet{
-				Fungible:        token.Fungible,
-				Source:          token.Source,
-				AssetID:         id,
-				Edition:         token.Edition,
-				EditionName:     token.EditionName,
-				ContractAddress: token.ContractAddress,
+			tokenUpdateSet := TokenUpdateSet{
+				Fungible:          token.Fungible,
+				Source:            token.Source,
+				AssetID:           id,
+				Edition:           token.Edition,
+				EditionName:       token.EditionName,
+				ContractAddress:   token.ContractAddress,
+				LastRefreshedTime: token.LastRefreshedTime,
 			}
 
 			if !token.LastActivityTime.IsZero() {
@@ -611,13 +613,11 @@ func (s *MongodbIndexerStore) PushProvenance(ctx context.Context, indexID string
 	if provenance.FormerOwner == nil {
 		return fmt.Errorf("invalid former owner")
 	}
-	formerOwner := *provenance.FormerOwner
 
 	u, err := s.tokenCollection.UpdateOne(ctx, bson.M{
-		"indexID":                indexID,
-		"lastRefreshedTime":      lockedTime,
-		"provenance.0.timestamp": bson.M{"$lt": provenance.Timestamp},
-		"provenance.0.owner":     formerOwner,
+		"indexID":           indexID,
+		"lastRefreshedTime": lockedTime,
+		"lastActivityTime":  bson.M{"$lt": provenance.Timestamp},
 	}, bson.M{
 		"$set": bson.M{
 			"owner":             provenance.Owner,
@@ -635,11 +635,15 @@ func (s *MongodbIndexerStore) PushProvenance(ctx context.Context, indexID string
 		},
 	})
 
+	if err != nil {
+		return err
+	}
+
 	if u.ModifiedCount == 0 {
 		return ErrNoRecordUpdated
 	}
 
-	return err
+	return nil
 }
 
 // GetTokenIDsByOwner returns a list of tokens which belongs to an owner
@@ -1281,10 +1285,17 @@ func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner stri
 		)
 
 		if err != nil {
+			if mongo.IsDuplicateKeyError(err) {
+				// when a duplicated error happens, it means the account token
+				// is in a state which is better than current event.
+				log.Warn("account token is in a future state", zap.String("token_id", accountToken.ID))
+				return nil
+			}
 			log.Error("cannot index account token", zap.String("indexID", accountToken.IndexID), zap.String("owner", owner), zap.Error(err))
 			return err
 		}
 		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
+			// TODO: not sure when will this happen. Figure this our later
 			log.Warn("account token is not added or updated", zap.String("token_id", accountToken.ID))
 		}
 	}
@@ -1349,21 +1360,26 @@ func (s *MongodbIndexerStore) GetAccountTokensByIndexIDs(ctx context.Context, in
 func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error {
 	ownerList := make([]string, 0, len(owners))
 
-	tokenResult := s.accountTokenCollection.FindOne(ctx, bson.M{"indexID": indexID})
+	tokenResult := s.tokenCollection.FindOne(ctx, bson.M{"indexID": indexID})
 	if err := tokenResult.Err(); err != nil {
 		return err
 	}
 
-	var tokenUpdate AccountToken
-	if err := tokenResult.Decode(&tokenUpdate); err != nil {
+	var token Token
+	if err := tokenResult.Decode(&token); err != nil {
 		return err
 	}
 
 	for owner, balance := range owners {
-		tokenUpdate.OwnerAccount = owner
-		tokenUpdate.Balance = balance
-		tokenUpdate.LastActivityTime = lastActivityTime
-		tokenUpdate.LastRefreshedTime = time.Now()
+		tokenUpdate := AccountToken{
+			BaseTokenInfo:     token.BaseTokenInfo,
+			IndexID:           indexID,
+			OwnerAccount:      owner,
+			Balance:           balance,
+			LastActivityTime:  lastActivityTime,
+			LastRefreshedTime: time.Now(),
+		}
+
 		_, err := s.accountTokenCollection.UpdateOne(ctx,
 			bson.M{"indexID": indexID, "ownerAccount": owner},
 			bson.M{"$set": tokenUpdate},
@@ -1724,10 +1740,12 @@ func (s *MongodbIndexerStore) UpdateTokenSugesstedMIMEType(ctx context.Context, 
 // GetPresignedThumbnailTokens gets tokens that have presigned thumbnail
 func (s *MongodbIndexerStore) GetPresignedThumbnailTokens(ctx context.Context) ([]Token, error) {
 	tokens := []Token{}
+	pattern := fmt.Sprintf("%s|%s|^$", UnsignedFxhashCID, UnresolvedFxhashURL)
 
 	cursor, err := s.assetCollection.Find(ctx, bson.M{
 		"source":                              SourceTZKT,
-		"projectMetadata.latest.thumbnailURL": bson.M{"$regex": PresignedFxhash},
+		"projectMetadata.latest.source":       "fxhash",
+		"projectMetadata.latest.thumbnailURL": bson.M{"$regex": pattern},
 	})
 	if err != nil {
 		return nil, err
@@ -1828,7 +1846,6 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 		token.Balance = a.Balance
 		token.Owner = a.OwnerAccount
 		token.LastRefreshedTime = a.LastRefreshedTime
-		token.LastActivityTime = a.LastActivityTime
 		results = append(results, token)
 	}
 

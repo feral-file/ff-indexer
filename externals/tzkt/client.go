@@ -13,8 +13,6 @@ import (
 
 	"go.uber.org/zap"
 
-	// indexer "github.com/bitmark-inc/nft-indexer"
-
 	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
@@ -33,7 +31,7 @@ type NullableInt int64
 func New(network string) *TZKT {
 	endpoint := "api.mainnet.tzkt.io"
 	if network == "testnet" {
-		endpoint = "api.limanet.tzkt.io"
+		endpoint = "api.ghostnet.tzkt.io"
 	}
 
 	return &TZKT{
@@ -164,12 +162,12 @@ type Account struct {
 }
 
 type Token struct {
-	Contract    Account       `json:"contract"`
-	ID          TokenID       `json:"tokenId"`
-	Standard    string        `json:"standard"`
-	TotalSupply NullableInt   `json:"totalSupply,string"`
-	Timestamp   time.Time     `json:"firstTime"`
-	Metadata    TokenMetadata `json:"metadata"`
+	Contract    Account        `json:"contract"`
+	ID          TokenID        `json:"tokenId"`
+	Standard    string         `json:"standard"`
+	TotalSupply NullableInt    `json:"totalSupply,string"`
+	Timestamp   time.Time      `json:"firstTime"`
+	Metadata    *TokenMetadata `json:"metadata,omitempty"`
 }
 
 type OwnedToken struct {
@@ -186,8 +184,11 @@ type TokenMetadata struct {
 	ArtifactURI  string       `json:"artifactUri"`
 	DisplayURI   string       `json:"displayUri"`
 	ThumbnailURI string       `json:"thumbnailUri"`
+	Publishers   []string     `json:"publishers"`
 	Creators     FileCreators `json:"creators"`
 	Formats      FileFormats  `json:"formats"`
+
+	ArtworkMetadata map[string]interface{} `json:"artworkMetadata"`
 }
 
 func (c *TZKT) Debug() *TZKT {
@@ -301,11 +302,43 @@ type TokenTransfer struct {
 	To            Account   `json:"to"`
 }
 
-func (c *TZKT) GetTokenTransfers(contract, tokenID string) ([]TokenTransfer, error) {
+func (c *TZKT) GetTokenTransfersCount(contract, tokenID string) (int, error) {
 	v := url.Values{
 		"token.contract": []string{contract},
 		"token.tokenId":  []string{tokenID},
 		"token.standard": []string{"fa2"},
+	}
+
+	u := url.URL{
+		Scheme:   "https",
+		Host:     c.endpoint,
+		Path:     "/v1/tokens/transfers/count",
+		RawQuery: v.Encode(),
+	}
+
+	var count int
+
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return 0, err
+	}
+	if err := c.request(req, &count); err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (c *TZKT) GetTokenTransfers(contract, tokenID string, limit int) ([]TokenTransfer, error) {
+	if limit == 0 {
+		limit = 100
+	}
+
+	v := url.Values{
+		"token.contract": []string{contract},
+		"token.tokenId":  []string{tokenID},
+		"token.standard": []string{"fa2"},
+		"limit":          []string{fmt.Sprint(limit)},
 		"select":         []string{"timestamp,from,to,transactionId,level"},
 	}
 
@@ -506,4 +539,96 @@ func (c *TZKT) GetTransactionByTx(hash string) ([]TransactionDetails, error) {
 	}
 
 	return transactionDetails, nil
+}
+
+// GetBigMapValueByPointer returns the value of a key in a bigmap.
+func (c *TZKT) GetBigMapValueByPointer(pointer int, key string) ([]byte, error) {
+	u := url.URL{
+		Scheme: "https",
+		Host:   c.endpoint,
+		Path:   fmt.Sprintf("/v1/bigmaps/%d/keys", pointer),
+		RawQuery: url.Values{
+			"select": []string{"value"},
+			"key":    []string{key},
+		}.Encode(),
+	}
+
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	var results []json.RawMessage
+
+	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
+		return nil, err
+	}
+
+	if len(results) == 0 {
+		return nil, fmt.Errorf("error key not found")
+	}
+
+	return results[0], nil
+}
+
+// GetBigMapPointersByContract returns a list of big map pointer for a contract.
+// This call accepts tags and an option.
+func (c *TZKT) GetBigMapPointersByContract(contract string, tags ...string) ([]int, error) {
+	query := url.Values{
+		"contract": []string{contract},
+		"select":   []string{"ptr"},
+	}
+
+	if len(tags) > 0 {
+		query["tags.any"] = []string{strings.Join(tags, ",")}
+	}
+
+	u := url.URL{
+		Scheme:   "https",
+		Host:     c.endpoint,
+		Path:     "/v1/bigmaps",
+		RawQuery: query.Encode(),
+	}
+
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	var pointer []int
+
+	err = json.NewDecoder(resp.Body).Decode(&pointer)
+	if err != nil {
+		return nil, err
+	}
+
+	return pointer, nil
+}
+
+// GetBigMapPointerForContractTokenMetadata returns the bigmap pointer of token_metadata
+// for a specific contract
+func (c *TZKT) GetBigMapPointerForContractTokenMetadata(contract string) (int, error) {
+	pointers, err := c.GetBigMapPointersByContract(contract, "token_metadata")
+	if err != nil {
+		return 0, err
+	}
+
+	if len(pointers) == 0 {
+		return 0, fmt.Errorf("no pointer")
+	}
+
+	return pointers[0], nil
 }

@@ -7,10 +7,11 @@ import (
 )
 
 type Asset struct {
-	IndexID           string         `json:"indexID"`
-	ThumbnailID       string         `json:"thumbnailID"`
-	LastRefreshedTime *time.Time     `json:"lastRefreshedTime"`
-	Metadata          *AssetMetadata `json:"metadata"`
+	IndexID           string           `json:"indexID"`
+	ThumbnailID       string           `json:"thumbnailID"`
+	LastRefreshedTime *time.Time       `json:"lastRefreshedTime"`
+	Attributes        *AssetAttributes `json:"attributes"`
+	Metadata          *AssetMetadata   `json:"metadata"`
 }
 
 type AssetAttributes struct {
@@ -19,6 +20,14 @@ type AssetAttributes struct {
 
 type AssetMetadata struct {
 	Project *VersionedProjectMetadata `json:"project"`
+}
+
+type BaseTokenInfo struct {
+	ID              string `json:"id"`
+	Blockchain      string `json:"blockchain"`
+	Fungible        bool   `json:"fungible"`
+	ContractType    string `json:"contractType"`
+	ContractAddress string `json:"contractAddress"`
 }
 
 type Identity struct {
@@ -46,6 +55,7 @@ type ProjectMetadata struct {
 	GalleryThumbnailURL string `json:"galleryThumbnailURL"`
 	AssetData           string `json:"assetData"`
 	AssetURL            string `json:"assetURL"`
+	ArtworkMetadata     JSON   `json:"artworkMetadata"`
 }
 
 type Provenance struct {
@@ -69,12 +79,12 @@ type Token struct {
 	MintAt            *time.Time       `json:"mintAt"`
 	Balance           int64            `json:"balance"`
 	Owner             string           `json:"owner"`
+	OriginTokenInfo   []*BaseTokenInfo `json:"originTokenInfo"`
 	IndexID           string           `json:"indexID"`
 	Source            string           `json:"source"`
 	Swapped           bool             `json:"swapped"`
 	Burned            bool             `json:"burned"`
 	Provenance        []*Provenance    `json:"provenance"`
-	Attributes        *AssetAttributes `json:"attributes"`
 	LastActivityTime  *time.Time       `json:"lastActivityTime"`
 	LastRefreshedTime *time.Time       `json:"lastRefreshedTime"`
 	Asset             *Asset           `json:"asset"`

@@ -1,11 +1,19 @@
 package tzkt
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/stretchr/testify/assert"
 )
+
+func init() {
+	if err := log.Initialize("debug", true); err != nil {
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
+	}
+}
 
 func TestGetContractToken(t *testing.T) {
 	tc := New("")
@@ -35,7 +43,7 @@ func TestRetrieveTokens(t *testing.T) {
 func TestGetTokenTransfers(t *testing.T) {
 	tc := New("")
 
-	transfers, err := tc.GetTokenTransfers("KT1U6EHmNxJTkvaWJ4ThczG4FSDaHC21ssvi", "905625")
+	transfers, err := tc.GetTokenTransfers("KT1U6EHmNxJTkvaWJ4ThczG4FSDaHC21ssvi", "905625", 0)
 	assert.NoError(t, err)
 	assert.GreaterOrEqual(t, len(transfers), 1)
 	assert.Nil(t, transfers[0].From)
@@ -60,6 +68,27 @@ func TestGetTokenActivityTime(t *testing.T) {
 
 	activityTestTime := time.Unix(1655686019, 0)
 	assert.GreaterOrEqual(t, activityTime.Sub(activityTestTime), time.Duration(0))
+}
+
+func TestGetTokenTransfersCount(t *testing.T) {
+	tc := New("")
+
+	count, err := tc.GetTokenTransfersCount("KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE", "401199")
+	assert.NoError(t, err)
+	assert.GreaterOrEqual(t, count, 200)
+}
+
+func TestGetTokenActivityTimeWithLimit200(t *testing.T) {
+	tc := New("")
+
+	activityTime, err := tc.GetTokenLastActivityTime("KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE", "401199")
+	assert.NoError(t, err)
+	activityTestTime := time.Unix(1672001594, 0)
+	assert.GreaterOrEqual(t, activityTime.Sub(activityTestTime), time.Duration(0))
+
+	transfers, err := tc.GetTokenTransfers("KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE", "401199", 200)
+	assert.NoError(t, err)
+	assert.GreaterOrEqual(t, len(transfers), 200)
 }
 
 func TestGetTokenActivityTimeNotExist(t *testing.T) {
@@ -128,8 +157,8 @@ func TestGetTokenOwners(t *testing.T) {
 	owners, err := tc.GetTokenOwners("KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton", "784317", querLimit, startTime)
 	assert.NoError(t, err)
 	assert.Len(t, owners, querLimit)
-	assert.Equal(t, owners[querLimit-1].Address, "tz1ZMDCUyEvsQykWuxTkBzVDcTzMtUEwTeiw")
-	assert.Equal(t, owners[querLimit-1].LastTime.Format(time.RFC3339), "2022-10-01T21:24:59Z")
+	assert.Equal(t, owners[querLimit-1].Address, "tz1YuyeYd9VhZ5QWR1Q9X8ikiRcmMCvmKJWw")
+	assert.Equal(t, owners[querLimit-1].LastTime.Format(time.RFC3339), "2022-10-01T21:26:59Z")
 }
 
 func TestGetTokenOwnersNow(t *testing.T) {
@@ -140,4 +169,20 @@ func TestGetTokenOwnersNow(t *testing.T) {
 	owners, err := tc.GetTokenOwners("KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton", "784317", querLimit, time.Now().Add(-time.Hour))
 	assert.NoError(t, err)
 	assert.Len(t, owners, 0)
+}
+
+func TestGetBigMapPointerForContractTokenMetadata(t *testing.T) {
+	tc := New("")
+
+	p, err := tc.GetBigMapPointerForContractTokenMetadata("KT1U6EHmNxJTkvaWJ4ThczG4FSDaHC21ssvi")
+	assert.NoError(t, err)
+	assert.Equal(t, 149772, p)
+}
+
+func TestGetBigMapValueByPointer(t *testing.T) {
+	tc := New("")
+
+	p, err := tc.GetBigMapValueByPointer(149772, "589146")
+	assert.NoError(t, err)
+	assert.Equal(t, `{"token_id":"589146","token_info":{"":"697066733a2f2f516d64453569635a4450476b623457754d7036377a3647463678543833765344385264415954635478375a6a764b"}}`, string(p))
 }

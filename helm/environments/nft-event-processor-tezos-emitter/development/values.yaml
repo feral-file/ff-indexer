@@ -6,11 +6,11 @@ image:
     tezosFeralfileIndexer: tezos-feralfile-indexer-2.2.1-1
 
 serviceConfig:
-  tezosNodeRPCURL: https://rpc.lima.tzstats.com
+  tezosNodeRPCURL: https://rpc.ghost.tzstats.com
   contractAddresses: [
-    "KT1VZ6Zkoae9DtXkbuw4wtFCg9WH8eywcvEX"
+    "KT1RyzdjGfSx3eXeztdwbxKDUTQSch3dkTqw"
   ]
-  contractBoostUrl: "https://api.limanet.tzkt.io/"
+  contractBoostUrl: "https://api.ghostnet.tzkt.io/"
   environment: development
   network:
     tezos: testnet

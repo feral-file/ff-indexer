@@ -7,7 +7,7 @@ import (
 
 	tx "github.com/bitmark-inc/bitmark-sdk-go/tx"
 	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
+	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"

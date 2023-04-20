@@ -589,7 +589,6 @@ type AccountToken struct {
 	LastActivityTime  string   `protobuf:"bytes,9,opt,name=LastActivityTime,proto3" json:"LastActivityTime,omitempty"`
 	LastRefreshedTime string   `protobuf:"bytes,10,opt,name=LastRefreshedTime,proto3" json:"LastRefreshedTime,omitempty"`
 	LastPendingTime   []string `protobuf:"bytes,11,rep,name=LastPendingTime,proto3" json:"LastPendingTime,omitempty"`
-	LastUpdatedAt     string   `protobuf:"bytes,12,opt,name=LastUpdatedAt,proto3" json:"LastUpdatedAt,omitempty"`
 	PendingTxs        []string `protobuf:"bytes,13,rep,name=PendingTxs,proto3" json:"PendingTxs,omitempty"`
 }
 
@@ -700,13 +699,6 @@ func (x *AccountToken) GetLastPendingTime() []string {
 		return x.LastPendingTime
 	}
 	return nil
-}
-
-func (x *AccountToken) GetLastUpdatedAt() string {
-	if x != nil {
-		return x.LastUpdatedAt
-	}
-	return ""
 }
 
 func (x *AccountToken) GetPendingTxs() []string {

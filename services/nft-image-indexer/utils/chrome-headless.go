@@ -8,7 +8,7 @@ import (
 
 	"github.com/chromedp/chromedp"
 
-	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/imageStore"
+	imageStore "github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/store"
 )
 
 const CropImageTimeout = 5 * time.Second

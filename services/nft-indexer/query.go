@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/background/indexerWorker"
+	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 )
@@ -155,7 +155,7 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, idMap map[string]b
 			continue
 		}
 
-		go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, tokenID, false)
+		go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, tokenID, false, false)
 	}
 }
 
