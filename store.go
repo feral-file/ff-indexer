@@ -1858,6 +1858,10 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 		token.Balance = a.Balance
 		token.Owner = a.OwnerAccount
 		token.LastRefreshedTime = a.LastRefreshedTime
+		if !a.LastActivityTime.IsZero() {
+			token.LastActivityTime = a.LastActivityTime
+		}
+
 		results = append(results, token)
 	}
 
