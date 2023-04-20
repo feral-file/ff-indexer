@@ -88,7 +88,7 @@ type Store interface {
 	GetDetailedToken(ctx context.Context, indexID string) (DetailedToken, error)
 	GetTotalBalanceOfOwnerAccounts(ctx context.Context, addresses []string) (int, error)
 
-	GetNulProvenanceTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
+	GetNullProvenanceTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
 }
 
 type FilterParameter struct {
@@ -1960,8 +1960,8 @@ func (s *MongodbIndexerStore) GetTotalBalanceOfOwnerAccounts(ctx context.Context
 	return totalBalance.Total, nil
 }
 
-// GetNulProvenanceTokensByIndexIDs returns indexIDs that have null provenance
-func (s *MongodbIndexerStore) GetNulProvenanceTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error) {
+// GetNullProvenanceTokensByIndexIDs returns indexIDs that have null provenance
+func (s *MongodbIndexerStore) GetNullProvenanceTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error) {
 	var nullProvenanceIDs []string
 	var tokens []Token
 

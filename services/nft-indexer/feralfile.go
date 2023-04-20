@@ -4,12 +4,13 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
+
 	indexer "github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
-	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 )
 
 // IndexAsset indexes the data of assets and tokens
@@ -44,7 +45,7 @@ func (s *NFTIndexerServer) IndexAsset(c *gin.Context) {
 		return
 	}
 
-	nullProvenanceIDs, err := s.indexerStore.GetNulProvenanceTokensByIndexIDs(c, updatedIndexIDs)
+	nullProvenanceIDs, err := s.indexerStore.GetNullProvenanceTokensByIndexIDs(c, updatedIndexIDs)
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "unable to find null provenance tokens", err)
 		return
