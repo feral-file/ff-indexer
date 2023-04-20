@@ -218,6 +218,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 
 		default:
 			// fallback marketplace
+			source := "unknown"
 			tokenDetail.Fungible = true
 			objktToken, err := e.GetObjktToken(tzktToken.Contract.Address, tzktToken.ID.String())
 			if err != nil {
@@ -226,19 +227,19 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 				metadataDetail.FromObjkt(objktToken)
 			}
 
-			assetURL := fmt.Sprintf("https://objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())
-			switch tzktToken.Metadata.Symbol {
-			case "OBJKTCOM":
-				metadataDetail.SetMarketplace(MarketplaceProfile{"objkt", "https://objkt.com", assetURL})
-			case "OBJKT":
-				metadataDetail.SetMarketplace(MarketplaceProfile{"hic et nunc", "https://objkt.com", assetURL})
-			default:
-				source := "unknown"
-				if metadataDetail.Source != "" {
-					source = metadataDetail.Source
-				}
-				metadataDetail.SetMarketplace(MarketplaceProfile{source, "https://objkt.com", assetURL})
+			if metadataDetail.Source != "" {
+				source = metadataDetail.Source
 			}
+			if tzktToken.Metadata != nil {
+				switch tzktToken.Metadata.Symbol {
+				case "OBJKTCOM":
+					source = "objkt"
+				case "OBJKT":
+					source = "hic et nunc"
+				}
+			}
+			assetURL := fmt.Sprintf("https://objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())
+			metadataDetail.SetMarketplace(MarketplaceProfile{source, "https://objkt.com", assetURL})
 		}
 	} else { // development indexing process
 		var metadataFromSource bool
