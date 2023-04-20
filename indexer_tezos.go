@@ -211,7 +211,8 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			} else {
 				metadata, err := e.searchMetadataFromIPFS(tokenMetadataURL)
 				if err != nil {
-					log.Error("fail to search token metadata from ipfs", zap.Error(err), log.SourceTZKT)
+					log.Error("fail to search token metadata from ipfs",
+						zap.String("tokenMetadataURL", tokenMetadataURL), zap.Error(err), log.SourceTZKT)
 				} else {
 					metadataDetail.FromTZIP21TokenMetadata(*metadata)
 				}
@@ -296,7 +297,8 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			var err error
 			metadata, err = e.searchMetadataFromIPFS(tokenMetadataURL)
 			if err != nil {
-				log.Error("fail to search token metadata from ipfs", zap.Error(err), log.SourceTZKT)
+				log.Error("fail to search token metadata from ipfs",
+					zap.String("tokenMetadataURL", tokenMetadataURL), zap.Error(err), log.SourceTZKT)
 			}
 		}
 
@@ -392,6 +394,7 @@ func (e *IndexEngine) IndexTezosTokenProvenance(contract, tokenID string) ([]Pro
 		if err != nil {
 			log.Error("fail to get transaction",
 				log.SourceTZKT,
+				zap.Error(err),
 				zap.String("blockchain", TezosBlockchain),
 				zap.Uint64("txID", t.TransactionID),
 				zap.Any("transfer", t),
