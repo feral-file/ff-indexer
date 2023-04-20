@@ -83,6 +83,9 @@ func (e *EventProcessor) ProcessEvents(ctx context.Context) {
 	// run goroutines forever
 	log.Debug("start event processing goroutines")
 
+	// token update
+	go e.RefreshTokenData(ctx)
+
 	//stage 1: update the latest owner into mongodb
 	go e.UpdateLatestOwner(ctx)
 

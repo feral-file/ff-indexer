@@ -26,6 +26,26 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
+{{- if eq .Values.serviceConfig.environment "development" }}
+        - name: {{ .Chart.Name }}-postcard-indexer
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tags.tezosPostcardIndexer | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: DEFAULT_CONFIG_PATH
+              value: /.config/dappetizer.default.config.json
+{{- if ne .Values.serviceConfig.eventProcessorURI "" }}
+            - name: EVENT_PROCESSOR_URI
+              value: {{ .Values.serviceConfig.eventProcessorURI }}
+{{- end }}
+            - name: TEZOS_NODE_RPC_URL
+              value: {{ .Values.serviceConfig.tezosNodeRPCURL }}
+          volumeMounts:
+          - name: postcard-indexer-config
+            mountPath: "/.config"
+            readOnly: true
+{{- end }}
 {{- if ne .Values.serviceConfig.environment "development" }}
         - name: {{ .Chart.Name }}-tezos-indexer
           securityContext:
@@ -78,12 +98,22 @@ spec:
             readOnly: true
       volumes:
       # You set volumes at the Pod level, then mount them into containers inside that Pod
+{{- if eq .Values.serviceConfig.environment "development" }}
+      - name: postcard-indexer-config
+        configMap:
+          name: {{ include "nft-event-processor-tezos-emitter.fullname" . }}
+          items:
+          - key: "dappetizer.postcard.config.json"
+            path: "dappetizer.default.config.json"
+{{- end }}
+{{- if ne .Values.serviceConfig.environment "development" }}
       - name: marketplace-indexer-config
         configMap:
           name: {{ include "nft-event-processor-tezos-emitter.fullname" . }}
           items:
           - key: "dappetizer.marketplace.config.json"
             path: "dappetizer.default.config.json"
+{{- end }}
       - name: feralfile-indexer-config
         configMap:
           name: {{ include "nft-event-processor-tezos-emitter.fullname" . }}
