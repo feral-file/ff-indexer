@@ -1793,7 +1793,7 @@ func (s *MongodbIndexerStore) MarkAccountTokenChanged(ctx context.Context, index
 	})
 
 	if err != nil {
-		log.Error("cannot update account tokens", zap.Any("indexIDs", indexIDs))
+		log.Error("cannot update account tokens", zap.Error(err), zap.Any("indexIDs", indexIDs))
 	}
 
 	return err
