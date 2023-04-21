@@ -26,7 +26,7 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-{{- if eq .Values.serviceConfig.environment "development" }}
+{{- if not (empty .Values.image.tags.tezosPostcardIndexer) }}
         - name: {{ .Chart.Name }}-postcard-indexer
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
@@ -98,7 +98,7 @@ spec:
             readOnly: true
       volumes:
       # You set volumes at the Pod level, then mount them into containers inside that Pod
-{{- if eq .Values.serviceConfig.environment "development" }}
+{{- if not (empty .Values.image.tags.tezosPostcardIndexer) }}
       - name: postcard-indexer-config
         configMap:
           name: {{ include "nft-event-processor-tezos-emitter.fullname" . }}
