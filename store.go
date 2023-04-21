@@ -156,7 +156,7 @@ type TokenUpdateSet struct {
 	EditionName       string    `structs:"editionName,omitempty"`
 	ContractAddress   string    `structs:"contractAddress,omitempty"`
 	LastRefreshedTime time.Time `structs:"lastRefreshedTime"`
-	LastActivityTime  time.Time `structs:"lastActivityTime"`
+	LastActivityTime  time.Time `structs:"lastActivityTime,omitempty"`
 }
 
 // checkIfTokenNeedToUpdate returns true if the new token data is suppose to be
@@ -186,6 +186,11 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 	assetCreated := false
 
 	assetIndexID := fmt.Sprintf("%s-%s", strings.ToLower(assetUpdates.Source), id)
+	indexTime := time.Now()
+
+	if assetUpdates.ProjectMetadata.LastUpdatedAt.IsZero() {
+		assetUpdates.ProjectMetadata.LastUpdatedAt = indexTime
+	}
 
 	// insert or update an incoming asset
 	assetResult := s.assetCollection.FindOne(ctx, bson.M{"indexID": assetIndexID},
@@ -202,7 +207,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 					Origin: assetUpdates.ProjectMetadata,
 					Latest: assetUpdates.ProjectMetadata,
 				},
-				LastRefreshedTime: time.Now(),
+				LastRefreshedTime: indexTime,
 			}
 
 			if _, err := s.assetCollection.InsertOne(ctx, structs.Map(assetUpdateSet)); err != nil {
@@ -240,7 +245,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		if requireUpdates {
 			updates := bson.D{{Key: "$set", Value: bson.D{
 				{Key: "projectMetadata.latest", Value: assetUpdates.ProjectMetadata},
-				{Key: "lastRefreshedTime", Value: time.Now()},
+				{Key: "lastRefreshedTime", Value: indexTime},
 			}}}
 
 			// TODO: check whether to remove the thumbnail cache when the thumbnail data is updated.
@@ -280,7 +285,10 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 				// If a token is not found, insert a new token
 				log.Info("new token found", zap.String("token_id", token.ID))
 
-				token.LastActivityTime = token.MintAt // set LastActivityTime to default token minted time
+				if token.LastActivityTime.IsZero() {
+					// set LastActivityTime to default token minted time
+					token.LastActivityTime = token.MintAt
+				}
 				token.OwnersArray = []string{token.Owner}
 				token.Owners = map[string]int64{token.Owner: 1}
 				_, err := s.tokenCollection.InsertOne(ctx, token)
@@ -306,7 +314,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 				Edition:           token.Edition,
 				EditionName:       token.EditionName,
 				ContractAddress:   token.ContractAddress,
-				LastRefreshedTime: token.LastRefreshedTime,
+				LastRefreshedTime: indexTime,
 			}
 
 			if !token.LastActivityTime.IsZero() {
