@@ -411,9 +411,21 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 		}
 
 		if len(totalProvenances) != 0 {
-			owner := map[string]int64{totalProvenances[0].Owner: 1}
-			if err := w.indexerStore.UpdateAccountTokenOwners(ctx, token.IndexID, totalProvenances[0].Timestamp, owner); err != nil {
+			ownerBalance := []indexer.OwnerBalances{
+				{
+					Address:  totalProvenances[0].Owner,
+					Balance:  1,
+					LastTime: totalProvenances[0].Timestamp,
+				},
+			}
+
+			if err := w.indexerStore.UpdateAccountTokenOwners(ctx, token.IndexID, totalProvenances[0].Timestamp, ownerBalance); err != nil {
 				log.Error("cannot update account token owners", zap.String("tokenID: ", token.IndexID), zap.Error(err))
+				return err
+			}
+
+			if err := w.indexerStore.MarkAssetChanged(ctx, token.AssetID); err != nil {
+				log.Error("cannot update asset time", zap.String("assetID", token.AssetID), zap.Error(err))
 				return err
 			}
 			log.Debug("finish updating token owners")
@@ -426,6 +438,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 // RefreshTokenOwnership refreshes ownership for each tokens
 func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs []string, delay time.Duration) error {
 	indexTokens := map[string]indexer.AccountToken{}
+	assetIDs := map[string]string{}
 
 	accountTokens, err := w.indexerStore.GetAccountTokensByIndexIDs(ctx, indexIDs)
 	if err != nil {
@@ -446,7 +459,7 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 	for _, token := range tokens {
 		_, tokenExist := indexTokens[token.IndexID]
 		if !tokenExist {
-			indexTokens[token.AssetID] = indexer.AccountToken{
+			indexTokens[token.IndexID] = indexer.AccountToken{
 				BaseTokenInfo:     token.BaseTokenInfo,
 				IndexID:           token.IndexID,
 				OwnerAccount:      token.Owner,
@@ -455,9 +468,11 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 				LastRefreshedTime: token.LastRefreshedTime,
 			}
 		}
+
+		assetIDs[token.IndexID] = token.AssetID
 	}
 
-	for _, token := range indexTokens {
+	for indexID, token := range indexTokens {
 		if token.LastRefreshedTime.Unix() > time.Now().Add(-delay).Unix() {
 			log.Debug("ownership refresh too frequently",
 				zap.Int64("lastRefresh", token.LastRefreshedTime.Unix()),
@@ -473,7 +488,7 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 
 		log.Debug("start refresh token ownership updating flow", zap.String("indexID", token.IndexID))
 		var (
-			owners           map[string]int64
+			ownerBalances    []indexer.OwnerBalances
 			lastActivityTime time.Time
 			err              error
 		)
@@ -491,7 +506,7 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 			}
 
 			log.Debug("fetch eth ownership for the token", zap.String("indexID", token.IndexID))
-			owners, err = w.indexerEngine.IndexETHTokenOwners(token.ContractAddress, token.ID)
+			ownerBalances, err = w.indexerEngine.IndexETHTokenOwners(token.ContractAddress, token.ID)
 			if err != nil {
 				log.Error("fail to fetch ownership", zap.String("indexID", token.IndexID), zap.Error(err))
 				return err
@@ -509,21 +524,29 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 			}
 
 			log.Debug("fetch tezos ownership for the token", zap.String("indexID", token.IndexID))
-			owners, err = w.indexerEngine.IndexTezosTokenOwners(token.ContractAddress, token.ID)
+			ownerBalances, err = w.indexerEngine.IndexTezosTokenOwners(token.ContractAddress, token.ID)
 			if err != nil {
 				log.Error("fail to fetch ownership", zap.String("indexID", token.IndexID), zap.Error(err))
 				return err
 			}
 		}
 
-		if err := w.indexerStore.UpdateTokenOwners(ctx, token.IndexID, lastActivityTime, owners); err != nil {
-			log.Error("fail to update token owners", zap.String("indexID", token.IndexID), zap.Any("owners", owners), zap.Error(err))
+		if err := w.indexerStore.UpdateTokenOwners(ctx, token.IndexID, lastActivityTime, ownerBalances); err != nil {
+			log.Error("fail to update token owners", zap.String("indexID", token.IndexID), zap.Any("owners", ownerBalances), zap.Error(err))
 			return err
 		}
 
-		if err := w.indexerStore.UpdateAccountTokenOwners(ctx, token.IndexID, lastActivityTime, owners); err != nil {
-			log.Error("fail to update account token owners", zap.String("indexID", token.IndexID), zap.Any("owners", owners), zap.Error(err))
+		if err := w.indexerStore.UpdateAccountTokenOwners(ctx, token.IndexID, lastActivityTime, ownerBalances); err != nil {
+			log.Error("fail to update account token owners", zap.String("indexID", token.IndexID), zap.Any("owners", ownerBalances), zap.Error(err))
 			return err
+		}
+
+		_, tokenExist := assetIDs[indexID]
+		if tokenExist {
+			if err := w.indexerStore.MarkAssetChanged(ctx, assetIDs[indexID]); err != nil {
+				log.Error("cannot update asset time", zap.String("assetID", assetIDs[indexID]), zap.Error(err))
+				return err
+			}
 		}
 	}
 	return nil

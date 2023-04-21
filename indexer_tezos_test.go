@@ -16,6 +16,10 @@ import (
 )
 
 func TestIndexTezosTokenProvenance(t *testing.T) {
+	if err := log.Initialize("", false); err != nil {
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
+	}
+
 	engine := New("", []string{}, nil, tzkt.New(""), nil, nil)
 	provenances, err := engine.IndexTezosTokenProvenance("KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE", "178227")
 	assert.NoError(t, err)
@@ -23,13 +27,22 @@ func TestIndexTezosTokenProvenance(t *testing.T) {
 }
 
 func TestIndexTezosTokenOwnersWithNFT(t *testing.T) {
+	if err := log.Initialize("", false); err != nil {
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
+	}
+
 	engine := New("", []string{}, nil, tzkt.New(""), nil, nil)
-	owners, err := engine.IndexTezosTokenOwners("KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE", "178227")
+	ownerBalances, err := engine.IndexTezosTokenOwners("KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE", "178227")
 	assert.NoError(t, err)
-	assert.Len(t, owners, 1)
+	assert.Len(t, ownerBalances, 1)
+	assert.NotEqual(t, ownerBalances, []OwnerBalances{})
 }
 
 func TestGetTezosTokenByOwner(t *testing.T) {
+	if err := log.Initialize("", false); err != nil {
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
+	}
+
 	engine := New("", []string{}, nil, tzkt.New(""), nil, nil)
 	owners, err := engine.GetTezosTokenByOwner("tz1YiYx6TwBnsAgEnXSyhFiM9bqFD54QVhy4", time.Time{}, 0) // incorrect metadata format case
 	assert.NoError(t, err)
@@ -37,17 +50,27 @@ func TestGetTezosTokenByOwner(t *testing.T) {
 }
 
 func TestIndexTezosTokenOwnersFT(t *testing.T) {
+	if err := log.Initialize("", false); err != nil {
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
+	}
+
 	engine := New("", []string{}, nil, tzkt.New(""), nil, nil)
-	owners, err := engine.IndexTezosTokenOwners("KT1LjmAdYQCLBjwv4S2oFkEzyHVkomAf5MrW", "24216")
+	ownerBalances, err := engine.IndexTezosTokenOwners("KT1LjmAdYQCLBjwv4S2oFkEzyHVkomAf5MrW", "24216")
 	assert.NoError(t, err)
-	assert.Len(t, owners, 13)
+	assert.Len(t, ownerBalances, 13)
+	assert.NotEqual(t, ownerBalances, []OwnerBalances{})
 }
 
 func TestIndexTezosTokenOwnersWithNFTOwnByManyAddress(t *testing.T) {
+	if err := log.Initialize("", false); err != nil {
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
+	}
+
 	engine := New("", []string{}, nil, tzkt.New(""), nil, nil)
-	owners, err := engine.IndexTezosTokenOwners("KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton", "784317")
+	ownerBalances, err := engine.IndexTezosTokenOwners("KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton", "784317")
 	assert.NoError(t, err)
-	assert.Len(t, owners, 262)
+	assert.Len(t, ownerBalances, 334)
+	assert.NotEqual(t, ownerBalances, []OwnerBalances{})
 }
 
 func TestIndexTezosToken(t *testing.T) {
