@@ -28,6 +28,6 @@ func (s *NFTEventSubscriber) UpdateOwner(c context.Context, id, owner string, up
 	return s.store.UpdateOwner(c, id, owner, updatedAt)
 }
 
-func (s *NFTEventSubscriber) UpdateAccountTokenOwners(c context.Context, indexID string, lastActivityTime time.Time, ownerBalances []indexer.OwnerBalances) error {
-	return s.store.UpdateAccountTokenOwners(c, indexID, lastActivityTime, ownerBalances)
+func (s *NFTEventSubscriber) UpdateAccountTokenOwners(c context.Context, indexID string, ownerBalances []indexer.OwnerBalance) error {
+	return s.store.UpdateAccountTokenOwners(c, indexID, ownerBalances)
 }

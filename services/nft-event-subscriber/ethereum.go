@@ -212,14 +212,14 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 						go indexerWorker.StartRefreshTokenProvenanceWorkflow(ctx, &s.Worker, "subscriber", indexID, 0)
 					}
 
-					ownerBalances := []indexer.OwnerBalances{
+					ownerBalances := []indexer.OwnerBalance{
 						{
 							Address:  toAddress,
 							Balance:  1,
 							LastTime: timestamp,
 						},
 					}
-					if err := s.UpdateAccountTokenOwners(ctx, token.IndexID, timestamp, ownerBalances); err != nil {
+					if err := s.UpdateAccountTokenOwners(ctx, token.IndexID, ownerBalances); err != nil {
 						log.Error("fail to update account tokens", zap.Error(err))
 						continue
 					}

@@ -427,14 +427,14 @@ func (e *IndexEngine) IndexTezosTokenLastActivityTime(contract, tokenID string) 
 }
 
 // IndexTezosTokenOwners indexes owners of a given token
-func (e *IndexEngine) IndexTezosTokenOwners(contract, tokenID string) ([]OwnerBalances, error) {
+func (e *IndexEngine) IndexTezosTokenOwners(contract, tokenID string) ([]OwnerBalance, error) {
 	log.Debug("index tezos token owners",
 		zap.String("blockchain", TezosBlockchain),
 		zap.String("contract", contract), zap.String("tokenID", tokenID))
 
 	var lastTime time.Time
 	var querLimit = 50
-	ownerBalances := []OwnerBalances{}
+	ownerBalances := []OwnerBalance{}
 	for {
 		owners, err := e.tzkt.GetTokenOwners(contract, tokenID, querLimit, lastTime)
 		if err != nil {
@@ -444,7 +444,7 @@ func (e *IndexEngine) IndexTezosTokenOwners(contract, tokenID string) ([]OwnerBa
 		ownersLen := len(owners)
 
 		for i, o := range owners {
-			ownerBalances = append(ownerBalances, OwnerBalances{
+			ownerBalances = append(ownerBalances, OwnerBalance{
 				Address:  o.Address,
 				Balance:  o.Balance,
 				LastTime: o.LastTime,

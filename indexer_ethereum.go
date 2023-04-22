@@ -199,13 +199,13 @@ func (e *IndexEngine) IndexETHTokenLastActivityTime(contract, tokenID string) (t
 }
 
 // IndexETHTokenOwners indexes owners of a given token
-func (e *IndexEngine) IndexETHTokenOwners(contract, tokenID string) ([]OwnerBalances, error) {
+func (e *IndexEngine) IndexETHTokenOwners(contract, tokenID string) ([]OwnerBalance, error) {
 	log.Debug("index eth token owners",
 		zap.String("blockchain", EthereumBlockchain),
 		zap.String("contract", contract), zap.String("tokenID", tokenID))
 
 	var next *string
-	ownerBalances := []OwnerBalances{}
+	ownerBalances := []OwnerBalance{}
 	for {
 		owners, n, err := e.opensea.RetrieveTokenOwners(contract, tokenID, next)
 		if err != nil {
@@ -213,7 +213,7 @@ func (e *IndexEngine) IndexETHTokenOwners(contract, tokenID string) ([]OwnerBala
 		}
 
 		for _, o := range owners {
-			ownerBalances = append(ownerBalances, OwnerBalances{
+			ownerBalances = append(ownerBalances, OwnerBalance{
 				Address:  o.Owner.Address,
 				Balance:  o.Quantity,
 				LastTime: o.CreatedDate.Time,

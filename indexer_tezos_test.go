@@ -35,7 +35,7 @@ func TestIndexTezosTokenOwnersWithNFT(t *testing.T) {
 	ownerBalances, err := engine.IndexTezosTokenOwners("KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE", "178227")
 	assert.NoError(t, err)
 	assert.Len(t, ownerBalances, 1)
-	assert.NotEqual(t, ownerBalances, []OwnerBalances{})
+	assert.NotEqual(t, ownerBalances, []OwnerBalance{})
 }
 
 func TestGetTezosTokenByOwner(t *testing.T) {
@@ -58,7 +58,7 @@ func TestIndexTezosTokenOwnersFT(t *testing.T) {
 	ownerBalances, err := engine.IndexTezosTokenOwners("KT1LjmAdYQCLBjwv4S2oFkEzyHVkomAf5MrW", "24216")
 	assert.NoError(t, err)
 	assert.Len(t, ownerBalances, 13)
-	assert.NotEqual(t, ownerBalances, []OwnerBalances{})
+	assert.NotEqual(t, ownerBalances, []OwnerBalance{})
 }
 
 func TestIndexTezosTokenOwnersWithNFTOwnByManyAddress(t *testing.T) {
@@ -70,7 +70,7 @@ func TestIndexTezosTokenOwnersWithNFTOwnByManyAddress(t *testing.T) {
 	ownerBalances, err := engine.IndexTezosTokenOwners("KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton", "784317")
 	assert.NoError(t, err)
 	assert.Len(t, ownerBalances, 334)
-	assert.NotEqual(t, ownerBalances, []OwnerBalances{})
+	assert.NotEqual(t, ownerBalances, []OwnerBalance{})
 }
 
 func TestIndexTezosToken(t *testing.T) {
