@@ -17,6 +17,7 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/ens"
 	"github.com/bitmark-inc/nft-indexer/externals/feralfile"
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
+	"github.com/bitmark-inc/nft-indexer/externals/infura"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	tezosDomain "github.com/bitmark-inc/nft-indexer/externals/tezos-domain"
@@ -60,6 +61,7 @@ func main() {
 		tzkt.New(viper.GetString("network.tezos")),
 		fxhash.New(viper.GetString("fxhash.api_endpoint")),
 		objkt.New(viper.GetString("objkt.api_endpoint")),
+		infura.New(viper.GetString("network.ethereum"), viper.GetString("ethereum.infura_api_key"), viper.GetString("ethereum.infura_api_key_secret")),
 	)
 
 	parameterStore, err := ssm.NewParameterStore(ctx)

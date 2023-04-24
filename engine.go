@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
+	"github.com/bitmark-inc/nft-indexer/externals/infura"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	"github.com/bitmark-inc/tzkt-go"
@@ -19,6 +20,7 @@ type IndexEngine struct {
 	tzkt    *tzkt.TZKT
 	fxhash  *fxhash.Client
 	objkt   *objkt.Client
+	infura  *infura.Client
 }
 
 func New(
@@ -28,6 +30,7 @@ func New(
 	tzkt *tzkt.TZKT,
 	fxhash *fxhash.Client,
 	objkt *objkt.Client,
+	infura *infura.Client,
 ) *IndexEngine {
 	if len(ipfsGateways) == 0 {
 		ipfsGateways = []string{DefaultIPFSGateway}
@@ -43,5 +46,6 @@ func New(
 		tzkt:    tzkt,
 		fxhash:  fxhash,
 		objkt:   objkt,
+		infura:  infura,
 	}
 }

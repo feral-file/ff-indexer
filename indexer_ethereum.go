@@ -59,12 +59,12 @@ func (e *IndexEngine) IndexETHToken(owner, contract, tokenID string) (*AssetUpda
 		return nil, err
 	}
 
-	balance, err := e.opensea.GetTokenBalanceForOwner(contract, tokenID, owner)
+	ownersMap, err := e.infura.GetOwnersAndBalancesByToken(contract, tokenID)
 	if err != nil {
 		return nil, err
 	}
 
-	return e.indexETHToken(a, owner, balance)
+	return e.indexETHToken(a, owner, ownersMap[owner])
 }
 
 // indexETHToken prepares indexing data for a specific asset read from opensea

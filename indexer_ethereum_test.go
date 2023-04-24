@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/bitmark-inc/nft-indexer/externals/infura"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
@@ -25,6 +27,7 @@ func TestIndexETHToken(t *testing.T) {
 		tzkt.New(""),
 		fxhash.New("https://api.fxhash.xyz/graphql"),
 		objkt.New("https://data.objkt.com/v3/graphql"),
+		infura.New("mainnet", viper.GetString("ethereum.infura_api_key"), viper.GetString("ethereum.infura_api_key_secret")),
 	)
 
 	assetUpdates, err := engine.IndexETHToken("0xb6bbc4C740dc49A80Db4D00e7fb7E15819f578aF", "0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d", "9616")

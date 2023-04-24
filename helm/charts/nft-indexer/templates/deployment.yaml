@@ -190,6 +190,16 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-indexer.fullname" . }}
                   key: ethereum_worker_account_mnemonic
+            - name: NFT_INDEXER_ETHEREUM_INFURA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: ethereum_infura_api_key
+            - name: NFT_INDEXER_ETHEREUM_INFURA_API_KEY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: ethereum_infura_api_key_secret
             - name: NFT_INDEXER_OPENSEA_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -394,6 +404,16 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-indexer.fullname" . }}
                   key: ethereum_worker_account_mnemonic
+            - name: NFT_INDEXER_ETHEREUM_INFURA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: ethereum_infura_api_key
+            - name: NFT_INDEXER_ETHEREUM_INFURA_API_KEY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: ethereum_infura_api_key_secret
             - name: NFT_INDEXER_OPENSEA_API_KEY
               valueFrom:
                 secretKeyRef:

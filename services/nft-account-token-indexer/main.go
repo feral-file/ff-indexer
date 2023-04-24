@@ -17,6 +17,7 @@ import (
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/cadence"
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
+	"github.com/bitmark-inc/nft-indexer/externals/infura"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	"github.com/bitmark-inc/nft-indexer/log"
@@ -58,6 +59,7 @@ func main() {
 		tzkt.New(viper.GetString("network.tezos")),
 		fxhash.New(viper.GetString("fxhash.api_endpoint")),
 		objkt.New(viper.GetString("objkt.api_endpoint")),
+		infura.New(viper.GetString("network.ethereum"), viper.GetString("ethereum.infura_api_key"), viper.GetString("ethereum.infura_api_key_secret")),
 	)
 
 	awsSession := session.Must(session.NewSession(&aws.Config{
