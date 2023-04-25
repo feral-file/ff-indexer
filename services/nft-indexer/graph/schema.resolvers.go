@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/services/nft-indexer/graph/model"
 )
 

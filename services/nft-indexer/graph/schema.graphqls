@@ -27,75 +27,82 @@ type Token {
 }
 
 type BaseTokenInfo {
-	id:              String!
-	blockchain:      String!
-	fungible:        Boolean!
-	contractType:    String!
-	contractAddress: String!
+    id:              String!
+    blockchain:      String!
+    fungible:        Boolean!
+    contractType:    String!
+    contractAddress: String!
 }
 
 type Provenance {
-	type:        String!
-	owner:       String!
-	blockchain:  String!
-	blockNumber: Int64
-	timestamp:   Time
-	txID:        String!
-	txURL:       String!
+    type:        String!
+    owner:       String!
+    blockchain:  String!
+    blockNumber: Int64
+    timestamp:   Time
+    txID:        String!
+    txURL:       String!
 }
 
 type AssetAttributes {
-	scrollable:	Boolean!
+    scrollable:    Boolean!
 }
 
 type Asset {
-	indexID:            String!
-	thumbnailID:        String!
-	lastRefreshedTime:  Time
-	attributes:         AssetAttributes
-	metadata:           AssetMetadata!
+    indexID:            String!
+    thumbnailID:        String!
+    lastRefreshedTime:  Time
+    attributes:         AssetAttributes
+    metadata:           AssetMetadata!
 }
 
 type AssetMetadata {
-  	project:  VersionedProjectMetadata!
+    project:  VersionedProjectMetadata!
 }
 
 type VersionedProjectMetadata {
   	origin:   ProjectMetadata!
-  	latest:  ProjectMetadata!
+  	latest:   ProjectMetadata!
 }
 
 type ProjectMetadata {
-	artistID:            String!
-	artistName:          String!
-	artistURL:           String!
-	assetID:             String!
-	title:               String!
-	description:         String!
-	mimeType:            String!
-	medium:              String!
-	maxEdition:          Int64!
-	baseCurrency:        String!
-	basePrice:           Float!
-	source:              String!
-	sourceURL:           String!
-	previewURL:          String!
-	thumbnailURL:        String!
-	galleryThumbnailURL: String!
-	assetData:           String!
-	assetURL:            String!
-	artworkMetadata:     JSON
+    artistID:            String!
+    artistName:          String!
+    artistURL:           String!
+    artists:             [Artist!]!
+    assetID:             String!
+    title:               String!
+    description:         String!
+    mimeType:            String!
+    medium:              String!
+    maxEdition:          Int64!
+    baseCurrency:        String!
+    basePrice:           Float!
+    source:              String!
+    sourceURL:           String!
+    previewURL:          String!
+    thumbnailURL:        String!
+    galleryThumbnailURL: String!
+    assetData:           String!
+    assetURL:            String!
+    artworkMetadata:     JSON
+}
+
+type Artist {
+    id:   String!
+    name: String!
+    url:  String!
 }
 
 type Identity {
-	accountNumber:  String!
-	blockchain:      String!
-	name:            String!
+    accountNumber:   String!
+    blockchain:      String!
+    name:            String!
 }
 
 type Query {
-  tokens(owners: [String!]! = [], ids: [String!]! = [], lastUpdatedAt: Time, sortBy: String, offset: Int64! = 0, size: Int64! = 50): [Token!]!
-  identity(account: String!): Identity
+    tokens(owners: [String!]! = [], ids: [String!]! = [], lastUpdatedAt: Time, sortBy: String, offset: Int64! = 0, size: Int64! = 50): [Token!]!
+    identity(account: String!): Identity
 }
 
 scalar Time
