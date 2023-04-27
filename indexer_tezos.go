@@ -274,6 +274,8 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 				},
 			)
 			metadataDetail.SetMedium(MediumSoftware)
+		case POSTCARDCONTRACT:
+			tokenDetail.Fungible = true
 		}
 
 		tokenMetadataURL, err := e.getTokenMetadataURL(tzktToken.Contract.Address, tzktToken.ID.String())
