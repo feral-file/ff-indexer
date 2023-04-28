@@ -6,6 +6,12 @@ import (
 	"time"
 )
 
+type Artist struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
+
 type Asset struct {
 	IndexID           string           `json:"indexID"`
 	ThumbnailID       string           `json:"thumbnailID"`
@@ -37,25 +43,26 @@ type Identity struct {
 }
 
 type ProjectMetadata struct {
-	ArtistID            string  `json:"artistID"`
-	ArtistName          string  `json:"artistName"`
-	ArtistURL           string  `json:"artistURL"`
-	AssetID             string  `json:"assetID"`
-	Title               string  `json:"title"`
-	Description         string  `json:"description"`
-	MimeType            string  `json:"mimeType"`
-	Medium              string  `json:"medium"`
-	MaxEdition          int64   `json:"maxEdition"`
-	BaseCurrency        string  `json:"baseCurrency"`
-	BasePrice           float64 `json:"basePrice"`
-	Source              string  `json:"source"`
-	SourceURL           string  `json:"sourceURL"`
-	PreviewURL          string  `json:"previewURL"`
-	ThumbnailURL        string  `json:"thumbnailURL"`
-	GalleryThumbnailURL string  `json:"galleryThumbnailURL"`
-	AssetData           string  `json:"assetData"`
-	AssetURL            string  `json:"assetURL"`
-	ArtworkMetadata     JSON    `json:"artworkMetadata"`
+	ArtistID            string    `json:"artistID"`
+	ArtistName          string    `json:"artistName"`
+	ArtistURL           string    `json:"artistURL"`
+	Artists             []*Artist `json:"artists"`
+	AssetID             string    `json:"assetID"`
+	Title               string    `json:"title"`
+	Description         string    `json:"description"`
+	MimeType            string    `json:"mimeType"`
+	Medium              string    `json:"medium"`
+	MaxEdition          int64     `json:"maxEdition"`
+	BaseCurrency        string    `json:"baseCurrency"`
+	BasePrice           float64   `json:"basePrice"`
+	Source              string    `json:"source"`
+	SourceURL           string    `json:"sourceURL"`
+	PreviewURL          string    `json:"previewURL"`
+	ThumbnailURL        string    `json:"thumbnailURL"`
+	GalleryThumbnailURL string    `json:"galleryThumbnailURL"`
+	AssetData           string    `json:"assetData"`
+	AssetURL            string    `json:"assetURL"`
+	ArtworkMetadata     JSON      `json:"artworkMetadata"`
 }
 
 type Provenance struct {

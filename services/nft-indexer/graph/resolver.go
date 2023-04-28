@@ -66,10 +66,21 @@ func (r *Resolver) mapGraphQLToken(t indexer.DetailedTokenV2) *model.Token {
 }
 
 func (r *Resolver) mapGraphQLProjectMetadata(p indexer.ProjectMetadata) *model.ProjectMetadata {
+	var artists []*model.Artist
+
+	for _, a := range p.Artists {
+		artists = append(artists, &model.Artist{
+			ID:   a.ID,
+			Name: a.Name,
+			URL:  a.URL,
+		})
+	}
+
 	return &model.ProjectMetadata{
 		ArtistID:            p.ArtistID,
 		ArtistName:          p.ArtistName,
 		ArtistURL:           p.ArtistURL,
+		Artists:             artists,
 		AssetID:             p.AssetID,
 		Title:               p.Title,
 		Description:         p.Description,
