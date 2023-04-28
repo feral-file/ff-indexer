@@ -158,6 +158,10 @@ github.com/bitmark-inc/tzkt-go v0.0.0-20230324022255-ff807050dd85 h1:Y6YNCuN3myu
 github.com/bitmark-inc/tzkt-go v0.0.0-20230324022255-ff807050dd85/go.mod h1:3TbOdben3+cIHzDHUxsmzpfNeW4UWGosc//YHSbydhc=
 github.com/bitmark-inc/tzkt-go v0.0.1 h1:EwCTAl1B6UI4/PrH7GcB/B2abCT0rOoe/NxFWvCkHQc=
 github.com/bitmark-inc/tzkt-go v0.0.1/go.mod h1:e/kgHH4i6YzCveZ79cDiviEAA5FU6YO48nWLQBRAdGE=
+github.com/bitmark-inc/tzkt-go v0.0.2 h1:qJEXHcUK3i3P/urjW3eNHotYikia3zGlna73moPP4Fw=
+github.com/bitmark-inc/tzkt-go v0.0.2/go.mod h1:e/kgHH4i6YzCveZ79cDiviEAA5FU6YO48nWLQBRAdGE=
+github.com/bitmark-inc/tzkt-go v0.0.3 h1:UK5OBeHmDwZSmwEtabGvOLUIYcw9bgSwCfxko3djdMs=
+github.com/bitmark-inc/tzkt-go v0.0.3/go.mod h1:e/kgHH4i6YzCveZ79cDiviEAA5FU6YO48nWLQBRAdGE=
 github.com/bmizerany/pat v0.0.0-20170815010413-6226ea591a40/go.mod h1:8rLXio+WjiTceGBHIoTvn60HIbs7Hm7bcHjyrSqYB9c=
 github.com/bmizerany/perks v0.0.0-20141205001514-d9a9656a3a4b h1:AP/Y7sqYicnjGDfD5VcY4CIfh1hRXBUavxrvELjTiOE=
 github.com/bmizerany/perks v0.0.0-20141205001514-d9a9656a3a4b/go.mod h1:ac9efd0D1fsDb3EJvhqgXRbFx7bs2wqZ10HQPeU8U/Q=

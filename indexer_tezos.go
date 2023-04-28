@@ -203,6 +203,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		MintedAt: tzktToken.Timestamp,
 	}
 
+	var fungible bool
 	if e.environment != DevelopmentEnvironment { // production indexing process
 		if tzktToken.Metadata == nil || time.Since(lastActivityTime) < 14*24*time.Hour {
 			tokenMetadataURL, err := e.getTokenMetadataURL(tzktToken.Contract.Address, tzktToken.ID.String())
@@ -262,6 +263,8 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 				metadataDetail.SetMarketplace(MarketplaceProfile{source, "https://objkt.com", assetURL})
 			}
 		}
+
+		fungible = tokenDetail.Fungible
 	} else { // development indexing process
 		switch tzktToken.Contract.Address {
 		case FXHASHContractAddressDev0_0, FXHASHContractAddressDev0_1:
@@ -274,8 +277,6 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 				},
 			)
 			metadataDetail.SetMedium(MediumSoftware)
-		case POSTCARDCONTRACT:
-			tokenDetail.Fungible = true
 		}
 
 		tokenMetadataURL, err := e.getTokenMetadataURL(tzktToken.Contract.Address, tzktToken.ID.String())
@@ -304,6 +305,8 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		if metadata != nil {
 			metadataDetail.FromTZIP21TokenMetadata(*metadata)
 		}
+
+		fungible = metadata.IsBooleanAmount
 	}
 
 	// ensure ipfs urls are converted to http links
@@ -345,7 +348,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 				BaseTokenInfo: BaseTokenInfo{
 					ID:              tzktToken.ID.String(),
 					Blockchain:      TezosBlockchain,
-					Fungible:        tokenDetail.Fungible,
+					Fungible:        fungible,
 					ContractType:    tzktToken.Standard,
 					ContractAddress: tzktToken.Contract.Address,
 				},
