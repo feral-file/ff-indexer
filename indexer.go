@@ -100,7 +100,7 @@ func ipfsURLToGatewayURL(gateway, ipfsURL string) string {
 		return ipfsURL
 	}
 
-	u.Path = fmt.Sprintf("ipfs/%s/", u.Host)
+	u.Path = fmt.Sprintf("ipfs/%s%s", u.Host, u.Path)
 	u.Host = gateway
 	u.Scheme = "https"
 
