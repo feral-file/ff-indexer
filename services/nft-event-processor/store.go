@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -54,6 +55,10 @@ type PostgresEventStore struct {
 }
 
 func NewPostgresEventStore(db *gorm.DB) *PostgresEventStore {
+	if viper.GetBool("debug") {
+		db = db.Debug()
+	}
+
 	return &PostgresEventStore{
 		db: db,
 	}

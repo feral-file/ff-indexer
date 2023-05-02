@@ -11,6 +11,8 @@ store:
 log:
   level: debug
 
+debug: true
+
 sentry:
   dsn:
 

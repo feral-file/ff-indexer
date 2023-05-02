@@ -220,14 +220,20 @@ func (e *EventProcessor) GetQueueEventByStage(stage int8) (*NFTEvent, error) {
 	return event, nil
 }
 
+// logStageEvent logs events by stages
+func (e *EventProcessor) logStageEvent(stage int8, message string, fields ...zap.Field) {
+	fields = append(fields, zap.Int8("stage", stage))
+	log.Info(message, fields...)
+}
+
 // logStartStage log when start a stage
 func (e *EventProcessor) logStartStage(event *NFTEvent, stage int8) {
-	log.Info("start stage for event: ", zap.Int8("stage", stage), zap.Any("event", event))
+	log.Info("start stage for event: ", zap.Int8("stage", stage), zap.Any("event", event.ID))
 }
 
 // logEndStage log when end a stage
 func (e *EventProcessor) logEndStage(event *NFTEvent, stage int8) {
-	log.Info("finished stage for event: ", zap.Int8("stage", stage), zap.Any("event", event))
+	log.Info("finished stage for event: ", zap.Int8("stage", stage), zap.Any("event", event.ID))
 }
 
 // UpdateLatestOwner [stage 1] update owner for nft and ft by event information
@@ -375,6 +381,7 @@ func (e *EventProcessor) SendEventToFeedServer() {
 	var stage int8 = 4
 
 	for {
+		e.logStageEvent(stage, "query events")
 		event, err := e.GetQueueEventByStage(stage)
 		if err != nil {
 			log.Error("Have error when try to get queue event", zap.Error(err))
@@ -382,9 +389,10 @@ func (e *EventProcessor) SendEventToFeedServer() {
 
 		if event == nil {
 			time.Sleep(WaitingTime)
-
+			e.logStageEvent(stage, "no event found")
 			continue
 		}
+		e.logStageEvent(stage, "get an event", zap.String("eventID", event.ID), zap.Any("event", event))
 
 		eventID := event.ID
 		blockchain := event.Blockchain
@@ -393,17 +401,16 @@ func (e *EventProcessor) SendEventToFeedServer() {
 		to := event.To
 		eventType := event.Type
 
-		e.logStartStage(event, stage)
-
+		e.logStageEvent(stage, "start sending an event to feed", zap.String("eventID", event.ID))
 		if err := e.feedServer.SendEvent(blockchain, contract, tokenID, to, eventType, viper.GetString("network.ethereum") == "testnet"); err != nil {
 			log.Debug("fail to push event to feed server", zap.Error(err))
 		}
+		e.logStageEvent(stage, "event has sent to feed", zap.String("eventID", event.ID))
 
 		// finish all stage of event processing
 		if err := e.queueProcessor.store.CompleteEvent(eventID); err != nil {
 			log.Error("fail to mark an event completed", zap.Error(err))
 		}
-
-		e.logEndStage(event, stage)
+		e.logStageEvent(stage, "mark an event completed", zap.String("eventID", event.ID))
 	}
 }
