@@ -108,7 +108,7 @@ func (r *Resolver) mapGraphQLProvenance(p indexer.Provenance) *model.Provenance 
 
 	return &model.Provenance{
 		Type:        p.Type,
-		Owner:       p.Type,
+		Owner:       p.Owner,
 		Blockchain:  p.Blockchain,
 		BlockNumber: &b,
 		Timestamp:   &p.Timestamp,

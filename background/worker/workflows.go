@@ -243,7 +243,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenanceWorkflow(ctx workflow.Context, 
 
 	err := workflow.ExecuteActivity(ctx, w.RefreshTokenProvenance, indexIDs, delay).Get(ctx, nil)
 	if err != nil {
-		log.Error("fail to refresh provenance for indexIDs", zap.Any("indexIDs", indexIDs))
+		log.Error("fail to refresh provenance for indexIDs", zap.Error(err), zap.Any("indexIDs", indexIDs))
 	}
 
 	return err
@@ -265,7 +265,7 @@ func (w *NFTIndexerWorker) RefreshTokenOwnershipWorkflow(ctx workflow.Context, i
 
 	err := workflow.ExecuteActivity(ctx, w.RefreshTokenOwnership, indexIDs, delay).Get(ctx, nil)
 	if err != nil {
-		log.Error("fail to refresh ownership for indexIDs", zap.Any("indexIDs", indexIDs))
+		log.Error("fail to refresh ownership for indexIDs", zap.Error(err), zap.Any("indexIDs", indexIDs))
 	}
 
 	return err
@@ -306,7 +306,7 @@ func (w *NFTIndexerWorker) UpdateAccountTokensWorkflow(ctx workflow.Context, del
 	log.Debug("start UpdateAccountTokensWorkflow")
 
 	if err := workflow.ExecuteActivity(ctx, w.UpdateAccountTokens).Get(ctx, nil); err != nil {
-		log.Error("fail to update account tokens")
+		log.Error("fail to update account tokens", zap.Error(err))
 		return err
 	}
 
@@ -331,7 +331,7 @@ func (w *NFTIndexerWorker) UpdateSuggestedMIMETypeWorkflow(ctx workflow.Context,
 	log.Debug("start UpdateSuggestedMimeTypeWorkflow")
 
 	if err := workflow.ExecuteActivity(ctx, w.CalculateMIMETypeFromTokenFeedback).Get(ctx, nil); err != nil {
-		log.Error("fail to update suggested mimeType")
+		log.Error("fail to update suggested mimeType", zap.Error(err))
 		return err
 	}
 
@@ -352,7 +352,7 @@ func (w *NFTIndexerWorker) DetectAssetChangeWorkflow(ctx workflow.Context) error
 	log.Debug("start DetectAssetChangeWorkflow")
 
 	if err := workflow.ExecuteActivity(ctx, w.UpdatePresignedThumbnailAssets).Get(ctx, nil); err != nil {
-		log.Error("fail to update asset")
+		log.Error("fail to update asset", zap.Error(err))
 		return err
 	}
 

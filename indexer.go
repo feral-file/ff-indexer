@@ -100,7 +100,7 @@ func ipfsURLToGatewayURL(gateway, ipfsURL string) string {
 		return ipfsURL
 	}
 
-	u.Path = fmt.Sprintf("ipfs/%s/", u.Host)
+	u.Path = fmt.Sprintf("ipfs/%s%s", u.Host, u.Path)
 	u.Host = gateway
 	u.Scheme = "https"
 
@@ -326,7 +326,7 @@ func (e *IndexEngine) IndexToken(c context.Context, owner, contract, tokenID str
 	}
 }
 
-func (e *IndexEngine) GetTransactionDetailsByPendingTx(pendingTx string) ([]tzkt.TransactionDetails, error) {
+func (e *IndexEngine) GetTransactionDetailsByPendingTx(pendingTx string) ([]tzkt.DetailedTransaction, error) {
 	detailedTransactions, err := e.tzkt.GetTransactionByTx(pendingTx)
 	if err != nil {
 		return nil, err

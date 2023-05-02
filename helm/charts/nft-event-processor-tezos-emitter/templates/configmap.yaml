@@ -24,6 +24,7 @@ data:
         "url": "{{ .Values.serviceConfig.tezosNodeRPCURL }}"
       }
     }
+{{- if not (empty .Values.image.tags.tezosPostcardIndexer) }}
   dappetizer.postcard.config.json: |
     {
       "indexing": {
@@ -43,6 +44,7 @@ data:
         "url": "{{ .Values.serviceConfig.tezosNodeRPCURL }}"
       }
     }
+{{- end }}
   dappetizer.marketplace.config.json: |
     {
       "indexing": {

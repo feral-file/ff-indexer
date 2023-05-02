@@ -514,6 +514,60 @@ func (s *NFTIndexerServer) GetAccountNFTs(c *gin.Context) {
 	c.JSON(http.StatusOK, tokensInfo)
 }
 
+func (s *NFTIndexerServer) ForceReindexNFT(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "ForceReIndexToken")
+	var req struct {
+		Owner      indexer.BlockchainAddress `json:"owner"`
+		LastUpdate int64                     `json:"lastUpdated"`
+	}
+
+	if err := c.Bind(&req); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	owner := string(req.Owner)
+	blockchain := indexer.GetBlockchainByAddress(owner)
+	if blockchain == indexer.UnknownBlockchain {
+		abortWithError(c, http.StatusInternalServerError, "unknow blockchain", fmt.Errorf("unknow blockchain"))
+		return
+	}
+
+	account := indexer.Account{
+		Account:          owner,
+		Blockchain:       blockchain,
+		LastUpdatedTime:  time.Unix(req.LastUpdate, 0),
+		LastActivityTime: time.Unix(req.LastUpdate, 0),
+	}
+
+	if err := s.indexerStore.IndexAccount(c, account); err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to update account status", err)
+		return
+	}
+
+	var w indexerWorker.NFTIndexerWorker
+
+	switch blockchain {
+	case "eth":
+		go s.startIndexWorkflow(c, owner, blockchain, w.IndexOpenseaTokenWorkflow)
+	case "tezos":
+		go s.startIndexWorkflow(c, owner, blockchain, w.IndexTezosTokenWorkflow)
+	default:
+		if strings.HasPrefix(owner, "0x") {
+			go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[indexer.EthereumBlockchain], w.IndexOpenseaTokenWorkflow)
+		} else if strings.HasPrefix(owner, "tz") {
+			go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[indexer.TezosBlockchain], w.IndexTezosTokenWorkflow)
+		} else {
+			abortWithError(c, http.StatusInternalServerError, "owner address with unsupported blockchain", fmt.Errorf("owner address with unsupported blockchain"))
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok": 1,
+	})
+}
+
 func (s *NFTIndexerServer) CreateDemoTokens(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "CreateDemoTokens")
 

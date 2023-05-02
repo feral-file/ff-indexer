@@ -211,7 +211,8 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			} else {
 				metadata, err := e.searchMetadataFromIPFS(tokenMetadataURL)
 				if err != nil {
-					log.Error("fail to search token metadata from ipfs", zap.Error(err), log.SourceTZKT)
+					log.Error("fail to search token metadata from ipfs",
+						zap.String("tokenMetadataURL", tokenMetadataURL), zap.Error(err), log.SourceTZKT)
 				} else {
 					metadataDetail.FromTZIP21TokenMetadata(*metadata)
 				}
@@ -240,6 +241,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 
 		default:
 			// fallback marketplace
+			source := "unknown"
 			tokenDetail.Fungible = true
 			objktToken, err := e.GetObjktToken(tzktToken.Contract.Address, tzktToken.ID.String())
 			if err != nil {
@@ -248,19 +250,19 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 				metadataDetail.FromObjkt(objktToken)
 			}
 
-			assetURL := fmt.Sprintf("https://objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())
-			switch tzktToken.Metadata.Symbol {
-			case "OBJKTCOM":
-				metadataDetail.SetMarketplace(MarketplaceProfile{"objkt", "https://objkt.com", assetURL})
-			case "OBJKT":
-				metadataDetail.SetMarketplace(MarketplaceProfile{"hic et nunc", "https://objkt.com", assetURL})
-			default:
-				source := "unknown"
-				if metadataDetail.Source != "" {
-					source = metadataDetail.Source
-				}
-				metadataDetail.SetMarketplace(MarketplaceProfile{source, "https://objkt.com", assetURL})
+			if metadataDetail.Source != "" {
+				source = metadataDetail.Source
 			}
+			if tzktToken.Metadata != nil {
+				switch tzktToken.Metadata.Symbol {
+				case "OBJKTCOM":
+					source = "objkt"
+				case "OBJKT":
+					source = "hic et nunc"
+				}
+			}
+			assetURL := fmt.Sprintf("https://objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())
+			metadataDetail.SetMarketplace(MarketplaceProfile{source, "https://objkt.com", assetURL})
 		}
 	} else { // development indexing process
 		switch tzktToken.Contract.Address {
@@ -295,7 +297,8 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			var err error
 			metadata, err = e.searchMetadataFromIPFS(tokenMetadataURL)
 			if err != nil {
-				log.Error("fail to search token metadata from ipfs", zap.Error(err), log.SourceTZKT)
+				log.Error("fail to search token metadata from ipfs",
+					zap.String("tokenMetadataURL", tokenMetadataURL), zap.Error(err), log.SourceTZKT)
 			}
 		}
 
@@ -391,6 +394,7 @@ func (e *IndexEngine) IndexTezosTokenProvenance(contract, tokenID string) ([]Pro
 		if err != nil {
 			log.Error("fail to get transaction",
 				log.SourceTZKT,
+				zap.Error(err),
 				zap.String("blockchain", TezosBlockchain),
 				zap.Uint64("txID", t.TransactionID),
 				zap.Any("transfer", t),
@@ -423,14 +427,14 @@ func (e *IndexEngine) IndexTezosTokenLastActivityTime(contract, tokenID string) 
 }
 
 // IndexTezosTokenOwners indexes owners of a given token
-func (e *IndexEngine) IndexTezosTokenOwners(contract, tokenID string) (map[string]int64, error) {
+func (e *IndexEngine) IndexTezosTokenOwners(contract, tokenID string) ([]OwnerBalance, error) {
 	log.Debug("index tezos token owners",
 		zap.String("blockchain", TezosBlockchain),
 		zap.String("contract", contract), zap.String("tokenID", tokenID))
 
 	var lastTime time.Time
 	var querLimit = 50
-	ownersMap := map[string]int64{}
+	ownerBalances := []OwnerBalance{}
 	for {
 		owners, err := e.tzkt.GetTokenOwners(contract, tokenID, querLimit, lastTime)
 		if err != nil {
@@ -440,7 +444,12 @@ func (e *IndexEngine) IndexTezosTokenOwners(contract, tokenID string) (map[strin
 		ownersLen := len(owners)
 
 		for i, o := range owners {
-			ownersMap[o.Address] = o.Balance
+			ownerBalances = append(ownerBalances, OwnerBalance{
+				Address:  o.Address,
+				Balance:  o.Balance,
+				LastTime: o.LastTime,
+			})
+
 			if i == ownersLen-1 {
 				lastTime = o.LastTime
 			}
@@ -451,7 +460,7 @@ func (e *IndexEngine) IndexTezosTokenOwners(contract, tokenID string) (map[strin
 		}
 	}
 
-	return ownersMap, nil
+	return ownerBalances, nil
 }
 
 func (e *IndexEngine) GetObjktToken(contract, tokenID string) (objkt.Token, error) {
