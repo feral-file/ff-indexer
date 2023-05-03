@@ -2,22 +2,35 @@ package main
 
 import "context"
 
-type EventQueueProcessor struct {
+type EventQueue struct {
 	store EventStore
 }
 
-func NewEventQueueProcessor(store EventStore) *EventQueueProcessor {
-	return &EventQueueProcessor{
+func NewEventQueue(store EventStore) *EventQueue {
+	return &EventQueue{
 		store: store,
 	}
 }
 
 // PushEvent adds an event into event store
-func (p *EventQueueProcessor) PushEvent(event NFTEvent) error {
-	return p.store.CreateEvent(event)
+func (q *EventQueue) PushEvent(event NFTEvent) error {
+	return q.store.CreateEvent(event)
 }
 
-// PushEvent adds an event into event store
-func (p *EventQueueProcessor) ProcessTokenUpdatedEvent(ctx context.Context, processor func(event NFTEvent) error) (bool, error) {
-	return p.store.ProcessTokenUpdatedEvent(ctx, processor)
+func (q *EventQueue) ProcessTokenUpdatedEvent(ctx context.Context, processor func(event NFTEvent) error) (bool, error) {
+	return q.store.ProcessTokenUpdatedEvent(ctx, processor)
+}
+
+func (q *EventQueue) UpdateEvent(id string, updates map[string]interface{}) error {
+	return q.store.UpdateEventByStatus(id, EventStatusProcessing, updates)
+}
+
+func (q *EventQueue) CompleteEvent(id string) error {
+	return q.store.UpdateEvent(id, map[string]interface{}{
+		"status": EventStatusProcessed,
+	})
+}
+
+func (q *EventQueue) GetEventByStage(stage int8) (*NFTEvent, error) {
+	return q.store.GetEventByStage(stage)
 }

@@ -45,9 +45,9 @@ type NFTEvent struct {
 type EventStore interface {
 	CreateEvent(event NFTEvent) error
 	UpdateEvent(id string, updates map[string]interface{}) error
-	GetQueueEventByStage(stage int8) (*NFTEvent, error)
+	UpdateEventByStatus(id string, status EventStatus, updates map[string]interface{}) error
+	GetEventByStage(stage int8) (*NFTEvent, error)
 	ProcessTokenUpdatedEvent(ctx context.Context, processor func(event NFTEvent) error) (bool, error)
-	CompleteEvent(id string) error
 }
 
 type PostgresEventStore struct {
@@ -72,16 +72,17 @@ func (s *PostgresEventStore) CreateEvent(event NFTEvent) error {
 
 // UpdateEvent updates attributes for a event.
 func (s *PostgresEventStore) UpdateEvent(id string, updates map[string]interface{}) error {
-	return s.db.Model(&NFTEvent{}).Where("id = ?", id).Where("status = ?", EventStatusProcessing).Updates(updates).Error
+	return s.db.Model(&NFTEvent{}).Where("id = ?", id).Updates(updates).Error
 }
 
-// CompleteEvent marks an event to be done
-func (s *PostgresEventStore) CompleteEvent(id string) error {
-	return s.db.Updates(&NFTEvent{ID: id, Status: EventStatusProcessed}).Error
+// UpdateEvent updates attributes for a event.
+func (s *PostgresEventStore) UpdateEventByStatus(id string, status EventStatus, updates map[string]interface{}) error {
+	return s.db.Model(&NFTEvent{}).Where("id = ?", id).Where("status = ?", status).Updates(updates).Error
 }
 
 // ProcessTokenUpdatedEvent searches and processes a token_updated event
-func (s *PostgresEventStore) ProcessTokenUpdatedEvent(ctx context.Context, processor func(event NFTEvent) error) (bool, error) {
+func (s *PostgresEventStore) ProcessTokenUpdatedEvent(ctx context.Context,
+	processor func(event NFTEvent) error) (bool, error) {
 	var hasEvent bool
 	return hasEvent, s.db.WithContext(ctx).Transaction(func(db *gorm.DB) error {
 		var event NFTEvent
@@ -105,8 +106,8 @@ func (s *PostgresEventStore) ProcessTokenUpdatedEvent(ctx context.Context, proce
 	})
 }
 
-// GetQueueEventByStage returns all queued events which need to process
-func (s *PostgresEventStore) GetQueueEventByStage(stage int8) (*NFTEvent, error) {
+// GetEventByStage returns all queued events which need to process
+func (s *PostgresEventStore) GetEventByStage(stage int8) (*NFTEvent, error) {
 	var event NFTEvent
 
 	// TODO: return outdated queued events as well

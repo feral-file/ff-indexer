@@ -18,13 +18,13 @@ import (
 )
 
 type EventProcessor struct {
-	grpcServer     *GRPCServer
-	queueProcessor *EventQueueProcessor
-	indexerStore   *indexer.MongodbIndexerStore
-	worker         *cadence.WorkerClient
-	accountStore   *storage.AccountInformationStorage
-	notification   *notificationSdk.NotificationClient
-	feedServer     *FeedClient
+	grpcServer   *GRPCServer
+	eventQueue   *EventQueue
+	indexerStore *indexer.MongodbIndexerStore
+	worker       *cadence.WorkerClient
+	accountStore *storage.AccountInformationStorage
+	notification *notificationSdk.NotificationClient
+	feedServer   *FeedClient
 }
 
 func NewEventProcessor(
@@ -37,17 +37,17 @@ func NewEventProcessor(
 	notification *notificationSdk.NotificationClient,
 	feedServer *FeedClient,
 ) *EventProcessor {
-	queueProcessor := NewEventQueueProcessor(store)
-	grpcServer := NewGRPCServer(network, address, queueProcessor)
+	queue := NewEventQueue(store)
+	grpcServer := NewGRPCServer(network, address, queue)
 
 	return &EventProcessor{
-		grpcServer:     grpcServer,
-		queueProcessor: queueProcessor,
-		indexerStore:   indexerStore,
-		worker:         worker,
-		accountStore:   accountStore,
-		notification:   notification,
-		feedServer:     feedServer,
+		grpcServer:   grpcServer,
+		eventQueue:   queue,
+		indexerStore: indexerStore,
+		worker:       worker,
+		accountStore: accountStore,
+		notification: notification,
+		feedServer:   feedServer,
 	}
 }
 
@@ -201,14 +201,14 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 
 // UpdateEvent update event by map
 func (e *EventProcessor) UpdateEvent(id string, updates map[string]interface{}) error {
-	err := e.queueProcessor.store.UpdateEvent(id, updates)
+	err := e.eventQueue.UpdateEvent(id, updates)
 
 	return err
 }
 
 // GetQueueEventByStage get event by stage
 func (e *EventProcessor) GetQueueEventByStage(stage int8) (*NFTEvent, error) {
-	event, err := e.queueProcessor.store.GetQueueEventByStage(stage)
+	event, err := e.eventQueue.GetEventByStage(stage)
 	if err != nil {
 		return nil, err
 	}
@@ -408,7 +408,7 @@ func (e *EventProcessor) SendEventToFeedServer() {
 		e.logStageEvent(stage, "event has sent to feed", zap.String("eventID", event.ID))
 
 		// finish all stage of event processing
-		if err := e.queueProcessor.store.CompleteEvent(eventID); err != nil {
+		if err := e.eventQueue.CompleteEvent(eventID); err != nil {
 			log.Error("fail to mark an event completed", zap.Error(err))
 		}
 		e.logStageEvent(stage, "mark an event completed", zap.String("eventID", event.ID))

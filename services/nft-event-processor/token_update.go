@@ -14,7 +14,7 @@ import (
 func (e *EventProcessor) RefreshTokenData(ctx context.Context) {
 
 	for {
-		hasEvent, err := e.queueProcessor.ProcessTokenUpdatedEvent(ctx, func(event NFTEvent) error {
+		hasEvent, err := e.eventQueue.ProcessTokenUpdatedEvent(ctx, func(event NFTEvent) error {
 			indexerWorker.StartIndexTokenWorkflow(ctx, e.worker, event.To, event.Contract, event.TokenID, true, false)
 			return nil
 		})
