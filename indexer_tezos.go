@@ -304,6 +304,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 
 		if metadata != nil {
 			metadataDetail.FromTZIP21TokenMetadata(*metadata)
+			tokenDetail.Fungible = metadata.IsBooleanAmount
 		}
 	}
 

@@ -154,8 +154,8 @@ github.com/bitmark-inc/logger v0.3.5 h1:AIYHqe4bQOxzJxpphLcTB8EjOP+Px7L8U3B4OWsX
 github.com/bitmark-inc/logger v0.3.5/go.mod h1:ObxwfAGdVHGz5sY0wHKVK91NZV/L5nexMQkwbAnaB54=
 github.com/bitmark-inc/traceutils v0.1.0 h1:9Wav80LREfMQa5/LcqSVSyJfGywHLxQLhFTczheoJdI=
 github.com/bitmark-inc/traceutils v0.1.0/go.mod h1:+9BJoMmAMMDWy54EpZKAwEN3WVyXUmWi4UsPDoMS/Hs=
-github.com/bitmark-inc/tzkt-go v0.0.2 h1:qJEXHcUK3i3P/urjW3eNHotYikia3zGlna73moPP4Fw=
-github.com/bitmark-inc/tzkt-go v0.0.2/go.mod h1:e/kgHH4i6YzCveZ79cDiviEAA5FU6YO48nWLQBRAdGE=
+github.com/bitmark-inc/tzkt-go v0.0.3 h1:UK5OBeHmDwZSmwEtabGvOLUIYcw9bgSwCfxko3djdMs=
+github.com/bitmark-inc/tzkt-go v0.0.3/go.mod h1:e/kgHH4i6YzCveZ79cDiviEAA5FU6YO48nWLQBRAdGE=
 github.com/bmizerany/pat v0.0.0-20170815010413-6226ea591a40/go.mod h1:8rLXio+WjiTceGBHIoTvn60HIbs7Hm7bcHjyrSqYB9c=
 github.com/bmizerany/perks v0.0.0-20141205001514-d9a9656a3a4b h1:AP/Y7sqYicnjGDfD5VcY4CIfh1hRXBUavxrvELjTiOE=
 github.com/bmizerany/perks v0.0.0-20141205001514-d9a9656a3a4b/go.mod h1:ac9efd0D1fsDb3EJvhqgXRbFx7bs2wqZ10HQPeU8U/Q=

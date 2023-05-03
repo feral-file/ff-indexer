@@ -10,7 +10,7 @@ require (
 	github.com/bitmark-inc/autonomy-notification v0.0.3
 	github.com/bitmark-inc/bitmark-sdk-go v0.3.0
 	github.com/bitmark-inc/config-loader v0.0.5
-	github.com/bitmark-inc/tzkt-go v0.0.2
+	github.com/bitmark-inc/tzkt-go v0.0.3
 	github.com/chromedp/chromedp v0.8.6
 	github.com/cloudflare/cloudflare-go v0.62.0
 	github.com/ethereum/go-ethereum v1.10.23
