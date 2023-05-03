@@ -163,7 +163,7 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 				}
 
 				if err := e.indexerStore.IndexAccountTokens(ctx, to, []indexer.AccountToken{accountToken}); err != nil {
-					log.Error("cannot index a new account_token", zap.String("indexID", indexID), zap.String("owner", to))
+					log.Error("cannot index a new account_token", zap.Error(err), zap.String("indexID", indexID), zap.String("owner", to))
 				}
 			}
 

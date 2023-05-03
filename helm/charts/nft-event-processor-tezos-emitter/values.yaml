@@ -17,12 +17,12 @@ image:
 serviceConfig:
   environment: development
   feedEndpoint: http://autonomy-event-feed.autonomy.svc.cluster.local:80
-  tezosNodeRPCURL: https://rpc.ghost.tzstats.com
+  tezosNodeRPCURL: https://ghostnet.tezos.marigold.dev
   eventProcessorURI: nft-event-processor.autonomy.svc.cluster.local:8765
   eventSubscriberURL:
   contractAddresses: []
   postcardAddresses: []
-  contractBoostUrl: "https://api.tzkt.io/"
+  contractBoostUrl: "https://api.ghostnet.tzkt.io/"
 
 imagePullSecrets: []
 nameOverride: ""

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -27,25 +28,31 @@ func (s *NFTIndexerServer) IndexAsset(c *gin.Context) {
 		input.Source = indexer.SourceFeralFile
 	}
 
+	tokenIndexIDs := []string{}
+	for _, token := range input.Tokens {
+		if token.ID == "" {
+			abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("invalid token id"))
+			return
+		}
+
+		if token.IndexID == "" {
+			token.IndexID = indexer.TokenIndexID(token.Blockchain, token.ContractAddress, token.ID)
+		}
+
+		tokenIndexIDs = append(tokenIndexIDs, token.IndexID)
+	}
+
 	if err := s.indexerStore.IndexAsset(c, assetID, input); err != nil {
 		abortWithError(c, http.StatusInternalServerError, "unable to update asset data", err)
 		return
 	}
 
-	updatedIndexIDs := []string{}
-	for _, token := range input.Tokens {
-		if token.IndexID == "" {
-			token.IndexID = indexer.TokenIndexID(token.Blockchain, token.ContractAddress, token.ID)
-		}
-		updatedIndexIDs = append(updatedIndexIDs, token.IndexID)
-	}
-
-	if err := s.indexerStore.MarkAccountTokenChanged(c, updatedIndexIDs); err != nil {
-		abortWithError(c, http.StatusInternalServerError, "unable to update asset data", err)
+	if err := s.indexerStore.MarkAccountTokenChanged(c, tokenIndexIDs); err != nil {
+		abortWithError(c, http.StatusInternalServerError, "unable to mark account token changed", err)
 		return
 	}
 
-	nullProvenanceIDs, err := s.indexerStore.GetNullProvenanceTokensByIndexIDs(c, updatedIndexIDs)
+	nullProvenanceIDs, err := s.indexerStore.GetNullProvenanceTokensByIndexIDs(c, tokenIndexIDs)
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "unable to find null provenance tokens", err)
 		return
@@ -54,7 +61,6 @@ func (s *NFTIndexerServer) IndexAsset(c *gin.Context) {
 	log.Info("start refresh null provenance tokens", zap.Any("tokenIDs", nullProvenanceIDs))
 	for _, nullProvenanceID := range nullProvenanceIDs {
 		go indexerWorker.StartRefreshTokenProvenanceWorkflow(c, s.cadenceWorker, "api-indexAsset", nullProvenanceID, 0)
-
 	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": 1})

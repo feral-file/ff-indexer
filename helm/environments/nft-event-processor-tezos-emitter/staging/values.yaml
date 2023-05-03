@@ -4,11 +4,15 @@ image:
   tags:
     tezosMarketplaceIndexer: tezos-marketplace-indexer-2.2.1-1
     tezosFeralfileIndexer: tezos-feralfile-indexer-2.2.1-1
+    tezosPostcardIndexer: tezos-postcard-indexer-2.2.2-2
 
 serviceConfig:
   tezosNodeRPCURL: https://mainnet-tezos.autonomy.io
   contractAddresses: [
     "KT1QWATcHYpBVDxvNoxw5CbkaMGpjm4SxXa2",
+  ]
+  postcardAddresses: [
+    "KT1SKFjbLtnAspT3TYs3sTSyz33TyA2gYHQw"
   ]
   eventProcessorURI: nft-event-processor.autonomy-staging.svc.cluster.local:8765
   environment: staging

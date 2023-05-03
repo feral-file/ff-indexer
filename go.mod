@@ -10,6 +10,7 @@ require (
 	github.com/bitmark-inc/autonomy-notification v0.0.3
 	github.com/bitmark-inc/bitmark-sdk-go v0.3.0
 	github.com/bitmark-inc/config-loader v0.0.5
+	github.com/bitmark-inc/tzkt-go v0.0.2
 	github.com/chromedp/chromedp v0.8.6
 	github.com/cloudflare/cloudflare-go v0.62.0
 	github.com/ethereum/go-ethereum v1.10.23
@@ -75,7 +76,7 @@ require (
 	github.com/bitmark-inc/bitmarkd v0.13.2 // indirect
 	github.com/bitmark-inc/go-utils v0.0.0-20220509034903-59f3369237d3 // indirect
 	github.com/bitmark-inc/logger v0.3.5 // indirect
-	github.com/bitmark-inc/traceutils v0.1.0 // indirect
+	github.com/bitmark-inc/traceutils v0.1.0
 	github.com/btcsuite/btcd v0.22.0-beta // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce // indirect

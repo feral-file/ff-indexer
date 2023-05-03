@@ -41,7 +41,7 @@ type Store interface {
 
 	UpdateOwner(ctx context.Context, indexID, owner string, updatedAt time.Time) error
 	UpdateTokenProvenance(ctx context.Context, indexID string, provenances []Provenance) error
-	UpdateTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error
+	UpdateTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, ownerBalances []OwnerBalance) error
 	PushProvenance(ctx context.Context, indexID string, lockedTime time.Time, provenance Provenance) error
 
 	GetTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]Token, error)
@@ -67,7 +67,7 @@ type Store interface {
 	IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error
 	GetAccount(ctx context.Context, owner string) (Account, error)
 	GetAccountTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]AccountToken, error)
-	UpdateAccountTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error
+	UpdateAccountTokenOwners(ctx context.Context, indexID string, tokenBalances []OwnerBalance) error
 	GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
 	IndexDemoTokens(ctx context.Context, owner string, indexIDs []string) error
 	DeleteDemoTokens(ctx context.Context, owner string) error
@@ -94,6 +94,12 @@ type Store interface {
 type FilterParameter struct {
 	Source string
 	IDs    []string
+}
+
+type OwnerBalance struct {
+	Address  string    `json:"address"`
+	Balance  int64     `json:"balance,string"`
+	LastTime time.Time `json:"lastTime"`
 }
 
 func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*MongodbIndexerStore, error) {
@@ -156,7 +162,7 @@ type TokenUpdateSet struct {
 	EditionName       string    `structs:"editionName,omitempty"`
 	ContractAddress   string    `structs:"contractAddress,omitempty"`
 	LastRefreshedTime time.Time `structs:"lastRefreshedTime"`
-	LastActivityTime  time.Time `structs:"lastActivityTime"`
+	LastActivityTime  time.Time `structs:"lastActivityTime,omitempty"`
 }
 
 // checkIfTokenNeedToUpdate returns true if the new token data is suppose to be
@@ -186,6 +192,11 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 	assetCreated := false
 
 	assetIndexID := fmt.Sprintf("%s-%s", strings.ToLower(assetUpdates.Source), id)
+	indexTime := time.Now()
+
+	if assetUpdates.ProjectMetadata.LastUpdatedAt.IsZero() {
+		assetUpdates.ProjectMetadata.LastUpdatedAt = indexTime
+	}
 
 	// insert or update an incoming asset
 	assetResult := s.assetCollection.FindOne(ctx, bson.M{"indexID": assetIndexID},
@@ -202,7 +213,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 					Origin: assetUpdates.ProjectMetadata,
 					Latest: assetUpdates.ProjectMetadata,
 				},
-				LastRefreshedTime: time.Now(),
+				LastRefreshedTime: indexTime,
 			}
 
 			if _, err := s.assetCollection.InsertOne(ctx, structs.Map(assetUpdateSet)); err != nil {
@@ -240,7 +251,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		if requireUpdates {
 			updates := bson.D{{Key: "$set", Value: bson.D{
 				{Key: "projectMetadata.latest", Value: assetUpdates.ProjectMetadata},
-				{Key: "lastRefreshedTime", Value: time.Now()},
+				{Key: "lastRefreshedTime", Value: indexTime},
 			}}}
 
 			// TODO: check whether to remove the thumbnail cache when the thumbnail data is updated.
@@ -280,7 +291,10 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 				// If a token is not found, insert a new token
 				log.Info("new token found", zap.String("token_id", token.ID))
 
-				token.LastActivityTime = token.MintAt // set LastActivityTime to default token minted time
+				if token.LastActivityTime.IsZero() {
+					// set LastActivityTime to default token minted time
+					token.LastActivityTime = token.MintAt
+				}
 				token.OwnersArray = []string{token.Owner}
 				token.Owners = map[string]int64{token.Owner: 1}
 				_, err := s.tokenCollection.InsertOne(ctx, token)
@@ -306,7 +320,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 				Edition:           token.Edition,
 				EditionName:       token.EditionName,
 				ContractAddress:   token.ContractAddress,
-				LastRefreshedTime: token.LastRefreshedTime,
+				LastRefreshedTime: indexTime,
 			}
 
 			if !token.LastActivityTime.IsZero() {
@@ -409,7 +423,24 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 		return nil, nil
 	})
 
+	if err != nil {
+		log.Error("swap token transaction failed",
+			zap.String("originalTokenIndexID", originalTokenIndexID),
+			zap.String("newTokenIndexID", newTokenIndexID),
+			zap.Error(err))
+		return "", err
+	}
+
 	log.Debug("swap token transaction", zap.Any("transaction_result", result))
+
+	// Update account tokens
+	_, err = s.accountTokenCollection.UpdateMany(ctx,
+		bson.M{"indexID": originalTokenIndexID},
+		bson.M{"$set": bson.M{
+			"indexID":           newTokenIndexID,
+			"lastRefreshedTime": time.Now(),
+			"lastActivityTime":  time.Now(),
+		}})
 
 	return newTokenIndexID, err
 }
@@ -577,15 +608,17 @@ func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID
 }
 
 // UpdateTokenOwners updates owners for a specific token
-func (s *MongodbIndexerStore) UpdateTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error {
-	if len(owners) == 0 {
+func (s *MongodbIndexerStore) UpdateTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, ownerBalances []OwnerBalance) error {
+	if len(ownerBalances) == 0 {
 		log.Warn("ignore update empty provenance", zap.String("indexID", indexID))
 		return nil
 	}
 
-	ownersArray := make([]string, 0, len(owners))
-	for owner := range owners {
-		ownersArray = append(ownersArray, owner)
+	ownersArray := make([]string, 0, len(ownerBalances))
+	owners := map[string]int64{}
+	for _, ownerBalance := range ownerBalances {
+		ownersArray = append(ownersArray, ownerBalance.Address)
+		owners[ownerBalance.Address] = ownerBalance.Balance
 	}
 
 	tokenUpdates := bson.M{
@@ -1258,7 +1291,9 @@ func (s *MongodbIndexerStore) GetPendingAccountTokens(ctx context.Context) ([]Ac
 
 // IndexAccount indexes the account by inputs
 func (s *MongodbIndexerStore) IndexAccount(ctx context.Context, account Account) error {
-	account.LastUpdatedTime = time.Now()
+	if account.LastUpdatedTime.IsZero() {
+		account.LastUpdatedTime = time.Now()
+	}
 
 	r, err := s.accountCollection.UpdateOne(ctx,
 		bson.M{"account": account.Account},
@@ -1280,6 +1315,7 @@ func (s *MongodbIndexerStore) IndexAccount(ctx context.Context, account Account)
 func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error {
 	margin := 15 * time.Second
 	for _, accountToken := range accountTokens {
+		log.Debug("account token is in a future state", zap.String("indexID", accountToken.IndexID), zap.Any("accountToken", accountToken))
 		r, err := s.accountTokenCollection.UpdateOne(ctx,
 			bson.M{"indexID": accountToken.IndexID, "ownerAccount": owner, "lastActivityTime": bson.M{"$lt": accountToken.LastActivityTime.Add(-margin)}},
 			bson.M{"$set": accountToken},
@@ -1290,8 +1326,8 @@ func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner stri
 			if mongo.IsDuplicateKeyError(err) {
 				// when a duplicated error happens, it means the account token
 				// is in a state which is better than current event.
-				log.Warn("account token is in a future state", zap.String("token_id", accountToken.ID))
-				return nil
+				log.Warn("account token is in a future state", zap.String("indexID", accountToken.IndexID))
+				continue
 			}
 			log.Error("cannot index account token", zap.String("indexID", accountToken.IndexID), zap.String("owner", owner), zap.Error(err))
 			return err
@@ -1359,8 +1395,8 @@ func (s *MongodbIndexerStore) GetAccountTokensByIndexIDs(ctx context.Context, in
 }
 
 // UpdateAccountTokenOwners updates all account owners for a specific token
-func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, owners map[string]int64) error {
-	ownerList := make([]string, 0, len(owners))
+func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, indexID string, ownerBalances []OwnerBalance) error {
+	ownerList := make([]string, 0, len(ownerBalances))
 
 	tokenResult := s.tokenCollection.FindOne(ctx, bson.M{"indexID": indexID})
 	if err := tokenResult.Err(); err != nil {
@@ -1372,27 +1408,27 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 		return err
 	}
 
-	for owner, balance := range owners {
+	for _, ownerBalance := range ownerBalances {
 		tokenUpdate := AccountToken{
 			BaseTokenInfo:     token.BaseTokenInfo,
 			IndexID:           indexID,
-			OwnerAccount:      owner,
-			Balance:           balance,
-			LastActivityTime:  lastActivityTime,
+			OwnerAccount:      ownerBalance.Address,
+			Balance:           ownerBalance.Balance,
+			LastActivityTime:  ownerBalance.LastTime,
 			LastRefreshedTime: time.Now(),
 		}
 
 		_, err := s.accountTokenCollection.UpdateOne(ctx,
-			bson.M{"indexID": indexID, "ownerAccount": owner},
+			bson.M{"indexID": indexID, "ownerAccount": ownerBalance.Address},
 			bson.M{"$set": tokenUpdate},
 			options.Update().SetUpsert(true),
 		)
 		if err != nil {
-			log.Error("could not update balance ", zap.String("indexID", indexID), zap.String("owner", owner), zap.Error(err))
+			log.Error("could not update balance ", zap.String("indexID", indexID), zap.String("owner", ownerBalance.Address), zap.Error(err))
 			continue
 		}
 
-		ownerList = append(ownerList, owner)
+		ownerList = append(ownerList, ownerBalance.Address)
 	}
 
 	_, err := s.accountTokenCollection.UpdateMany(ctx, bson.M{
@@ -1401,7 +1437,6 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 		"$set": bson.M{
 			"balance":           0,
 			"lastRefreshedTime": time.Now(),
-			"lastActivityTime":  lastActivityTime,
 		},
 	})
 
@@ -1742,10 +1777,11 @@ func (s *MongodbIndexerStore) UpdateTokenSugesstedMIMEType(ctx context.Context, 
 // GetPresignedThumbnailTokens gets tokens that have presigned thumbnail
 func (s *MongodbIndexerStore) GetPresignedThumbnailTokens(ctx context.Context) ([]Token, error) {
 	tokens := []Token{}
-	pattern := fmt.Sprintf("%s|%s", UnsignedFxhashCID, UnresolvedFxhashURL)
+	pattern := fmt.Sprintf("%s|%s|^$", UnsignedFxhashCID, UnresolvedFxhashURL)
 
 	cursor, err := s.assetCollection.Find(ctx, bson.M{
 		"source":                              SourceTZKT,
+		"projectMetadata.latest.source":       "fxhash",
 		"projectMetadata.latest.thumbnailURL": bson.M{"$regex": pattern},
 	})
 	if err != nil {
@@ -1789,7 +1825,7 @@ func (s *MongodbIndexerStore) MarkAccountTokenChanged(ctx context.Context, index
 	})
 
 	if err != nil {
-		log.Error("cannot update account tokens", zap.Any("indexIDs", indexIDs))
+		log.Error("cannot update account tokens", zap.Error(err), zap.Any("indexIDs", indexIDs))
 	}
 
 	return err
@@ -1854,6 +1890,10 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 		token.Balance = a.Balance
 		token.Owner = a.OwnerAccount
 		token.LastRefreshedTime = a.LastRefreshedTime
+		if !a.LastActivityTime.IsZero() {
+			token.LastActivityTime = a.LastActivityTime
+		}
+
 		results = append(results, token)
 	}
 
