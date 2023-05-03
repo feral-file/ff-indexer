@@ -10,7 +10,7 @@ require (
 	github.com/bitmark-inc/autonomy-notification v0.0.3
 	github.com/bitmark-inc/bitmark-sdk-go v0.3.0
 	github.com/bitmark-inc/config-loader v0.0.5
-	github.com/bitmark-inc/tzkt-go v0.0.2
+	github.com/bitmark-inc/tzkt-go v0.0.3
 	github.com/chromedp/chromedp v0.8.6
 	github.com/cloudflare/cloudflare-go v0.62.0
 	github.com/ethereum/go-ethereum v1.10.23
@@ -55,7 +55,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.14.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.4 // indirect
 	github.com/aws/smithy-go v1.13.5 // indirect
-	github.com/bitmark-inc/tzkt-go v0.0.3 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1 v1.0.3 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v2 v2.0.0 // indirect
