@@ -17,8 +17,20 @@ func (q *EventQueue) PushEvent(event NFTEvent) error {
 	return q.store.CreateEvent(event)
 }
 
-func (q *EventQueue) ProcessTokenUpdatedEvent(ctx context.Context, processor func(event NFTEvent) error) (bool, error) {
-	return q.store.ProcessTokenUpdatedEvent(ctx, processor)
+func (q *EventQueue) ProcessTokenUpdatedEvent(
+	ctx context.Context,
+	processor func(event NFTEvent) error,
+) (bool, error) {
+	return q.store.ProcessEvent(ctx, EventProcessOption{
+		Filters: []QueryOption{
+			Filter("type = ?", EventTypeTokenUpdated),
+			Filter("status <> ?", EventStatusProcessed),
+		},
+		Processor: processor,
+		CompleteUpdate: NFTEvent{
+			Status: EventStatusProcessed,
+		},
+	})
 }
 
 func (q *EventQueue) UpdateEvent(id string, updates map[string]interface{}) error {

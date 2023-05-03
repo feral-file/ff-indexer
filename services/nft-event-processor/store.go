@@ -47,7 +47,7 @@ type EventStore interface {
 	UpdateEvent(id string, updates map[string]interface{}) error
 	UpdateEventByStatus(id string, status EventStatus, updates map[string]interface{}) error
 	GetEventByStage(stage int8) (*NFTEvent, error)
-	ProcessTokenUpdatedEvent(ctx context.Context, processor func(event NFTEvent) error) (bool, error)
+	ProcessEvent(ctx context.Context, option EventProcessOption) (bool, error)
 }
 
 type PostgresEventStore struct {
@@ -80,16 +80,49 @@ func (s *PostgresEventStore) UpdateEventByStatus(id string, status EventStatus, 
 	return s.db.Model(&NFTEvent{}).Where("id = ?", id).Where("status = ?", status).Updates(updates).Error
 }
 
-// ProcessTokenUpdatedEvent searches and processes a token_updated event
-func (s *PostgresEventStore) ProcessTokenUpdatedEvent(ctx context.Context,
-	processor func(event NFTEvent) error) (bool, error) {
+type QueryOption interface {
+	Apply(tx *gorm.DB) *gorm.DB
+}
+
+type FilterOption struct {
+	Statement  string
+	Argumenets []interface{}
+}
+
+func (f FilterOption) Apply(tx *gorm.DB) *gorm.DB {
+	return tx.Where(f.Statement, f.Argumenets...)
+}
+
+func Filter(statement string, args ...interface{}) FilterOption {
+	return FilterOption{
+		Statement:  statement,
+		Argumenets: args,
+	}
+}
+
+// EventProcessOption includes information about filters to target an event, a processor for
+// process an event and a struct of state updates
+type EventProcessOption struct {
+	Filters        []QueryOption
+	Processor      func(event NFTEvent) error
+	CompleteUpdate NFTEvent
+}
+
+// ProcessEvent process an event based on processing options
+func (s *PostgresEventStore) ProcessEvent(ctx context.Context, option EventProcessOption) (bool, error) {
 	var hasEvent bool
 	return hasEvent, s.db.WithContext(ctx).Transaction(func(db *gorm.DB) error {
 		var event NFTEvent
-		if err := db.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).
-			Where("type = ?", EventTypeTokenUpdated).
-			Where("status <> ?", EventStatusProcessed).
-			Order("created_at asc").First(&event).Error; err != nil {
+
+		q := db.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"})
+		for _, filter := range option.Filters {
+			q = filter.Apply(q)
+		}
+
+		// final query
+		q = q.Order("created_at asc").First(&event)
+
+		if err := q.Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return nil
 			}
@@ -97,12 +130,13 @@ func (s *PostgresEventStore) ProcessTokenUpdatedEvent(ctx context.Context,
 		}
 
 		hasEvent = true
-		if err := processor(event); err != nil {
+		if err := option.Processor(event); err != nil {
 			// FIXME provide a fine-grain EventStatus. For example, EventStatusError
 			log.Error("fail to process event", zap.Error(err))
 		}
 
-		return db.Model(&NFTEvent{}).Where("id = ?", event.ID).Update("status", EventStatusProcessed).Error
+		return db.Model(&NFTEvent{}).Where("id = ?", event.ID).
+			Updates(option.CompleteUpdate).Error
 	})
 }
 
