@@ -304,9 +304,8 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 
 		if metadata != nil {
 			metadataDetail.FromTZIP21TokenMetadata(*metadata)
+			tokenDetail.Fungible = metadata.IsBooleanAmount
 		}
-
-		tokenDetail.Fungible = metadata.IsBooleanAmount
 	}
 
 	// ensure ipfs urls are converted to http links
