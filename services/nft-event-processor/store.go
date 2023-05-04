@@ -150,7 +150,7 @@ func (s *PostgresEventStore) GetEventByStage(stage int8) (*NFTEvent, error) {
 			Where("stage = ?", EventStages[stage]).
 			Where("type <> ?", EventTypeTokenUpdated).
 			Where("status <> ?", EventStatusProcessed).
-			Order("created_at asc").First(&event).Error; err != nil {
+			Order("created_at asc").Limit(1).Find(&event).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return nil
 			}
