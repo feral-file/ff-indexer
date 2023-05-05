@@ -305,7 +305,7 @@ func importV1(ctx context.Context, db indexer.Store, assetIDs []string) error {
 				IndexID:          fmt.Sprintf("%s-%s-%s", indexer.BlockchainAlias[indexer.BitmarkBlockchain], "", bmk.ID),
 				Edition:          int64(bmk.Edition),
 				Owner:            bmk.Owner,
-				MintAt:           provenances[len(provenances)-1].Timestamp,
+				MintedAt:         provenances[len(provenances)-1].Timestamp,
 				Provenances:      provenances,
 				LastActivityTime: provenances[0].Timestamp,
 			})
@@ -375,7 +375,7 @@ func importV2(ctx context.Context, db indexer.Store, assetIDs []string) error {
 				IndexID:          fmt.Sprintf("%s-%s-%s", indexer.BlockchainAlias[indexer.BitmarkBlockchain], "", bmk.ID),
 				Edition:          int64(bmk.Edition),
 				Owner:            bmk.Owner,
-				MintAt:           provenances[len(provenances)-1].Timestamp,
+				MintedAt:         provenances[len(provenances)-1].Timestamp,
 				Provenances:      provenances,
 				LastActivityTime: provenances[0].Timestamp,
 			})

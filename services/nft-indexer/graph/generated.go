@@ -132,7 +132,7 @@ type ComplexityRoot struct {
 		IndexID           func(childComplexity int) int
 		LastActivityTime  func(childComplexity int) int
 		LastRefreshedTime func(childComplexity int) int
-		MintAt            func(childComplexity int) int
+		MintedAt          func(childComplexity int) int
 		OriginTokenInfo   func(childComplexity int) int
 		Owner             func(childComplexity int) int
 		Provenance        func(childComplexity int) int
@@ -596,12 +596,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Token.LastRefreshedTime(childComplexity), true
 
-	case "Token.mintAt":
-		if e.complexity.Token.MintAt == nil {
+	case "Token.mintedAt":
+		if e.complexity.Token.MintedAt == nil {
 			break
 		}
 
-		return e.complexity.Token.MintAt(childComplexity), true
+		return e.complexity.Token.MintedAt(childComplexity), true
 
 	case "Token.originTokenInfo":
 		if e.complexity.Token.OriginTokenInfo == nil {
@@ -2890,8 +2890,8 @@ func (ec *executionContext) fieldContext_Query_tokens(ctx context.Context, field
 				return ec.fieldContext_Token_edition(ctx, field)
 			case "editionName":
 				return ec.fieldContext_Token_editionName(ctx, field)
-			case "mintAt":
-				return ec.fieldContext_Token_mintAt(ctx, field)
+			case "mintedAt":
+				return ec.fieldContext_Token_mintedAt(ctx, field)
 			case "balance":
 				return ec.fieldContext_Token_balance(ctx, field)
 			case "owner":
@@ -3426,8 +3426,8 @@ func (ec *executionContext) fieldContext_Token_editionName(ctx context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Token_mintAt(ctx context.Context, field graphql.CollectedField, obj *model.Token) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Token_mintAt(ctx, field)
+func (ec *executionContext) _Token_mintedAt(ctx context.Context, field graphql.CollectedField, obj *model.Token) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Token_mintedAt(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -3440,7 +3440,7 @@ func (ec *executionContext) _Token_mintAt(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.MintAt, nil
+		return obj.MintedAt, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3454,7 +3454,7 @@ func (ec *executionContext) _Token_mintAt(ctx context.Context, field graphql.Col
 	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Token_mintAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Token_mintedAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Token",
 		Field:      field,
@@ -6540,9 +6540,9 @@ func (ec *executionContext) _Token(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "mintAt":
+		case "mintedAt":
 
-			out.Values[i] = ec._Token_mintAt(ctx, field, obj)
+			out.Values[i] = ec._Token_mintedAt(ctx, field, obj)
 
 		case "balance":
 

@@ -45,7 +45,7 @@ func (r *Resolver) mapGraphQLToken(t indexer.DetailedTokenV2) *model.Token {
 		Edition:           t.Edition,
 		EditionName:       t.EditionName,
 		Source:            t.Source,
-		MintAt:            &t.MintAt,
+		MintedAt:          &t.MintedAt,
 		Swapped:           t.Swapped,
 		Provenance:        provenances,
 		LastActivityTime:  &t.LastActivityTime,

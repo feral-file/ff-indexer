@@ -178,7 +178,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 				Balance:           balance,
 				Owner:             owner,
 				Owners:            map[string]int64{owner: balance},
-				MintAt:            a.AssetContract.CreatedDate.Time, // set minted_at to the contract creation time
+				MintedAt:          a.AssetContract.CreatedDate.Time, // set minted_at to the contract creation time
 				LastRefreshedTime: time.Now(),
 				LastActivityTime:  lastActivityTime,
 			},

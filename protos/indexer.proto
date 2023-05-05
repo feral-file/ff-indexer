@@ -130,7 +130,7 @@ message Token {
 
   int64 Edition = 6;
   string EditionName = 7;
-  string MintAt = 8; // time type is mapped by string
+  string MintedAt = 8; // time type is mapped by string
   int64 Balance = 9;
   string Owner = 10;
   map<string,int64> Owners = 11;
