@@ -293,7 +293,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 
 				if token.LastActivityTime.IsZero() {
 					// set LastActivityTime to default token minted time
-					token.LastActivityTime = token.MintAt
+					token.LastActivityTime = token.MintedAt
 				}
 				token.OwnersArray = []string{token.Owner}
 				token.Owners = map[string]int64{token.Owner: 1}

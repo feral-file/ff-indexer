@@ -76,7 +76,7 @@ func (m *Mapper) MapGRPCProvenancesToIndexerProvenances(provenance []*grpcIndexe
 
 // MapGrpcTokenToIndexerToken maps grpc indexer token to indexer token
 func (m *Mapper) MapGrpcTokenToIndexerToken(tokenBuffer *grpcIndexer.Token) *indexer.Token {
-	mintAt, err := ParseTime(tokenBuffer.MintAt)
+	mintAt, err := ParseTime(tokenBuffer.MintedAt)
 	if err != nil {
 		log.Error("fail when parse mintAt time", zap.Error(err))
 	}
@@ -101,7 +101,7 @@ func (m *Mapper) MapGrpcTokenToIndexerToken(tokenBuffer *grpcIndexer.Token) *ind
 		},
 		Edition:         tokenBuffer.Edition,
 		EditionName:     tokenBuffer.EditionName,
-		MintAt:          mintAt,
+		MintedAt:        mintAt,
 		Balance:         tokenBuffer.Balance,
 		Owner:           tokenBuffer.Owner,
 		Owners:          tokenBuffer.Owners,
@@ -132,7 +132,7 @@ func (m *Mapper) MapIndexerTokenToGrpcToken(token *indexer.Token) *grpcIndexer.T
 		ContractAddress:   token.ContractAddress,
 		Edition:           token.Edition,
 		EditionName:       token.EditionName,
-		MintAt:            token.MintAt.Format(time.RFC3339Nano),
+		MintedAt:          token.MintedAt.Format(time.RFC3339Nano),
 		Balance:           token.Balance,
 		Owner:             token.Owner,
 		Owners:            token.Owners,
