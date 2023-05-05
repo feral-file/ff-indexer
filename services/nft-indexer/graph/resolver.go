@@ -45,6 +45,7 @@ func (r *Resolver) mapGraphQLToken(t indexer.DetailedTokenV2) *model.Token {
 		Edition:           t.Edition,
 		EditionName:       t.EditionName,
 		Source:            t.Source,
+		MintAt:            &t.MintedAt, // FIXME: deprecated this after a month
 		MintedAt:          &t.MintedAt,
 		Swapped:           t.Swapped,
 		Provenance:        provenances,

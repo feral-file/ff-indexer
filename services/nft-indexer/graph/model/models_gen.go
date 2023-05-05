@@ -83,6 +83,7 @@ type Token struct {
 	ContractAddress   string           `json:"contractAddress"`
 	Edition           int64            `json:"edition"`
 	EditionName       string           `json:"editionName"`
+	MintAt            *time.Time       `json:"mintAt"`
 	MintedAt          *time.Time       `json:"mintedAt"`
 	Balance           int64            `json:"balance"`
 	Owner             string           `json:"owner"`
