@@ -38,10 +38,6 @@ nft-indexer-background:
 nft-image-indexer:
 	go build -o bin/nft-image-indexer ./services/nft-image-indexer
 
-.PHONY: nft-event-subscriber
-nft-event-subscriber:
-	go build -o bin/nft-event-subscriber ./services/nft-event-subscriber
-
 .PHONY: nft-event-processor
 nft-event-processor:
 	go build -o bin/nft-event-processor ./services/nft-event-processor
@@ -74,10 +70,6 @@ run-nft-indexer-background: nft-indexer-background
 run-nft-image-indexer: nft-image-indexer
 	./bin/nft-image-indexer -c config.yaml
 
-.PHONY: run-nft-event-subscriber
-run-nft-event-subscriber: nft-event-subscriber
-	./bin/nft-event-subscriber -c config.yaml
-
 .PHONY: run-nft-event-processor
 run-nft-event-processor: nft-event-processor
 	./bin/nft-event-processor -c config.yaml
@@ -103,7 +95,7 @@ renew-event-processor-grpc:
 	protoc --proto_path=protos --go-grpc_out=services/nft-event-processor/ --go_out=services/nft-event-processor/ event-processor.proto
 
 .PHONY: build
-build: nft-indexer nft-indexer-background nft-event-subscriber nft-event-processor nft-provenance-indexer nft-account-token-indexer nft-ethereum-emitter nft-bitmark-emitter
+build: nft-indexer nft-indexer-background nft-event-processor nft-provenance-indexer nft-account-token-indexer nft-ethereum-emitter nft-bitmark-emitter
 
 .PHONY: run
 run: config run-nft-indexer
@@ -173,17 +165,6 @@ endif
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t nft-indexer:bitmark-emitter-$(dist) -f Dockerfile-bitmark-emitter .
 	docker tag nft-indexer:bitmark-emitter-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:bitmark-emitter-$(dist)
-
-.PHONY: build-nft-event-subscriber
-build-nft-event-subscriber:
-ifndef dist
-	$(error dist is undefined)
-endif
-	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
-	--build-arg GITHUB_USER=$(GITHUB_USER) \
-	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
-	-t nft-indexer:event-subscriber-$(dist) -f Dockerfile-event-subscriber .
-	docker tag nft-indexer:event-subscriber-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:event-subscriber-$(dist)
 
 .PHONY: build-nft-event-processor
 build-nft-event-processor:

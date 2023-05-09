@@ -59,10 +59,6 @@ spec:
             - name: EVENT_PROCESSOR_URI
               value: {{ .Values.serviceConfig.eventProcessorURI }}
 {{- end }}
-{{- if ne .Values.serviceConfig.eventSubscriberURL "" }}
-            - name: EVENT_SUBSCRIBER_URL
-              value: {{ .Values.serviceConfig.eventSubscriberURL }}
-{{- end }}
             - name: TEZOS_NODE_RPC_URL
               value: {{ .Values.serviceConfig.tezosNodeRPCURL }}
           volumeMounts:
@@ -85,10 +81,6 @@ spec:
 {{- if not (kindIs "invalid" .Values.serviceConfig.eventProcessorURI) }}
             - name: EVENT_PROCESSOR_URI
               value: {{ .Values.serviceConfig.eventProcessorURI }}
-{{- end }}
-{{- if not (kindIs "invalid" .Values.serviceConfig.eventSubscriberURL) }}
-            - name: EVENT_SUBSCRIBER_URL
-              value: {{ .Values.serviceConfig.eventSubscriberURL }}
 {{- end }}
             - name: TEZOS_NODE_RPC_URL
               value: {{ .Values.serviceConfig.tezosNodeRPCURL }}
