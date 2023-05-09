@@ -149,7 +149,7 @@ func (s *NFTEventSubscriber) WatchEthereumEvent(ctx context.Context) error {
 				} else {
 					// index the new token since it is a new token for our indexer and watched by our user
 					if len(accounts) > 0 {
-						update, err := s.Engine.IndexETHToken(toAddress, contractAddress, tokenIDHash.Big().Text(10))
+						update, err := s.Engine.IndexETHToken(ctx, contractAddress, tokenIDHash.Big().Text(10))
 						if err != nil {
 							log.Error("fail to generate index data", zap.Error(err))
 							continue

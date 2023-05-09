@@ -86,7 +86,7 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 }
 
 // IndexTezosToken indexes a Tezos token with a specific contract and ID
-func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, tokenID string) (*AssetUpdates, error) {
+func (e *IndexEngine) IndexTezosToken(ctx context.Context, contract, tokenID string) (*AssetUpdates, error) {
 	tzktToken, err := e.tzkt.GetContractToken(contract, tokenID)
 	if err != nil {
 		log.Debug("GetContractToken",
@@ -96,16 +96,7 @@ func (e *IndexEngine) IndexTezosToken(ctx context.Context, owner, contract, toke
 		return nil, err
 	}
 
-	balance, lastTime, err := e.tzkt.GetTokenBalanceAndLastTimeForOwner(contract, tokenID, owner)
-	if err != nil {
-		log.Debug("GetTokenBalanceAndLastTimeForOwner",
-			log.SourceTZKT,
-			zap.Error(err),
-			zap.String("contract", contract), zap.String("tokenID", tokenID))
-		return nil, err
-	}
-
-	return e.indexTezosToken(ctx, tzktToken, owner, balance, lastTime)
+	return e.indexTezosToken(ctx, tzktToken, "", 0, tzktToken.LastTime)
 }
 
 // indexTezosTokenFromFXHASH indexes token metadata by a given fxhash objkt id.
@@ -187,6 +178,11 @@ func (e *IndexEngine) getTokenMetadataURL(contractAddress, tokenID string) (stri
 	}
 
 	return string(tokenMetadata.TokenInfo[""]), nil
+}
+
+// getTezosTokenBalanceOfOwner returns current balance of a token that the owner owns
+func (e *IndexEngine) getTezosTokenBalanceOfOwner(_ context.Context, contract, tokenID, owner string) (int64, error) {
+	return e.tzkt.GetTokenBalanceOfOwner(contract, tokenID, owner)
 }
 
 // indexTezosToken prepares indexing data for a tezos token using the
@@ -304,7 +300,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 
 		if metadata != nil {
 			metadataDetail.FromTZIP21TokenMetadata(*metadata)
-			tokenDetail.Fungible = !metadata.IsBooleanAmount
+			tokenDetail.Fungible = !bool(metadata.IsBooleanAmount)
 		}
 	}
 

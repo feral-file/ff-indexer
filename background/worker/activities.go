@@ -162,9 +162,14 @@ type TezosTokenRawData struct {
 	Balance int64
 }
 
+// GetTokenBalanceOfOwner returns the balance of a token for an owner
+func (w *NFTIndexerWorker) GetTokenBalanceOfOwner(ctx context.Context, contract, tokenID, owner string) (int64, error) {
+	return w.indexerEngine.GetTokenBalanceOfOwner(ctx, contract, tokenID, owner)
+}
+
 // IndexToken indexes a token by the given contract and token id
-func (w *NFTIndexerWorker) IndexToken(ctx context.Context, owner, contract, tokenID string) (*indexer.AssetUpdates, error) {
-	return w.indexerEngine.IndexToken(ctx, owner, contract, tokenID)
+func (w *NFTIndexerWorker) IndexToken(ctx context.Context, contract, tokenID string) (*indexer.AssetUpdates, error) {
+	return w.indexerEngine.IndexToken(ctx, contract, tokenID)
 }
 
 // GetTokenIDsByOwner gets tokenIDs by the given owner
@@ -734,7 +739,7 @@ func (w *NFTIndexerWorker) UpdatePresignedThumbnailAssets(ctx context.Context) e
 
 	updatedIndexIDs := []string{}
 	for _, token := range presignedThumbnailTokens {
-		assetUpdates, err := w.indexerEngine.IndexTezosToken(ctx, token.Owner, token.ContractAddress, token.ID)
+		assetUpdates, err := w.indexerEngine.IndexTezosToken(ctx, token.ContractAddress, token.ID)
 		if err != nil {
 			log.Error("fail to get updates of a tezos token", zap.String("indexID", token.IndexID), zap.Error(err))
 			continue

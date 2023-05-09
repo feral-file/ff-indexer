@@ -219,12 +219,10 @@ func (s *NFTIndexerServer) IndexOneNFT(c *gin.Context) {
 		return
 	}
 
-	// FIXME: remove this addition step by replace the input of startIndexWorkflow by indexer.BlockchainAddress
-	owner := string(req.Owner)
-	contract := string(req.Contract)
+	contract := req.Contract.String()
 
 	if req.DryRun {
-		u, err := s.indexerEngine.IndexToken(c, owner, contract, req.TokenID)
+		u, err := s.indexerEngine.IndexToken(c, contract, req.TokenID)
 		if err != nil {
 			abortWithError(c, http.StatusInternalServerError, "fail to index token", err)
 			return
@@ -234,6 +232,7 @@ func (s *NFTIndexerServer) IndexOneNFT(c *gin.Context) {
 			"update": u,
 		})
 	} else {
+		owner := req.Owner.String()
 		indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, req.TokenID, false, req.Preview)
 		c.JSON(200, gin.H{
 			"ok": 1,

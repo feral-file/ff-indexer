@@ -157,7 +157,7 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 	log := workflow.GetLogger(ctx)
 
 	var update indexer.AssetUpdates
-	if err := workflow.ExecuteActivity(ctx, w.IndexToken, owner, contract, tokenID).Get(ctx, &update); err != nil {
+	if err := workflow.ExecuteActivity(ctx, w.IndexToken, contract, tokenID).Get(ctx, &update); err != nil {
 		sentry.CaptureException(err)
 		return err
 	}
@@ -167,19 +167,27 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 		return err
 	}
 
-	accountTokens := []indexer.AccountToken{
-		{
-			BaseTokenInfo:     update.Tokens[0].BaseTokenInfo,
-			IndexID:           update.Tokens[0].IndexID,
-			OwnerAccount:      update.Tokens[0].Owner,
-			Balance:           update.Tokens[0].Balance,
-			LastActivityTime:  update.Tokens[0].LastActivityTime,
-			LastRefreshedTime: update.Tokens[0].LastRefreshedTime,
-		}}
+	if owner != "" {
+		var balance int64
+		if err := workflow.ExecuteActivity(ctx, w.GetTokenBalanceOfOwner, contract, tokenID, owner).Get(ctx, &balance); err != nil {
+			sentry.CaptureException(err)
+			return err
+		}
 
-	if err := workflow.ExecuteActivity(ctx, w.IndexAccountTokens, owner, accountTokens).Get(ctx, nil); err != nil {
-		sentry.CaptureException(err)
-		return err
+		accountTokens := []indexer.AccountToken{
+			{
+				BaseTokenInfo:     update.Tokens[0].BaseTokenInfo,
+				IndexID:           update.Tokens[0].IndexID,
+				OwnerAccount:      owner,
+				Balance:           balance,
+				LastActivityTime:  update.Tokens[0].LastActivityTime,
+				LastRefreshedTime: update.Tokens[0].LastRefreshedTime,
+			}}
+
+		if err := workflow.ExecuteActivity(ctx, w.IndexAccountTokens, owner, accountTokens).Get(ctx, nil); err != nil {
+			sentry.CaptureException(err)
+			return err
+		}
 	}
 
 	if indexPreview {

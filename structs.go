@@ -18,10 +18,18 @@ const (
 // BlockchainAddress is a type of blockchain addresses supported in indexer
 type BlockchainAddress string
 
+func (a BlockchainAddress) String() string {
+	return string(a)
+}
+
 func (a *BlockchainAddress) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
 		return err
+	}
+
+	if s == "" {
+		return nil
 	}
 
 	switch GetBlockchainByAddress(s) {
