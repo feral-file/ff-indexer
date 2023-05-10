@@ -4,6 +4,7 @@ image:
   tags:
     tezosMarketplaceIndexer: tezos-marketplace-indexer-2.2.1-1
     tezosFeralfileIndexer: tezos-feralfile-indexer-2.2.1-1
+    tezosPostcardIndexer: tezos-postcard-indexer-2.2.2-2
 
 serviceConfig:
   tezosNodeRPCURL: https://mainnet-tezos.autonomy.io
@@ -25,6 +26,10 @@ serviceConfig:
     "KT19rZLpAurqKuDXtkMcJZWvWqGJz1CwWHzr", # airdrop MoMA 3
     "KT1CtDPiLjHiU1LVLrhshDry8jkR9h29tXNo", # FF029
     "KT1JCd3QHFgNZRatQuniDi8evTtyuhKFb3DC", # FF030
+    "KT1KzEtNm6Bb9qip8trTsnBohoriH2g2dvc7", # airdrop Memento 4
+  ]
+  postcardAddresses: [
+    "KT18eJvF5LHzoTDpxUSFG1WWn95GiZP5ZL8F"
   ]
   eventProcessorURI: nft-event-processor.autonomy.svc.cluster.local:8765
   environment: production

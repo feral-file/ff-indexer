@@ -22,7 +22,7 @@ serviceConfig:
   eventSubscriberURL:
   contractAddresses: []
   postcardAddresses: []
-  contractBoostUrl: "https://api.ghostnet.tzkt.io/"
+  contractBoostUrl: "https://api.tzkt.io/"
 
 imagePullSecrets: []
 nameOverride: ""
