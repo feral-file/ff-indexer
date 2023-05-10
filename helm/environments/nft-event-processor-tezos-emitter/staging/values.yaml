@@ -12,7 +12,7 @@ serviceConfig:
     "KT1QWATcHYpBVDxvNoxw5CbkaMGpjm4SxXa2",
   ]
   postcardAddresses: [
-    "KT1SKFjbLtnAspT3TYs3sTSyz33TyA2gYHQw"
+    "KT18eJvF5LHzoTDpxUSFG1WWn95GiZP5ZL8F"
   ]
   eventProcessorURI: nft-event-processor.autonomy-staging.svc.cluster.local:8765
   environment: staging
