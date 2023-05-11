@@ -3,11 +3,12 @@ package sdk
 import (
 	"context"
 	"fmt"
-	indexer "github.com/bitmark-inc/nft-indexer"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	indexer "github.com/bitmark-inc/nft-indexer"
 )
 
 func TestGetTokenByIndexID(t *testing.T) {

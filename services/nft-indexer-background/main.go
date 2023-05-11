@@ -83,6 +83,7 @@ func main() {
 	activity.Register(worker.IndexTezosTokenByOwner)
 	// index store
 	activity.Register(worker.IndexAsset)
+	activity.Register(worker.GetTokenBalanceOfOwner)
 	activity.Register(worker.GetTokenIDsByOwner)
 	activity.Register(worker.GetOutdatedTokensByOwner)
 	activity.Register(worker.RefreshTokenProvenance)
