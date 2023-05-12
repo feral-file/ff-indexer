@@ -9,7 +9,7 @@ import (
 )
 
 func TestGetBalanceDiffFromTezosTransaction(t *testing.T) {
-	indexerEngine := indexer.New("", []string{}, nil, tzkt.New(""), nil, nil)
+	indexerEngine := indexer.New("", []string{}, map[string]string{}, nil, tzkt.New(""), nil, nil)
 	w := NFTIndexerWorker{
 		Environment:   "",
 		indexerEngine: indexerEngine,
@@ -60,7 +60,7 @@ func TestGetBalanceDiffFromTezosTransaction(t *testing.T) {
 }
 
 func TestGetBalanceDiffFromETHTransaction(t *testing.T) {
-	indexerEngine := indexer.New("", []string{}, nil, tzkt.New(""), nil, nil)
+	indexerEngine := indexer.New("", []string{}, map[string]string{}, nil, tzkt.New(""), nil, nil)
 	w := NFTIndexerWorker{
 		Environment:   "",
 		indexerEngine: indexerEngine,

@@ -304,6 +304,11 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		}
 	}
 
+	if g, ok := e.minterGateways[metadataDetail.Minter]; ok {
+		log.Debug("override ipfs gateway by minter", zap.String("new_gateway", g))
+		gateway = g
+	}
+
 	// ensure ipfs urls are converted to http links
 	metadataDetail.DisplayURI = ipfsURLToGatewayURL(gateway, metadataDetail.DisplayURI)
 	metadataDetail.PreviewURI = ipfsURLToGatewayURL(gateway, metadataDetail.PreviewURI)

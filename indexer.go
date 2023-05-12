@@ -127,6 +127,7 @@ type AssetMetadataDetail struct {
 	Description string
 	MIMEType    string
 	Medium      Medium
+	Minter      string
 
 	ArtistID   string
 	ArtistName string
@@ -182,6 +183,7 @@ func (detail *AssetMetadataDetail) FromTZIP21TokenMetadata(md tzkt.TokenMetadata
 	detail.Description = md.Description
 	detail.MIMEType = mimeType
 	detail.Medium = mediumByMIMEType(mimeType)
+	detail.Minter = md.Minter
 
 	var optimizedFileSize = 0
 	var optimizedDisplayURI string
