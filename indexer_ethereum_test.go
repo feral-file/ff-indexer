@@ -22,6 +22,7 @@ func TestIndexETHToken(t *testing.T) {
 	engine := New(
 		"",
 		[]string{},
+		map[string]string{},
 		opensea.New("livenet", "", 1),
 		tzkt.New(""),
 		fxhash.New("https://api.fxhash.xyz/graphql"),

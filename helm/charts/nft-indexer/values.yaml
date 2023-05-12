@@ -9,10 +9,10 @@ image:
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tags:
-    api: "api-0.0.2"
-    background: "background-0.0.2-1"
-    provenance_indexer: "nft-provenance-indexer-0.0.16-4"
-    account_token_indexer: "nft-account-token-update-0.0.16-1"
+    api: "api-d725397e63a1894c01c4bd895b1029e634dd839f"
+    background: "background-d725397e63a1894c01c4bd895b1029e634dd839f"
+    provenance_indexer: "provenance-indexer-d725397e63a1894c01c4bd895b1029e634dd839f"
+    account_token_indexer: "account-token-indexer-d725397e63a1894c01c4bd895b1029e634dd839f"
 
 serviceConfig:
   cadence_hostport: cadence-frontend.cadence.svc.cluster.local:7933
@@ -25,6 +25,8 @@ serviceConfig:
     tezos: testnet
     ethereum: testnet
     bitmark: testnet
+  minter_gateways:
+    tz1hQbuRax3op9knY3YDxqNnqxzcmoxmv1qa: ipfs.test.bitmark.com
 
 imagePullSecrets: []
 nameOverride: ""

@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
@@ -81,9 +82,15 @@ func main() {
 		log.Panic("fail to initiate bitmark listener", zap.Error(err))
 	}
 
+	var minterGateways map[string]string
+	if err := yaml.Unmarshal([]byte(viper.GetString("ipfs.minter_gateways")), &minterGateways); err != nil {
+		log.Panic("fail to initiate indexer store", zap.Error(err))
+	}
+
 	engine := indexer.New(
 		environment,
 		viper.GetStringSlice("ipfs.preferred_gateways"),
+		minterGateways,
 		opensea.New(viper.GetString("network.ethereum"), viper.GetString("opensea.api_key"), viper.GetInt("opensea.ratelimit")),
 		tzkt.New(viper.GetString("network.tezos")),
 		fxhash.New(viper.GetString("fxhash.api_endpoint")),
