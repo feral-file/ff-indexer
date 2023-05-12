@@ -48,6 +48,8 @@ data:
       - ipfs.bitmark.com
       - ipfs.test.bitmark.com
       - ipfs.io
+      minter_gateways: |
+      {{- .Values.serviceConfig.minter_gateways | toYaml | nindent 8 }}
 
   background.yaml: |
     log:
@@ -86,4 +88,5 @@ data:
       - ipfs.bitmark.com
       - ipfs.test.bitmark.com
       - ipfs.io
-      minter_gateways: {{- .Values.serviceConfig.minter_gateways }}
+      minter_gateways: |
+      {{- .Values.serviceConfig.minter_gateways | toYaml | nindent 8 }}
