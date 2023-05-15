@@ -36,28 +36,12 @@ interface PostcardStampParameterItem {
 const IS_TESTNET = <string>process.env.NETWORK == "testnet"
 
 const eventProcessorURI = <string>process.env.EVENT_PROCESSOR_URI
-const eventSubscriberURL = <string>process.env.EVENT_SUBSCRIBER_URL
-
-if (!eventSubscriberURL) {
-  console.log("[TEZOS_EMITTER]", "event subscriber url not set")
-}
 
 var grpcClient: EventProcessorClient
 if (eventProcessorURI) {
   grpcClient = new EventProcessorClient(eventProcessorURI, grpc.ChannelCredentials.createInsecure());
 } else {
   console.log("[TEZOS_EMITTER]", "event processor uri not set")
-}
-
-async function reportEvent(timestamp: Date, contract: string, tokenID: string, from_: string, to_: string) {
-  await axios.post(eventSubscriberURL, {
-    "timestamp": timestamp,
-    "contract": contract,
-    "tokenID": tokenID,
-    "from": from_,
-    "to": to_,
-    "isTest": IS_TESTNET
-  })
 }
 
 async function grpcReportEvent(timestamp: Date, type: string, contract: string, tokenID: string, from_: string, to_: string) {
@@ -119,36 +103,10 @@ export function outputTransferGRPC(parameter: TezosTransferParameterItem[], inde
   }))
 }
 
-
-export function outputTransferAPI(parameter: TezosTransferParameterItem[], indexingContext: TransactionIndexingContext) {
-  parameter.forEach((transfer => {
-    transfer.txs.forEach(async function (items) {
-      try {
-        await reportEvent(
-          indexingContext.block.timestamp, indexingContext.contract.address,
-          items.token_id.toFixed(), transfer.from_, items.to_)
-        console.log("[TOKEN_TRANSFER]", "<API>", "(", indexingContext.contract.address, ")",
-          "id:", items.token_id.toFixed(), "from:", transfer.from_, "to:", items.to_)
-      } catch (error) {
-        console.log("fail to push event through api", error)
-      }
-    })
-  }))
-}
-
-
-
-
 export function outputTransfer(parameter: TezosTransferParameterItem[], indexingContext: TransactionIndexingContext) {
   if (eventProcessorURI) {
     outputTransferGRPC(parameter, indexingContext)
-  }
-
-  if (eventSubscriberURL) {
-    outputTransferAPI(parameter, indexingContext)
-  }
-
-  if (!eventProcessorURI && !eventSubscriberURL) {
+  } else {
     outputTransferStdout(parameter, indexingContext)
   }
 }
