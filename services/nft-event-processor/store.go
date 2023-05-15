@@ -5,11 +5,8 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-
-	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 type EventType string
@@ -26,6 +23,7 @@ const (
 	EventStatusCreated    EventStatus = "created"
 	EventStatusProcessing EventStatus = "processing"
 	EventStatusProcessed  EventStatus = "processed"
+	EventStatusFailed     EventStatus = "failed"
 )
 
 type NFTEvent struct {
@@ -42,12 +40,36 @@ type NFTEvent struct {
 	UpdatedAt  time.Time   `gorm:"default:now()"`
 }
 
+type EventTx struct {
+	*gorm.DB
+	Event NFTEvent
+}
+
+func (tx *EventTx) UpdateEvent(stage, status string) error {
+	updates := map[string]interface{}{}
+	if stage != "" {
+		updates["stage"] = stage
+	}
+
+	if status != "" {
+		updates["status"] = status
+	}
+
+	return tx.DB.Model(&NFTEvent{}).Where("id = ?", tx.Event.ID).Updates(updates).Error
+}
+
+func NewEventTx(DB *gorm.DB, event NFTEvent) *EventTx {
+	return &EventTx{
+		DB:    DB,
+		Event: event,
+	}
+}
+
 type EventStore interface {
 	CreateEvent(event NFTEvent) error
 	UpdateEvent(id string, updates map[string]interface{}) error
 	UpdateEventByStatus(id string, status EventStatus, updates map[string]interface{}) error
-	GetEventByStage(stage int8) (*NFTEvent, error)
-	ProcessEvent(ctx context.Context, option EventProcessOption) (bool, error)
+	GetEventTransaction(ctx context.Context, filters ...FilterOption) (*EventTx, error)
 }
 
 type PostgresEventStore struct {
@@ -104,71 +126,32 @@ func Filter(statement string, args ...interface{}) FilterOption {
 // process an event and a struct of state updates
 type EventProcessOption struct {
 	Filters        []QueryOption
-	Processor      func(event NFTEvent) error
+	Processor      processorFunc
 	CompleteUpdate NFTEvent
 }
 
-// ProcessEvent process an event based on processing options
-func (s *PostgresEventStore) ProcessEvent(ctx context.Context, option EventProcessOption) (bool, error) {
-	var hasEvent bool
-	return hasEvent, s.db.WithContext(ctx).Transaction(func(db *gorm.DB) error {
-		var event NFTEvent
-
-		q := db.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"})
-		for _, filter := range option.Filters {
-			q = filter.Apply(q)
-		}
-
-		// final query
-		q = q.Order("created_at asc").First(&event)
-
-		if err := q.Error; err != nil {
-			if err == gorm.ErrRecordNotFound {
-				return nil
-			}
-			return err
-		}
-
-		hasEvent = true
-		if err := option.Processor(event); err != nil {
-			// FIXME provide a fine-grain EventStatus. For example, EventStatusError
-			log.Error("fail to process event", zap.Error(err))
-		}
-
-		return db.Model(&NFTEvent{}).Where("id = ?", event.ID).
-			Updates(option.CompleteUpdate).Error
-	})
-}
-
-// GetEventByStage returns all queued events which need to process
-func (s *PostgresEventStore) GetEventByStage(stage int8) (*NFTEvent, error) {
+// GetEventTransaction returns an event and its lock transaction
+func (s *PostgresEventStore) GetEventTransaction(ctx context.Context, filters ...FilterOption) (*EventTx, error) {
 	var event NFTEvent
 
-	// TODO: return outdated queued events as well
-	err := s.db.Transaction(func(db *gorm.DB) error {
-		if err := db.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).
-			Where("stage = ?", EventStages[stage]).
-			Where("type <> ?", EventTypeTokenUpdated).
-			Where("status <> ?", EventStatusProcessed).
-			Order("created_at asc").Limit(1).Find(&event).Error; err != nil {
-			if err == gorm.ErrRecordNotFound {
-				return nil
-			}
-			return err
-		}
-
-		event.Status = EventStatusProcessing
-		return db.Model(&NFTEvent{}).Where("id = ?", event.ID).Update("status", EventStatusProcessing).Error
-	})
-	if err != nil {
+	tx := s.db.WithContext(ctx).Begin()
+	if err := tx.Error; err != nil {
 		return nil, err
 	}
 
-	if event.ID == "" {
-		return nil, nil
+	q := tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"})
+	for _, filter := range filters {
+		q = filter.Apply(q)
 	}
 
-	return &event, nil
+	// final query
+	q = q.Order("created_at asc").First(&event)
+	if err := q.Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	return NewEventTx(tx, event), nil
 }
 
 // AutoMigrate is a help function that update db when the schema changed.

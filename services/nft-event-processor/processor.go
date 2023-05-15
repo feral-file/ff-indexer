@@ -1,6 +1,10 @@
 package main
 
-import "context"
+import (
+	"context"
+)
+
+type processorFunc func(ctx context.Context, event NFTEvent) error
 
 type EventQueue struct {
 	store EventStore
@@ -17,32 +21,10 @@ func (q *EventQueue) PushEvent(event NFTEvent) error {
 	return q.store.CreateEvent(event)
 }
 
-func (q *EventQueue) ProcessTokenUpdatedEvent(
-	ctx context.Context,
-	processor func(event NFTEvent) error,
-) (bool, error) {
-	return q.store.ProcessEvent(ctx, EventProcessOption{
-		Filters: []QueryOption{
-			Filter("type = ?", EventTypeTokenUpdated),
-			Filter("status <> ?", EventStatusProcessed),
-		},
-		Processor: processor,
-		CompleteUpdate: NFTEvent{
-			Status: EventStatusProcessed,
-		},
-	})
+func (q *EventQueue) GetEventTransaction(ctx context.Context, filters ...FilterOption) (*EventTx, error) {
+	return q.store.GetEventTransaction(ctx, filters...)
 }
 
 func (q *EventQueue) UpdateEvent(id string, updates map[string]interface{}) error {
 	return q.store.UpdateEventByStatus(id, EventStatusProcessing, updates)
-}
-
-func (q *EventQueue) CompleteEvent(id string) error {
-	return q.store.UpdateEvent(id, map[string]interface{}{
-		"status": EventStatusProcessed,
-	})
-}
-
-func (q *EventQueue) GetEventByStage(stage int8) (*NFTEvent, error) {
-	return q.store.GetEventByStage(stage)
 }

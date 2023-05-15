@@ -34,19 +34,9 @@ account:
   db_uri:
 
 network:
-  tezos:
-  ethereum:
-  bitmark:
-
-opensea:
-  api_key:
-  ratelimit: 1
-
-fxhash:
-  api_endpoint:
-
-objkt:
-  api_endpoint:
+  tezos: testnet
+  ethereum: testnet
+  bitmark: testnet
 
 notification:
   endpoint:
