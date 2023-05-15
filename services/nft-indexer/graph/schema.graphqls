@@ -102,7 +102,7 @@ type Identity {
 }
 
 type Query {
-  tokens(owners: [String!]! = [], ids: [String!]! = [], lastUpdatedAt: Time, sortBy: String, offset: Int64! = 0, size: Int64! = 50): [Token!]!
+  tokens(owners: [String!]! = [], ids: [String!]! = [], source: String! = "", lastUpdatedAt: Time, sortBy: String, offset: Int64! = 0, size: Int64! = 50): [Token!]!
   identity(account: String!): Identity
 }
 

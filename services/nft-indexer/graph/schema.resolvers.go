@@ -14,7 +14,7 @@ import (
 )
 
 // Tokens is the resolver for the tokens field.
-func (r *queryResolver) Tokens(ctx context.Context, owners []string, ids []string, lastUpdatedAt *time.Time, sortBy *string, offset int64, size int64) ([]*model.Token, error) {
+func (r *queryResolver) Tokens(ctx context.Context, owners []string, ids []string, source string, lastUpdatedAt *time.Time, sortBy *string, offset int64, size int64) ([]*model.Token, error) {
 	var tokensInfo []indexer.DetailedTokenV2
 	var err error
 
@@ -32,7 +32,9 @@ func (r *queryResolver) Tokens(ctx context.Context, owners []string, ids []strin
 		tokensInfo, err = r.indexerStore.GetDetailedAccountTokensByOwners(
 			ctx,
 			owners,
-			indexer.FilterParameter{},
+			indexer.FilterParameter{
+				Source: source,
+			},
 			queryLastUpdatedTime,
 			querySortBy,
 			offset,
