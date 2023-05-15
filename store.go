@@ -3,7 +3,6 @@ package indexer
 import (
 	"context"
 	"fmt"
-	"github.com/bitmark-inc/nft-indexer/services/nft-indexer-grpc/grpc/indexer"
 	"strings"
 	"time"
 
@@ -2064,7 +2063,7 @@ func (s *MongodbIndexerStore) GetOwnerAccountsByIndexIDs(ctx context.Context, in
 	var owners []string
 
 	for cursor.Next(ctx) {
-		var accountToken indexer.AccountToken
+		var accountToken AccountToken
 
 		if err := cursor.Decode(&accountToken); err != nil {
 			return nil, err
