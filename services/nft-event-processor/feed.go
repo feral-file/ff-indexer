@@ -8,9 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
-	"go.uber.org/zap"
 )
 
 type FeedClient struct {

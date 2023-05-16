@@ -4,19 +4,19 @@ import (
 	"context"
 	"time"
 
-	"github.com/bitmark-inc/autonomy-account/storage"
-	indexer "github.com/bitmark-inc/nft-indexer"
-	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
-	"github.com/bitmark-inc/nft-indexer/cadence"
-	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
+	"github.com/bitmark-inc/autonomy-account/storage"
 	notification "github.com/bitmark-inc/autonomy-notification"
 	notificationSdk "github.com/bitmark-inc/autonomy-notification/sdk"
+	indexer "github.com/bitmark-inc/nft-indexer"
+	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
+	"github.com/bitmark-inc/nft-indexer/cadence"
+	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 type EventProcessor struct {

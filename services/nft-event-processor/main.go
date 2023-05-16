@@ -5,22 +5,20 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bitmark-inc/autonomy-account/storage"
-	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
-	"github.com/bitmark-inc/nft-indexer/cadence"
-	"github.com/bitmark-inc/nft-indexer/log"
-
-	"go.uber.org/zap"
-
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
+	"github.com/bitmark-inc/autonomy-account/storage"
 	notification "github.com/bitmark-inc/autonomy-notification/sdk"
 	"github.com/bitmark-inc/config-loader"
 	indexer "github.com/bitmark-inc/nft-indexer"
+	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
+	"github.com/bitmark-inc/nft-indexer/cadence"
+	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 func main() {
