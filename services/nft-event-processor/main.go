@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/bitmark-inc/autonomy-account/storage"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
@@ -73,7 +74,15 @@ func main() {
 
 	feedServer := NewFeedClient(viper.GetString("feed.endpoint"), viper.GetString("feed.api_token"), viper.GetBool("feed.debug"))
 
+	checkInterval, err := time.ParseDuration(viper.GetString("check_interval"))
+	if err != nil {
+		log.Warn("invalid check interval. set to default 10s",
+			zap.String("check_interval", viper.GetString("check_interval")), zap.Error(err))
+		checkInterval = DefaultCheckInterval
+	}
+
 	p := NewEventProcessor(
+		checkInterval,
 		viper.GetString("server.network"),
 		viper.GetString("server.address"),
 		NewPostgresEventStore(db),

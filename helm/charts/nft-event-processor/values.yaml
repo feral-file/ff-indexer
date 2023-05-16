@@ -14,6 +14,7 @@ image:
     bitmarkEmitter: "bitmark-emitter-0.1.0-1"
 
 serviceConfig:
+  check_interval: 5s
   debug: false
   environment: development
   feedEndpoint: http://autonomy-event-feed.autonomy.svc.cluster.local:80

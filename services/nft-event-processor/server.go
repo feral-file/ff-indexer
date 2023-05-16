@@ -20,6 +20,8 @@ import (
 )
 
 type EventProcessor struct {
+	checkInterval time.Duration
+
 	grpcServer   *GRPCServer
 	eventQueue   *EventQueue
 	indexerStore *indexer.MongodbIndexerStore
@@ -30,6 +32,7 @@ type EventProcessor struct {
 }
 
 func NewEventProcessor(
+	checkInterval time.Duration,
 	network string,
 	address string,
 	store EventStore,
@@ -43,6 +46,8 @@ func NewEventProcessor(
 	grpcServer := NewGRPCServer(network, address, queue)
 
 	return &EventProcessor{
+		checkInterval: checkInterval,
+
 		grpcServer:   grpcServer,
 		eventQueue:   queue,
 		indexerStore: indexerStore,
@@ -101,7 +106,7 @@ func (e *EventProcessor) StartWorker(ctx context.Context, currentStage, nextStag
 					} else {
 						log.Error("Fail to get a event db transaction", zap.Error(err))
 					}
-					time.Sleep(WaitingTime)
+					time.Sleep(e.checkInterval)
 					continue
 				}
 				e.logStartStage(eventTx.Event, currentStage)

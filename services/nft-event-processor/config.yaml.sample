@@ -8,6 +8,8 @@ store:
   cache_expiry: 24h
   log_level: 1
 
+check_interval: 5s
+
 log:
   level: debug
 
