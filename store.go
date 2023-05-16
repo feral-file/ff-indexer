@@ -2044,7 +2044,7 @@ func (s *MongodbIndexerStore) GetNullProvenanceTokensByIndexIDs(ctx context.Cont
 	return nullProvenanceIDs, nil
 }
 
-// GetOwnerAccountsByIndexIDs returns indexIDs that have null provenance
+// GetOwnerAccountsByIndexIDs Get Owner Accounts By IndexIDs
 func (s *MongodbIndexerStore) GetOwnerAccountsByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error) {
 	filter := bson.M{
 		"indexID": bson.M{
