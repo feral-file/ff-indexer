@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/spf13/viper"
@@ -26,6 +27,7 @@ const (
 	EventStatusFailed     EventStatus = "failed"
 )
 
+// NFTEvent is the model for token events
 type NFTEvent struct {
 	ID         string      `gorm:"primaryKey;size:255;default:uuid_generate_v4()"`
 	Type       string      `gorm:"index"`
@@ -40,11 +42,13 @@ type NFTEvent struct {
 	UpdatedAt  time.Time   `gorm:"default:now()"`
 }
 
+// EventTx is an transaction object with event values
 type EventTx struct {
 	*gorm.DB
 	Event NFTEvent
 }
 
+// UpdateEvent updates events by given stage or status
 func (tx *EventTx) UpdateEvent(stage, status string) error {
 	updates := map[string]interface{}{}
 	if stage != "" {
@@ -53,6 +57,10 @@ func (tx *EventTx) UpdateEvent(stage, status string) error {
 
 	if status != "" {
 		updates["status"] = status
+	}
+
+	if len(updates) == 0 {
+		return fmt.Errorf("nothing for update to a nft event")
 	}
 
 	return tx.DB.Model(&NFTEvent{}).Where("id = ?", tx.Event.ID).Updates(updates).Error
@@ -67,8 +75,6 @@ func NewEventTx(DB *gorm.DB, event NFTEvent) *EventTx {
 
 type EventStore interface {
 	CreateEvent(event NFTEvent) error
-	UpdateEvent(id string, updates map[string]interface{}) error
-	UpdateEventByStatus(id string, status EventStatus, updates map[string]interface{}) error
 	GetEventTransaction(ctx context.Context, filters ...FilterOption) (*EventTx, error)
 }
 
@@ -92,20 +98,8 @@ func (s *PostgresEventStore) CreateEvent(event NFTEvent) error {
 	return s.db.Save(&event).Error
 }
 
-// UpdateEvent updates attributes for a event.
-func (s *PostgresEventStore) UpdateEvent(id string, updates map[string]interface{}) error {
-	return s.db.Model(&NFTEvent{}).Where("id = ?", id).Updates(updates).Error
-}
-
-// UpdateEvent updates attributes for a event.
-func (s *PostgresEventStore) UpdateEventByStatus(id string, status EventStatus, updates map[string]interface{}) error {
-	return s.db.Model(&NFTEvent{}).Where("id = ?", id).Where("status = ?", status).Updates(updates).Error
-}
-
-type QueryOption interface {
-	Apply(tx *gorm.DB) *gorm.DB
-}
-
+// FilterOption is an abstraction to help filtering events with
+// specific conditions
 type FilterOption struct {
 	Statement  string
 	Argumenets []interface{}
@@ -122,15 +116,7 @@ func Filter(statement string, args ...interface{}) FilterOption {
 	}
 }
 
-// EventProcessOption includes information about filters to target an event, a processor for
-// process an event and a struct of state updates
-type EventProcessOption struct {
-	Filters        []QueryOption
-	Processor      processorFunc
-	CompleteUpdate NFTEvent
-}
-
-// GetEventTransaction returns an event and its lock transaction
+// GetEventTransaction returns an EventTx
 func (s *PostgresEventStore) GetEventTransaction(ctx context.Context, filters ...FilterOption) (*EventTx, error) {
 	var event NFTEvent
 
