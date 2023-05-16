@@ -89,6 +89,8 @@ type Store interface {
 	GetTotalBalanceOfOwnerAccounts(ctx context.Context, addresses []string) (int, error)
 
 	GetNullProvenanceTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
+
+	GetOwnerAccountsByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
 }
 
 type FilterParameter struct {
@@ -2040,4 +2042,35 @@ func (s *MongodbIndexerStore) GetNullProvenanceTokensByIndexIDs(ctx context.Cont
 	}
 
 	return nullProvenanceIDs, nil
+}
+
+// GetOwnerAccountsByIndexIDs Get Owner Accounts By IndexIDs
+func (s *MongodbIndexerStore) GetOwnerAccountsByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error) {
+	filter := bson.M{
+		"indexID": bson.M{
+			"$in": indexIDs,
+		},
+	}
+
+	cursor, err := s.accountTokenCollection.Find(
+		ctx,
+		filter,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var owners []string
+
+	for cursor.Next(ctx) {
+		var accountToken AccountToken
+
+		if err := cursor.Decode(&accountToken); err != nil {
+			return nil, err
+		}
+
+		owners = append(owners, accountToken.OwnerAccount)
+	}
+
+	return owners, nil
 }

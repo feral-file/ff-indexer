@@ -109,3 +109,12 @@ func (i *IndexerGRPCClient) GetTotalBalanceOfOwnerAccounts(ctx context.Context, 
 
 	return totalBalance.Count, nil
 }
+
+func (i *IndexerGRPCClient) GetOwnerAccountsByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error) {
+	addresses, err := i.client.GetOwnerAccountsByIndexIDs(ctx, &pb.IndexIDs{IndexIDs: indexIDs})
+	if err != nil {
+		return nil, err
+	}
+
+	return addresses.Addresses, nil
+}

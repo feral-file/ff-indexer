@@ -90,3 +90,19 @@ func TestGetDetailedToken(t *testing.T) {
 }
 
 // TODO: implement tests: TestIndexAccountTokens, TestUpdateOwnerForFungibleToken, TestUpdateOwner
+
+// TestGetOwnerAccountsByIndexIDs a test for GetOwnerAccountsByIndexIDs
+func TestGetOwnerAccountsByIndexIDs(t *testing.T) {
+	client, err := NewIndexerClient("localhost:8889")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	indexIDs := []string{"tez-KT1ESGez4dEuDjjNt4k2HPAK5Nzh7e8X8jyX-1683031758835", "tez-KT1ESGez4dEuDjjNt4k2HPAK5Nzh7e8X8jyX-1683863093457"}
+
+	owners, err := client.GetOwnerAccountsByIndexIDs(context.Background(), indexIDs)
+
+	fmt.Println(owners)
+	assert.NoError(t, err)
+}

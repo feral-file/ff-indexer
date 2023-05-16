@@ -12,10 +12,15 @@ service Indexer {
 
   rpc GetDetailedToken(IndexID) returns (DetailedToken);
   rpc GetTotalBalanceOfOwnerAccounts(Addresses) returns (TotalBalance);
+  rpc GetOwnerAccountsByIndexIDs(IndexIDs) returns (Addresses);
 }
 
 message Addresses {
   repeated string Addresses = 1;
+}
+
+message IndexIDs {
+  repeated string IndexIDs = 1;
 }
 
 message TotalBalance {
