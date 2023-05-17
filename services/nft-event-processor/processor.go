@@ -12,6 +12,7 @@ import (
 	"github.com/bitmark-inc/nft-indexer/log"
 )
 
+// updateLatestOwner updates the latest owner of an existent token
 func (e *EventProcessor) updateLatestOwner(ctx context.Context, event NFTEvent) error {
 	eventType := event.Type
 	blockchain := event.Blockchain
@@ -21,9 +22,8 @@ func (e *EventProcessor) updateLatestOwner(ctx context.Context, event NFTEvent) 
 	indexID := indexer.TokenIndexID(blockchain, contract, tokenID)
 
 	switch event.Type {
-	case "mint":
-		// do nothing here.
-	default:
+	case string(EventTypeTransfer):
+		// FIXME: Switch to indexer GRPC
 		token, err := e.indexerStore.GetTokensByIndexID(ctx, indexID)
 		if err != nil {
 			log.Error("fail to get token by index id", zap.Error(err))
@@ -75,13 +75,14 @@ func (e *EventProcessor) updateLatestOwner(ctx context.Context, event NFTEvent) 
 		} else {
 			log.Debug("token not found", zap.String("indexID", indexID))
 		}
-
+	default:
+		// do nothing here.
 	}
 
 	return nil
 }
 
-// UpdateLatestOwner [stage 1] update owner for nft and ft by event information
+// UpdateLatestOwner is a stage 1 worker.
 func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 	e.StartWorker(ctx,
 		1, 2,
@@ -99,6 +100,7 @@ func (e *EventProcessor) updateOwnerAndProvenance(ctx context.Context, event NFT
 	tokenID := event.TokenID
 	to := event.To
 
+	// FIXME: Switch to account server GRPC
 	accounts, err := e.accountStore.GetAccountIDByAddress(to)
 	if err != nil {
 		log.Error("fail to check accounts by address", zap.Error(err))
@@ -148,7 +150,7 @@ func (e *EventProcessor) updateOwnerAndProvenance(ctx context.Context, event NFT
 			indexerWorker.StartRefreshTokenProvenanceWorkflow(ctx, e.worker, "processor", indexID, 0)
 		}
 	} else {
-		// index the new token since it is a new token for our indexer and watched by our user
+		// index the new token since it is a new token send to our watched user
 		if len(accounts) > 0 {
 			log.Info("start indexing a new token",
 				zap.String("indexID", indexID),
@@ -160,7 +162,7 @@ func (e *EventProcessor) updateOwnerAndProvenance(ctx context.Context, event NFT
 	return nil
 }
 
-// UpdateOwnerAndProvenance trigger cadence to update owner and provenance of token
+// UpdateOwnerAndProvenance is a stage 2 worker.
 func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 	e.StartWorker(ctx,
 		2, 3,
@@ -169,7 +171,7 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 	)
 }
 
-// NotifyChangeTokenOwner send notification to notificationSdk
+// notifyChangeTokenOwner send notifications to related account ids.
 func (e *EventProcessor) notifyChangeTokenOwner(_ context.Context, event NFTEvent) error {
 	blockchain := event.Blockchain
 	contract := event.Contract
@@ -185,7 +187,7 @@ func (e *EventProcessor) notifyChangeTokenOwner(_ context.Context, event NFTEven
 
 	for _, accountID := range accounts {
 		if err := e.notifyChangeOwner(accountID, to, indexID); err != nil {
-			log.Error("fail to send notificationSdk for the new update",
+			log.Error("fail to send notification for the new owner update",
 				zap.Error(err),
 				zap.String("accountID", accountID), zap.String("indexID", indexID))
 			return err
@@ -194,7 +196,7 @@ func (e *EventProcessor) notifyChangeTokenOwner(_ context.Context, event NFTEven
 	return nil
 }
 
-// NotifyChangeTokenOwner send notification to notificationSdk
+// NotifyChangeTokenOwner is a stage 3 worker.
 func (e *EventProcessor) NotifyChangeTokenOwner(ctx context.Context) {
 	e.StartWorker(ctx,
 		3, 4,
@@ -203,6 +205,7 @@ func (e *EventProcessor) NotifyChangeTokenOwner(ctx context.Context) {
 	)
 }
 
+// sendEventToFeedServer sends the new processed event to feed server
 func (e *EventProcessor) sendEventToFeedServer(ctx context.Context, event NFTEvent) error {
 	blockchain := event.Blockchain
 	contract := event.Contract
@@ -214,7 +217,7 @@ func (e *EventProcessor) sendEventToFeedServer(ctx context.Context, event NFTEve
 		viper.GetString("network.ethereum") == "testnet")
 }
 
-// SendEventToFeedServer send event to feed server
+// SendEventToFeedServer is a stage 4 worker.
 func (e *EventProcessor) SendEventToFeedServer(ctx context.Context) {
 	e.StartWorker(ctx,
 		4, 0,

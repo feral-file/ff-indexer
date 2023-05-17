@@ -11,7 +11,7 @@ func (e *EventProcessor) refreshTokenData(ctx context.Context, event NFTEvent) e
 	return nil
 }
 
-// UpdateOwnerAndProvenance trigger cadence to update owner and provenance of token
+// RefreshTokenData process the EventTypeTokenUpdated and trigger cadence workflow to refresh the token data
 func (e *EventProcessor) RefreshTokenData(ctx context.Context) {
 	e.StartWorker(ctx,
 		1, 0,

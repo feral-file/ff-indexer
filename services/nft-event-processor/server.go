@@ -61,7 +61,7 @@ func (e *EventProcessor) UpdateOwner(c context.Context, id, owner string, update
 	return e.indexerStore.UpdateOwner(c, id, owner, updatedAt)
 }
 
-// notifyChangeOwner notifies the arrival of a new token
+// notifyChangeOwner send change_token_owner notification to notification server
 func (e *EventProcessor) notifyChangeOwner(accountID, toAddress, tokenID string) error {
 	return e.notification.SendNotification("",
 		notification.NEW_NFT_ARRIVED,
