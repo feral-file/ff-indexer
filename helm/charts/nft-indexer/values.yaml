@@ -11,6 +11,7 @@ image:
   tags:
     api: "api-d725397e63a1894c01c4bd895b1029e634dd839f"
     background: "background-d725397e63a1894c01c4bd895b1029e634dd839f"
+    grpc: "grpc-d725397e63a1894c01c4bd895b1029e634dd839f"
     provenance_indexer: "provenance-indexer-d725397e63a1894c01c4bd895b1029e634dd839f"
     account_token_indexer: "account-token-indexer-d725397e63a1894c01c4bd895b1029e634dd839f"
 
@@ -48,6 +49,10 @@ securityContext: {}
 service:
   type: ClusterIP
   port: 8089
+
+grpcService:
+  type: ClusterIP
+  port: 8888
 
 ingress:
   enabled: true

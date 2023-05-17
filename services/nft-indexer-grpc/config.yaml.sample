@@ -1,5 +1,5 @@
 
-indexer_store:
+store:
   db_uri:
   db_name:
 

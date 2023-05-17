@@ -34,6 +34,10 @@ nft-indexer:
 nft-indexer-background:
 	go build -o bin/nft-indexer-background ./services/nft-indexer-background
 
+.PHONY: nft-indexer-grpc
+nft-indexer-grpc:
+	go build -o bin/nft-indexer-grpc ./services/nft-indexer-grpc
+
 .PHONY: nft-image-indexer
 nft-image-indexer:
 	go build -o bin/nft-image-indexer ./services/nft-image-indexer
@@ -65,6 +69,10 @@ run-nft-indexer: nft-indexer
 .PHONY: run-nft-indexer-background
 run-nft-indexer-background: nft-indexer-background
 	./bin/nft-indexer-background -c config.yaml
+
+.PHONY: run-nft-indexer-grpc
+run-nft-indexer-grpc: nft-indexer-grpc
+	./bin/nft-indexer-grpc -c config.yaml
 
 .PHONY: run-nft-image-indexer
 run-nft-image-indexer: nft-image-indexer
@@ -121,6 +129,17 @@ endif
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t nft-indexer:background-$(dist) -f Dockerfile-background .
 	docker tag nft-indexer:background-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:background-$(dist)
+
+.PHONY: build-nft-indexer-grpc-image
+build-nft-indexer-grpc-image:
+ifndef dist
+	$(error 'dist is undefined')
+endif
+	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
+	--build-arg GITHUB_USER=$(GITHUB_USER) \
+	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
+	-t nft-indexer:grpc-'${dist}' -f Dockerfile-grpc .
+	docker tag nft-indexer:grpc-'${dist}' 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:grpc-'${dist}'
 
 .PHONY: build-nft-provenance-indexer
 build-nft-provenance-indexer:
