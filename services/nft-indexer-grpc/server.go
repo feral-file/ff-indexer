@@ -43,6 +43,22 @@ func NewIndexerGRPCServer(
 	}, nil
 }
 
+// Run starts the IndexerServer
+func (i *IndexerServer) Run(context.Context) error {
+	listener, err := net.Listen(i.network, fmt.Sprintf("0.0.0.0:%d", i.port))
+	if err != nil {
+		return err
+	}
+
+	pb.RegisterIndexerServer(i.grpcServer, i)
+	err = i.grpcServer.Serve(listener)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GetTokenByIndexID returns a token by index ID
 func (i *IndexerServer) GetTokenByIndexID(ctx context.Context, indexID *pb.IndexID) (*pb.Token, error) {
 	token, err := i.indexerStore.GetTokensByIndexID(ctx, indexID.IndexID)
@@ -156,18 +172,12 @@ func (i *IndexerServer) GetOwnerAccountsByIndexIDs(ctx context.Context, indexIDs
 	return &pb.Addresses{Addresses: owners}, nil
 }
 
-// Run starts the IndexerServer
-func (i *IndexerServer) Run(context.Context) error {
-	listener, err := net.Listen(i.network, fmt.Sprintf("0.0.0.0:%d", i.port))
+// GetRandomIndexIDByContract returns a random index ID by contract
+func (i *IndexerServer) GetRandomIndexIDByContract(ctx context.Context, contract *pb.Contract) (*pb.IndexID, error) {
+	indexID, err := i.indexerStore.GetRandomIndexIDByContract(ctx, contract.Contract)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	pb.RegisterIndexerServer(i.grpcServer, i)
-	err = i.grpcServer.Serve(listener)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return &pb.IndexID{IndexID: indexID}, nil
 }

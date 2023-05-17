@@ -13,6 +13,8 @@ service Indexer {
   rpc GetDetailedToken(IndexID) returns (DetailedToken);
   rpc GetTotalBalanceOfOwnerAccounts(Addresses) returns (TotalBalance);
   rpc GetOwnerAccountsByIndexIDs(IndexIDs) returns (Addresses);
+
+  rpc GetRandomIndexIDByContract(Contract) returns (IndexID);
 }
 
 message Addresses {
@@ -124,6 +126,10 @@ message PushProvenanceRequest {
 
 message IndexID {
   string IndexID = 1;
+}
+
+message Contract {
+  string Contract = 1;
 }
 
 message Token {

@@ -118,3 +118,13 @@ func (i *IndexerGRPCClient) GetOwnerAccountsByIndexIDs(ctx context.Context, inde
 
 	return addresses.Addresses, nil
 }
+
+// GetRandomIndexIDByContract returns a random indexID by contract
+func (i *IndexerGRPCClient) GetRandomIndexIDByContract(ctx context.Context, contract string) (string, error) {
+	indexID, err := i.client.GetRandomIndexIDByContract(ctx, &pb.Contract{Contract: contract})
+	if err != nil {
+		return "", err
+	}
+
+	return indexID.IndexID, nil
+}
