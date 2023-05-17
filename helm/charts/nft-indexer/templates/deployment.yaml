@@ -25,6 +25,32 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
+        - name: {{ .Chart.Name }}-grpc
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tags.grpc | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /nft-indexer-grpc
+          ports:
+            - name: grpc
+              containerPort: 8888
+              protocol: TCP
+          env:
+            - name: NFT_INDEXER_STORE_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: store_db_uri
+            - name: NFT_INDEXER_STORE_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: store_db_name
+          volumeMounts:
+            - name: config
+              mountPath: "/.config"
+              readOnly: true
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}

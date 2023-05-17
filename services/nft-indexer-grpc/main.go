@@ -15,13 +15,13 @@ import (
 func main() {
 	ctx := context.Background()
 
-	config.LoadConfig("NFT_INDEXER_GRPC")
+	config.LoadConfig("NFT_INDEXER")
 
 	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug")); err != nil {
 		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
 	}
 
-	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("indexer_store.db_uri"), viper.GetString("indexer_store.db_name"))
+	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
 	if err != nil {
 		log.Panic("fail to initiate indexer store", zap.Error(err))
 	}
