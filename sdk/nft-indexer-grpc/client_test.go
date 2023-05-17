@@ -106,3 +106,19 @@ func TestGetOwnerAccountsByIndexIDs(t *testing.T) {
 	fmt.Println(owners)
 	assert.NoError(t, err)
 }
+
+// GetRandomIndexIDByContract a test for GetRandomIndexIDByContract
+func TestGetRandomIndexIDByContract(t *testing.T) {
+	client, err := NewIndexerClient("localhost:8889")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	contract := "KT1ESGez4dEuDjjNt4k2HPAK5Nzh7e8X8jyX"
+
+	indexID, err := client.GetRandomIndexIDByContract(context.Background(), contract)
+
+	fmt.Println(indexID)
+	assert.NoError(t, err)
+}
