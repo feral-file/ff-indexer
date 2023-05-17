@@ -91,6 +91,8 @@ type Store interface {
 	GetNullProvenanceTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
 
 	GetOwnerAccountsByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
+
+	GetRandomIndexIDByContract(ctx context.Context, contract string) (string, error)
 }
 
 type FilterParameter struct {
@@ -2073,4 +2075,25 @@ func (s *MongodbIndexerStore) GetOwnerAccountsByIndexIDs(ctx context.Context, in
 	}
 
 	return owners, nil
+}
+
+func (s *MongodbIndexerStore) GetRandomIndexIDByContract(ctx context.Context, contract string) (string, error) {
+	cursor, err := s.tokenCollection.Aggregate(ctx, []bson.M{
+		{"$match": bson.M{"contractAddress": contract}},
+		{"$sample": bson.M{"size": 1}},
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	var token Token
+
+	for cursor.Next(ctx) {
+		if err := cursor.Decode(&token); err != nil {
+			return "", err
+		}
+	}
+
+	return token.IndexID, nil
 }
