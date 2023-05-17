@@ -9,10 +9,11 @@ image:
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tags:
-    api: "api-d725397e63a1894c01c4bd895b1029e634dd839f"
-    background: "background-d725397e63a1894c01c4bd895b1029e634dd839f"
-    provenance_indexer: "provenance-indexer-d725397e63a1894c01c4bd895b1029e634dd839f"
-    account_token_indexer: "account-token-indexer-d725397e63a1894c01c4bd895b1029e634dd839f"
+    api: "api-912ea7b4b68ff1082f9e479294c311561f3530f5"
+    background: "background-912ea7b4b68ff1082f9e479294c311561f3530f5"
+    grpc: "grpc-912ea7b4b68ff1082f9e479294c311561f3530f5"
+    provenance_indexer: "provenance-indexer-912ea7b4b68ff1082f9e479294c311561f3530f5"
+    account_token_indexer: "account-token-indexer-912ea7b4b68ff1082f9e479294c311561f3530f5"
 
 serviceConfig:
   cadence_hostport: cadence-frontend.cadence.svc.cluster.local:7933
@@ -48,6 +49,10 @@ securityContext: {}
 service:
   type: ClusterIP
   port: 8089
+
+grpcService:
+  type: ClusterIP
+  port: 8888
 
 ingress:
   enabled: true

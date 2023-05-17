@@ -1,0 +1,19 @@
+# syntax=docker/dockerfile:1.2
+
+FROM golang:1.19.3-alpine as build
+
+RUN apk add --no-cache gcc musl-dev git
+
+WORKDIR $GOPATH/github.com/bitmark-inc/nft-indexer
+
+ADD go.mod .
+
+ADD . .
+
+RUN go install github.com/bitmark-inc/nft-indexer/services/nft-indexer-grpc
+
+# ---
+
+FROM alpine:3.14
+ARG dist=0.0
+COPY --from=build /go/bin/nft-indexer-grpc /nft-indexer-grpc
