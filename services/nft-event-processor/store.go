@@ -36,6 +36,8 @@ type NFTEvent struct {
 	TokenID    string      `gorm:"index"`
 	From       string      `gorm:"index"`
 	To         string      `gorm:"index"`
+	TXID       string      `gorm:"index"`
+	TXTime     time.Time   `gorm:"index"`
 	Stage      string      `gorm:"index"`
 	Status     EventStatus `gorm:"index"`
 	CreatedAt  time.Time   `gorm:"default:now()"`

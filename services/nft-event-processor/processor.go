@@ -37,9 +37,9 @@ func (e *EventProcessor) updateLatestOwner(ctx context.Context, event NFTEvent) 
 					FormerOwner: &event.From,
 					Owner:       to,
 					Blockchain:  blockchain,
-					Timestamp:   event.CreatedAt,
-					TxID:        "",
-					TxURL:       "",
+					Timestamp:   event.TXTime,
+					TxID:        event.TXID,
+					TxURL:       indexer.TxURL(event.Blockchain, e.environment, event.TXID),
 				})
 
 				if err != nil {

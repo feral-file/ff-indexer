@@ -80,6 +80,7 @@ func main() {
 	}
 
 	p := NewEventProcessor(
+		environment,
 		checkInterval,
 		viper.GetString("server.network"),
 		viper.GetString("server.address"),

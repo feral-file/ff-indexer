@@ -18,6 +18,7 @@ import (
 )
 
 type EventProcessor struct {
+	environment   string
 	checkInterval time.Duration
 
 	grpcServer   *GRPCServer
@@ -30,6 +31,7 @@ type EventProcessor struct {
 }
 
 func NewEventProcessor(
+	environment string,
 	checkInterval time.Duration,
 	network string,
 	address string,
@@ -44,6 +46,7 @@ func NewEventProcessor(
 	grpcServer := NewGRPCServer(network, address, queue)
 
 	return &EventProcessor{
+		environment:   environment,
 		checkInterval: checkInterval,
 
 		grpcServer:   grpcServer,

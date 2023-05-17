@@ -4,15 +4,16 @@ import (
 	"context"
 	"time"
 
-	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/emitter"
-	"github.com/bitmark-inc/nft-indexer/log"
-	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 	goethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"go.uber.org/zap"
+
+	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer/emitter"
+	"github.com/bitmark-inc/nft-indexer/log"
+	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 )
 
 type EthereumEventsEmitter struct {
@@ -71,11 +72,20 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 			contractAddress := indexer.EthereumChecksumAddress(eLog.Address.String())
 			tokenIDHash := eLog.Topics[3]
 
+			txTime, err := indexer.GetETHBlockTime(ctx, e.wsClient, eLog.BlockHash)
+			if err != nil {
+				log.Error("fail to get the block time", zap.Error(err), log.SourceGRPC)
+				continue
+			}
+
 			log.Debug("receive transfer event on ethereum",
 				zap.String("from", fromAddress),
 				zap.String("to", toAddress),
 				zap.String("contractAddress", contractAddress),
-				zap.Any("tokenIDHash", tokenIDHash))
+				zap.String("tokenIDHash", tokenIDHash.Hex()),
+				zap.String("txID", eLog.TxHash.Hex()),
+				zap.String("txTime", txTime.String()),
+			)
 
 			eventType := "transfer"
 			if fromAddress == indexer.EthereumZeroAddress {
@@ -84,7 +94,7 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 				eventType = "burned"
 			}
 
-			if err := e.PushEvent(ctx, eventType, fromAddress, toAddress, contractAddress, indexer.EthereumBlockchain, tokenIDHash.Big().Text(10)); err != nil {
+			if err := e.PushEvent(ctx, eventType, fromAddress, toAddress, contractAddress, indexer.EthereumBlockchain, tokenIDHash.Big().Text(10), eLog.TxHash.Hex(), txTime); err != nil {
 				log.Error("gRPC request failed", zap.Error(err), log.SourceGRPC)
 				continue
 			}
