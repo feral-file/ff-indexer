@@ -170,7 +170,7 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 }
 
 // NotifyChangeTokenOwner send notification to notificationSdk
-func (e *EventProcessor) notifyChangeTokenOwner(ctx context.Context, event NFTEvent) error {
+func (e *EventProcessor) notifyChangeTokenOwner(_ context.Context, event NFTEvent) error {
 	blockchain := event.Blockchain
 	contract := event.Contract
 	tokenID := event.TokenID
@@ -210,7 +210,7 @@ func (e *EventProcessor) sendEventToFeedServer(ctx context.Context, event NFTEve
 	to := event.To
 	eventType := event.Type
 
-	return e.feedServer.SendEvent(blockchain, contract, tokenID, to, eventType,
+	return e.feedServer.SendEvent(ctx, blockchain, contract, tokenID, to, eventType,
 		viper.GetString("network.ethereum") == "testnet")
 }
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -42,7 +43,7 @@ type EventRequest struct {
 	Timestamp  time.Time `json:"timestamp"`
 }
 
-func (f *FeedClient) SendEvent(blockchain, contract, tokenID, owner, action string, isTestnet bool) error {
+func (f *FeedClient) SendEvent(ctx context.Context, blockchain, contract, tokenID, owner, action string, isTestnet bool) error {
 	body := bytes.Buffer{}
 
 	if err := json.NewEncoder(&body).Encode(EventRequest{
@@ -57,7 +58,7 @@ func (f *FeedClient) SendEvent(blockchain, contract, tokenID, owner, action stri
 		return err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/v1/hook/event", f.endpoint), &body)
+	req, err := http.NewRequestWithContext(ctx, "POST", fmt.Sprintf("%s/v1/hook/event", f.endpoint), &body)
 	if err != nil {
 		return err
 	}
