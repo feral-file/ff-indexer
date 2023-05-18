@@ -7,6 +7,7 @@ image:
     bitmarkEmitter: "bitmark-emitter-0.1.0-2"
 
 serviceConfig:
+  debug: true
   tezosNodeRPCURL: https://rpc.lima.tzstats.com
   contractBoostUrl: "https://api.limanet.tzkt.io/"
   environment: development

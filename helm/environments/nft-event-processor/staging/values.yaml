@@ -7,8 +7,9 @@ image:
     bitmarkEmitter: "bitmark-emitter-cf214336e927325e2ab76fc0d1868fc9e7fb1288"
 
 serviceConfig:
-  tezosNodeRPCURL: https://mainnet-tezos.autonomy.io
+  debug: true
   environment: staging
+  tezosNodeRPCURL: https://mainnet-tezos.autonomy.io
   eventProcessorEndpoint: nft-event-processor.autonomy-staging.svc.cluster.local:8765
   feedEndpoint: http://autonomy-event-feed.autonomy-staging.svc.cluster.local:80
   notificationEndpoint: http://autonomy-notification.autonomy-staging.svc.cluster.local:80
