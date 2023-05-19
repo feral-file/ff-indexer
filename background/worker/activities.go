@@ -328,9 +328,11 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 	}
 
 	for _, token := range tokens {
-		if token.LastRefreshedTime.Unix() > time.Now().Add(-delay).Unix() {
-			log.Debug("provenance refresh too frequently", zap.String("indexID", token.IndexID))
-			continue
+		if delay > 0 {
+			if token.LastRefreshedTime.Unix() > time.Now().Add(-delay).Unix() {
+				log.Debug("provenance refresh too frequently", zap.String("indexID", token.IndexID))
+				continue
+			}
 		}
 
 		if token.Fungible {
