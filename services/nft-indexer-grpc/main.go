@@ -27,8 +27,8 @@ func main() {
 	}
 
 	indexerServer, err := NewIndexerGRPCServer(
-		viper.GetString("grpc.network"),
-		viper.GetInt("grpc.port"),
+		viper.GetString("server.grpc_network"),
+		viper.GetInt("server.grpc_port"),
 		indexerStore,
 	)
 	if err != nil {
