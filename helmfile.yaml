@@ -14,6 +14,7 @@ releases:
       tags:
         api: "api-{{ env "GITHUB_SHA" }}"
         background: "background-{{ env "GITHUB_SHA" }}"
+        grpc: "grpc-{{ env "GITHUB_SHA" }}"
         provenance_indexer: "provenance-indexer-{{ env "GITHUB_SHA" }}"
         account_token_indexer: "account-token-indexer-{{ env "GITHUB_SHA" }}"
   {{- end }}

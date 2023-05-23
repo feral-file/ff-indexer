@@ -127,6 +127,7 @@ type AssetMetadataDetail struct {
 	Description string
 	MIMEType    string
 	Medium      Medium
+	Minter      string
 
 	ArtistID   string
 	ArtistName string
@@ -182,6 +183,7 @@ func (detail *AssetMetadataDetail) FromTZIP21TokenMetadata(md tzkt.TokenMetadata
 	detail.Description = md.Description
 	detail.MIMEType = mimeType
 	detail.Medium = mediumByMIMEType(mimeType)
+	detail.Minter = md.Minter
 
 	var optimizedFileSize = 0
 	var optimizedDisplayURI string
@@ -315,12 +317,26 @@ func (e *IndexEngine) GetTokenOwnerAddress(contract, tokenID string) (string, er
 
 }
 
-func (e *IndexEngine) IndexToken(c context.Context, owner, contract, tokenID string) (*AssetUpdates, error) {
+// GetTokenBalanceOfOwner returns the balance of a token for an owner
+func (e *IndexEngine) GetTokenBalanceOfOwner(c context.Context, contract, tokenID, owner string) (int64, error) {
 	switch GetBlockchainByAddress(contract) {
 	case EthereumBlockchain:
-		return e.IndexETHToken(owner, contract, tokenID)
+		return e.getEthereumTokenBalanceOfOwner(c, contract, tokenID, owner)
 	case TezosBlockchain:
-		return e.IndexTezosToken(c, owner, contract, tokenID)
+		return e.getTezosTokenBalanceOfOwner(c, contract, tokenID, owner)
+	default:
+		return 0, ErrUnsupportedBlockchain
+	}
+}
+
+// IndexToken indexes tokens by detecting the blockchain of a contract. This function returns
+// an `AssetUpdates“ object for using in `IndexAsset“ function
+func (e *IndexEngine) IndexToken(c context.Context, contract, tokenID string) (*AssetUpdates, error) {
+	switch GetBlockchainByAddress(contract) {
+	case EthereumBlockchain:
+		return e.IndexETHToken(c, contract, tokenID)
+	case TezosBlockchain:
+		return e.IndexTezosToken(c, contract, tokenID)
 	default:
 		return nil, ErrUnsupportedBlockchain
 	}

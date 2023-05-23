@@ -89,6 +89,8 @@ type Store interface {
 	GetTotalBalanceOfOwnerAccounts(ctx context.Context, addresses []string) (int, error)
 
 	GetNullProvenanceTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
+
+	GetOwnerAccountsByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
 }
 
 type FilterParameter struct {
@@ -533,7 +535,7 @@ func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParam
 			}
 
 			pagedTokens, err := s.getDetailedTokensByAggregation(ctx,
-				FilterParameter{IDs: filterParameter.IDs[start:end]},
+				FilterParameter{IDs: filterParameter.IDs[start:end], Source: filterParameter.Source},
 				offset, size)
 			if err != nil {
 				return nil, err
@@ -939,7 +941,7 @@ func (s *MongodbIndexerStore) getTokensByAggregation(ctx context.Context, filter
 	}
 
 	if filterParameter.Source != "" {
-		pipelines = append(pipelines, bson.M{"$match": bson.M{"asset.source": filterParameter.Source}})
+		pipelines = append(pipelines, bson.M{"$match": bson.M{"source": filterParameter.Source}})
 	}
 
 	if len(matchQuery) == 0 {
@@ -1886,7 +1888,12 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 	}
 
 	for _, a := range accountTokens {
-		token := detailedTokenMap[a.IndexID]
+		token, ok := detailedTokenMap[a.IndexID]
+
+		if !ok {
+			continue
+		}
+
 		token.Balance = a.Balance
 		token.Owner = a.OwnerAccount
 		token.LastRefreshedTime = a.LastRefreshedTime
@@ -1925,7 +1932,7 @@ func (s *MongodbIndexerStore) GetDetailedTokensV2(ctx context.Context, filterPar
 			}
 
 			pagedTokens, err := s.getDetailedTokensV2InView(ctx,
-				FilterParameter{IDs: queryIDs[start:end]}, 0, int64(end-start))
+				FilterParameter{IDs: queryIDs[start:end], Source: filterParameter.Source}, 0, int64(end-start))
 			if err != nil {
 				return nil, err
 			}
@@ -1949,6 +1956,10 @@ func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, fil
 		{"$sort": bson.M{"__order": 1}},
 		{"$skip": offset},
 		{"$limit": size},
+	}
+
+	if filterParameter.Source != "" {
+		pipelines = append(pipelines, bson.M{"$match": bson.M{"asset.source": filterParameter.Source}})
 	}
 
 	cursor, err := s.tokenAssetCollection.Aggregate(ctx, pipelines)
@@ -2031,4 +2042,35 @@ func (s *MongodbIndexerStore) GetNullProvenanceTokensByIndexIDs(ctx context.Cont
 	}
 
 	return nullProvenanceIDs, nil
+}
+
+// GetOwnerAccountsByIndexIDs Get Owner Accounts By IndexIDs
+func (s *MongodbIndexerStore) GetOwnerAccountsByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error) {
+	filter := bson.M{
+		"indexID": bson.M{
+			"$in": indexIDs,
+		},
+	}
+
+	cursor, err := s.accountTokenCollection.Find(
+		ctx,
+		filter,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var owners []string
+
+	for cursor.Next(ctx) {
+		var accountToken AccountToken
+
+		if err := cursor.Decode(&accountToken); err != nil {
+			return nil, err
+		}
+
+		owners = append(owners, accountToken.OwnerAccount)
+	}
+
+	return owners, nil
 }

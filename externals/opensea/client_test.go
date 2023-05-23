@@ -1,11 +1,21 @@
 package opensea
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/bitmark-inc/nft-indexer/log"
 )
+
+func TestMain(m *testing.M) {
+	if err := log.Initialize("", false); err != nil {
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
+	}
+	os.Exit(m.Run())
+}
 
 func TestRetrieveTokenOwner(t *testing.T) {
 	openseaKey := os.Getenv("OPENSEA_KEY")

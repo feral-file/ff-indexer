@@ -13,10 +13,10 @@ image:
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tags:
-    api: "api-0.0.16-25"
-    background: "background-0.0.16-26"
-    provenance_indexer: "nft-provenance-indexer-0.0.16-27"
-    account_token_indexer: "nft-account-token-update-0.0.17"
+    api: "api-fc31f21268eac43b567f7090d8848b895852edb2"
+    background: "background-fc31f21268eac43b567f7090d8848b895852edb2"
+    provenance_indexer: "provenance-indexer-fc31f21268eac43b567f7090d8848b895852edb2"
+    account_token_indexer: "account-token-indexer-fc31f21268eac43b567f7090d8848b895852edb2"
 
 serviceConfig:
   jwt_public_key_name: /autonomy/development/jwtPublicKey

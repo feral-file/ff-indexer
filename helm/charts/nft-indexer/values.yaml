@@ -9,10 +9,11 @@ image:
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tags:
-    api: "api-0.0.2"
-    background: "background-0.0.2-1"
-    provenance_indexer: "nft-provenance-indexer-0.0.16-4"
-    account_token_indexer: "nft-account-token-update-0.0.16-1"
+    api: "api-912ea7b4b68ff1082f9e479294c311561f3530f5"
+    background: "background-912ea7b4b68ff1082f9e479294c311561f3530f5"
+    grpc: "grpc-912ea7b4b68ff1082f9e479294c311561f3530f5"
+    provenance_indexer: "provenance-indexer-912ea7b4b68ff1082f9e479294c311561f3530f5"
+    account_token_indexer: "account-token-indexer-912ea7b4b68ff1082f9e479294c311561f3530f5"
 
 serviceConfig:
   cadence_hostport: cadence-frontend.cadence.svc.cluster.local:7933
@@ -25,6 +26,8 @@ serviceConfig:
     tezos: testnet
     ethereum: testnet
     bitmark: testnet
+  minter_gateways:
+    tz1hQbuRax3op9knY3YDxqNnqxzcmoxmv1qa: ipfs.test.bitmark.com
 
 imagePullSecrets: []
 nameOverride: ""
@@ -46,6 +49,10 @@ securityContext: {}
 service:
   type: ClusterIP
   port: 8089
+
+grpcService:
+  type: ClusterIP
+  port: 8888
 
 ingress:
   enabled: true

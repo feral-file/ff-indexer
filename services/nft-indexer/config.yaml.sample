@@ -53,3 +53,6 @@ ipfs:
   - ipfs.bitmark.com
   - ipfs.test.bitmark.com
   - ipfs.io
+  minter_gateways: {
+    "tz1hQbuRax3op9knY3YDxqNnqxzcmoxmv1qa": ipfs.test.bitmark.com
+  }

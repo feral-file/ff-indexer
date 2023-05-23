@@ -12,6 +12,10 @@ data:
     server:
       port: :8089
 
+    grpc:
+      network: tcp
+      port: 8888
+
     jwt:
       public_key_name: {{ .Values.serviceConfig.jwt_public_key_name }}
 
@@ -48,6 +52,8 @@ data:
       - ipfs.bitmark.com
       - ipfs.test.bitmark.com
       - ipfs.io
+      minter_gateways: |
+      {{- .Values.serviceConfig.minter_gateways | toYaml | nindent 8 }}
 
   background.yaml: |
     log:
@@ -86,3 +92,5 @@ data:
       - ipfs.bitmark.com
       - ipfs.test.bitmark.com
       - ipfs.io
+      minter_gateways: |
+      {{- .Values.serviceConfig.minter_gateways | toYaml | nindent 8 }}

@@ -14,6 +14,8 @@ type IndexEngine struct {
 	environment  string
 	ipfsGateways []string
 
+	minterGateways map[string]string
+
 	http    *http.Client
 	opensea *opensea.Client
 	tzkt    *tzkt.TZKT
@@ -24,6 +26,7 @@ type IndexEngine struct {
 func New(
 	environment string,
 	ipfsGateways []string,
+	minterGateways map[string]string,
 	opensea *opensea.Client,
 	tzkt *tzkt.TZKT,
 	fxhash *fxhash.Client,
@@ -36,6 +39,9 @@ func New(
 	return &IndexEngine{
 		environment:  environment,
 		ipfsGateways: ipfsGateways,
+
+		minterGateways: minterGateways,
+
 		http: &http.Client{
 			Timeout: 15 * time.Second,
 		},

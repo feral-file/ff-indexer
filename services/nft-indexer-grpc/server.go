@@ -146,6 +146,16 @@ func (i *IndexerServer) GetTotalBalanceOfOwnerAccounts(ctx context.Context, addr
 	return &pb.TotalBalance{Count: int64(totalBalance)}, nil
 }
 
+// GetOwnerAccountsByIndexIDs get owner_accounts by indexIDs
+func (i *IndexerServer) GetOwnerAccountsByIndexIDs(ctx context.Context, indexIDs *pb.IndexIDs) (*pb.Addresses, error) {
+	owners, err := i.indexerStore.GetOwnerAccountsByIndexIDs(ctx, indexIDs.IndexIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.Addresses{Addresses: owners}, nil
+}
+
 // Run starts the IndexerServer
 func (i *IndexerServer) Run(context.Context) error {
 	listener, err := net.Listen(i.network, fmt.Sprintf("0.0.0.0:%d", i.port))

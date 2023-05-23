@@ -11,6 +11,7 @@ import (
 	"go.uber.org/cadence/activity"
 	"go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
 
 	"github.com/bitmark-inc/config-loader"
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -51,9 +52,15 @@ func main() {
 		log.Panic("fail to initiate indexer store", zap.Error(err))
 	}
 
+	var minterGateways map[string]string
+	if err := yaml.Unmarshal([]byte(viper.GetString("ipfs.minter_gateways")), &minterGateways); err != nil {
+		log.Panic("fail to initiate indexer store", zap.Error(err))
+	}
+
 	indexerEngine := indexer.New(
 		environment,
 		viper.GetStringSlice("ipfs.preferred_gateways"),
+		minterGateways,
 		opensea.New(viper.GetString("network.ethereum"), viper.GetString("opensea.api_key"), viper.GetInt("opensea.ratelimit")),
 		tzkt.New(viper.GetString("network.tezos")),
 		fxhash.New(viper.GetString("fxhash.api_endpoint")),

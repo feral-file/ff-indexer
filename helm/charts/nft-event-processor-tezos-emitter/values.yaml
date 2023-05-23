@@ -9,7 +9,6 @@ image:
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tags:
-    eventSubscriber: "event-subscriber-0.0.14-11"
     tezosIndexer: tezos-event-indexer-3.0.0-1
     feralfileIndexer: tezos-feralfile-indexer-3.0.0-1
 
@@ -19,7 +18,6 @@ serviceConfig:
   feedEndpoint: http://autonomy-event-feed.autonomy.svc.cluster.local:80
   tezosNodeRPCURL: https://ghostnet.tezos.marigold.dev
   eventProcessorURI: nft-event-processor.autonomy.svc.cluster.local:8765
-  eventSubscriberURL:
   contractAddresses: []
   postcardAddresses: []
   contractBoostUrl: "https://api.tzkt.io/"

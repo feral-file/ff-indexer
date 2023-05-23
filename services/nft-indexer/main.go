@@ -8,6 +8,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
 
 	"github.com/bitmark-inc/config-loader"
 	"github.com/bitmark-inc/config-loader/external/aws/ssm"
@@ -53,9 +54,15 @@ func main() {
 	tezosDomain := tezosDomain.New(viper.GetString("tezos.domain_api_url"))
 	feralfileClient := feralfile.New(viper.GetString("feralfile.api_url"))
 
+	var minterGateways map[string]string
+	if err := yaml.Unmarshal([]byte(viper.GetString("ipfs.minter_gateways")), &minterGateways); err != nil {
+		log.Panic("fail to initiate indexer store", zap.Error(err))
+	}
+
 	engine := indexer.New(
 		environment,
 		viper.GetStringSlice("ipfs.preferred_gateways"),
+		minterGateways,
 		opensea.New(viper.GetString("network.ethereum"), viper.GetString("opensea.api_key"), viper.GetInt("opensea.ratelimit")),
 		tzkt.New(viper.GetString("network.tezos")),
 		fxhash.New(viper.GetString("fxhash.api_endpoint")),

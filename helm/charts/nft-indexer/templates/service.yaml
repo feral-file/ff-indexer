@@ -13,3 +13,21 @@ spec:
       name: http
   selector:
     {{- include "nft-indexer.selectorLabels" . | nindent 4 }}
+{{ if not (empty .Values.grpcService) }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nft-indexer.fullname" . }}-grpc
+  labels:
+    {{- include "nft-indexer.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.grpcService.type }}
+  ports:
+    - port: {{ .Values.grpcService.port }}
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+  selector:
+    {{- include "nft-indexer.selectorLabels" . | nindent 4 }}
+{{- end }}

@@ -5,7 +5,7 @@
 {{ fail ".Values.ingress.hosts should not be empty when ingress is enabled" }}
 {{- end }}
 {{- $fullName := include "nft-event-processor.fullname" . -}}
-{{- $tlsSecretName := include "nft-event-subscriber.tlsSecretName" . -}}
+{{- $tlsSecretName := include "nft-event-processor.tlsSecretName" . -}}
 {{- $svcPort := .Values.service.port -}}
 
 {{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
