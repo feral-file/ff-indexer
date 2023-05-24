@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
+	"go.uber.org/cadence"
 	cadenceClient "go.uber.org/cadence/client"
 	"go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
@@ -361,10 +362,20 @@ func (w *NFTIndexerWorker) PendingTxFollowUpWorkflow(ctx workflow.Context, delay
 		if hasNewTx {
 			var err error
 
+			cwo := workflow.WithChildOptions(ctx, workflow.ChildWorkflowOptions{
+				TaskList:                     ProvenanceTaskListName,
+				ExecutionStartToCloseTimeout: 10 * time.Minute,
+				RetryPolicy: &cadence.RetryPolicy{
+					InitialInterval:    10 * time.Second,
+					BackoffCoefficient: 1.0,
+					MaximumAttempts:    60,
+				},
+			})
+
 			if a.Fungible {
-				err = workflow.ExecuteActivity(ctx, w.RefreshTokenOwnership, []string{a.IndexID}, delay).Get(ctx, nil)
+				err = workflow.ExecuteChildWorkflow(cwo, w.RefreshTokenOwnershipWorkflow, []string{a.IndexID}, delay).Get(ctx, nil)
 			} else {
-				err = workflow.ExecuteActivity(ctx, w.RefreshTokenProvenance, []string{a.IndexID}, delay).Get(ctx, nil)
+				err = workflow.ExecuteChildWorkflow(cwo, w.RefreshTokenProvenanceWorkflow, []string{a.IndexID}, delay).Get(ctx, nil)
 			}
 
 			if err != nil {
