@@ -545,81 +545,18 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 	return nil
 }
 
-// UpdateAccountTokens updates all pending account tokens
-func (w *NFTIndexerWorker) UpdateAccountTokens(ctx context.Context) error {
-	pendingAccountTokens, err := w.indexerStore.GetPendingAccountTokens(ctx)
-	if err != nil {
-		log.Warn("errors in the pending account tokens")
-		return err
-	}
+func (w *NFTIndexerWorker) GetPendingAccountTokens(ctx context.Context) ([]indexer.AccountToken, error) {
+	return w.indexerStore.GetPendingAccountTokens(ctx)
+}
 
-	delay := time.Hour
-	for _, pendingAccountToken := range pendingAccountTokens {
-		for idx, pendingTx := range pendingAccountToken.PendingTxs {
-			if pendingAccountToken.LastPendingTime[idx].Unix() < time.Now().Add(-delay).Unix() {
-				log.Warn("pending too long", zap.Any("pendingTxs", pendingAccountToken.PendingTxs))
-				err := w.indexerStore.DeletePendingFieldsAccountToken(ctx, pendingAccountToken.OwnerAccount, pendingAccountToken.IndexID, pendingTx, pendingAccountToken.LastPendingTime[idx])
-				if err != nil {
-					log.Error("fail to clean up pending field", zap.Error(err),
-						zap.String("indexID", pendingAccountToken.IndexID))
-				}
-				continue
-			}
+// GetTxTimestamp returns transaction timestamp of a blockchain
+func (w *NFTIndexerWorker) GetTxTimestamp(ctx context.Context, blockchain, txHash string) (time.Time, error) {
+	return w.indexerEngine.GetTxTimestamp(ctx, blockchain, txHash)
+}
 
-			accountTokens := []indexer.AccountToken{}
-			switch pendingAccountToken.Blockchain {
-			case indexer.TezosBlockchain:
-				transactionDetails, err := w.indexerEngine.GetTransactionDetailsByPendingTx(pendingTx)
-				if err != nil {
-					log.Error("fail to get pending txs for tezos", zap.Error(err),
-						zap.String("indexID", pendingAccountToken.IndexID))
-					continue
-				}
-
-				if len(transactionDetails) == 0 {
-					log.Error("pending txs not found", zap.String("indexID", pendingAccountToken.IndexID))
-					continue
-				}
-
-				accountTokens, err = w.GetBalanceDiffFromTezosTransaction(transactionDetails[0], pendingAccountToken)
-				if err != nil {
-					log.Error("fail to calculate balance difference from tezos tx", zap.Error(err),
-						zap.String("indexID", pendingAccountToken.IndexID))
-					continue
-				}
-			case indexer.EthereumBlockchain:
-				txHash := common.HexToHash(pendingTx)
-				transactionDetails, err := w.indexerEngine.GetETHTransactionDetailsByPendingTx(ctx, w.wallet.RPCClient(), txHash, pendingAccountToken.ID)
-				if err != nil {
-					log.Error("fail to get pending txs for ethereum", zap.Error(err),
-						zap.String("indexID", pendingAccountToken.IndexID))
-					continue
-				}
-
-				if len(transactionDetails) == 0 {
-					log.Error("pending txs not found", zap.String("indexID", pendingAccountToken.IndexID))
-					continue
-				}
-
-				accountTokens, err = w.GetBalanceDiffFromETHTransaction(transactionDetails)
-				if err != nil {
-					log.Error("fail to calculate balance difference from ethereum tx", zap.Error(err),
-						zap.String("indexID", pendingAccountToken.IndexID))
-					continue
-				}
-			}
-
-			for _, accountToken := range accountTokens {
-				err = w.indexerStore.UpdateAccountTokenBalance(ctx, accountToken.OwnerAccount, accountToken.IndexID, accountToken.Balance, accountToken.LastActivityTime, pendingTx, pendingAccountToken.LastPendingTime[idx])
-				if err != nil {
-					log.Error("fail to update account token balance", zap.Error(err),
-						zap.String("indexID", pendingAccountToken.IndexID))
-					continue
-				}
-			}
-		}
-	}
-	return nil
+// GetTxTimestamp returns transaction timestamp of a blockchain
+func (w *NFTIndexerWorker) UpdatePendingTxsToAccountToken(ctx context.Context, ownerAccount, indexID string, lastRefreshedTime time.Time, pendingTxs []string, lastPendingTimes []time.Time) error {
+	return w.indexerStore.UpdatePendingTxsToAccountToken(ctx, ownerAccount, indexID, lastRefreshedTime, pendingTxs, lastPendingTimes)
 }
 
 // GetBalanceDiffFromTezosTransaction gets the balance difference of TEZOS account tokens in a transaction.

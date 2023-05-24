@@ -299,8 +299,8 @@ func (w *NFTIndexerWorker) CacheIPFSArtifactWorkflow(ctx workflow.Context, fullD
 	return nil
 }
 
-// UpdateAccountTokenWorkflow is a workflow to refresh provenance for a specific token
-func (w *NFTIndexerWorker) UpdateAccountTokensWorkflow(ctx workflow.Context, delay time.Duration) error {
+// PendingTxFollowUpWorkflow is a workflow to follow up and update pending tokens
+func (w *NFTIndexerWorker) PendingTxFollowUpWorkflow(ctx workflow.Context, delay time.Duration) error {
 	ao := workflow.ActivityOptions{
 		TaskList:               w.AccountTokenTaskListName,
 		ScheduleToStartTimeout: 10 * time.Minute,
@@ -308,20 +308,81 @@ func (w *NFTIndexerWorker) UpdateAccountTokensWorkflow(ctx workflow.Context, del
 	}
 
 	log := workflow.GetLogger(ctx)
-
 	ctx = workflow.WithActivityOptions(ctx, ao)
+	log.Debug("start PendingTxFollowUpWorkflow")
 
-	log.Debug("start UpdateAccountTokensWorkflow")
-
-	if err := workflow.ExecuteActivity(ctx, w.UpdateAccountTokens).Get(ctx, nil); err != nil {
-		log.Error("fail to update account tokens", zap.Error(err))
+	var pendingAccountTokens []indexer.AccountToken
+	if err := workflow.ExecuteActivity(ctx, w.GetPendingAccountTokens).Get(ctx, &pendingAccountTokens); err != nil {
+		log.Error("fail to get pending account tokens", zap.Error(err))
 		return err
+	}
+
+	for _, a := range pendingAccountTokens {
+		pendindTxCounts := len(a.PendingTxs)
+
+		var hasNewTx bool
+		remainingPendingTx := make([]string, 0, pendindTxCounts)
+		remainingPendingTxTime := make([]time.Time, 0, pendindTxCounts)
+
+		// The loop checks all new confirmed txs.
+		for i := 0; i < pendindTxCounts; i++ {
+			pendingTime := a.LastPendingTime[i]
+			pendingTx := a.PendingTxs[i]
+
+			var txComfirmedTime time.Time
+			if err := workflow.ExecuteActivity(ctx, w.GetTxTimestamp, a.Blockchain, pendingTx).Get(ctx, &txComfirmedTime); err != nil {
+				log.Error("fail to get tx status for the account token", zap.Error(err), zap.String("indexID", a.IndexID))
+				switch err.Error() {
+				case indexer.ErrTXNotFound.Error():
+					// omit not found tx which exceed an hour
+					if time.Since(pendingTime) > time.Hour {
+						// TODO: should be check if the tx is remaining in the mempool of the blockchain network
+						break
+					}
+				case indexer.ErrUnsupportedBlockchain.Error():
+					// omit unsupported pending tx
+					break
+				default:
+					// leave the error pending txs remain
+				}
+				remainingPendingTx = append(remainingPendingTx, pendingTx)
+				remainingPendingTxTime = append(remainingPendingTxTime, pendingTime)
+			} else {
+				if txComfirmedTime.Sub(a.LastActivityTime) > 0 {
+					hasNewTx = true
+				}
+			}
+		}
+
+		// refresh once only if there is a new updates detected
+		if hasNewTx {
+			var err error
+
+			if a.Fungible {
+				err = workflow.ExecuteActivity(ctx, w.RefreshTokenOwnership, []string{a.IndexID}, delay).Get(ctx, nil)
+			} else {
+				err = workflow.ExecuteActivity(ctx, w.RefreshTokenProvenance, []string{a.IndexID}, delay).Get(ctx, nil)
+			}
+
+			if err != nil {
+				log.Error("fail to update ownership / provenance for indexID", zap.Error(err),
+					zap.Bool("fungible", a.Fungible), zap.String("indexID", a.IndexID))
+				// DON'T update the pending list if the refresh failed
+				continue
+			}
+		}
+
+		if err := workflow.ExecuteActivity(ctx, w.UpdatePendingTxsToAccountToken,
+			a.OwnerAccount, a.IndexID, a.LastRefreshedTime, remainingPendingTx, remainingPendingTxTime).Get(ctx, nil); err != nil {
+			// log the error only so the loop will continuously check the next pending token
+			log.Error("fail to update remaining pending txs into account token", zap.Error(err),
+				zap.String("indexID", a.IndexID), zap.String("ownerAccount", a.OwnerAccount), zap.Time("astRefreshedTime", a.LastRefreshedTime))
+		}
 	}
 
 	_ = workflow.Sleep(ctx, 1*time.Minute)
 
-	return workflow.NewContinueAsNewError(ctx, w.UpdateAccountTokensWorkflow, delay)
-
+	return workflow.NewContinueAsNewError(ctx, w.PendingTxFollowUpWorkflow, delay)
 }
 
 // UpdateSuggestedMimeTypeWorkflow is a workflow to update suggested mimeType from token feedback

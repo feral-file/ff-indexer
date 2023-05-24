@@ -29,7 +29,10 @@ var artblocksContracts = map[string]struct{}{
 	"0xa7d8d9ef8D8Ce8992Df33D8b8CF4Aebabd5bD270": {},
 }
 
-var ErrUnsupportedBlockchain = fmt.Errorf("unsupported blockchain")
+var (
+	ErrTXNotFound            = fmt.Errorf("transaction is not found")
+	ErrUnsupportedBlockchain = fmt.Errorf("unsupported blockchain")
+)
 
 // getTokenSourceByContract token source name by inspecting a contract address
 func getTokenSourceByContract(contractAddress string) string {
@@ -494,4 +497,16 @@ func MakeCDNURIFromIPFSURI(assetURI, assetType, contract, tokenID string) (strin
 	}
 
 	return ipfsURLToGatewayURL(DefaultIPFSGateway, assetURI), nil
+}
+
+// GetTxTimestamp returns transaction timestamp of a blockchain
+func (e *IndexEngine) GetTxTimestamp(ctx context.Context, blockchain, txHash string) (time.Time, error) {
+	switch blockchain {
+	case TezosBlockchain:
+		return e.GetTezosTxTimestamp(ctx, txHash)
+	case EthereumBlockchain:
+		return e.GetEthereumTxTimestamp(ctx, txHash)
+	}
+
+	return time.Time{}, ErrUnsupportedBlockchain
 }

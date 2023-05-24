@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/viper"
 	"go.uber.org/cadence/activity"
@@ -56,6 +57,11 @@ func main() {
 		log.Panic("fail to initiate indexer store", zap.Error(err))
 	}
 
+	ethClient, err := ethclient.Dial(viper.GetString("ethereum.rpc_url"))
+	if err != nil {
+		log.Panic("fail to initiate eth client", zap.Error(err))
+	}
+
 	indexerEngine := indexer.New(
 		environment,
 		viper.GetStringSlice("ipfs.preferred_gateways"),
@@ -64,6 +70,7 @@ func main() {
 		tzkt.New(viper.GetString("network.tezos")),
 		fxhash.New(viper.GetString("fxhash.api_endpoint")),
 		objkt.New(viper.GetString("objkt.api_endpoint")),
+		ethClient,
 	)
 
 	awsSession := session.Must(session.NewSession(&aws.Config{
