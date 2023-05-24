@@ -31,7 +31,6 @@ func main() {
 	config.LoadConfig("NFT_INDEXER")
 
 	hostPort := viper.GetString("cadence.host_port")
-	logLevel := viper.GetInt("cadence.log_level")
 
 	environment := viper.GetString("environment")
 
@@ -93,7 +92,6 @@ func main() {
 	activity.Register(worker.UpdatePresignedThumbnailAssets)
 
 	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)
-	workerLogger := cadence.BuildCadenceLogger(logLevel)
 
 	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
 	cadenceClient.AddService(indexerWorker.ClientName)
@@ -110,5 +108,5 @@ func main() {
 		panic(err)
 	}
 
-	cadence.StartWorker(workerLogger, workerServiceClient, viper.GetString("cadence.domain"), indexerWorker.AccountTokenTaskListName)
+	cadence.StartWorker(log.DefaultLogger(), workerServiceClient, viper.GetString("cadence.domain"), indexerWorker.AccountTokenTaskListName)
 }
