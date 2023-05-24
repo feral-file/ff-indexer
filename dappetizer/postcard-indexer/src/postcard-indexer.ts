@@ -15,7 +15,7 @@ import {
 } from '@tezos-dappetizer/indexer';
 
 import {
-    PostcardAddTrusteeParameter,
+    PostcardAddSignerParameter,
     PostcardAdminParameter,
     PostcardAssetsLedgerKey,
     PostcardAssetsLedgerValue,
@@ -38,11 +38,11 @@ import {
     PostcardPostcardsKey,
     PostcardPostcardsParameter,
     PostcardPostcardsValue,
-    PostcardRemoveTrusteeParameter,
+    PostcardRemoveSignerParameter,
     PostcardSetAdminParameter,
+    PostcardSignerParameter,
     PostcardStampPostcardParameter,
     PostcardTransferParameter,
-    PostcardTrusteeParameter,
     PostcardUpdateOperatorsParameter,
 } from './postcard-indexer-interfaces.generated';
 
@@ -59,9 +59,9 @@ export class PostcardIndexer {
         // Implement your indexing logic here or delete the method if not needed.
     }
 
-    @indexEntrypoint('add_trustee')
-    async indexAddTrustee(
-        parameter: PostcardAddTrusteeParameter,
+    @indexEntrypoint('add_signer')
+    async indexAddSigner(
+        parameter: PostcardAddSignerParameter,
         dbContext: DbContext,
         indexingContext: TransactionIndexingContext,
     ): Promise<void> {
@@ -119,12 +119,11 @@ export class PostcardIndexer {
         dbContext: DbContext,
         indexingContext: TransactionIndexingContext,
     ): Promise<void> {
-        parameter.forEach((p) => {
+        parameter.params.forEach((p) => {
             outputTransfer([
                 { from_: "", txs: [{ amount: BigNumber(1), to_: p.owner, token_id: p.token_id }] }
             ], indexingContext)
         })
-        // Implement your indexing logic here or delete the method if not needed.
     }
 
     @indexEntrypoint('pause')
@@ -145,9 +144,9 @@ export class PostcardIndexer {
         // Implement your indexing logic here or delete the method if not needed.
     }
 
-    @indexEntrypoint('remove_trustee')
-    async indexRemoveTrustee(
-        parameter: PostcardRemoveTrusteeParameter,
+    @indexEntrypoint('remove_signer')
+    async indexRemoveSigner(
+        parameter: PostcardRemoveSignerParameter,
         dbContext: DbContext,
         indexingContext: TransactionIndexingContext,
     ): Promise<void> {
@@ -163,28 +162,27 @@ export class PostcardIndexer {
         // Implement your indexing logic here or delete the method if not needed.
     }
 
+    @indexEntrypoint('signer')
+    async indexSigner(
+        parameter: PostcardSignerParameter,
+        dbContext: DbContext,
+        indexingContext: TransactionIndexingContext,
+    ): Promise<void> {
+        // Implement your indexing logic here or delete the method if not needed.
+    }
+
     @indexEntrypoint('stamp_postcard')
     async indexStampPostcard(
         parameter: PostcardStampPostcardParameter,
         dbContext: DbContext,
         indexingContext: TransactionIndexingContext,
     ): Promise<void> {
-        outputStampUpdate(parameter, indexingContext)
-        // Implement your indexing logic here or delete the method if not needed.
+        outputStampUpdate(parameter.params, indexingContext)
     }
 
     @indexEntrypoint('transfer')
     async indexTransfer(
         parameter: PostcardTransferParameter,
-        dbContext: DbContext,
-        indexingContext: TransactionIndexingContext,
-    ): Promise<void> {
-        // Implement your indexing logic here or delete the method if not needed.
-    }
-
-    @indexEntrypoint('trustee')
-    async indexTrustee(
-        parameter: PostcardTrusteeParameter,
         dbContext: DbContext,
         indexingContext: TransactionIndexingContext,
     ): Promise<void> {

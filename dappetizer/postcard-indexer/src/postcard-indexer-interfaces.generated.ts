@@ -3,7 +3,7 @@
 
 // This file was generated.
 // It should NOT be modified manually rather it should be regenerated.
-// Contract: KT1ESGez4dEuDjjNt4k2HPAK5Nzh7e8X8jyX
+// Contract: KT1MDvWtwi8sCcyJdbWPScTdFa2uJ8mnKNJe
 // Tezos network: ghostnet
 
 import { UnitValue } from '@taquito/michelson-encoder';
@@ -11,7 +11,7 @@ import { BigMapAbstraction, MichelsonMap } from '@taquito/taquito';
 import { BigNumber } from 'bignumber.js';
 
 export type PostcardParameter =
-    | { entrypoint: 'add_trustee'; value: PostcardAddTrusteeParameter }
+    | { entrypoint: 'add_signer'; value: PostcardAddSignerParameter }
     | { entrypoint: 'admin'; value: PostcardAdminParameter }
     | { entrypoint: 'assets'; value: PostcardAssetsParameter }
     | { entrypoint: 'balance_of'; value: PostcardBalanceOfParameter }
@@ -20,15 +20,15 @@ export type PostcardParameter =
     | { entrypoint: 'mint_postcard'; value: PostcardMintPostcardParameter }
     | { entrypoint: 'pause'; value: PostcardPauseParameter }
     | { entrypoint: 'postcards'; value: PostcardPostcardsParameter }
-    | { entrypoint: 'remove_trustee'; value: PostcardRemoveTrusteeParameter }
+    | { entrypoint: 'remove_signer'; value: PostcardRemoveSignerParameter }
     | { entrypoint: 'set_admin'; value: PostcardSetAdminParameter }
+    | { entrypoint: 'signer'; value: PostcardSignerParameter }
     | { entrypoint: 'stamp_postcard'; value: PostcardStampPostcardParameter }
     | { entrypoint: 'transfer'; value: PostcardTransferParameter }
-    | { entrypoint: 'trustee'; value: PostcardTrusteeParameter }
     | { entrypoint: 'update_operators'; value: PostcardUpdateOperatorsParameter };
 
 /** Tezos address. */
-export type PostcardAddTrusteeParameter = string;
+export type PostcardAddSignerParameter = string;
 
 export interface PostcardAdminParameter {
     /** An empty result. */
@@ -128,9 +128,13 @@ export interface PostcardBalanceOfParameterRequestsItem {
 /** An empty result. */
 export type PostcardConfirmAdminParameter = typeof UnitValue;
 
-export type PostcardMailPostcardParameter = PostcardMailPostcardParameterItem[];
+export interface PostcardMailPostcardParameter {
+    params: PostcardMailPostcardParameterParamsItem[];
 
-export interface PostcardMailPostcardParameterItem {
+    signer: PostcardMailPostcardParameterSigner;
+}
+
+export interface PostcardMailPostcardParameterParamsItem {
     /** Tezos address. */
     address: string;
 
@@ -153,9 +157,24 @@ export interface PostcardMailPostcardParameterItem {
     token_info_uri: string;
 }
 
-export type PostcardMintPostcardParameter = PostcardMintPostcardParameterItem[];
+export interface PostcardMailPostcardParameterSigner {
+    /** Key. */
+    pk: string;
 
-export interface PostcardMintPostcardParameterItem {
+    /** Signature. */
+    signature: string;
+
+    /** Date ISO 8601 string. */
+    timestamp: string;
+}
+
+export interface PostcardMintPostcardParameter {
+    params: PostcardMintPostcardParameterParamsItem[];
+
+    signer: PostcardMintPostcardParameterSigner;
+}
+
+export interface PostcardMintPostcardParameterParamsItem {
     /** Tezos address. */
     owner: string;
 
@@ -164,20 +183,37 @@ export interface PostcardMintPostcardParameterItem {
 
     /** Bytes. */
     token_info_uri: string;
+}
+
+export interface PostcardMintPostcardParameterSigner {
+    /** Key. */
+    pk: string;
+
+    /** Signature. */
+    signature: string;
+
+    /** Date ISO 8601 string. */
+    timestamp: string;
 }
 
 /** Simple boolean. */
 export type PostcardPauseParameter = boolean;
 
 export interface PostcardPostcardsParameter {
-    mail_postcard?: PostcardPostcardsParameterMailPostcardItem[];
+    mail_postcard?: PostcardPostcardsParameterMailPostcard;
 
-    mint_postcard?: PostcardPostcardsParameterMintPostcardItem[];
+    mint_postcard?: PostcardPostcardsParameterMintPostcard;
 
-    stamp_postcard?: PostcardPostcardsParameterStampPostcardItem[];
+    stamp_postcard?: PostcardPostcardsParameterStampPostcard;
 }
 
-export interface PostcardPostcardsParameterMailPostcardItem {
+export interface PostcardPostcardsParameterMailPostcard {
+    params: PostcardPostcardsParameterMailPostcardParamsItem[];
+
+    signer: PostcardPostcardsParameterMailPostcardSigner;
+}
+
+export interface PostcardPostcardsParameterMailPostcardParamsItem {
     /** Tezos address. */
     address: string;
 
@@ -200,7 +236,24 @@ export interface PostcardPostcardsParameterMailPostcardItem {
     token_info_uri: string;
 }
 
-export interface PostcardPostcardsParameterMintPostcardItem {
+export interface PostcardPostcardsParameterMailPostcardSigner {
+    /** Key. */
+    pk: string;
+
+    /** Signature. */
+    signature: string;
+
+    /** Date ISO 8601 string. */
+    timestamp: string;
+}
+
+export interface PostcardPostcardsParameterMintPostcard {
+    params: PostcardPostcardsParameterMintPostcardParamsItem[];
+
+    signer: PostcardPostcardsParameterMintPostcardSigner;
+}
+
+export interface PostcardPostcardsParameterMintPostcardParamsItem {
     /** Tezos address. */
     owner: string;
 
@@ -211,7 +264,24 @@ export interface PostcardPostcardsParameterMintPostcardItem {
     token_info_uri: string;
 }
 
-export interface PostcardPostcardsParameterStampPostcardItem {
+export interface PostcardPostcardsParameterMintPostcardSigner {
+    /** Key. */
+    pk: string;
+
+    /** Signature. */
+    signature: string;
+
+    /** Date ISO 8601 string. */
+    timestamp: string;
+}
+
+export interface PostcardPostcardsParameterStampPostcard {
+    params: PostcardPostcardsParameterStampPostcardParamsItem[];
+
+    signer: PostcardPostcardsParameterStampPostcardSigner;
+}
+
+export interface PostcardPostcardsParameterStampPostcardParamsItem {
     /** Nat - arbitrary big integer >= 0. */
     counter: BigNumber;
 
@@ -231,15 +301,38 @@ export interface PostcardPostcardsParameterStampPostcardItem {
     token_info_uri: string;
 }
 
+export interface PostcardPostcardsParameterStampPostcardSigner {
+    /** Key. */
+    pk: string;
+
+    /** Signature. */
+    signature: string;
+
+    /** Date ISO 8601 string. */
+    timestamp: string;
+}
+
 /** Tezos address. */
-export type PostcardRemoveTrusteeParameter = string;
+export type PostcardRemoveSignerParameter = string;
 
 /** Tezos address. */
 export type PostcardSetAdminParameter = string;
 
-export type PostcardStampPostcardParameter = PostcardStampPostcardParameterItem[];
+export interface PostcardSignerParameter {
+    /** Tezos address. */
+    add_signer?: string;
 
-export interface PostcardStampPostcardParameterItem {
+    /** Tezos address. */
+    remove_signer?: string;
+}
+
+export interface PostcardStampPostcardParameter {
+    params: PostcardStampPostcardParameterParamsItem[];
+
+    signer: PostcardStampPostcardParameterSigner;
+}
+
+export interface PostcardStampPostcardParameterParamsItem {
     /** Nat - arbitrary big integer >= 0. */
     counter: BigNumber;
 
@@ -257,6 +350,17 @@ export interface PostcardStampPostcardParameterItem {
 
     /** Bytes. */
     token_info_uri: string;
+}
+
+export interface PostcardStampPostcardParameterSigner {
+    /** Key. */
+    pk: string;
+
+    /** Signature. */
+    signature: string;
+
+    /** Date ISO 8601 string. */
+    timestamp: string;
 }
 
 export type PostcardTransferParameter = PostcardTransferParameterItem[];
@@ -277,14 +381,6 @@ export interface PostcardTransferParameterItemTxsItem {
 
     /** Nat - arbitrary big integer >= 0. */
     token_id: BigNumber;
-}
-
-export interface PostcardTrusteeParameter {
-    /** Tezos address. */
-    add_trustee?: string;
-
-    /** Tezos address. */
-    remove_trustee?: string;
 }
 
 export type PostcardUpdateOperatorsParameter = PostcardUpdateOperatorsParameterItem[];
@@ -340,7 +436,7 @@ export interface PostcardCurrentStorage {
      */
     postcards: BigMapAbstraction;
 
-    trustee: PostcardCurrentStorageTrustee;
+    signers: PostcardCurrentStorageSigners;
 }
 
 export interface PostcardCurrentStorageAdmin {
@@ -436,12 +532,12 @@ export interface PostcardCurrentStoragePostcardsValue {
     stamped: boolean;
 }
 
-export interface PostcardCurrentStorageTrustee {
+export interface PostcardCurrentStorageSigners {
     /** Nat - arbitrary big integer >= 0. */
-    max_trustee: BigNumber;
+    max_signer: BigNumber;
 
     /** Array of: Tezos address. */
-    trustees: string[];
+    signers: string[];
 }
 
 export interface PostcardChangedStorage {
@@ -455,7 +551,7 @@ export interface PostcardChangedStorage {
     /** Big map ID - string with arbitrary big integer, negative if temporary. */
     postcards: string;
 
-    trustee: PostcardChangedStorageTrustee;
+    signers: PostcardChangedStorageSigners;
 }
 
 export interface PostcardChangedStorageAdmin {
@@ -483,12 +579,12 @@ export interface PostcardChangedStorageAssets {
     token_total_supply: string;
 }
 
-export interface PostcardChangedStorageTrustee {
+export interface PostcardChangedStorageSigners {
     /** Nat - arbitrary big integer >= 0. */
-    max_trustee: BigNumber;
+    max_signer: BigNumber;
 
     /** Array of: Tezos address. */
-    trustees: string[];
+    signers: string[];
 }
 
 export interface PostcardInitialStorage {
@@ -514,7 +610,7 @@ export interface PostcardInitialStorage {
      */
     postcards: MichelsonMap<BigNumber, PostcardInitialStoragePostcardsValue>;
 
-    trustee: PostcardInitialStorageTrustee;
+    signers: PostcardInitialStorageSigners;
 }
 
 export interface PostcardInitialStorageAdmin {
@@ -610,12 +706,12 @@ export interface PostcardInitialStoragePostcardsValue {
     stamped: boolean;
 }
 
-export interface PostcardInitialStorageTrustee {
+export interface PostcardInitialStorageSigners {
     /** Nat - arbitrary big integer >= 0. */
-    max_trustee: BigNumber;
+    max_signer: BigNumber;
 
     /** Array of: Tezos address. */
-    trustees: string[];
+    signers: string[];
 }
 
 export interface PostcardAssetsLedgerKey {
