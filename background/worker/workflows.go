@@ -318,6 +318,7 @@ func (w *NFTIndexerWorker) PendingTxFollowUpWorkflow(ctx workflow.Context, delay
 	}
 
 	for _, a := range pendingAccountTokens {
+		log.Debug("start checking txs for pending token", zap.String("indexID", a.IndexID))
 		pendindTxCounts := len(a.PendingTxs)
 
 		var hasNewTx bool
@@ -348,12 +349,14 @@ func (w *NFTIndexerWorker) PendingTxFollowUpWorkflow(ctx workflow.Context, delay
 				remainingPendingTx = append(remainingPendingTx, pendingTx)
 				remainingPendingTxTime = append(remainingPendingTxTime, pendingTime)
 			} else {
+				log.Debug("found a confirme pending tx", zap.String("pendingTx", pendingTx))
 				if txComfirmedTime.Sub(a.LastActivityTime) > 0 {
 					hasNewTx = true
 				}
 			}
 		}
 
+		log.Debug("finish checking txs for pending token", zap.String("indexID", a.IndexID), zap.Any("hasNewTx", hasNewTx))
 		// refresh once only if there is a new updates detected
 		if hasNewTx {
 			var err error
@@ -371,6 +374,8 @@ func (w *NFTIndexerWorker) PendingTxFollowUpWorkflow(ctx workflow.Context, delay
 				continue
 			}
 		}
+
+		log.Debug("remaining pending txs", zap.Any("remainingPendingTx", remainingPendingTx), zap.Any("remainingPendingTxTime", remainingPendingTx))
 
 		if err := workflow.ExecuteActivity(ctx, w.UpdatePendingTxsToAccountToken,
 			a.OwnerAccount, a.IndexID, a.LastRefreshedTime, remainingPendingTx, remainingPendingTxTime).Get(ctx, nil); err != nil {
