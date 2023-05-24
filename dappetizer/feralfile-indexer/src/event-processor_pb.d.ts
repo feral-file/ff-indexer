@@ -5,6 +5,7 @@
 /* eslint-disable */
 
 import * as jspb from "google-protobuf";
+import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb";
 
 export class EventInput extends jspb.Message { 
     getType(): string;
@@ -19,6 +20,13 @@ export class EventInput extends jspb.Message {
     setTo(value: string): EventInput;
     getTokenid(): string;
     setTokenid(value: string): EventInput;
+    getTxid(): string;
+    setTxid(value: string): EventInput;
+
+    hasTxtime(): boolean;
+    clearTxtime(): void;
+    getTxtime(): google_protobuf_timestamp_pb.Timestamp | undefined;
+    setTxtime(value?: google_protobuf_timestamp_pb.Timestamp): EventInput;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): EventInput.AsObject;
@@ -38,6 +46,8 @@ export namespace EventInput {
         from: string,
         to: string,
         tokenid: string,
+        txid: string,
+        txtime?: google_protobuf_timestamp_pb.Timestamp.AsObject,
     }
 }
 

@@ -2,6 +2,7 @@ syntax = "proto3";
 
 option go_package = "./grpc/processor";
 
+import "google/protobuf/timestamp.proto";
 
 service EventProcessor {
   rpc PushEvent(EventInput) returns (EventOutput);
@@ -14,6 +15,8 @@ message EventInput {
   string From = 4;
   string To = 5;
   string TokenID = 6;
+  string TXID = 7;
+  google.protobuf.Timestamp TXTime = 8;
 }
 
 message EventOutput {

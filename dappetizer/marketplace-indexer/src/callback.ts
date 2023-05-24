@@ -9,6 +9,7 @@ import axios from 'axios';
 import { EventProcessorClient } from './event-processor_grpc_pb'
 import { EventInput } from './event-processor_pb'
 import * as grpc from "@grpc/grpc-js";
+import { Timestamp } from 'google-protobuf/google/protobuf/timestamp_pb';
 
 interface TransferParameterItemTxsItem {
   /** Nat - arbitrary big integer >= 0. */
@@ -36,7 +37,7 @@ if (eventProcessorURI) {
   console.log("[TEZOS_EMITTER]", "event processor uri not set")
 }
 
-async function grpcReportEvent(timestamp: Date, contract: string, tokenID: string, from_: string, to_: string) {
+async function grpcReportEvent(timestamp: Date, contract: string, tokenID: string, from_: string, to_: string, txID: string, txTime: Date) {
   if (!grpcClient) {
     throw Error("grpc client is not initialized")
   }
@@ -48,6 +49,8 @@ async function grpcReportEvent(timestamp: Date, contract: string, tokenID: strin
   event.setFrom(from_)
   event.setTo(to_)
   event.setTokenid(tokenID)
+  event.setTxid(txID)
+  event.setTxtime(Timestamp.fromDate(txTime))
   await new Promise((resolve, reject) => {
     grpcClient.pushEvent(event, (error, response) => {
       if (error) {
@@ -70,7 +73,9 @@ export function outputTransferStdout(parameter: TezosTransferParameterItem[], in
     transfer.txs.forEach(async function (items) {
       try {
         console.log("[TOKEN_TRANSFER]", "<STDOUT>", "(", indexingContext.contract.address, ")",
-          "id:", items.token_id.toFixed(), "from:", transfer.from_, "to:", items.to_)
+          "id:", items.token_id.toFixed(), "from:", transfer.from_, "to:", items.to_,
+          "txid:", indexingContext.operationGroup.hash, "txTime:", indexingContext.block.timestamp
+        )
       } catch (error) {
         console.log("fail to push event", error)
         throw error
@@ -83,11 +88,14 @@ export function outputTransferGRPC(parameter: TezosTransferParameterItem[], inde
   parameter.forEach((transfer => {
     transfer.txs.forEach(async function (items) {
       try {
+        console.log("[TOKEN_TRANSFER]", "<GRPC>", "(", indexingContext.contract.address, ")",
+          "id:", items.token_id.toFixed(), "from:", transfer.from_, "to:", items.to_,
+          "txid:", indexingContext.operationGroup.hash, "txTime:", indexingContext.block.timestamp
+        )
         await grpcReportEvent(
           indexingContext.block.timestamp, indexingContext.contract.address,
-          items.token_id.toFixed(), transfer.from_, items.to_)
-        console.log("[TOKEN_TRANSFER]", "<GRPC>", "(", indexingContext.contract.address, ")",
-          "id:", items.token_id.toFixed(), "from:", transfer.from_, "to:", items.to_)
+          items.token_id.toFixed(), transfer.from_, items.to_,
+          indexingContext.operationGroup.hash, indexingContext.block.timestamp)
       } catch (error) {
         console.log("fail to push event through grpc", error)
       }

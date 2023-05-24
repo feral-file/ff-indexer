@@ -9,6 +9,7 @@ import axios from 'axios';
 import { EventProcessorClient } from './event-processor_grpc_pb'
 import { EventInput } from './event-processor_pb'
 import * as grpc from "@grpc/grpc-js";
+import { Timestamp } from 'google-protobuf/google/protobuf/timestamp_pb';
 
 interface TransferParameterItemTxsItem {
   /** Nat - arbitrary big integer >= 0. */
@@ -44,7 +45,7 @@ if (eventProcessorURI) {
   console.log("[TEZOS_EMITTER]", "event processor uri not set")
 }
 
-async function grpcReportEvent(timestamp: Date, type: string, contract: string, tokenID: string, from_: string, to_: string) {
+async function grpcReportEvent(timestamp: Date, type: string, contract: string, tokenID: string, from_: string, to_: string, txID: string, txTime: Date) {
   if (!grpcClient) {
     throw Error("grpc client is not initialized")
   }
@@ -56,6 +57,8 @@ async function grpcReportEvent(timestamp: Date, type: string, contract: string, 
   event.setFrom(from_)
   event.setTo(to_)
   event.setTokenid(tokenID)
+  event.setTxid(txID)
+  event.setTxtime(Timestamp.fromDate(txTime))
   await new Promise((resolve, reject) => {
     grpcClient.pushEvent(event, (error, response) => {
       if (error) {
@@ -78,7 +81,9 @@ export function outputTransferStdout(parameter: TezosTransferParameterItem[], in
     transfer.txs.forEach(async function (items) {
       try {
         console.log("[TOKEN_TRANSFER]", "<STDOUT>", "(", indexingContext.contract.address, ")",
-          "id:", items.token_id.toFixed(), "from:", transfer.from_, "to:", items.to_)
+          "id:", items.token_id.toFixed(), "from:", transfer.from_, "to:", items.to_,
+          "txid:", indexingContext.operationGroup.hash, "txTime:", indexingContext.block.timestamp
+        )
       } catch (error) {
         console.log("fail to push event", error)
         throw error
@@ -91,11 +96,14 @@ export function outputTransferGRPC(parameter: TezosTransferParameterItem[], inde
   parameter.forEach((transfer => {
     transfer.txs.forEach(async function (items) {
       try {
+        console.log("[TOKEN_TRANSFER]", "<GRPC>", "(", indexingContext.contract.address, ")",
+          "id:", items.token_id.toFixed(), "from:", transfer.from_, "to:", items.to_,
+          "txid:", indexingContext.operationGroup.hash, "txTime:", indexingContext.block.timestamp
+        )
         await grpcReportEvent(
           indexingContext.block.timestamp, "transfer", indexingContext.contract.address,
-          items.token_id.toFixed(), transfer.from_, items.to_)
-        console.log("[TOKEN_TRANSFER]", "<GRPC>", "(", indexingContext.contract.address, ")",
-          "id:", items.token_id.toFixed(), "from:", transfer.from_, "to:", items.to_)
+          items.token_id.toFixed(), transfer.from_, items.to_,
+          indexingContext.operationGroup.hash, indexingContext.block.timestamp)
       } catch (error) {
         console.log("fail to push event through grpc", error)
       }
@@ -115,12 +123,15 @@ export async function outputStampUpdate(parameter: PostcardStampParameterItem[],
   parameter.forEach(async function (stamp) {
     try {
       if (eventProcessorURI) {
+        console.log("[TOKEN_STAMP]", "(", indexingContext.contract.address, ")",
+          "id:", stamp.token_id.toFixed(), "from:", stamp.postman, stamp.postman, "to:", stamp.postman, stamp.postman,
+          "txid:", indexingContext.operationGroup.hash, "txTime:", indexingContext.block.timestamp
+        )
         await grpcReportEvent(
           indexingContext.block.timestamp, "token_updated", indexingContext.contract.address,
-          stamp.token_id.toFixed(), stamp.postman, stamp.postman)
+          stamp.token_id.toFixed(), stamp.postman, stamp.postman,
+          indexingContext.operationGroup.hash, indexingContext.block.timestamp)
       }
-      console.log("[TOKEN_STAMP]", "(", indexingContext.contract.address, ")",
-        "id:", stamp.token_id.toFixed(), "from:", stamp.postman, stamp.postman, "to:", stamp.postman, stamp.postman)
     } catch (error) {
       console.log("fail to push event", error)
     }

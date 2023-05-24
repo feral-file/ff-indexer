@@ -6,6 +6,7 @@
 
 import * as grpc from "@grpc/grpc-js";
 import * as event_processor_pb from "./event-processor_pb";
+import * as google_protobuf_timestamp_pb from "google-protobuf/google/protobuf/timestamp_pb";
 
 interface IEventProcessorService extends grpc.ServiceDefinition<grpc.UntypedServiceImplementation> {
     pushEvent: IEventProcessorService_IPushEvent;

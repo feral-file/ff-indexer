@@ -8,6 +8,7 @@ store:
   cache_expiry: 24h
   log_level: 1
 
+environment: development
 check_interval: 5s
 
 log:
