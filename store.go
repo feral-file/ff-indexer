@@ -1229,7 +1229,11 @@ func (s *MongodbIndexerStore) GetPendingAccountTokens(ctx context.Context) ([]Ac
 		var accountToken AccountToken
 
 		if err := cursor.Decode(&accountToken); err != nil {
-			log.Error("fail to decode account token", zap.Error(err))
+			var raw interface{}
+			if err := cursor.Decode(&raw); err != nil {
+				log.Error("fail to decode account token into raw interface", zap.Error(err))
+			}
+			log.Error("fail to decode account token", zap.Error(err), zap.Any("raw", raw))
 			continue
 		}
 
