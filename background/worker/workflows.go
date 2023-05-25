@@ -318,6 +318,11 @@ func (w *NFTIndexerWorker) PendingTxFollowUpWorkflow(ctx workflow.Context, delay
 		return err
 	}
 
+	if len(pendingAccountTokens) == 0 {
+		_ = workflow.Sleep(ctx, 1*time.Minute)
+		return workflow.NewContinueAsNewError(ctx, w.PendingTxFollowUpWorkflow, delay)
+	}
+
 	for _, a := range pendingAccountTokens {
 		log.Debug("start checking txs for pending token", zap.String("indexID", a.IndexID))
 		pendindTxCounts := len(a.PendingTxs)
@@ -395,8 +400,6 @@ func (w *NFTIndexerWorker) PendingTxFollowUpWorkflow(ctx workflow.Context, delay
 				zap.String("indexID", a.IndexID), zap.String("ownerAccount", a.OwnerAccount), zap.Time("astRefreshedTime", a.LastRefreshedTime))
 		}
 	}
-
-	_ = workflow.Sleep(ctx, 1*time.Minute)
 
 	return workflow.NewContinueAsNewError(ctx, w.PendingTxFollowUpWorkflow, delay)
 }
