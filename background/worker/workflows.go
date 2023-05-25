@@ -325,14 +325,14 @@ func (w *NFTIndexerWorker) PendingTxFollowUpWorkflow(ctx workflow.Context, delay
 
 	for _, a := range pendingAccountTokens {
 		log.Debug("start checking txs for pending token", zap.String("indexID", a.IndexID))
-		pendindTxCounts := len(a.PendingTxs)
+		pendindTxCount := len(a.PendingTxs)
 
 		var hasNewTx bool
-		remainingPendingTx := make([]string, 0, pendindTxCounts)
-		remainingPendingTxTime := make([]time.Time, 0, pendindTxCounts)
+		remainingPendingTxs := make([]string, 0, pendindTxCount)
+		remainingPendingTxTimes := make([]time.Time, 0, pendindTxCount)
 
 		// The loop checks all new confirmed txs.
-		for i := 0; i < pendindTxCounts; i++ {
+		for i := 0; i < pendindTxCount; i++ {
 			pendingTime := a.LastPendingTime[i]
 			pendingTx := a.PendingTxs[i]
 
@@ -352,8 +352,8 @@ func (w *NFTIndexerWorker) PendingTxFollowUpWorkflow(ctx workflow.Context, delay
 				default:
 					// leave the error pending txs remain
 				}
-				remainingPendingTx = append(remainingPendingTx, pendingTx)
-				remainingPendingTxTime = append(remainingPendingTxTime, pendingTime)
+				remainingPendingTxs = append(remainingPendingTxs, pendingTx)
+				remainingPendingTxTimes = append(remainingPendingTxTimes, pendingTime)
 			} else {
 				log.Debug("found a confirme pending tx", zap.String("pendingTx", pendingTx))
 				if txComfirmedTime.Sub(a.LastActivityTime) > 0 {
@@ -391,10 +391,10 @@ func (w *NFTIndexerWorker) PendingTxFollowUpWorkflow(ctx workflow.Context, delay
 			}
 		}
 
-		log.Debug("remaining pending txs", zap.Any("remainingPendingTx", remainingPendingTx), zap.Any("remainingPendingTxTime", remainingPendingTx))
+		log.Debug("remaining pending txs", zap.Any("remainingPendingTx", remainingPendingTxs), zap.Any("remainingPendingTxTime", remainingPendingTxs))
 
 		if err := workflow.ExecuteActivity(ctx, w.UpdatePendingTxsToAccountToken,
-			a.OwnerAccount, a.IndexID, remainingPendingTx, remainingPendingTxTime).Get(ctx, nil); err != nil {
+			a.OwnerAccount, a.IndexID, remainingPendingTxs, remainingPendingTxTimes).Get(ctx, nil); err != nil {
 			// log the error only so the loop will continuously check the next pending token
 			log.Error("fail to update remaining pending txs into account token", zap.Error(err),
 				zap.String("indexID", a.IndexID), zap.String("ownerAccount", a.OwnerAccount), zap.Time("astRefreshedTime", a.LastRefreshedTime))
