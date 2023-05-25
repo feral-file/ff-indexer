@@ -545,6 +545,7 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 	return nil
 }
 
+// GetPendingAccountTokens returns all account tokens which have pending txs
 func (w *NFTIndexerWorker) GetPendingAccountTokens(ctx context.Context) ([]indexer.AccountToken, error) {
 	return w.indexerStore.GetPendingAccountTokens(ctx)
 }
@@ -554,7 +555,7 @@ func (w *NFTIndexerWorker) GetTxTimestamp(ctx context.Context, blockchain, txHas
 	return w.indexerEngine.GetTxTimestamp(ctx, blockchain, txHash)
 }
 
-// GetTxTimestamp returns transaction timestamp of a blockchain
+// UpdatePendingTxsToAccountToken updates the the pending txs of an account token
 func (w *NFTIndexerWorker) UpdatePendingTxsToAccountToken(ctx context.Context, ownerAccount, indexID string, pendingTxs []string, lastPendingTimes []time.Time) error {
 	return w.indexerStore.UpdatePendingTxsToAccountToken(ctx, ownerAccount, indexID, pendingTxs, lastPendingTimes)
 }

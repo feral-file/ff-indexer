@@ -1183,6 +1183,7 @@ func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ow
 	return nil
 }
 
+// UpdatePendingTxsToAccountToken updates the the pending txs of an account token
 func (s *MongodbIndexerStore) UpdatePendingTxsToAccountToken(ctx context.Context, ownerAccount, indexID string, pendingTxs []string, lastPendingTimes []time.Time) error {
 	r, err := s.accountTokenCollection.UpdateOne(ctx,
 		bson.M{
