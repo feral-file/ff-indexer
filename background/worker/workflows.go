@@ -305,7 +305,7 @@ func (w *NFTIndexerWorker) PendingTxFollowUpWorkflow(ctx workflow.Context, delay
 	ao := workflow.ActivityOptions{
 		TaskList:               w.AccountTokenTaskListName,
 		ScheduleToStartTimeout: 10 * time.Minute,
-		StartToCloseTimeout:    time.Hour,
+		StartToCloseTimeout:    10 * time.Minute,
 	}
 
 	log := workflow.GetLogger(ctx)
@@ -389,7 +389,7 @@ func (w *NFTIndexerWorker) PendingTxFollowUpWorkflow(ctx workflow.Context, delay
 		log.Debug("remaining pending txs", zap.Any("remainingPendingTx", remainingPendingTx), zap.Any("remainingPendingTxTime", remainingPendingTx))
 
 		if err := workflow.ExecuteActivity(ctx, w.UpdatePendingTxsToAccountToken,
-			a.OwnerAccount, a.IndexID, a.LastRefreshedTime, remainingPendingTx, remainingPendingTxTime).Get(ctx, nil); err != nil {
+			a.OwnerAccount, a.IndexID, remainingPendingTx, remainingPendingTxTime).Get(ctx, nil); err != nil {
 			// log the error only so the loop will continuously check the next pending token
 			log.Error("fail to update remaining pending txs into account token", zap.Error(err),
 				zap.String("indexID", a.IndexID), zap.String("ownerAccount", a.OwnerAccount), zap.Time("astRefreshedTime", a.LastRefreshedTime))

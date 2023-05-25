@@ -60,7 +60,7 @@ type Store interface {
 
 	GetPendingAccountTokens(ctx context.Context) ([]AccountToken, error)
 	AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx, blockchain, ID string) error
-	UpdatePendingTxsToAccountToken(ctx context.Context, ownerAccount, indexID string, lastRefreshedTime time.Time, pendingTxs []string, lastPendingTimes []time.Time) error
+	UpdatePendingTxsToAccountToken(ctx context.Context, ownerAccount, indexID string, pendingTxs []string, lastPendingTimes []time.Time) error
 
 	IndexAccount(ctx context.Context, account Account) error
 	IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error
@@ -1183,12 +1183,11 @@ func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ow
 	return nil
 }
 
-func (s *MongodbIndexerStore) UpdatePendingTxsToAccountToken(ctx context.Context, ownerAccount, indexID string, lastRefreshedTime time.Time, pendingTxs []string, lastPendingTimes []time.Time) error {
+func (s *MongodbIndexerStore) UpdatePendingTxsToAccountToken(ctx context.Context, ownerAccount, indexID string, pendingTxs []string, lastPendingTimes []time.Time) error {
 	r, err := s.accountTokenCollection.UpdateOne(ctx,
 		bson.M{
-			"indexID":           indexID,
-			"ownerAccount":      ownerAccount,
-			"lastRefreshedTime": lastRefreshedTime,
+			"indexID":      indexID,
+			"ownerAccount": ownerAccount,
 		},
 		bson.M{
 			"$set": bson.M{
@@ -1202,7 +1201,6 @@ func (s *MongodbIndexerStore) UpdatePendingTxsToAccountToken(ctx context.Context
 		log.Error("cannot update pendingTxs and lastPendingTime to account token",
 			zap.String("ownerAccount", ownerAccount),
 			zap.String("indexID", indexID),
-			zap.Time("lastRefreshedTime", lastRefreshedTime),
 			zap.Error(err))
 		return err
 	}
@@ -1212,7 +1210,6 @@ func (s *MongodbIndexerStore) UpdatePendingTxsToAccountToken(ctx context.Context
 			zap.Error(err),
 			zap.String("ownerAccount", ownerAccount),
 			zap.String("indexID", indexID),
-			zap.Time("lastRefreshedTime", lastRefreshedTime),
 		)
 	}
 
@@ -1348,6 +1345,7 @@ func (s *MongodbIndexerStore) GetAccountTokensByIndexIDs(ctx context.Context, in
 // UpdateAccountTokenOwners updates all account owners for a specific token
 func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, indexID string, ownerBalances []OwnerBalance) error {
 	ownerList := make([]string, 0, len(ownerBalances))
+	now := time.Now()
 
 	tokenResult := s.tokenCollection.FindOne(ctx, bson.M{"indexID": indexID})
 	if err := tokenResult.Err(); err != nil {
@@ -1366,7 +1364,7 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 			OwnerAccount:      ownerBalance.Address,
 			Balance:           ownerBalance.Balance,
 			LastActivityTime:  ownerBalance.LastTime,
-			LastRefreshedTime: time.Now(),
+			LastRefreshedTime: now,
 		}
 
 		_, err := s.accountTokenCollection.UpdateOne(ctx,
@@ -1387,7 +1385,7 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 	}, bson.M{
 		"$set": bson.M{
 			"balance":           0,
-			"lastRefreshedTime": time.Now(),
+			"lastRefreshedTime": now,
 		},
 	})
 

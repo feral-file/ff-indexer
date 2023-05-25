@@ -555,8 +555,8 @@ func (w *NFTIndexerWorker) GetTxTimestamp(ctx context.Context, blockchain, txHas
 }
 
 // GetTxTimestamp returns transaction timestamp of a blockchain
-func (w *NFTIndexerWorker) UpdatePendingTxsToAccountToken(ctx context.Context, ownerAccount, indexID string, lastRefreshedTime time.Time, pendingTxs []string, lastPendingTimes []time.Time) error {
-	return w.indexerStore.UpdatePendingTxsToAccountToken(ctx, ownerAccount, indexID, lastRefreshedTime, pendingTxs, lastPendingTimes)
+func (w *NFTIndexerWorker) UpdatePendingTxsToAccountToken(ctx context.Context, ownerAccount, indexID string, pendingTxs []string, lastPendingTimes []time.Time) error {
+	return w.indexerStore.UpdatePendingTxsToAccountToken(ctx, ownerAccount, indexID, pendingTxs, lastPendingTimes)
 }
 
 // GetBalanceDiffFromTezosTransaction gets the balance difference of TEZOS account tokens in a transaction.
