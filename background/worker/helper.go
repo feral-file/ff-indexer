@@ -84,9 +84,9 @@ func StartRefreshTokenProvenanceWorkflow(c context.Context, client *cadence.Work
 	}
 }
 
-func StartUpdateAccountTokensWorkflow(c context.Context, client *cadence.WorkerClient, delay time.Duration) error {
+func StartPendingTxFollowUpWorkflow(c context.Context, client *cadence.WorkerClient, delay time.Duration) error {
 	workflowContext := cadenceClient.StartWorkflowOptions{
-		ID:                           "update-account-token-helper",
+		ID:                           "pending-tx-follow-up",
 		TaskList:                     AccountTokenTaskListName,
 		ExecutionStartToCloseTimeout: time.Hour,
 		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
@@ -94,7 +94,7 @@ func StartUpdateAccountTokensWorkflow(c context.Context, client *cadence.WorkerC
 
 	var w NFTIndexerWorker
 
-	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.UpdateAccountTokensWorkflow, delay)
+	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.PendingTxFollowUpWorkflow, delay)
 	if err != nil {
 		log.Error("fail to start updating account token workflow", zap.Error(err))
 		_, isAlreadyStartedError := err.(*shared.WorkflowExecutionAlreadyStartedError)

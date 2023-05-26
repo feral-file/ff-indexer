@@ -477,3 +477,17 @@ func (e *IndexEngine) GetObjktToken(contract, tokenID string) (objkt.Token, erro
 
 	return objktToken, nil
 }
+
+// GetTezosTxTimestamp returns the timestamp of an transaction if it exists
+func (e *IndexEngine) GetTezosTxTimestamp(_ context.Context, txHashString string) (time.Time, error) {
+	detailedTransactions, err := e.tzkt.GetTransactionByTx(txHashString)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	if len(detailedTransactions) == 0 {
+		return time.Time{}, ErrTXNotFound
+	}
+
+	return detailedTransactions[0].Timestamp, nil
+}

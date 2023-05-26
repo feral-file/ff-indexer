@@ -21,6 +21,8 @@ var global = (function() {
   return Function('return this')();
 }.call(null));
 
+var google_protobuf_timestamp_pb = require('google-protobuf/google/protobuf/timestamp_pb.js');
+goog.object.extend(proto, google_protobuf_timestamp_pb);
 goog.exportSymbol('proto.EventInput', null, global);
 goog.exportSymbol('proto.EventOutput', null, global);
 /**
@@ -102,7 +104,9 @@ proto.EventInput.toObject = function(includeInstance, msg) {
     contract: jspb.Message.getFieldWithDefault(msg, 3, ""),
     from: jspb.Message.getFieldWithDefault(msg, 4, ""),
     to: jspb.Message.getFieldWithDefault(msg, 5, ""),
-    tokenid: jspb.Message.getFieldWithDefault(msg, 6, "")
+    tokenid: jspb.Message.getFieldWithDefault(msg, 6, ""),
+    txid: jspb.Message.getFieldWithDefault(msg, 7, ""),
+    txtime: (f = msg.getTxtime()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
   };
 
   if (includeInstance) {
@@ -162,6 +166,15 @@ proto.EventInput.deserializeBinaryFromReader = function(msg, reader) {
     case 6:
       var value = /** @type {string} */ (reader.readString());
       msg.setTokenid(value);
+      break;
+    case 7:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setTxid(value);
+      break;
+    case 8:
+      var value = new google_protobuf_timestamp_pb.Timestamp;
+      reader.readMessage(value,google_protobuf_timestamp_pb.Timestamp.deserializeBinaryFromReader);
+      msg.setTxtime(value);
       break;
     default:
       reader.skipField();
@@ -232,6 +245,21 @@ proto.EventInput.serializeBinaryToWriter = function(message, writer) {
     writer.writeString(
       6,
       f
+    );
+  }
+  f = message.getTxid();
+  if (f.length > 0) {
+    writer.writeString(
+      7,
+      f
+    );
+  }
+  f = message.getTxtime();
+  if (f != null) {
+    writer.writeMessage(
+      8,
+      f,
+      google_protobuf_timestamp_pb.Timestamp.serializeBinaryToWriter
     );
   }
 };
@@ -342,6 +370,61 @@ proto.EventInput.prototype.getTokenid = function() {
  */
 proto.EventInput.prototype.setTokenid = function(value) {
   return jspb.Message.setProto3StringField(this, 6, value);
+};
+
+
+/**
+ * optional string TXID = 7;
+ * @return {string}
+ */
+proto.EventInput.prototype.getTxid = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 7, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.EventInput} returns this
+ */
+proto.EventInput.prototype.setTxid = function(value) {
+  return jspb.Message.setProto3StringField(this, 7, value);
+};
+
+
+/**
+ * optional google.protobuf.Timestamp TXTime = 8;
+ * @return {?proto.google.protobuf.Timestamp}
+ */
+proto.EventInput.prototype.getTxtime = function() {
+  return /** @type{?proto.google.protobuf.Timestamp} */ (
+    jspb.Message.getWrapperField(this, google_protobuf_timestamp_pb.Timestamp, 8));
+};
+
+
+/**
+ * @param {?proto.google.protobuf.Timestamp|undefined} value
+ * @return {!proto.EventInput} returns this
+*/
+proto.EventInput.prototype.setTxtime = function(value) {
+  return jspb.Message.setWrapperField(this, 8, value);
+};
+
+
+/**
+ * Clears the message field making it undefined.
+ * @return {!proto.EventInput} returns this
+ */
+proto.EventInput.prototype.clearTxtime = function() {
+  return this.setTxtime(undefined);
+};
+
+
+/**
+ * Returns whether this field is set.
+ * @return {boolean}
+ */
+proto.EventInput.prototype.hasTxtime = function() {
+  return jspb.Message.getField(this, 8) != null;
 };
 
 

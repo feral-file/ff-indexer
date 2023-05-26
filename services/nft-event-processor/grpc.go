@@ -16,13 +16,13 @@ import (
 
 type GRPCServer struct {
 	server         *grpc.Server
-	queueProcessor *EventQueueProcessor
+	queueProcessor *EventQueue
 
 	network string
 	address string
 }
 
-func NewGRPCServer(network, address string, queueProcessor *EventQueueProcessor) *GRPCServer {
+func NewGRPCServer(network, address string, queueProcessor *EventQueue) *GRPCServer {
 	grpcServer := grpc.NewServer()
 	grpcHandler := NewGRPCHandler(queueProcessor)
 
@@ -53,10 +53,10 @@ func (s *GRPCServer) Run() error {
 type GRPCHandler struct {
 	processor.UnimplementedEventProcessorServer
 
-	queueProcessor *EventQueueProcessor
+	queueProcessor *EventQueue
 }
 
-func NewGRPCHandler(queueProcessor *EventQueueProcessor) *GRPCHandler {
+func NewGRPCHandler(queueProcessor *EventQueue) *GRPCHandler {
 	return &GRPCHandler{
 		queueProcessor: queueProcessor,
 	}
@@ -76,6 +76,8 @@ func (t *GRPCHandler) PushEvent(
 		TokenID:    i.TokenID,
 		From:       i.From,
 		To:         i.To,
+		TXID:       i.TXID,
+		TXTime:     i.TXTime.AsTime(),
 		Status:     EventStatusCreated,
 		Stage:      EventStages[1],
 	}); err != nil {

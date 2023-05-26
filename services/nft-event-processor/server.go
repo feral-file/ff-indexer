@@ -4,30 +4,35 @@ import (
 	"context"
 	"time"
 
-	"github.com/bitmark-inc/autonomy-account/storage"
-	indexer "github.com/bitmark-inc/nft-indexer"
-	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
-	"github.com/bitmark-inc/nft-indexer/cadence"
-	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
+	"github.com/lib/pq"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 
+	"github.com/bitmark-inc/autonomy-account/storage"
 	notification "github.com/bitmark-inc/autonomy-notification"
 	notificationSdk "github.com/bitmark-inc/autonomy-notification/sdk"
+	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer/cadence"
+	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 type EventProcessor struct {
-	grpcServer     *GRPCServer
-	queueProcessor *EventQueueProcessor
-	indexerStore   *indexer.MongodbIndexerStore
-	worker         *cadence.WorkerClient
-	accountStore   *storage.AccountInformationStorage
-	notification   *notificationSdk.NotificationClient
-	feedServer     *FeedClient
+	environment   string
+	checkInterval time.Duration
+
+	grpcServer   *GRPCServer
+	eventQueue   *EventQueue
+	indexerStore *indexer.MongodbIndexerStore
+	worker       *cadence.WorkerClient
+	accountStore *storage.AccountInformationStorage
+	notification *notificationSdk.NotificationClient
+	feedServer   *FeedClient
 }
 
 func NewEventProcessor(
+	environment string,
+	checkInterval time.Duration,
 	network string,
 	address string,
 	store EventStore,
@@ -37,17 +42,20 @@ func NewEventProcessor(
 	notification *notificationSdk.NotificationClient,
 	feedServer *FeedClient,
 ) *EventProcessor {
-	queueProcessor := NewEventQueueProcessor(store)
-	grpcServer := NewGRPCServer(network, address, queueProcessor)
+	queue := NewEventQueue(store)
+	grpcServer := NewGRPCServer(network, address, queue)
 
 	return &EventProcessor{
-		grpcServer:     grpcServer,
-		queueProcessor: queueProcessor,
-		indexerStore:   indexerStore,
-		worker:         worker,
-		accountStore:   accountStore,
-		notification:   notification,
-		feedServer:     feedServer,
+		environment:   environment,
+		checkInterval: checkInterval,
+
+		grpcServer:   grpcServer,
+		eventQueue:   queue,
+		indexerStore: indexerStore,
+		worker:       worker,
+		accountStore: accountStore,
+		notification: notification,
+		feedServer:   feedServer,
 	}
 }
 
@@ -56,7 +64,7 @@ func (e *EventProcessor) UpdateOwner(c context.Context, id, owner string, update
 	return e.indexerStore.UpdateOwner(c, id, owner, updatedAt)
 }
 
-// notifyChangeOwner notifies the arrival of a new token
+// notifyChangeOwner send change_token_owner notification to notification server
 func (e *EventProcessor) notifyChangeOwner(accountID, toAddress, tokenID string) error {
 	return e.notification.SendNotification("",
 		notification.NEW_NFT_ARRIVED,
@@ -78,332 +86,83 @@ func (e *EventProcessor) Run(ctx context.Context) {
 	}
 }
 
+type processorFunc func(ctx context.Context, event NFTEvent) error
+
+func (e *EventProcessor) StartWorker(ctx context.Context, currentStage, nextStage int8,
+	types []EventType, processor processorFunc) {
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				log.Info("process stopped")
+				return
+			default:
+				e.logStageEvent(currentStage, "query event")
+				eventTx, err := e.eventQueue.GetEventTransaction(ctx,
+					Filter("type = ANY(?)", pq.Array(types)),
+					Filter("status = ANY(?)", pq.Array([]EventStatus{EventStatusCreated, EventStatusProcessing})),
+					Filter("stage = ?", EventStages[currentStage]),
+				)
+				if err != nil {
+					if err == gorm.ErrRecordNotFound {
+						log.Info("No new events")
+					} else {
+						log.Error("Fail to get a event db transaction", zap.Error(err))
+					}
+					time.Sleep(e.checkInterval)
+					continue
+				}
+				e.logStartStage(eventTx.Event, currentStage)
+				if err := processor(ctx, eventTx.Event); err != nil {
+					log.Error("stage processing failed", zap.Error(err))
+					if err := eventTx.UpdateEvent("", string(EventStatusFailed)); err != nil {
+						log.Error("fail to update event", zap.Error(err))
+						eventTx.Rollback()
+					}
+				}
+
+				// stage starts from 1. stage zero means there is no next stage.
+				var newStage, newStatus string
+				if nextStage == 0 {
+					newStatus = string(EventStatusProcessed)
+				} else {
+					newStage = EventStages[nextStage]
+				}
+				if err := eventTx.UpdateEvent(newStage, newStatus); err != nil {
+					log.Error("fail to update event", zap.Error(err))
+					eventTx.Rollback()
+				}
+
+				eventTx.Commit()
+				e.logEndStage(eventTx.Event, currentStage)
+			}
+		}
+	}()
+}
+
 // ProcessEvents start a loop to continuously consuming queud event
 func (e *EventProcessor) ProcessEvents(ctx context.Context) {
 	// run goroutines forever
 	log.Debug("start event processing goroutines")
 
 	// token update
-	go e.RefreshTokenData(ctx)
+	e.RefreshTokenData(ctx)
 
 	//stage 1: update the latest owner into mongodb
-	go e.UpdateLatestOwner(ctx)
+	e.UpdateLatestOwner(ctx)
 
 	//stage 2: trigger full updates for the token
-	go e.UpdateOwnerAndProvenance(ctx)
+	e.UpdateOwnerAndProvenance(ctx)
 
 	//stage 3: send notificationSdk
-	go e.NotifyChangeTokenOwner()
+	e.NotifyChangeTokenOwner(ctx)
 
 	//stage 4: send to feed server
-	go e.SendEventToFeedServer()
+	e.SendEventToFeedServer(ctx)
 
 }
 
 // GetAccountIDByAddress get account IDS by address
 func (e *EventProcessor) GetAccountIDByAddress(address string) ([]string, error) {
 	return e.accountStore.GetAccountIDByAddress(address)
-}
-
-// UpdateOwnerAndProvenance trigger cadence to update owner and provenance of token
-func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
-	var stage int8 = 2
-
-	for {
-		event, err := e.GetQueueEventByStage(stage)
-		if err != nil {
-			log.Error("Have error when try to get queue event", zap.Error(err))
-		}
-
-		if event == nil {
-			time.Sleep(WaitingTime)
-
-			continue
-		}
-
-		eventID := event.ID
-		from := event.From
-		blockchain := event.Blockchain
-		contract := event.Contract
-		tokenID := event.TokenID
-		to := event.To
-
-		e.logStartStage(event, stage)
-
-		accounts, err := e.accountStore.GetAccountIDByAddress(to)
-		if err != nil {
-			log.Error("fail to check accounts by address", zap.Error(err))
-			return
-		}
-
-		indexID := indexer.TokenIndexID(blockchain, contract, tokenID)
-
-		token, err := e.indexerStore.GetTokensByIndexID(ctx, indexID)
-		if err != nil {
-			log.Error("fail to check token by index ID", zap.Error(err))
-			return
-		}
-
-		// check if a token is existent
-		// if existent, update provenance
-		// if not, index it by blockchain
-		if token != nil {
-			// ignore the indexing process since an indexed token found
-			log.Debug("an indexed token found for a corresponded event", zap.String("indexID", indexID))
-
-			// if the new owner is not existent in our system, index a new account_token
-			if len(accounts) == 0 {
-				accountToken := indexer.AccountToken{
-					BaseTokenInfo:     token.BaseTokenInfo,
-					IndexID:           indexID,
-					OwnerAccount:      to,
-					Balance:           int64(1),
-					LastActivityTime:  event.CreatedAt,
-					LastRefreshedTime: time.Now(),
-				}
-
-				if err := e.indexerStore.IndexAccountTokens(ctx, to, []indexer.AccountToken{accountToken}); err != nil {
-					log.Error("cannot index a new account_token", zap.Error(err), zap.String("indexID", indexID), zap.String("owner", to))
-				}
-			}
-
-			if token.Fungible {
-				indexerWorker.StartRefreshTokenOwnershipWorkflow(ctx, e.worker, "processor", indexID, 0)
-			} else {
-				if err := e.indexerStore.UpdateOwner(ctx, indexID, to, event.CreatedAt); err != nil {
-					log.Error("fail to update the token ownership",
-						zap.String("indexID", indexID), zap.Error(err),
-						zap.String("from", from), zap.String("to", to))
-
-				}
-				indexerWorker.StartRefreshTokenProvenanceWorkflow(ctx, e.worker, "processor", indexID, 0)
-			}
-		} else {
-			// index the new token since it is a new token for our indexer and watched by our user
-			if len(accounts) > 0 {
-				log.Info("start indexing a new token",
-					zap.String("indexID", indexID),
-					zap.String("from", from), zap.String("to", to))
-
-				indexerWorker.StartIndexTokenWorkflow(ctx, e.worker, to, contract, tokenID, true, false)
-			}
-		}
-
-		if err := e.UpdateEvent(eventID, map[string]interface{}{
-			"stage": EventStages[stage+1],
-		}); err != nil {
-			log.Error("fail to update event", zap.Error(err))
-		}
-
-		e.logEndStage(event, stage)
-	}
-}
-
-// UpdateEvent update event by map
-func (e *EventProcessor) UpdateEvent(id string, updates map[string]interface{}) error {
-	err := e.queueProcessor.store.UpdateEvent(id, updates)
-
-	return err
-}
-
-// GetQueueEventByStage get event by stage
-func (e *EventProcessor) GetQueueEventByStage(stage int8) (*NFTEvent, error) {
-	event, err := e.queueProcessor.store.GetQueueEventByStage(stage)
-	if err != nil {
-		return nil, err
-	}
-
-	if event == nil {
-		return nil, nil
-	}
-
-	return event, nil
-}
-
-// logStartStage log when start a stage
-func (e *EventProcessor) logStartStage(event *NFTEvent, stage int8) {
-	log.Info("start stage for event: ", zap.Int8("stage", stage), zap.Any("event", event))
-}
-
-// logEndStage log when end a stage
-func (e *EventProcessor) logEndStage(event *NFTEvent, stage int8) {
-	log.Info("finished stage for event: ", zap.Int8("stage", stage), zap.Any("event", event))
-}
-
-// UpdateLatestOwner [stage 1] update owner for nft and ft by event information
-func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
-	var stage int8 = 1
-
-	for {
-		event, err := e.GetQueueEventByStage(stage)
-		if err != nil {
-			log.Error("Have error when try to get queue event", zap.Error(err))
-		}
-
-		if event == nil {
-			time.Sleep(WaitingTime)
-			continue
-		}
-
-		eventType := event.Type
-		eventID := event.ID
-		blockchain := event.Blockchain
-		contract := event.Contract
-		tokenID := event.TokenID
-		to := event.To
-		indexID := indexer.TokenIndexID(blockchain, contract, tokenID)
-
-		e.logStartStage(event, stage)
-
-		switch event.Type {
-		case "mint":
-			// do nothing here.
-		default:
-			token, err := e.indexerStore.GetTokensByIndexID(ctx, indexID)
-			if err != nil {
-				log.Error("fail to get token by index id", zap.Error(err))
-			}
-
-			if token != nil {
-				if !token.Fungible {
-					err := e.indexerStore.PushProvenance(ctx, indexID, token.LastRefreshedTime, indexer.Provenance{
-						Type:        eventType,
-						FormerOwner: &event.From,
-						Owner:       to,
-						Blockchain:  blockchain,
-						Timestamp:   event.CreatedAt,
-						TxID:        "",
-						TxURL:       "",
-					})
-
-					if err != nil {
-						log.Error("fail to push provenance", zap.Error(err))
-
-						err = e.indexerStore.UpdateOwner(ctx, indexID, to, event.CreatedAt)
-						if err != nil {
-							log.Error("fail to update owner", zap.Error(err))
-						}
-					}
-				} else {
-					err := e.indexerStore.UpdateOwnerForFungibleToken(ctx, indexID, token.LastRefreshedTime, event.To, 1)
-					if err != nil {
-						log.Error("fail to update owner for fungible token", zap.Error(err))
-					}
-				}
-
-				accountToken := indexer.AccountToken{
-					BaseTokenInfo:     token.BaseTokenInfo,
-					IndexID:           indexID,
-					OwnerAccount:      to,
-					Balance:           int64(1),
-					LastActivityTime:  event.CreatedAt,
-					LastRefreshedTime: time.Now(),
-				}
-
-				if err := e.indexerStore.IndexAccountTokens(ctx, to, []indexer.AccountToken{accountToken}); err != nil {
-					log.Error("fail to index account token", zap.Error(err))
-					continue
-				}
-			} else {
-				log.Debug("token not found", zap.String("indexID", indexID))
-			}
-
-		}
-
-		if err := e.UpdateEvent(eventID, map[string]interface{}{
-			"stage": EventStages[stage+1],
-		}); err != nil {
-			log.Error("fail to update event", zap.Error(err))
-		}
-
-		e.logEndStage(event, stage)
-	}
-}
-
-// NotifyChangeTokenOwner send notification to notificationSdk
-func (e *EventProcessor) NotifyChangeTokenOwner() {
-	var stage int8 = 3
-
-	for {
-		event, err := e.GetQueueEventByStage(stage)
-		if err != nil {
-			log.Error("have error when try to get queue event", zap.Error(err))
-		}
-
-		if event == nil {
-			time.Sleep(WaitingTime)
-
-			continue
-		}
-
-		eventID := event.ID
-		blockchain := event.Blockchain
-		contract := event.Contract
-		tokenID := event.TokenID
-		to := event.To
-
-		e.logStartStage(event, stage)
-
-		accounts, err := e.accountStore.GetAccountIDByAddress(to)
-		if err != nil {
-			log.Error("fail to check accounts by address", zap.Error(err))
-			return
-		}
-		indexID := indexer.TokenIndexID(blockchain, contract, tokenID)
-
-		for _, accountID := range accounts {
-			if err := e.notifyChangeOwner(accountID, to, indexID); err != nil {
-				log.Error("fail to send notificationSdk for the new update",
-					zap.Error(err),
-					zap.String("accountID", accountID), zap.String("indexID", indexID))
-
-			}
-		}
-
-		if err := e.UpdateEvent(eventID, map[string]interface{}{
-			"stage": EventStages[stage+1],
-		}); err != nil {
-			log.Error("fail to update event", zap.Error(err))
-		}
-
-		e.logEndStage(event, stage)
-	}
-}
-
-// SendEventToFeedServer send event to feed server
-func (e *EventProcessor) SendEventToFeedServer() {
-	var stage int8 = 4
-
-	for {
-		event, err := e.GetQueueEventByStage(stage)
-		if err != nil {
-			log.Error("Have error when try to get queue event", zap.Error(err))
-		}
-
-		if event == nil {
-			time.Sleep(WaitingTime)
-
-			continue
-		}
-
-		eventID := event.ID
-		blockchain := event.Blockchain
-		contract := event.Contract
-		tokenID := event.TokenID
-		to := event.To
-		eventType := event.Type
-
-		e.logStartStage(event, stage)
-
-		if err := e.feedServer.SendEvent(blockchain, contract, tokenID, to, eventType, viper.GetString("network.ethereum") == "testnet"); err != nil {
-			log.Debug("fail to push event to feed server", zap.Error(err))
-		}
-
-		// finish all stage of event processing
-		if err := e.queueProcessor.store.CompleteEvent(eventID); err != nil {
-			log.Error("fail to mark an event completed", zap.Error(err))
-		}
-
-		e.logEndStage(event, stage)
-	}
 }

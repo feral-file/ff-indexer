@@ -58,10 +58,9 @@ type Store interface {
 	GetIdentities(ctx context.Context, accountNumbers []string) (map[string]AccountIdentity, error)
 	IndexIdentity(ctx context.Context, identity AccountIdentity) error
 
-	UpdateAccountTokenBalance(ctx context.Context, ownerAccount, indexID string, balance int64, transactionTime time.Time, pendingTx string, lastPendingTime time.Time) error
-	DeletePendingFieldsAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx string, lastPendingTime time.Time) error
 	GetPendingAccountTokens(ctx context.Context) ([]AccountToken, error)
 	AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx, blockchain, ID string) error
+	UpdatePendingTxsToAccountToken(ctx context.Context, ownerAccount, indexID string, pendingTxs []string, lastPendingTimes []time.Time) error
 
 	IndexAccount(ctx context.Context, account Account) error
 	IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error
@@ -1128,94 +1127,6 @@ func (s *MongodbIndexerStore) IndexIdentity(ctx context.Context, identity Accoun
 	return nil
 }
 
-// UpdateAccountTokenBalance updates account tokens' balance from transaction details
-func (s *MongodbIndexerStore) UpdateAccountTokenBalance(ctx context.Context, ownerAccount, indexID string, balance int64, transactionTime time.Time, pendingTx string, lastPendingTime time.Time) error {
-	log.Debug("UpdateAccountTokenBalance",
-		zap.String("ownerAccount", ownerAccount),
-		zap.String("indexID", indexID),
-		zap.Int64("balance", balance),
-		zap.Time("transactionTime", transactionTime))
-	r, err := s.accountTokenCollection.UpdateOne(ctx,
-		bson.M{
-			"indexID":      indexID,
-			"ownerAccount": ownerAccount,
-			"$or": bson.A{
-				bson.M{"lastActivityTime": bson.M{"$lt": transactionTime}},
-				bson.M{"lastActivityTime": bson.M{"$exists": false}},
-			},
-		},
-		bson.M{
-			"$set": bson.M{
-				"lastActivityTime":  transactionTime,
-				"lastRefreshedTime": time.Now(),
-			},
-			"$inc": bson.M{
-				"balance": balance,
-			},
-		},
-		options.Update().SetUpsert(true),
-	)
-
-	if err != nil {
-		return err
-	}
-
-	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-		log.Debug("the account token's balance is not updated/added",
-			zap.String("indexID", indexID),
-			zap.String("ownerAccount", ownerAccount),
-			zap.String("pendingTx", pendingTx))
-	}
-
-	// remove pendingTx and lastPendingTime
-	_, err = s.accountTokenCollection.UpdateOne(ctx,
-		bson.M{
-			"indexID":         indexID,
-			"ownerAccount":    ownerAccount,
-			"pendingTxs":      bson.M{"$in": bson.A{pendingTx}},
-			"lastPendingTime": bson.M{"$in": bson.A{lastPendingTime}},
-		},
-		bson.M{
-			"$pull": bson.M{
-				"pendingTxs":      pendingTx,
-				"lastPendingTime": lastPendingTime,
-			},
-		},
-	)
-
-	return err
-}
-
-// DeletePendingFieldsAccountToken deletes elements in pending fields of a account token
-func (s *MongodbIndexerStore) DeletePendingFieldsAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx string, lastPendingTime time.Time) error {
-	r, err := s.accountTokenCollection.UpdateOne(ctx,
-		bson.M{"indexID": indexID, "ownerAccount": ownerAccount, "pendingTxs": bson.M{"$in": bson.A{pendingTx}}, "lastPendingTime": bson.M{"$in": bson.A{lastPendingTime}}},
-		bson.M{
-			"$pull": bson.M{
-				"pendingTxs":      pendingTx,
-				"lastPendingTime": lastPendingTime,
-			},
-		},
-	)
-
-	if err != nil {
-		return err
-	}
-
-	if r.MatchedCount == 0 {
-		log.Warn("pending account token is not deleted its pending fields",
-			zap.String("IndexID", indexID),
-			zap.String("ownerAccount", ownerAccount),
-			zap.String("pendingTx", pendingTx))
-	} else {
-		log.Debug("pending account token is deleted its pending fields",
-			zap.String("ownerAccount", ownerAccount),
-			zap.String("pendingTx", pendingTx))
-	}
-
-	return nil
-}
-
 // AddPendingTxToAccountToken add pendingTx to a specific account token if this pendingTx does not exist
 func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx, blockchain, ID string) error {
 	r, err := s.accountTokenCollection.UpdateOne(ctx,
@@ -1248,7 +1159,8 @@ func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ow
 	if r.MatchedCount == 0 || r.ModifiedCount == 0 {
 		// 1. We don't have this account token OR
 		// 2. This account token already has the pendingTx.
-		// We insert this account token. If 2. happens, err will not be nil, we need to log it.
+		// We try to insert this account token. If an error happen, it has a
+		// high chance to be 2. We log down it with error for tracking.
 		_, err := s.accountTokenCollection.InsertOne(ctx,
 			bson.M{
 				"indexID":         indexID,
@@ -1261,10 +1173,45 @@ func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ow
 		)
 		if err != nil {
 			log.Warn("cannot insert a new account token",
+				zap.Error(err),
 				zap.String("ownerAccount", ownerAccount),
 				zap.String("indexID", indexID),
 				zap.String("pendingTx", pendingTx))
 		}
+	}
+
+	return nil
+}
+
+// UpdatePendingTxsToAccountToken updates the the pending txs of an account token
+func (s *MongodbIndexerStore) UpdatePendingTxsToAccountToken(ctx context.Context, ownerAccount, indexID string, pendingTxs []string, lastPendingTimes []time.Time) error {
+	r, err := s.accountTokenCollection.UpdateOne(ctx,
+		bson.M{
+			"indexID":      indexID,
+			"ownerAccount": ownerAccount,
+		},
+		bson.M{
+			"$set": bson.M{
+				"pendingTxs":      pendingTxs,
+				"lastPendingTime": lastPendingTimes,
+			},
+		},
+	)
+
+	if err != nil {
+		log.Error("cannot update pendingTxs and lastPendingTime to account token",
+			zap.String("ownerAccount", ownerAccount),
+			zap.String("indexID", indexID),
+			zap.Error(err))
+		return err
+	}
+
+	if r.ModifiedCount == 0 {
+		log.Warn("account token does not update",
+			zap.Error(err),
+			zap.String("ownerAccount", ownerAccount),
+			zap.String("indexID", indexID),
+		)
 	}
 
 	return nil
@@ -1283,6 +1230,11 @@ func (s *MongodbIndexerStore) GetPendingAccountTokens(ctx context.Context) ([]Ac
 		var accountToken AccountToken
 
 		if err := cursor.Decode(&accountToken); err != nil {
+			var raw interface{}
+			if err := cursor.Decode(&raw); err != nil {
+				log.Error("fail to decode account token into raw interface", zap.Error(err))
+			}
+			log.Error("fail to decode account token", zap.Error(err), zap.Any("raw", raw))
 			continue
 		}
 
@@ -1399,6 +1351,7 @@ func (s *MongodbIndexerStore) GetAccountTokensByIndexIDs(ctx context.Context, in
 // UpdateAccountTokenOwners updates all account owners for a specific token
 func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, indexID string, ownerBalances []OwnerBalance) error {
 	ownerList := make([]string, 0, len(ownerBalances))
+	now := time.Now()
 
 	tokenResult := s.tokenCollection.FindOne(ctx, bson.M{"indexID": indexID})
 	if err := tokenResult.Err(); err != nil {
@@ -1417,7 +1370,7 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 			OwnerAccount:      ownerBalance.Address,
 			Balance:           ownerBalance.Balance,
 			LastActivityTime:  ownerBalance.LastTime,
-			LastRefreshedTime: time.Now(),
+			LastRefreshedTime: now,
 		}
 
 		_, err := s.accountTokenCollection.UpdateOne(ctx,
@@ -1438,7 +1391,7 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 	}, bson.M{
 		"$set": bson.M{
 			"balance":           0,
-			"lastRefreshedTime": time.Now(),
+			"lastRefreshedTime": now,
 		},
 	})
 

@@ -237,17 +237,8 @@ type AccountToken struct {
 	Balance           int64            `json:"balance" bson:"balance"`
 	LastActivityTime  time.Time        `json:"lastActivityTime" bson:"lastActivityTime"`
 	LastRefreshedTime time.Time        `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
-	LastPendingTime   []time.Time      `json:"-" bson:"lastPendingTime,omitempty"`
+	LastPendingTime   []time.Time      `json:"lastPendingTime" bson:"lastPendingTime,omitempty"`
 	PendingTxs        []string         `json:"pendingTxs" bson:"pendingTxs,omitempty"`
-}
-
-type PendingTxUpdate struct {
-	IndexID         string            `json:"indexID"`
-	Blockchain      string            `json:"blockchain"`
-	ID              string            `json:"id"`
-	ContractAddress BlockchainAddress `json:"contractAddress"`
-	OwnerAccount    BlockchainAddress `json:"ownerAccount"`
-	PendingTx       string            `json:"pendingTx"`
 }
 
 type TotalBalance struct {

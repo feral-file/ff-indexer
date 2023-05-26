@@ -239,3 +239,60 @@ func (s *NFTIndexerServer) IndexOneNFT(c *gin.Context) {
 		})
 	}
 }
+
+func (s *NFTIndexerServer) SetTokenPendingV1(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "TokenPending")
+
+	var reqParams PendingTxParamsV1
+
+	if err := c.BindQuery(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if err := c.Bind(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if reqParams.PendingTx == "" {
+		abortWithError(c, http.StatusBadRequest, "invalid parameter", fmt.Errorf("pendingTx is required"))
+		return
+	}
+
+	createdAt, err := indexer.EpochStringToTime(reqParams.Timestamp)
+	if err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameter", err)
+		return
+	}
+
+	now := time.Now()
+	if !indexer.IsTimeInRange(createdAt, now, 5) {
+		abortWithError(c, http.StatusBadRequest, "invalid parameter", fmt.Errorf("request time too skewed"))
+		return
+	}
+
+	isValidAddress, err := s.verifyAddressOwner(reqParams.Blockchain, reqParams.Timestamp, reqParams.Signature, reqParams.OwnerAccount, reqParams.PublicKey)
+
+	if err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if !isValidAddress {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("invalid signature for ownerAddress"))
+		return
+	}
+
+	indexID := indexer.TokenIndexID(reqParams.Blockchain, reqParams.ContractAddress, reqParams.ID)
+
+	if err := s.indexerStore.AddPendingTxToAccountToken(c, reqParams.OwnerAccount, indexID, reqParams.PendingTx, reqParams.Blockchain, reqParams.ID); err != nil {
+		log.Warn("error while adding pending accountToken", zap.Error(err), zap.String("owner", reqParams.OwnerAccount), zap.String("pendingTx", reqParams.PendingTx))
+		return
+	}
+	log.Info("a pending account token is added", zap.String("owner", reqParams.OwnerAccount), zap.String("pendingTx", reqParams.PendingTx))
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok": 1,
+	})
+}

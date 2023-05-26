@@ -3,6 +3,6 @@ store:
   db_uri:
   db_name:
 
-grpc:
-  network: tcp
-  port: 8888
+server:
+  grpc_port: 8888
+  grpc_network: tcp

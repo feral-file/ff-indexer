@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
@@ -19,6 +21,11 @@ func TestIndexETHToken(t *testing.T) {
 		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
 	}
 
+	ethClient, err := ethclient.Dial(viper.GetString("ethereum.rpc_url"))
+	if err != nil {
+		t.Fatalf("fail to initiate eth client: %s", err.Error())
+	}
+
 	engine := New(
 		"",
 		[]string{},
@@ -27,6 +34,7 @@ func TestIndexETHToken(t *testing.T) {
 		tzkt.New(""),
 		fxhash.New("https://api.fxhash.xyz/graphql"),
 		objkt.New("https://data.objkt.com/v3/graphql"),
+		ethClient,
 	)
 
 	assetUpdates, err := engine.IndexETHToken(context.Background(), "0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d", "9616")

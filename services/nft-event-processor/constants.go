@@ -9,4 +9,4 @@ var EventStages = map[int8]string{
 	4: "stage_4_send_to_feed",
 }
 
-const WaitingTime = 1 * time.Second
+const DefaultCheckInterval = 10 * time.Second

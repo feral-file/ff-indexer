@@ -2,13 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/spf13/viper"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-
-	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 type EventType string
@@ -25,8 +24,10 @@ const (
 	EventStatusCreated    EventStatus = "created"
 	EventStatusProcessing EventStatus = "processing"
 	EventStatusProcessed  EventStatus = "processed"
+	EventStatusFailed     EventStatus = "failed"
 )
 
+// NFTEvent is the model for token events
 type NFTEvent struct {
 	ID         string      `gorm:"primaryKey;size:255;default:uuid_generate_v4()"`
 	Type       string      `gorm:"index"`
@@ -35,18 +36,48 @@ type NFTEvent struct {
 	TokenID    string      `gorm:"index"`
 	From       string      `gorm:"index"`
 	To         string      `gorm:"index"`
+	TXID       string      `gorm:"index"`
+	TXTime     time.Time   `gorm:"index"`
 	Stage      string      `gorm:"index"`
 	Status     EventStatus `gorm:"index"`
 	CreatedAt  time.Time   `gorm:"default:now()"`
 	UpdatedAt  time.Time   `gorm:"default:now()"`
 }
 
+// EventTx is an transaction object with event values
+type EventTx struct {
+	*gorm.DB
+	Event NFTEvent
+}
+
+// UpdateEvent updates events by given stage or status
+func (tx *EventTx) UpdateEvent(stage, status string) error {
+	updates := map[string]interface{}{}
+	if stage != "" {
+		updates["stage"] = stage
+	}
+
+	if status != "" {
+		updates["status"] = status
+	}
+
+	if len(updates) == 0 {
+		return fmt.Errorf("nothing for update to a nft event")
+	}
+
+	return tx.DB.Model(&NFTEvent{}).Where("id = ?", tx.Event.ID).Updates(updates).Error
+}
+
+func NewEventTx(DB *gorm.DB, event NFTEvent) *EventTx {
+	return &EventTx{
+		DB:    DB,
+		Event: event,
+	}
+}
+
 type EventStore interface {
 	CreateEvent(event NFTEvent) error
-	UpdateEvent(id string, updates map[string]interface{}) error
-	GetQueueEventByStage(stage int8) (*NFTEvent, error)
-	ProcessTokenUpdatedEvent(ctx context.Context, processor func(event NFTEvent) error) (bool, error)
-	CompleteEvent(id string) error
+	GetEventTransaction(ctx context.Context, filters ...FilterOption) (*EventTx, error)
 }
 
 type PostgresEventStore struct {
@@ -54,6 +85,10 @@ type PostgresEventStore struct {
 }
 
 func NewPostgresEventStore(db *gorm.DB) *PostgresEventStore {
+	if viper.GetBool("debug") {
+		db = db.Debug()
+	}
+
 	return &PostgresEventStore{
 		db: db,
 	}
@@ -65,70 +100,46 @@ func (s *PostgresEventStore) CreateEvent(event NFTEvent) error {
 	return s.db.Save(&event).Error
 }
 
-// UpdateEvent updates attributes for a event.
-func (s *PostgresEventStore) UpdateEvent(id string, updates map[string]interface{}) error {
-	return s.db.Model(&NFTEvent{}).Where("id = ?", id).Where("status = ?", EventStatusProcessing).Updates(updates).Error
+// FilterOption is an abstraction to help filtering events with
+// specific conditions
+type FilterOption struct {
+	Statement  string
+	Argumenets []interface{}
 }
 
-// CompleteEvent marks an event to be done
-func (s *PostgresEventStore) CompleteEvent(id string) error {
-	return s.db.Updates(&NFTEvent{ID: id, Status: EventStatusProcessed}).Error
+func (f FilterOption) Apply(tx *gorm.DB) *gorm.DB {
+	return tx.Where(f.Statement, f.Argumenets...)
 }
 
-// ProcessTokenUpdatedEvent searches and processes a token_updated event
-func (s *PostgresEventStore) ProcessTokenUpdatedEvent(ctx context.Context, processor func(event NFTEvent) error) (bool, error) {
-	var hasEvent bool
-	return hasEvent, s.db.WithContext(ctx).Transaction(func(db *gorm.DB) error {
-		var event NFTEvent
-		if err := db.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).
-			Where("type = ?", EventTypeTokenUpdated).
-			Where("status <> ?", EventStatusProcessed).
-			Order("created_at asc").First(&event).Error; err != nil {
-			if err == gorm.ErrRecordNotFound {
-				return nil
-			}
-			return err
-		}
-
-		hasEvent = true
-		if err := processor(event); err != nil {
-			// FIXME provide a fine-grain EventStatus. For example, EventStatusError
-			log.Error("fail to process event", zap.Error(err))
-		}
-
-		return db.Model(&NFTEvent{}).Where("id = ?", event.ID).Update("status", EventStatusProcessed).Error
-	})
+func Filter(statement string, args ...interface{}) FilterOption {
+	return FilterOption{
+		Statement:  statement,
+		Argumenets: args,
+	}
 }
 
-// GetQueueEventByStage returns all queued events which need to process
-func (s *PostgresEventStore) GetQueueEventByStage(stage int8) (*NFTEvent, error) {
+// GetEventTransaction returns an EventTx
+func (s *PostgresEventStore) GetEventTransaction(ctx context.Context, filters ...FilterOption) (*EventTx, error) {
 	var event NFTEvent
 
-	// TODO: return outdated queued events as well
-	err := s.db.Transaction(func(db *gorm.DB) error {
-		if err := db.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).
-			Where("stage = ?", EventStages[stage]).
-			Where("type <> ?", EventTypeTokenUpdated).
-			Where("status <> ?", EventStatusProcessed).
-			Order("created_at asc").First(&event).Error; err != nil {
-			if err == gorm.ErrRecordNotFound {
-				return nil
-			}
-			return err
-		}
-
-		event.Status = EventStatusProcessing
-		return db.Model(&NFTEvent{}).Where("id = ?", event.ID).Update("status", EventStatusProcessing).Error
-	})
-	if err != nil {
+	tx := s.db.WithContext(ctx).Begin()
+	if err := tx.Error; err != nil {
 		return nil, err
 	}
 
-	if event.ID == "" {
-		return nil, nil
+	q := tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"})
+	for _, filter := range filters {
+		q = filter.Apply(q)
 	}
 
-	return &event, nil
+	// final query
+	q = q.Order("created_at asc").First(&event)
+	if err := q.Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	return NewEventTx(tx, event), nil
 }
 
 // AutoMigrate is a help function that update db when the schema changed.

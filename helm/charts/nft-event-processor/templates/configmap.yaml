@@ -15,8 +15,12 @@ data:
       cache_expiry: 24h
       log_level: 1
 
+    check_interval: {{ .Values.serviceConfig.check_interval }}
+
     log:
       level: debug
+
+    debug: {{ .Values.serviceConfig.debug }}
 
     sentry:
       dsn:

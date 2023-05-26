@@ -78,6 +78,10 @@ func Fatal(msg string, fields ...zap.Field) {
 	mustDefaultLogger().Fatal(msg, fields...)
 }
 
+func DefaultLogger() *zap.Logger {
+	return mustDefaultLogger()
+}
+
 func Sugar() *zap.SugaredLogger {
 	return mustDefaultLogger().Sugar()
 }
