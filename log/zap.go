@@ -55,27 +55,27 @@ func mustDefaultLogger() *zap.Logger {
 }
 
 func Debug(msg string, fields ...zap.Field) {
-	mustDefaultLogger().Debug(msg, fields...)
+	mustDefaultLogger().WithOptions(zap.AddCallerSkip(1)).Debug(msg, fields...)
 }
 
 func Info(msg string, fields ...zap.Field) {
-	mustDefaultLogger().Info(msg, fields...)
+	mustDefaultLogger().WithOptions(zap.AddCallerSkip(1)).Info(msg, fields...)
 }
 
 func Warn(msg string, fields ...zap.Field) {
-	mustDefaultLogger().Warn(msg, fields...)
+	mustDefaultLogger().WithOptions(zap.AddCallerSkip(1)).Warn(msg, fields...)
 }
 
 func Error(msg string, fields ...zap.Field) {
-	mustDefaultLogger().Error(msg, fields...)
+	mustDefaultLogger().WithOptions(zap.AddCallerSkip(1)).Error(msg, fields...)
 }
 
 func Panic(msg string, fields ...zap.Field) {
-	mustDefaultLogger().Panic(msg, fields...)
+	mustDefaultLogger().WithOptions(zap.AddCallerSkip(1)).Panic(msg, fields...)
 }
 
 func Fatal(msg string, fields ...zap.Field) {
-	mustDefaultLogger().Fatal(msg, fields...)
+	mustDefaultLogger().WithOptions(zap.AddCallerSkip(1)).Fatal(msg, fields...)
 }
 
 func DefaultLogger() *zap.Logger {
