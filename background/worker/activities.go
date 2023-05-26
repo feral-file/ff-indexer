@@ -272,7 +272,7 @@ func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID,
 	if err != nil {
 		return nil, err
 	}
-	transferLogs, err := w.wallet.RPCClient().FilterLogs(ctx, goethereum.FilterQuery{
+	transferLogs, err := w.ethClient.FilterLogs(ctx, goethereum.FilterQuery{
 		Addresses: []common.Address{common.HexToAddress(contractAddress)},
 		Topics: [][]common.Hash{
 			{common.HexToHash(indexer.TransferEventSignature)},
@@ -300,7 +300,7 @@ func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID,
 			txType = "mint"
 		}
 
-		txTime, err := indexer.GetETHBlockTime(ctx, w.wallet.RPCClient(), l.BlockHash)
+		txTime, err := indexer.GetETHBlockTime(ctx, w.ethClient, l.BlockHash)
 		if err != nil {
 			return nil, err
 		}

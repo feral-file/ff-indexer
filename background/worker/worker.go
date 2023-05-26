@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"
 
-	ethereum "github.com/bitmark-inc/account-vault-ethereum"
 	indexer "github.com/bitmark-inc/nft-indexer"
 )
 
@@ -24,7 +24,7 @@ type NFTIndexerWorker struct {
 
 	indexerEngine *indexer.IndexEngine
 	indexerStore  indexer.Store
-	wallet        *ethereum.Wallet
+	ethClient     *ethclient.Client
 
 	bitmarkZeroAddress string
 	bitmarkAPIEndpoint string
@@ -40,10 +40,7 @@ func New(environment string,
 	awsSession *session.Session,
 	store indexer.Store) *NFTIndexerWorker {
 
-	w, err := ethereum.NewWalletFromMnemonic(
-		viper.GetString("ethereum.worker_account_mnemonic"),
-		viper.GetString("network.ethereum"),
-		viper.GetString("ethereum.rpc_url"))
+	wsClient, err := ethclient.Dial(viper.GetString("ethereum.rpc_url"))
 	if err != nil {
 		panic(err)
 	}
@@ -61,7 +58,7 @@ func New(environment string,
 		http: &http.Client{
 			Timeout: 15 * time.Second,
 		},
-		wallet:     w,
+		ethClient:  wsClient,
 		awsSession: awsSession,
 
 		ipfsCacheBucketName: viper.GetString("cache.bucket_name"),
