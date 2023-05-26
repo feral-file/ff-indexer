@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/viper"
 	"go.uber.org/cadence/activity"
@@ -30,7 +31,6 @@ func main() {
 	config.LoadConfig("NFT_INDEXER")
 
 	hostPort := viper.GetString("cadence.host_port")
-	logLevel := viper.GetInt("cadence.log_level")
 
 	environment := viper.GetString("environment")
 
@@ -57,6 +57,11 @@ func main() {
 		log.Panic("fail to initiate indexer store", zap.Error(err))
 	}
 
+	ethClient, err := ethclient.Dial(viper.GetString("ethereum.rpc_url"))
+	if err != nil {
+		log.Panic("fail to initiate eth client: %s", zap.Error(err))
+	}
+
 	indexerEngine := indexer.New(
 		environment,
 		viper.GetStringSlice("ipfs.preferred_gateways"),
@@ -65,6 +70,7 @@ func main() {
 		tzkt.New(viper.GetString("network.tezos")),
 		fxhash.New(viper.GetString("fxhash.api_endpoint")),
 		objkt.New(viper.GetString("objkt.api_endpoint")),
+		ethClient,
 	)
 
 	awsSession := session.Must(session.NewSession(&aws.Config{
@@ -74,22 +80,23 @@ func main() {
 	worker := indexerWorker.New(environment, indexerEngine, awsSession, indexerStore)
 
 	// workflows
-	workflow.Register(worker.UpdateAccountTokensWorkflow)
+	workflow.Register(worker.PendingTxFollowUpWorkflow)
 	workflow.Register(worker.UpdateSuggestedMIMETypeWorkflow)
 	workflow.Register(worker.DetectAssetChangeWorkflow)
 
 	// activities
-	activity.Register(worker.UpdateAccountTokens)
+	activity.Register(worker.GetTxTimestamp)
+	activity.Register(worker.GetPendingAccountTokens)
+	activity.Register(worker.UpdatePendingTxsToAccountToken)
 	activity.Register(worker.CalculateMIMETypeFromTokenFeedback)
 	activity.Register(worker.UpdatePresignedThumbnailAssets)
 
 	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)
-	workerLogger := cadence.BuildCadenceLogger(logLevel)
 
 	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
 	cadenceClient.AddService(indexerWorker.ClientName)
 
-	if err := indexerWorker.StartUpdateAccountTokensWorkflow(ctx, cadenceClient, 0); err != nil {
+	if err := indexerWorker.StartPendingTxFollowUpWorkflow(ctx, cadenceClient, 0); err != nil {
 		panic(err)
 	}
 
@@ -101,5 +108,5 @@ func main() {
 		panic(err)
 	}
 
-	cadence.StartWorker(workerLogger, workerServiceClient, viper.GetString("cadence.domain"), indexerWorker.AccountTokenTaskListName)
+	cadence.StartWorker(log.DefaultLogger(), workerServiceClient, viper.GetString("cadence.domain"), indexerWorker.AccountTokenTaskListName)
 }

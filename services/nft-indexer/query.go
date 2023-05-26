@@ -357,46 +357,6 @@ func (s *NFTIndexerServer) GetIdentities(c *gin.Context) {
 	c.JSON(200, ids)
 }
 
-func (s *NFTIndexerServer) SetTokenPending(c *gin.Context) {
-	traceutils.SetHandlerTag(c, "TokenPending")
-
-	var reqParams indexer.PendingTxUpdate
-
-	if err := c.BindQuery(&reqParams); err != nil {
-		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
-		return
-	}
-
-	if err := c.Bind(&reqParams); err != nil {
-		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
-		return
-	}
-
-	if reqParams.PendingTx == "" {
-		abortWithError(c, http.StatusBadRequest, "invalid parameter", fmt.Errorf("pendingTx is required"))
-		return
-	}
-
-	if len(strings.Split(reqParams.IndexID, "-")) != 3 {
-		abortWithError(c, http.StatusBadRequest, "invalid parameter", fmt.Errorf("indexID structure is not correct"))
-		return
-	}
-
-	if reqParams.Blockchain == indexer.EthereumBlockchain {
-		reqParams.IndexID = fmt.Sprintf("%s-%s-%s", indexer.BlockchainAlias[reqParams.Blockchain], reqParams.ContractAddress, reqParams.ID)
-	}
-
-	if err := s.indexerStore.AddPendingTxToAccountToken(c, string(reqParams.OwnerAccount), reqParams.IndexID, reqParams.PendingTx, reqParams.Blockchain, reqParams.ID); err != nil {
-		log.Warn("fail to index identity to indexer store", zap.Error(err))
-		return
-	}
-	log.Debug("a pending account token is added", zap.String("pendingTx", reqParams.PendingTx))
-
-	c.JSON(http.StatusOK, gin.H{
-		"ok": 1,
-	})
-}
-
 func (s *NFTIndexerServer) verifyAddressOwner(blockchain, message, signature, address, publicKey string) (bool, error) {
 	switch blockchain {
 	case indexer.EthereumBlockchain:
@@ -406,63 +366,6 @@ func (s *NFTIndexerServer) verifyAddressOwner(blockchain, message, signature, ad
 	default:
 		return false, fmt.Errorf("unsupported blockchain")
 	}
-}
-
-func (s *NFTIndexerServer) SetTokenPendingV1(c *gin.Context) {
-	traceutils.SetHandlerTag(c, "TokenPending")
-
-	var reqParams PendingTxParamsV1
-
-	if err := c.BindQuery(&reqParams); err != nil {
-		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
-		return
-	}
-
-	if err := c.Bind(&reqParams); err != nil {
-		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
-		return
-	}
-
-	if reqParams.PendingTx == "" {
-		abortWithError(c, http.StatusBadRequest, "invalid parameter", fmt.Errorf("pendingTx is required"))
-		return
-	}
-
-	createdAt, err := indexer.EpochStringToTime(reqParams.Timestamp)
-	if err != nil {
-		abortWithError(c, http.StatusBadRequest, "invalid parameter", err)
-		return
-	}
-
-	now := time.Now()
-	if !indexer.IsTimeInRange(createdAt, now, 5) {
-		abortWithError(c, http.StatusBadRequest, "invalid parameter", fmt.Errorf("request time too skewed"))
-		return
-	}
-
-	isValidAddress, err := s.verifyAddressOwner(reqParams.Blockchain, reqParams.Timestamp, reqParams.Signature, reqParams.OwnerAccount, reqParams.PublicKey)
-
-	if err != nil {
-		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
-		return
-	}
-
-	if !isValidAddress {
-		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("invalid signature for ownerAddress"))
-		return
-	}
-
-	indexID := indexer.TokenIndexID(reqParams.Blockchain, reqParams.ContractAddress, reqParams.ID)
-
-	if err := s.indexerStore.AddPendingTxToAccountToken(c, reqParams.OwnerAccount, indexID, reqParams.PendingTx, reqParams.Blockchain, reqParams.ID); err != nil {
-		log.Warn("error while adding pending accountToken", zap.Error(err))
-		return
-	}
-	log.Debug("a pending account token is added", zap.String("pendingTx", reqParams.PendingTx))
-
-	c.JSON(http.StatusOK, gin.H{
-		"ok": 1,
-	})
 }
 
 func (s *NFTIndexerServer) GetAccountNFTs(c *gin.Context) {

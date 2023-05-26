@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"
@@ -228,6 +229,30 @@ func (e *IndexEngine) IndexETHTokenOwners(contract, tokenID string) ([]OwnerBala
 	}
 
 	return ownerBalances, nil
+}
+
+// GetEthereumTxTimestamp returns the timestamp of an transaction if it exists
+func (e *IndexEngine) GetEthereumTxTimestamp(ctx context.Context, txHashString string) (time.Time, error) {
+	txHash := common.HexToHash(txHashString)
+	receipt, err := e.ethereum.TransactionReceipt(ctx, txHash)
+	if err != nil {
+		if err == ethereum.NotFound {
+			return time.Time{}, ErrTXNotFound
+		}
+		return time.Time{}, err
+	}
+
+	if receipt.Status == 0 {
+		return time.Time{}, fmt.Errorf("the transaction is not success")
+	} else if receipt.Status == 1 {
+		t, err := GetETHBlockTime(ctx, e.ethereum, receipt.BlockHash)
+		if err != nil {
+			return time.Time{}, err
+		}
+		return t, nil
+	}
+
+	return time.Time{}, fmt.Errorf("unexpected tx status for ethereum")
 }
 
 // GetETHTransactionDetailsByPendingTx gets transaction details by a specific pendingTx
