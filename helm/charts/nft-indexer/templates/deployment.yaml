@@ -100,6 +100,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-indexer.fullname" . }}
                   key: server_secret_symmetric_key
+            - name: NFT_INDEXER_ETHEREUM_RPC_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: ethereum_rpc_url
             - name: NFT_INDEXER_ENS_RPC_URL
               valueFrom:
                 secretKeyRef:
