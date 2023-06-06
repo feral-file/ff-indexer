@@ -14,6 +14,7 @@ type EventType string
 
 const (
 	EventTypeMint         EventType = "mint"
+	EventTypeBurned       EventType = "burned"
 	EventTypeTransfer     EventType = "transfer"
 	EventTypeTokenUpdated EventType = "token_updated"
 )
