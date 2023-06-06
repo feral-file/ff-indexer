@@ -20,7 +20,7 @@ serviceConfig:
   eventProcessorURI: nft-event-processor.autonomy.svc.cluster.local:8765
   contractAddresses: []
   postcardAddresses: []
-  contractBoostUrl: "https://api.ghostnet.tzkt.io/"
+  contractBoostUrl: "https://api.tzkt.io/"
 
 imagePullSecrets: []
 nameOverride: ""
