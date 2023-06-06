@@ -86,7 +86,7 @@ func (e *EventProcessor) updateLatestOwner(ctx context.Context, event NFTEvent) 
 func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 	e.StartWorker(ctx,
 		1, 2,
-		[]EventType{EventTypeTransfer, EventTypeMint},
+		[]EventType{EventTypeTransfer, EventTypeMint, EventTypeBurned},
 		e.updateLatestOwner,
 	)
 }
@@ -171,6 +171,15 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 	)
 }
 
+// UpdateOwnerAndProvenanceForBurnedToken is a variant stage 2 worker. It ignores sending notification
+func (e *EventProcessor) UpdateOwnerAndProvenanceForBurnedToken(ctx context.Context) {
+	e.StartWorker(ctx,
+		2, 4,
+		[]EventType{EventTypeBurned},
+		e.updateOwnerAndProvenance,
+	)
+}
+
 // notifyChangeTokenOwner send notifications to related account ids.
 func (e *EventProcessor) notifyChangeTokenOwner(_ context.Context, event NFTEvent) error {
 	blockchain := event.Blockchain
@@ -221,7 +230,7 @@ func (e *EventProcessor) sendEventToFeedServer(ctx context.Context, event NFTEve
 func (e *EventProcessor) SendEventToFeedServer(ctx context.Context) {
 	e.StartWorker(ctx,
 		4, 0,
-		[]EventType{EventTypeTransfer, EventTypeMint},
+		[]EventType{EventTypeTransfer, EventTypeMint, EventTypeBurned},
 		e.sendEventToFeedServer,
 	)
 }
