@@ -13,6 +13,61 @@ service Indexer {
   rpc GetDetailedToken(IndexID) returns (DetailedToken);
   rpc GetTotalBalanceOfOwnerAccounts(Addresses) returns (TotalBalance);
   rpc GetOwnerAccountsByIndexIDs(IndexIDs) returns (Addresses);
+
+  rpc GetDetailedAccountTokensByOwners(GetDetailedAccountTokensByOwnersRequest) returns (GetDetailedAccountTokensByOwnersResponse);
+  rpc GetAccountTokensByOwners(GetAccountTokensByOwnersRequest) returns (AccountTokens);
+}
+
+message AccountTokens {
+  repeated AccountToken AccountTokens = 1;
+}
+
+message GetDetailedAccountTokensByOwnersResponse {
+  repeated DetailedTokenV2 DetailedTokenV2 = 1;
+}
+
+message DetailedTokenV2 {
+  Token Token = 1;
+  bool IPFSPinned = 2;
+  AssetV2 Asset = 3;
+}
+
+message AssetV2 {
+  string IndexID = 1;
+  string ThumbnailID = 2;
+  string LastRefreshedTime = 3;
+  AssetAttributes Attributes = 4;
+  AssetMetadata Metadata = 5;
+}
+
+message AssetMetadata {
+  VersionedProjectMetadata Project = 1;
+}
+
+message GetAccountTokensByOwnersRequest {
+  repeated string Owners = 1;
+  repeated string IndexIDs = 2;
+  int64 Offset = 3;
+  int64 Size = 4;
+  string SortBy = 5;
+}
+
+message Owners {
+  repeated string Owners = 1;
+}
+
+message GetDetailedAccountTokensByOwnersRequest{
+  repeated string Owners = 1;
+  FilterParameter FilterParameter = 2;
+  string LastUpdatedAt = 3;
+  string SortBy = 4;
+  int64 Offset = 5;
+  int64 Size = 6;
+}
+
+message FilterParameter {
+  string Source = 1;
+  repeated string IDs = 2;
 }
 
 message Addresses {

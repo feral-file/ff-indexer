@@ -191,13 +191,13 @@ func (m *Mapper) MapIndexerProvenancesToGRPCProvenances(provenance []indexer.Pro
 func ConvertTimeStringsToTimes(timeStrings []string) ([]time.Time, error) {
 	times := make([]time.Time, len(timeStrings))
 
-	for _, k := range timeStrings {
+	for i, k := range timeStrings {
 		t, err := ParseTime(k)
 		if err != nil {
 			return nil, err
 		}
 
-		times = append(times, t)
+		times[i] = t
 	}
 
 	return times, nil
@@ -298,8 +298,7 @@ func (m *Mapper) MapIndexerProjectMetadataToGRPCProjectMetadata(projectMetadata 
 		AssetData:           projectMetadata.AssetData,
 		AssetURL:            projectMetadata.AssetURL,
 
-		Attributes: attributes,
-		// convert map[string]interface{} to string to transfer data via gRPC
+		Attributes:       attributes,
 		ArtworkMetadata:  m.MapIndexerArtworkMetadataToGRPCArtworkMetadata(projectMetadata.ArtworkMetadata),
 		LastUpdatedAt:    projectMetadata.LastUpdatedAt.Format(time.RFC3339Nano),
 		InitialSaleModel: projectMetadata.InitialSaleModel,
@@ -452,4 +451,88 @@ func (m *Mapper) MapGrpcArtworkMetadataToIndexerArtworkMetadata(artworkMetadata 
 	}
 
 	return b
+}
+
+// MapIndexerDetailedTokensV2ToGRPCDetailedTokens maps indexer detailed account tokens v2 to grpc detailed account tokens v2
+func (m *Mapper) MapIndexerDetailedTokensV2ToGRPCDetailedTokens(accountTokens []indexer.DetailedTokenV2) []*grpcIndexer.DetailedTokenV2 {
+	GRPCAccountTokens := make([]*grpcIndexer.DetailedTokenV2, len(accountTokens))
+
+	for i, v := range accountTokens {
+		GRPCAccountTokens[i] = &grpcIndexer.DetailedTokenV2{
+			Token:      m.MapIndexerTokenToGrpcToken(&v.Token),
+			IPFSPinned: v.IPFSPinned,
+			Asset:      m.MapIndexerAssetV2ToGRPCAssetV2(&v.Asset),
+		}
+	}
+
+	return GRPCAccountTokens
+}
+
+// MapIndexerAssetV2ToGRPCAssetV2 maps indexer asset v2 to grpc asset v2
+func (m *Mapper) MapIndexerAssetV2ToGRPCAssetV2(asset *indexer.AssetV2) *grpcIndexer.AssetV2 {
+	return &grpcIndexer.AssetV2{
+		IndexID:           asset.IndexID,
+		ThumbnailID:       asset.ThumbnailID,
+		LastRefreshedTime: asset.LastRefreshedTime.Format(time.RFC3339Nano),
+		Attributes:        m.MapIndexerAttributesToGRPCAttributes(asset.Attributes),
+		Metadata:          m.MapIndexerAssetMetadataToGRPCAssetMetadata(&asset.Metadata),
+	}
+}
+
+// MapIndexerAssetMetadataToGRPCAssetMetadata maps indexer asset metadata to grpc asset metadata
+func (m *Mapper) MapIndexerAssetMetadataToGRPCAssetMetadata(metadata *indexer.AssetMetadata) *grpcIndexer.AssetMetadata {
+	origin := m.MapIndexerProjectMetadataToGRPCProjectMetadata(&metadata.Project.Origin)
+	latest := m.MapIndexerProjectMetadataToGRPCProjectMetadata(&metadata.Project.Latest)
+
+	return &grpcIndexer.AssetMetadata{
+		Project: &grpcIndexer.VersionedProjectMetadata{
+			Origin: origin,
+			Latest: latest,
+		},
+	}
+}
+
+// MapGrpcDetailedAccountTokensToIndexerDetailedAccountTokens maps grpc detailed account tokens to indexer detailed account tokens
+func (m *Mapper) MapGrpcDetailedAccountTokensToIndexerDetailedAccountTokens(accountTokens []*grpcIndexer.DetailedTokenV2) []indexer.DetailedTokenV2 {
+	indexerAccountTokens := make([]indexer.DetailedTokenV2, len(accountTokens))
+
+	for i, v := range accountTokens {
+		indexerAccountTokens[i] = indexer.DetailedTokenV2{
+			Token:      *m.MapGrpcTokenToIndexerToken(v.Token),
+			IPFSPinned: v.IPFSPinned,
+			Asset:      *m.MapGrpcAssetV2ToIndexerAssetV2(v.Asset),
+		}
+	}
+
+	return indexerAccountTokens
+}
+
+// MapGrpcAssetV2ToIndexerAssetV2 maps grpc asset v2 to indexer asset v2
+func (m *Mapper) MapGrpcAssetV2ToIndexerAssetV2(asset *grpcIndexer.AssetV2) *indexer.AssetV2 {
+	lastRefreshedTime, err := time.Parse(time.RFC3339Nano, asset.LastRefreshedTime)
+	if err != nil {
+		return nil
+	}
+
+	origin, err := m.MapGrpcProjectMetadataToIndexerProjectMetadata(asset.Metadata.Project.Origin)
+	if err != nil {
+		return nil
+	}
+	latest, err := m.MapGrpcProjectMetadataToIndexerProjectMetadata(asset.Metadata.Project.Latest)
+	if err != nil {
+		return nil
+	}
+
+	return &indexer.AssetV2{
+		IndexID:           asset.IndexID,
+		ThumbnailID:       asset.ThumbnailID,
+		LastRefreshedTime: lastRefreshedTime,
+		Attributes:        m.MapGrpcAttributesToIndexerAttributes(asset.Attributes),
+		Metadata: indexer.AssetMetadata{
+			Project: indexer.VersionedProjectMetadata{
+				Origin: *origin,
+				Latest: *latest,
+			},
+		},
+	}
 }

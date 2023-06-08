@@ -24,7 +24,7 @@ func TestGetTokensByIndexID(t *testing.T) {
 	ctx := context.Background()
 	config.LoadConfig("NFT_INDEXER")
 
-	indexerStore, err := NewMongodbIndexerStore(ctx, viper.GetString("indexer_store.db_uri"), viper.GetString("indexer_store.db_name"))
+	indexerStore, err := NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
 	if err != nil {
 		panic(err)
 	}
@@ -40,14 +40,12 @@ func TestGetAccountTokensByOwners(t *testing.T) {
 	ctx := context.Background()
 	config.LoadConfig("NFT_INDEXER")
 
-	indexerStore, err := NewMongodbIndexerStore(ctx, viper.GetString("indexer_store.db_uri"), viper.GetString("indexer_store.db_name"))
+	indexerStore, err := NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
 	if err != nil {
 		panic(err)
 	}
 
-	accountTokens, err := indexerStore.GetAccountTokensByOwners(ctx, []string{"tz1LPJ34B1Z8XsxtgoCv5NRBTHTXoeG49A9h"}, FilterParameter{
-		IDs: []string{"tez-KT1DPFXN2NeFjg1aQGNkVXYS1FAy4BymcbZz-1685693490216"},
-	})
+	accountTokens, err := indexerStore.GetAccountTokensByOwners(ctx, []string{"tz1LPJ34B1Z8XsxtgoCv5NRBTHTXoeG49A9h"}, []string{"tez-KT1DPFXN2NeFjg1aQGNkVXYS1FAy4BymcbZz-1685693490216"}, 0, 1, "")
 
 	assert.Nil(t, err)
 	fmt.Println(accountTokens)
@@ -58,7 +56,7 @@ func TestGetDetailedAccountTokensByOwners(t *testing.T) {
 	ctx := context.Background()
 	config.LoadConfig("NFT_INDEXER")
 
-	indexerStore, err := NewMongodbIndexerStore(ctx, viper.GetString("indexer_store.db_uri"), viper.GetString("indexer_store.db_name"))
+	indexerStore, err := NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
 	if err != nil {
 		panic(err)
 	}

@@ -43,6 +43,22 @@ func NewIndexerGRPCServer(
 	}, nil
 }
 
+// Run starts the IndexerServer
+func (i *IndexerServer) Run(context.Context) error {
+	listener, err := net.Listen(i.network, fmt.Sprintf("0.0.0.0:%d", i.port))
+	if err != nil {
+		return err
+	}
+
+	pb.RegisterIndexerServer(i.grpcServer, i)
+	err = i.grpcServer.Serve(listener)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GetTokenByIndexID returns a token by index ID
 func (i *IndexerServer) GetTokenByIndexID(ctx context.Context, indexID *pb.IndexID) (*pb.Token, error) {
 	token, err := i.indexerStore.GetTokensByIndexID(ctx, indexID.IndexID)
@@ -156,18 +172,48 @@ func (i *IndexerServer) GetOwnerAccountsByIndexIDs(ctx context.Context, indexIDs
 	return &pb.Addresses{Addresses: owners}, nil
 }
 
-// Run starts the IndexerServer
-func (i *IndexerServer) Run(context.Context) error {
-	listener, err := net.Listen(i.network, fmt.Sprintf("0.0.0.0:%d", i.port))
-	if err != nil {
-		return err
+// GetDetailedAccountTokensByOwners returns the detailed account tokens by owners
+func (i *IndexerServer) GetDetailedAccountTokensByOwners(ctx context.Context, request *pb.GetDetailedAccountTokensByOwnersRequest) (*pb.GetDetailedAccountTokensByOwnersResponse, error) {
+	filterParameter := indexer.FilterParameter{
+		Source: request.FilterParameter.Source,
+		IDs:    request.FilterParameter.IDs,
 	}
 
-	pb.RegisterIndexerServer(i.grpcServer, i)
-	err = i.grpcServer.Serve(listener)
+	lastUpdatedAt, err := indexerGRPCSDK.ParseTime(request.LastUpdatedAt)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	detailedTokens, err := i.indexerStore.GetDetailedAccountTokensByOwners(
+		ctx,
+		request.Owners,
+		filterParameter,
+		lastUpdatedAt,
+		request.SortBy,
+		request.Offset,
+		request.Size)
+	if err != nil {
+		return nil, err
+	}
+
+	detailedTokenV2 := i.mapper.MapIndexerDetailedTokensV2ToGRPCDetailedTokens(detailedTokens)
+
+	return &pb.GetDetailedAccountTokensByOwnersResponse{
+		DetailedTokenV2: detailedTokenV2,
+	}, nil
+}
+
+// GetAccountTokensByOwners returns the account tokens by owners
+func (i *IndexerServer) GetAccountTokensByOwners(ctx context.Context, request *pb.GetAccountTokensByOwnersRequest) (*pb.AccountTokens, error) {
+	accountTokes, err := i.indexerStore.GetAccountTokensByOwners(ctx, request.Owners, request.IndexIDs, request.Offset, request.Size, request.SortBy)
+
+	if err != nil {
+		return nil, err
+	}
+
+	pbAccountTokens := i.mapper.MapIndexerAccountTokensToGRPCAccountTokens(accountTokes)
+
+	return &pb.AccountTokens{
+		AccountTokens: pbAccountTokens,
+	}, nil
 }
