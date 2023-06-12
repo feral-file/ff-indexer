@@ -110,8 +110,26 @@ func (i *IndexerGRPCClient) GetTotalBalanceOfOwnerAccounts(ctx context.Context, 
 	return totalBalance.Count, nil
 }
 
+// GetOwnerAccountsByIndexIDs returns owner accounts by indexIDs
 func (i *IndexerGRPCClient) GetOwnerAccountsByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error) {
 	addresses, err := i.client.GetOwnerAccountsByIndexIDs(ctx, &pb.IndexIDs{IndexIDs: indexIDs})
+	if err != nil {
+		return nil, err
+	}
+
+	return addresses.Addresses, nil
+}
+
+// GetOwnersByBlockchainsAndContracts returns owners by blockchains and contracts
+func (i *IndexerGRPCClient) GetOwnersByBlockchainsAndContracts(ctx context.Context, blockchainContracts map[string][]string) ([]string, error) {
+	var GRPCBlockchainContracts pb.GetOwnersByBlockchainsAndContractsRequest
+	GRPCBlockchainContracts.BlockchainContracts = make(map[string]*pb.Addresses)
+
+	for k, v := range blockchainContracts {
+		GRPCBlockchainContracts.BlockchainContracts[k] = &pb.Addresses{Addresses: v}
+	}
+
+	addresses, err := i.client.GetOwnersByBlockchainsAndContracts(ctx, &GRPCBlockchainContracts)
 	if err != nil {
 		return nil, err
 	}

@@ -90,6 +90,7 @@ type Store interface {
 	GetNullProvenanceTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
 
 	GetOwnerAccountsByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
+	GetOwnersByBlockchainAndContract(ctx context.Context, blockchain, contract string) ([]string, error)
 }
 
 type FilterParameter struct {
@@ -2023,6 +2024,47 @@ func (s *MongodbIndexerStore) GetOwnerAccountsByIndexIDs(ctx context.Context, in
 		}
 
 		owners = append(owners, accountToken.OwnerAccount)
+	}
+
+	return owners, nil
+}
+
+// GetOwnersByBlockchainAndContract returns owners by blockchain and contract
+func (s *MongodbIndexerStore) GetOwnersByBlockchainAndContract(ctx context.Context, blockchainContracts map[string][]string) ([]string, error) {
+	var or []bson.M
+
+	for k, v := range blockchainContracts {
+		or = append(or, bson.M{
+			"blockchain":      bson.M{"$eq": k},
+			"contractAddress": bson.M{"$in": v},
+		})
+	}
+
+	filter := bson.M{"$or": or}
+
+	cursor, err := s.accountTokenCollection.Find(
+		ctx,
+		filter,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var owners []string
+	temp := make(map[string]interface{})
+
+	for cursor.Next(ctx) {
+		var accountToken AccountToken
+
+		if err := cursor.Decode(&accountToken); err != nil {
+			return nil, err
+		}
+
+		_, ok := temp[accountToken.OwnerAccount]
+		if !ok {
+			temp[accountToken.OwnerAccount] = nil
+			owners = append(owners, accountToken.OwnerAccount)
+		}
 	}
 
 	return owners, nil
