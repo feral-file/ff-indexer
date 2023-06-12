@@ -171,3 +171,19 @@ func (i *IndexerServer) Run(context.Context) error {
 
 	return nil
 }
+
+// GetOwnersByBlockchainsAndContracts returns owners by blockchains and contracts
+func (i *IndexerServer) GetOwnersByBlockchainsAndContracts(ctx context.Context, request *pb.GetOwnersByBlockchainsAndContractsRequest) (*pb.Addresses, error) {
+	blockchainContract := make(map[string][]string)
+
+	for k, v := range request.BlockchainContracts {
+		blockchainContract[k] = v.Addresses
+	}
+
+	owners, err := i.indexerStore.GetOwnersByBlockchainAndContract(ctx, blockchainContract)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.Addresses{Addresses: owners}, nil
+}
