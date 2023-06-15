@@ -30,7 +30,7 @@ func TestVerifyETHSignature(t *testing.T) {
 	timestamp := "1635846129"
 	signature := "0x3929aafc8d6149672418df04f8e44d902f54c9e534c4b5a5a0fd3dd9a521f20c72f269f9ed00350490132dd1bac1e40b3c4f039c18fd25ab36b07db2aa48b6ff1b"
 	address := "0x1C67a342d2aCc6b6Eb25166af4Bc27c5e8C419AE"
-	result, err := VerifyETHPersonalSignature(timestamp, signature, address)
+	result, err := VerifyETHSignature(timestamp, signature, address)
 	assert.NoError(t, err)
 	assert.True(t, result)
 }
