@@ -90,7 +90,7 @@ type Store interface {
 	GetNullProvenanceTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
 
 	GetOwnerAccountsByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
-	GetOwnersByBlockchainAndContract(ctx context.Context, blockchain, contract string) ([]string, error)
+	GetOwnersByBlockchainContracts(context.Context, map[string][]string) ([]string, error)
 }
 
 type FilterParameter struct {
@@ -2029,8 +2029,8 @@ func (s *MongodbIndexerStore) GetOwnerAccountsByIndexIDs(ctx context.Context, in
 	return owners, nil
 }
 
-// GetOwnersByBlockchainAndContract returns owners by blockchain and contract
-func (s *MongodbIndexerStore) GetOwnersByBlockchainAndContract(ctx context.Context, blockchainContracts map[string][]string) ([]string, error) {
+// GetOwnersByBlockchainContracts returns owners by blockchain and contract
+func (s *MongodbIndexerStore) GetOwnersByBlockchainContracts(ctx context.Context, blockchainContracts map[string][]string) ([]string, error) {
 	var or []bson.M
 
 	for k, v := range blockchainContracts {

@@ -120,16 +120,16 @@ func (i *IndexerGRPCClient) GetOwnerAccountsByIndexIDs(ctx context.Context, inde
 	return addresses.Addresses, nil
 }
 
-// GetOwnersByBlockchainsAndContracts returns owners by blockchains and contracts
-func (i *IndexerGRPCClient) GetOwnersByBlockchainsAndContracts(ctx context.Context, blockchainContracts map[string][]string) ([]string, error) {
-	var GRPCBlockchainContracts pb.GetOwnersByBlockchainsAndContractsRequest
+// GetOwnersByBlockchainContracts returns owners by blockchains and contracts
+func (i *IndexerGRPCClient) GetOwnersByBlockchainContracts(ctx context.Context, blockchainContracts map[string][]string) ([]string, error) {
+	var GRPCBlockchainContracts pb.GetOwnersByBlockchainContractsRequest
 	GRPCBlockchainContracts.BlockchainContracts = make(map[string]*pb.Addresses)
 
 	for k, v := range blockchainContracts {
 		GRPCBlockchainContracts.BlockchainContracts[k] = &pb.Addresses{Addresses: v}
 	}
 
-	addresses, err := i.client.GetOwnersByBlockchainsAndContracts(ctx, &GRPCBlockchainContracts)
+	addresses, err := i.client.GetOwnersByBlockchainContracts(ctx, &GRPCBlockchainContracts)
 	if err != nil {
 		return nil, err
 	}

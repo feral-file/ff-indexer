@@ -107,15 +107,15 @@ func TestGetOwnerAccountsByIndexIDs(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestGetOwnersByBlockchainAndContract a test for GetOwnersByBlockchainAndContract
-func TestGetOwnersByBlockchainAndContract(t *testing.T) {
+// TestGetOwnersByBlockchainAndContracts a test for GetOwnersByBlockchainContracts
+func TestGetOwnersByBlockchainAndContracts(t *testing.T) {
 	client, err := NewIndexerClient("localhost:8889")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	owners, err := client.GetOwnersByBlockchainsAndContracts(context.Background(), map[string][]string{
+	owners, err := client.GetOwnersByBlockchainContracts(context.Background(), map[string][]string{
 		"tezos":    {"KT1ESGez4dEuDjjNt4k2HPAK5Nzh7e8X8jyX"},
 		"ethereum": {"0xb43c51447405008AEBf7a35B4D15e1f29b7Ce823"},
 	})
