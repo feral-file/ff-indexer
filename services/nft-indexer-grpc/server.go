@@ -45,7 +45,7 @@ func NewIndexerGRPCServer(
 
 // GetTokenByIndexID returns a token by index ID
 func (i *IndexerServer) GetTokenByIndexID(ctx context.Context, indexID *pb.IndexID) (*pb.Token, error) {
-	token, err := i.indexerStore.GetTokensByIndexID(ctx, indexID.IndexID)
+	token, err := i.indexerStore.GetTokenByIndexID(ctx, indexID.IndexID)
 	if err != nil {
 		return nil, err
 	}
