@@ -360,7 +360,7 @@ func (s *NFTIndexerServer) GetIdentities(c *gin.Context) {
 func (s *NFTIndexerServer) verifyAddressOwner(blockchain, message, signature, address, publicKey string) (bool, error) {
 	switch blockchain {
 	case indexer.EthereumBlockchain:
-		return indexer.VerifyETHPersonalSignature(message, signature, address)
+		return indexer.VerifyETHSignature(message, signature, address)
 	case indexer.TezosBlockchain:
 		return indexer.VerifyTezosSignature(message, signature, address, publicKey)
 	default:
