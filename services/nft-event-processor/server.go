@@ -12,9 +12,9 @@ import (
 	"github.com/bitmark-inc/autonomy-account/storage"
 	notification "github.com/bitmark-inc/autonomy-notification"
 	notificationSdk "github.com/bitmark-inc/autonomy-notification/sdk"
-	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/cadence"
 	"github.com/bitmark-inc/nft-indexer/log"
+	indexerGRPCSDK "github.com/bitmark-inc/nft-indexer/sdk/nft-indexer-grpc"
 )
 
 type EventProcessor struct {
@@ -23,7 +23,7 @@ type EventProcessor struct {
 
 	grpcServer   *GRPCServer
 	eventQueue   *EventQueue
-	indexerStore *indexer.MongodbIndexerStore
+	indexerGRPC  *indexerGRPCSDK.IndexerGRPCClient
 	worker       *cadence.WorkerClient
 	accountStore *storage.AccountInformationStorage
 	notification *notificationSdk.NotificationClient
@@ -36,7 +36,7 @@ func NewEventProcessor(
 	network string,
 	address string,
 	store EventStore,
-	indexerStore *indexer.MongodbIndexerStore,
+	indexerGRPC *indexerGRPCSDK.IndexerGRPCClient,
 	worker *cadence.WorkerClient,
 	accountStore *storage.AccountInformationStorage,
 	notification *notificationSdk.NotificationClient,
@@ -51,17 +51,12 @@ func NewEventProcessor(
 
 		grpcServer:   grpcServer,
 		eventQueue:   queue,
-		indexerStore: indexerStore,
+		indexerGRPC:  indexerGRPC,
 		worker:       worker,
 		accountStore: accountStore,
 		notification: notification,
 		feedServer:   feedServer,
 	}
-}
-
-// UpdateOwner update owner for a specific non-fungible token
-func (e *EventProcessor) UpdateOwner(c context.Context, id, owner string, updatedAt time.Time) error {
-	return e.indexerStore.UpdateOwner(c, id, owner, updatedAt)
 }
 
 // notifyChangeOwner send change_token_owner notification to notification server
