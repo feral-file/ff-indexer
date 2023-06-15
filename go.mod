@@ -29,7 +29,7 @@ require (
 	go.mongodb.org/mongo-driver v1.11.6
 	go.uber.org/cadence v0.19.1
 	go.uber.org/yarpc v1.70.2
-	go.uber.org/zap v1.17.0
+	go.uber.org/zap v1.24.0
 	golang.org/x/crypto v0.1.0
 	google.golang.org/grpc v1.40.1
 	google.golang.org/protobuf v1.28.1
@@ -58,6 +58,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.4 // indirect
 	github.com/aws/smithy-go v1.13.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/bitmark-inc/autonomy-logger v0.0.1 // indirect
 	github.com/bitmark-inc/go-utils v0.0.0-20220509034903-59f3369237d3 // indirect
 	github.com/bitmark-inc/traceutils v0.1.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect

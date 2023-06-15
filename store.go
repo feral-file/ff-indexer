@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 
-	"github.com/bitmark-inc/nft-indexer/log"
+	"github.com/bitmark-inc/autonomy-logger"
 )
 
 const (

@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bitmark-inc/nft-indexer/log"
+	"github.com/bitmark-inc/autonomy-logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"go.uber.org/zap"

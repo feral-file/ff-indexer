@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/bitmark-inc/nft-indexer/log"
+	"github.com/bitmark-inc/autonomy-logger"
 	imageStore "github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/store"
 	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/utils"
 )

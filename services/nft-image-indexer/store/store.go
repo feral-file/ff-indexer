@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bitmark-inc/nft-indexer/log"
+	"github.com/bitmark-inc/autonomy-logger"
 	"github.com/cloudflare/cloudflare-go"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"

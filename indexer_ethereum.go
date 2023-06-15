@@ -12,8 +12,8 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
+	"github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
-	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 type TransactionDetails struct {

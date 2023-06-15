@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/bitmark-inc/nft-indexer/log"
+	"github.com/bitmark-inc/autonomy-logger"
 	"github.com/stretchr/testify/assert"
 )
 

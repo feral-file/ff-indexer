@@ -7,9 +7,9 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
+	"github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/config-loader"
 	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 func main() {

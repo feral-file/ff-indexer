@@ -7,8 +7,8 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/bitmark-inc/autonomy-logger"
 	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/log"
 	grpcIndexer "github.com/bitmark-inc/nft-indexer/services/nft-indexer-grpc/grpc/indexer"
 )
 

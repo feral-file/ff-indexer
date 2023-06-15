@@ -13,12 +13,12 @@ import (
 	"gorm.io/gorm/logger"
 
 	"github.com/bitmark-inc/autonomy-account/storage"
+	"github.com/bitmark-inc/autonomy-logger"
 	notification "github.com/bitmark-inc/autonomy-notification/sdk"
 	"github.com/bitmark-inc/config-loader"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/cadence"
-	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 func main() {

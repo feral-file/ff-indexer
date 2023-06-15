@@ -10,8 +10,8 @@ import (
 	cadenceClient "go.uber.org/cadence/client"
 	"go.uber.org/zap"
 
+	"github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/nft-indexer/cadence"
-	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 func StartIndexTokenWorkflow(c context.Context, client *cadence.WorkerClient, owner, contract, tokenID string, indexProvenance, indexPreview bool) {

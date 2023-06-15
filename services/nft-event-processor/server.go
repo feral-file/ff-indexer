@@ -10,11 +10,11 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/bitmark-inc/autonomy-account/storage"
+	"github.com/bitmark-inc/autonomy-logger"
 	notification "github.com/bitmark-inc/autonomy-notification"
 	notificationSdk "github.com/bitmark-inc/autonomy-notification/sdk"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/cadence"
-	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 type EventProcessor struct {
