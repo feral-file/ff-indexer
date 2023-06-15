@@ -24,7 +24,7 @@ func (e *EventProcessor) updateLatestOwner(ctx context.Context, event NFTEvent) 
 	switch event.Type {
 	case string(EventTypeTransfer):
 		// FIXME: Switch to indexer GRPC
-		token, err := e.indexerStore.GetTokensByIndexID(ctx, indexID)
+		token, err := e.indexerStore.GetTokenByIndexID(ctx, indexID)
 		if err != nil {
 			log.Error("fail to get token by index id", zap.Error(err))
 			return err
@@ -108,7 +108,7 @@ func (e *EventProcessor) updateOwnerAndProvenance(ctx context.Context, event NFT
 	}
 
 	indexID := indexer.TokenIndexID(blockchain, contract, tokenID)
-	token, err := e.indexerStore.GetTokensByIndexID(ctx, indexID)
+	token, err := e.indexerStore.GetTokenByIndexID(ctx, indexID)
 	if err != nil {
 		log.Error("fail to check token by index ID", zap.Error(err))
 		return err
