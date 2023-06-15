@@ -244,7 +244,7 @@ func (s *NFTIndexerServer) IndexHistory(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "IndexHistory")
 
 	var reqParams struct {
-		IndexID string `json:"indexID"`
+		IndexID string `json:"indexID" binding:"required"`
 	}
 
 	if err := c.Bind(&reqParams); err != nil {
