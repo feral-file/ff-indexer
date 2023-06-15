@@ -167,7 +167,7 @@ func (c *Client) makeRequest(method, url string, body io.Reader) (*http.Response
 		return nil, err
 	}
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		// close the body only when we return an error
 		defer resp.Body.Close()
 		if resp.StatusCode == http.StatusTooManyRequests {
@@ -179,7 +179,12 @@ func (c *Client) makeRequest(method, url string, body io.Reader) (*http.Response
 			return nil, err
 		}
 
-		return nil, fmt.Errorf("opensea api error: %s", errResp)
+		return nil, fmt.Errorf(
+			"opensea api error: status: %d (%s)  body: '%s'",
+			resp.StatusCode,
+			http.StatusText(resp.StatusCode),
+			errResp,
+		)
 	}
 
 	return resp, nil
