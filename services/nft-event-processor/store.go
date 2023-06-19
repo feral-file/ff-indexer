@@ -2,10 +2,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/bitmark-inc/nft-indexer/log"
+	"github.com/jackc/pgconn"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -27,7 +31,7 @@ const (
 	EventStatusFailed     EventStatus = "failed"
 )
 
-// NFTEvent is the model for token events
+// NFTEvent is the model for processed token events
 type NFTEvent struct {
 	ID         string      `gorm:"primaryKey;size:255;default:uuid_generate_v4()"`
 	Type       string      `gorm:"index"`
@@ -44,21 +48,48 @@ type NFTEvent struct {
 	UpdatedAt  time.Time   `gorm:"default:now()"`
 }
 
+// NFTEvent is the model for token events
+type NewNFTEvent struct {
+	ID         string    `gorm:"primaryKey;size:255;default:uuid_generate_v4()"`
+	Type       string    `gorm:"index:idx_event,unique"`
+	Blockchain string    `gorm:"index:idx_event,unique"`
+	Contract   string    `gorm:"index:idx_event,unique"`
+	TokenID    string    `gorm:"index:idx_event,unique"`
+	From       string    `gorm:"index:idx_event,unique"`
+	To         string    `gorm:"index:idx_event,unique"`
+	TXID       string    `gorm:"index:idx_event,unique"`
+	TXIndex    uint      `gorm:"index:idx_event,unique"`
+	TXTime     time.Time `gorm:"index:idx_event,unique"`
+	Stage      string    `gorm:"index"`
+	CreatedAt  time.Time `gorm:"default:now()"`
+	UpdatedAt  time.Time `gorm:"default:now()"`
+}
+
+func (e *NewNFTEvent) toProcessedNFTEvent(status EventStatus) NFTEvent {
+	return NFTEvent{
+		Type:       e.Type,
+		Blockchain: e.Blockchain,
+		Contract:   e.Contract,
+		TokenID:    e.TokenID,
+		From:       e.From,
+		To:         e.To,
+		TXID:       e.TXID,
+		TXTime:     e.TXTime,
+		Status:     status,
+	}
+}
+
 // EventTx is an transaction object with event values
 type EventTx struct {
 	*gorm.DB
-	Event NFTEvent
+	Event NewNFTEvent
 }
 
 // UpdateEvent updates events by given stage or status
-func (tx *EventTx) UpdateEvent(stage, status string) error {
+func (tx *EventTx) UpdateEvent(stage string) error {
 	updates := map[string]interface{}{}
 	if stage != "" {
 		updates["stage"] = stage
-	}
-
-	if status != "" {
-		updates["status"] = status
 	}
 
 	if len(updates) == 0 {
@@ -68,7 +99,12 @@ func (tx *EventTx) UpdateEvent(stage, status string) error {
 	return tx.DB.Model(&NFTEvent{}).Where("id = ?", tx.Event.ID).Updates(updates).Error
 }
 
-func NewEventTx(DB *gorm.DB, event NFTEvent) *EventTx {
+// DeleteEvent delete the event by the id
+func (tx *EventTx) DeleteEvent() error {
+	return tx.DB.Where("id = ?", tx.Event.ID).Delete(&NFTEvent{}).Error
+}
+
+func NewEventTx(DB *gorm.DB, event NewNFTEvent) *EventTx {
 	return &EventTx{
 		DB:    DB,
 		Event: event,
@@ -76,8 +112,9 @@ func NewEventTx(DB *gorm.DB, event NFTEvent) *EventTx {
 }
 
 type EventStore interface {
-	CreateEvent(event NFTEvent) error
+	CreateEvent(event NewNFTEvent) error
 	GetEventTransaction(ctx context.Context, filters ...FilterOption) (*EventTx, error)
+	SaveProcessedEvent(event NFTEvent) error
 }
 
 type PostgresEventStore struct {
@@ -94,10 +131,19 @@ func NewPostgresEventStore(db *gorm.DB) *PostgresEventStore {
 	}
 }
 
-// TODO: Do dedup for duplicated events.
 // CreateEvent add a new event into event store.
-func (s *PostgresEventStore) CreateEvent(event NFTEvent) error {
-	return s.db.Save(&event).Error
+func (s *PostgresEventStore) CreateEvent(event NewNFTEvent) error {
+	err := s.db.Save(&event).Error
+
+	var pgError *pgconn.PgError
+	if err != nil && errors.As(err, &pgError) {
+		if pgError.Code == "23505" { // Unique violation error code
+			log.Warn("duplicated event", zap.Error(err))
+			return nil
+		}
+	}
+
+	return err
 }
 
 // FilterOption is an abstraction to help filtering events with
@@ -120,7 +166,7 @@ func Filter(statement string, args ...interface{}) FilterOption {
 
 // GetEventTransaction returns an EventTx
 func (s *PostgresEventStore) GetEventTransaction(ctx context.Context, filters ...FilterOption) (*EventTx, error) {
-	var event NFTEvent
+	var event NewNFTEvent
 
 	tx := s.db.WithContext(ctx).Begin()
 	if err := tx.Error; err != nil {
@@ -140,6 +186,11 @@ func (s *PostgresEventStore) GetEventTransaction(ctx context.Context, filters ..
 	}
 
 	return NewEventTx(tx, event), nil
+}
+
+// SaveProcessedEvent add a processed event into event store.
+func (s *PostgresEventStore) SaveProcessedEvent(event NFTEvent) error {
+	return s.db.Save(&event).Error
 }
 
 // AutoMigrate is a help function that update db when the schema changed.

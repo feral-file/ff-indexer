@@ -15,10 +15,14 @@ func NewEventQueue(store EventStore) *EventQueue {
 }
 
 // PushEvent adds an event into event store
-func (q *EventQueue) PushEvent(event NFTEvent) error {
+func (q *EventQueue) PushEvent(event NewNFTEvent) error {
 	return q.store.CreateEvent(event)
 }
 
 func (q *EventQueue) GetEventTransaction(ctx context.Context, filters ...FilterOption) (*EventTx, error) {
 	return q.store.GetEventTransaction(ctx, filters...)
+}
+
+func (q *EventQueue) SaveProcessedEvent(event NFTEvent) error {
+	return q.store.SaveProcessedEvent(event)
 }

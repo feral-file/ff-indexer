@@ -5,10 +5,10 @@ go 1.20
 require (
 	blockwatch.cc/tzgo v1.16.6
 	github.com/99designs/gqlgen v0.17.24
-	github.com/aws/aws-sdk-go v1.43.9
+	github.com/aws/aws-sdk-go v1.44.283
 	github.com/bitmark-inc/autonomy-account v0.0.5-1
 	github.com/bitmark-inc/autonomy-notification v0.0.3
-	github.com/bitmark-inc/config-loader v0.0.5
+	github.com/bitmark-inc/config-loader v0.0.7-0.20230616102746-534138527854
 	github.com/bitmark-inc/tzkt-go v0.0.5
 	github.com/chromedp/chromedp v0.9.1
 	github.com/cloudflare/cloudflare-go v0.62.0

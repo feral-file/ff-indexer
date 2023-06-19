@@ -13,7 +13,7 @@ import (
 )
 
 // updateLatestOwner updates the latest owner of an existent token
-func (e *EventProcessor) updateLatestOwner(ctx context.Context, event NFTEvent) error {
+func (e *EventProcessor) updateLatestOwner(ctx context.Context, event NewNFTEvent) error {
 	eventType := event.Type
 	blockchain := event.Blockchain
 	contract := event.Contract
@@ -92,7 +92,7 @@ func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 
 // updateOwnerAndProvenance checks if a token is related to Autonomy. If so, it updates its
 // owner and refresh the provenance
-func (e *EventProcessor) updateOwnerAndProvenance(ctx context.Context, event NFTEvent) error {
+func (e *EventProcessor) updateOwnerAndProvenance(ctx context.Context, event NewNFTEvent) error {
 	from := event.From
 	blockchain := event.Blockchain
 	contract := event.Contract
@@ -171,7 +171,7 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 }
 
 // notifyChangeTokenOwner send notifications to related account ids.
-func (e *EventProcessor) notifyChangeTokenOwner(_ context.Context, event NFTEvent) error {
+func (e *EventProcessor) notifyChangeTokenOwner(_ context.Context, event NewNFTEvent) error {
 	blockchain := event.Blockchain
 	contract := event.Contract
 	tokenID := event.TokenID
@@ -205,7 +205,7 @@ func (e *EventProcessor) NotifyChangeTokenOwner(ctx context.Context) {
 }
 
 // sendEventToFeedServer sends the new processed event to feed server
-func (e *EventProcessor) sendEventToFeedServer(ctx context.Context, event NFTEvent) error {
+func (e *EventProcessor) sendEventToFeedServer(ctx context.Context, event NewNFTEvent) error {
 	blockchain := event.Blockchain
 	contract := event.Contract
 	tokenID := event.TokenID

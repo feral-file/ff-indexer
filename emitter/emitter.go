@@ -21,7 +21,7 @@ func New(grpcClient processor.EventProcessorClient) EventsEmitter {
 }
 
 // PushEvent submits events to event processor
-func (e *EventsEmitter) PushEvent(ctx context.Context, eventType, fromAddress, toAddress, contractAddress, blockchain, tokenID, txID string, txTime time.Time) error {
+func (e *EventsEmitter) PushEvent(ctx context.Context, eventType, fromAddress, toAddress, contractAddress, blockchain, tokenID, txID string, txIndex uint, txTime time.Time) error {
 	eventInput := processor.EventInput{
 		Type:       eventType,
 		Blockchain: blockchain,
@@ -30,6 +30,7 @@ func (e *EventsEmitter) PushEvent(ctx context.Context, eventType, fromAddress, t
 		To:         toAddress,
 		TokenID:    tokenID,
 		TXID:       txID,
+		TXIndex:    uint64(txIndex),
 		TXTime:     timestamppb.New(txTime),
 	}
 

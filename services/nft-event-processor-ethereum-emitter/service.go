@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"math/big"
+	"strconv"
 	"time"
 
 	goethereum "github.com/ethereum/go-ethereum"
@@ -10,28 +12,38 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"go.uber.org/zap"
 
+	"github.com/bitmark-inc/config-loader/external/aws/ssm"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/emitter"
 	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 )
 
+const (
+	LastBlockKeyName = "ethereum-last-stop-block"
+)
+
 type EthereumEventsEmitter struct {
 	grpcClient processor.EventProcessorClient
 	emitter.EventsEmitter
-	wsClient *ethclient.Client
+	wsClient       *ethclient.Client
+	parameterStore *ssm.ParameterStore
 
 	ethLogChan      chan types.Log
 	ethSubscription *goethereum.Subscription
 }
 
-func NewEthereumEventsEmitter(wsClient *ethclient.Client,
-	grpcClient processor.EventProcessorClient) *EthereumEventsEmitter {
+func NewEthereumEventsEmitter(
+	wsClient *ethclient.Client,
+	parameterStore *ssm.ParameterStore,
+	grpcClient processor.EventProcessorClient,
+) *EthereumEventsEmitter {
 	return &EthereumEventsEmitter{
-		grpcClient:    grpcClient,
-		EventsEmitter: emitter.New(grpcClient),
-		wsClient:      wsClient,
-		ethLogChan:    make(chan types.Log, 100),
+		grpcClient:     grpcClient,
+		parameterStore: parameterStore,
+		EventsEmitter:  emitter.New(grpcClient),
+		wsClient:       wsClient,
+		ethLogChan:     make(chan types.Log, 100),
 	}
 }
 
@@ -55,7 +67,51 @@ func (e *EthereumEventsEmitter) Watch(ctx context.Context) {
 	}
 }
 
+func (e *EthereumEventsEmitter) FetchLogsFromLastStopBlock(ctx context.Context) {
+	lastStopBlock, err := e.parameterStore.GetString(ctx, LastBlockKeyName)
+	if err != nil {
+		log.Error("failed to read last stop bloc from parameter store: ", zap.Error(err), log.SourceETHClient)
+		return
+	}
+
+	fromBlock, err := strconv.ParseUint(lastStopBlock, 10, 64)
+	if err != nil {
+		log.Error("failed to parse last stop block: ", zap.Error(err), log.SourceETHClient)
+		return
+	}
+
+	latestBlock, err := e.wsClient.BlockNumber(ctx)
+	if err != nil {
+		log.Error("failed to fetch latest block: ", zap.Error(err), log.SourceETHClient)
+		return
+	}
+
+	// iterate every block to avoid heavy response
+	for i := fromBlock; i <= latestBlock; i++ {
+		block := new(big.Int)
+		block.SetUint64(i)
+		logs, err := e.wsClient.FilterLogs(ctx, goethereum.FilterQuery{
+			FromBlock: block,
+			ToBlock:   block,
+			Topics: [][]common.Hash{
+				{common.HexToHash(indexer.TransferEventSignature), common.HexToHash(indexer.TransferSingleEventSignature)},
+			},
+		})
+
+		if err != nil {
+			log.Error("failed to fetch logs from las stopped block: ", zap.Uint64("blockNum", i), zap.Error(err), log.SourceETHClient)
+			return
+		}
+
+		for _, log := range logs {
+			e.ethLogChan <- log
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+}
+
 func (e *EthereumEventsEmitter) Run(ctx context.Context) {
+	go e.FetchLogsFromLastStopBlock(ctx)
 	go e.Watch(ctx)
 
 	for eLog := range e.ethLogChan {
@@ -84,6 +140,7 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 				zap.String("contractAddress", contractAddress),
 				zap.String("tokenIDHash", tokenIDHash.Hex()),
 				zap.String("txID", eLog.TxHash.Hex()),
+				zap.Uint("txIndex", eLog.TxIndex),
 				zap.String("txTime", txTime.String()),
 			)
 
@@ -94,10 +151,15 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 				eventType = "burned"
 			}
 
-			if err := e.PushEvent(ctx, eventType, fromAddress, toAddress, contractAddress, indexer.EthereumBlockchain, tokenIDHash.Big().Text(10), eLog.TxHash.Hex(), txTime); err != nil {
+			if err := e.PushEvent(ctx, eventType, fromAddress, toAddress, contractAddress, indexer.EthereumBlockchain, tokenIDHash.Big().Text(10), eLog.TxHash.Hex(), eLog.TxIndex, txTime); err != nil {
 				log.Error("gRPC request failed", zap.Error(err), log.SourceGRPC)
 				continue
 			}
+		}
+
+		if err := e.parameterStore.Put(ctx, LastBlockKeyName, strconv.FormatUint(eLog.BlockNumber, 10)); err != nil {
+			log.Error("error put parameterStore", zap.Error(err), log.SourceGRPC)
+			continue
 		}
 	}
 }
