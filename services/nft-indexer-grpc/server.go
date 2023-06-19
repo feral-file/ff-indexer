@@ -202,3 +202,16 @@ func (i *IndexerServer) GetDetailedAccountTokensByOwners(ctx context.Context, re
 		DetailedTokenV2: detailedTokenV2,
 	}, nil
 }
+
+// CheckAddressOwnTokenByCriteria checks if an address owns a token by criteria
+func (i *IndexerServer) CheckAddressOwnTokenByCriteria(ctx context.Context, request *pb.CheckAddressOwnTokenByCriteriaRequest) (*pb.CheckAddressOwnTokenByCriteriaResponse, error) {
+	result, err := i.indexerStore.CheckAddressOwnTokenByCriteria(ctx, request.Address, indexer.Criteria{
+		IndexID: request.Criteria.IndexID,
+		Source:  request.Criteria.Source,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.CheckAddressOwnTokenByCriteriaResponse{Result: result}, nil
+}

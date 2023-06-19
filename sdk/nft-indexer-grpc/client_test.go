@@ -134,3 +134,34 @@ func TestGetDetailedAccountTokensByOwners(t *testing.T) {
 
 	assert.NoError(t, err)
 }
+
+// TestCheckAddressOwnTokenByCriteria a test for CheckAddressOwnTokenByCriteria
+func TestCheckAddressOwnTokenByCriteria(t *testing.T) {
+	client, err := NewIndexerClient(serverURL)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	check, err := client.CheckAddressOwnTokenByCriteria(
+		context.Background(),
+		"0x51E92B35a5a182B2d62b2E22f431D8e0797aB60e",
+		indexer.Criteria{
+			IndexID: "eth-0xb43c51447405008AEBf7a35B4D15e1f29b7Ce823-84379833228553110502734947101839209675161105358737778734002435191848727499610",
+		},
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, true, check)
+
+	check, err = client.CheckAddressOwnTokenByCriteria(
+		context.Background(),
+		"tz1ZRtM64raLrUBFPFfxAWHXpiGrB2KmW4kL",
+		indexer.Criteria{
+			Source: "feralfile",
+		},
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, true, check)
+}

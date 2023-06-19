@@ -15,6 +15,21 @@ service Indexer {
   rpc GetOwnerAccountsByIndexIDs(IndexIDs) returns (Addresses);
 
   rpc GetDetailedAccountTokensByOwners(GetDetailedAccountTokensByOwnersRequest) returns (GetDetailedAccountTokensByOwnersResponse);
+  rpc CheckAddressOwnTokenByCriteria(CheckAddressOwnTokenByCriteriaRequest) returns (CheckAddressOwnTokenByCriteriaResponse);
+}
+
+message CheckAddressOwnTokenByCriteriaResponse {
+  bool result = 1;
+}
+
+message CheckAddressOwnTokenByCriteriaRequest {
+  string Address = 1;
+  Criteria Criteria = 2;
+}
+
+message Criteria {
+  string IndexID = 1;
+  string Source = 2;
 }
 
 message GetDetailedAccountTokensByOwnersResponse {
