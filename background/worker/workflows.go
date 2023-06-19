@@ -58,28 +58,6 @@ func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, token
 		return err
 	}
 
-	// {
-	// 	ctx = ContextNoRetryActivity(ctx)
-	// 	var outdatedTokens []indexer.Token
-	// 	if err := workflow.ExecuteActivity(ctx, w.GetOutdatedTokensByOwner, ethTokenOwner).Get(ctx, &outdatedTokens); err != nil {
-	// 		sentry.CaptureException(err)
-	// 		return err
-	// 	}
-
-	// 	log.Debug("Classify outdated tokens for owner", zap.Any("tokens", outdatedTokens), zap.String("owner", ethTokenOwner))
-	// 	ownedFungibleToken := []string{}
-	// 	ownedNonFungibleToken := []string{}
-	// 	for _, t := range outdatedTokens {
-	// 		if t.Fungible {
-	// 			ownedFungibleToken = append(ownedFungibleToken, t.IndexID)
-	// 		} else {
-	// 			ownedNonFungibleToken = append(ownedNonFungibleToken, t.IndexID)
-	// 		}
-	// 	}
-	// 	log.Info("Start workflows to check existence token ownership and provenance", zap.String("owner", ethTokenOwner))
-	// 	w.triggerIndexOutdatedTokenWorkflow(ctx, ethTokenOwner, ownedFungibleToken, ownedNonFungibleToken)
-	// }
-
 	var offset = 0
 	for {
 		var updateCounts int
@@ -103,28 +81,6 @@ func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, token
 
 func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOwner string) error {
 	log := workflow.GetLogger(ctx)
-
-	// {
-	// 	ctx = ContextNoRetryActivity(ctx)
-	// 	var outdatedTokens []indexer.Token
-	// 	if err := workflow.ExecuteActivity(ctx, w.GetOutdatedTokensByOwner, tokenOwner).Get(ctx, &outdatedTokens); err != nil {
-	// 		sentry.CaptureException(err)
-	// 		return err
-	// 	}
-
-	// 	log.Debug("Classify outdated tokens for owner", zap.Any("tokens", outdatedTokens), zap.String("owner", tokenOwner))
-	// 	ownedFungibleToken := []string{}
-	// 	ownedNonFungibleToken := []string{}
-	// 	for _, t := range outdatedTokens {
-	// 		if t.Fungible {
-	// 			ownedFungibleToken = append(ownedFungibleToken, t.IndexID)
-	// 		} else {
-	// 			ownedNonFungibleToken = append(ownedNonFungibleToken, t.IndexID)
-	// 		}
-	// 	}
-	// 	log.Info("Start workflows to check existence token ownership and provenance", zap.String("owner", tokenOwner))
-	// 	w.triggerIndexOutdatedTokenWorkflow(ctx, tokenOwner, ownedFungibleToken, ownedNonFungibleToken)
-	// }
 
 	var isFirstPage = true
 	for {

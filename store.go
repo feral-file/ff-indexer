@@ -46,7 +46,6 @@ type Store interface {
 
 	GetTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]Token, error)
 	GetTokenByIndexID(ctx context.Context, indexID string) (*Token, error)
-	GetOutdatedTokensByOwner(ctx context.Context, owner string) ([]Token, error)
 	GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error)
 
 	GetDetailedTokens(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
@@ -464,33 +463,6 @@ func (s *MongodbIndexerStore) GetTokensByIndexIDs(ctx context.Context, ids []str
 	}
 
 	if err := c.All(ctx, &tokens); err != nil {
-		return nil, err
-	}
-
-	return tokens, nil
-}
-
-// GetOutdatedTokensByOwner returns a list of outdated tokens for a specific owner
-func (s *MongodbIndexerStore) GetOutdatedTokensByOwner(ctx context.Context, owner string) ([]Token, error) {
-	var tokens []Token
-
-	cursor, err := s.tokenCollection.Find(ctx, bson.M{
-		fmt.Sprintf("owners.%s", owner): bson.M{"$gte": 1},
-		"ownersArray":                   bson.M{"$in": bson.A{owner}},
-
-		"burned":  bson.M{"$ne": true},
-		"is_demo": bson.M{"$ne": true},
-		"$or": bson.A{
-			bson.M{"lastRefreshedTime": bson.M{"$exists": false}},
-			bson.M{"lastRefreshedTime": bson.M{"$lt": time.Now().Add(-time.Hour)}},
-		},
-	}, options.Find().SetProjection(bson.M{"indexID": 1, "_id": 0, "fungible": 1}).SetSort(bson.M{"lastRefreshedTime": 1}))
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
-	if err := cursor.All(ctx, &tokens); err != nil {
 		return nil, err
 	}
 

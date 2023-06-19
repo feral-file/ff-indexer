@@ -98,7 +98,6 @@ func main() {
 	activity.Register(worker.IndexAsset)
 	activity.Register(worker.GetTokenBalanceOfOwner)
 	activity.Register(worker.GetTokenIDsByOwner)
-	activity.Register(worker.GetOutdatedTokensByOwner)
 	activity.Register(worker.RefreshTokenProvenance)
 
 	// index account tokens

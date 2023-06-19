@@ -177,11 +177,6 @@ func (w *NFTIndexerWorker) GetTokenIDsByOwner(ctx context.Context, owner string)
 	return w.indexerStore.GetTokenIDsByOwner(ctx, owner)
 }
 
-// GetOutdatedTokensByOwner sets outdated tokens by the given owner
-func (w *NFTIndexerWorker) GetOutdatedTokensByOwner(ctx context.Context, owner string) ([]indexer.Token, error) {
-	return w.indexerStore.GetOutdatedTokensByOwner(ctx, owner)
-}
-
 // IndexAsset saves asset data into indexer's storage
 func (w *NFTIndexerWorker) IndexAsset(ctx context.Context, updates indexer.AssetUpdates) error {
 	return w.indexerStore.IndexAsset(ctx, updates.ID, updates)
