@@ -1908,13 +1908,16 @@ func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, fil
 		{"$match": bson.M{"indexID": bson.M{"$in": filterParameter.IDs}, "burned": bson.M{"$ne": true}}},
 		{"$addFields": bson.M{"__order": bson.M{"$indexOfArray": bson.A{filterParameter.IDs, "$indexID"}}}},
 		{"$sort": bson.M{"__order": 1}},
-		{"$skip": offset},
-		{"$limit": size},
 	}
 
 	if filterParameter.Source != "" {
 		pipelines = append(pipelines, bson.M{"$match": bson.M{"asset.source": filterParameter.Source}})
 	}
+
+	pipelines = append(pipelines,
+		bson.M{"$skip": offset},
+		bson.M{"$limit": size},
+	)
 
 	cursor, err := s.tokenAssetCollection.Aggregate(ctx, pipelines)
 
