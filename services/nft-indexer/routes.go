@@ -30,7 +30,6 @@ func (s *NFTIndexerServer) SetupRoute() {
 	s.route.GET("/nft", s.ListNFTs)
 
 	s.route.POST("/nft/index_one", s.IndexOneNFT)
-	s.route.POST("/nft/index_owner", s.IndexNFTByOwner)
 
 	s.route.GET("/identity/:account_number", s.GetIdentity)
 	s.route.POST("/identity/", s.GetIdentities)
@@ -63,6 +62,7 @@ func (s *NFTIndexerServer) SetupRoute() {
 	v2NFT.GET("", s.GetAccountNFTsV2)
 	v2NFT.POST("/query", s.QueryNFTsV2)
 	v2NFT.POST("/index_one", s.IndexOneNFT)
+	v2NFT.POST("/index", s.IndexNFTsV2)
 	v2NFT.POST("/index_history", s.IndexHistory)
 
 	v2.POST("/graphql", s.graphqlHandler)

@@ -79,7 +79,7 @@ func main() {
 	worker := indexerWorker.New(environment, indexerEngine, awsSession, indexerStore)
 
 	// workflows
-	workflow.Register(worker.IndexOpenseaTokenWorkflow)
+	workflow.Register(worker.IndexETHTokenWorkflow)
 	workflow.Register(worker.IndexTezosTokenWorkflow)
 	workflow.RegisterWithOptions(worker.IndexTokenWorkflow, workflow.RegisterOptions{
 		Name: "IndexTokenWorkflow",
@@ -97,7 +97,6 @@ func main() {
 	// index store
 	activity.Register(worker.IndexAsset)
 	activity.Register(worker.GetTokenBalanceOfOwner)
-	activity.Register(worker.GetTokenIDsByOwner)
 	activity.Register(worker.RefreshTokenProvenance)
 
 	// index account tokens

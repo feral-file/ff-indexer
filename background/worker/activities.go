@@ -172,9 +172,14 @@ func (w *NFTIndexerWorker) IndexToken(ctx context.Context, contract, tokenID str
 	return w.indexerEngine.IndexToken(ctx, contract, tokenID)
 }
 
-// GetTokenIDsByOwner gets tokenIDs by the given owner
-func (w *NFTIndexerWorker) GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
-	return w.indexerStore.GetTokenIDsByOwner(ctx, owner)
+// GetOwnedTokenIDsByOwner gets tokenIDs by the given owner
+func (w *NFTIndexerWorker) GetOwnedTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
+	return w.indexerStore.GetOwnedTokenIDsByOwner(ctx, owner)
+}
+
+// GetOwnedTokenIDsByOwner gets tokenIDs by the given owner
+func (w *NFTIndexerWorker) FilterOutdatedNFTIDsForOwner(ctx context.Context, tokenIDs []string, owner string) ([]string, error) {
+	return w.indexerStore.FilterTokenIDsNotBelongsToOwner(ctx, tokenIDs, owner)
 }
 
 // IndexAsset saves asset data into indexer's storage

@@ -44,9 +44,11 @@ type Store interface {
 	UpdateTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, ownerBalances []OwnerBalance) error
 	PushProvenance(ctx context.Context, indexID string, lockedTime time.Time, provenance Provenance) error
 
+	FilterTokenIDsNotBelongsToOwner(ctx context.Context, indexIDs []string, owner string) ([]string, error)
+
 	GetTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]Token, error)
 	GetTokenByIndexID(ctx context.Context, indexID string) (*Token, error)
-	GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error)
+	GetOwnedTokenIDsByOwner(ctx context.Context, owner string) ([]string, error)
 
 	GetDetailedTokens(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
 	GetDetailedTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
@@ -453,6 +455,37 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 	return newTokenIndexID, err
 }
 
+// FilterTokenIDsNotBelongsToOwner returns a list of token ids where the latest token is not the given owner
+func (s *MongodbIndexerStore) FilterTokenIDsNotBelongsToOwner(ctx context.Context, indexIDs []string, owner string) ([]string, error) {
+	var tokenIDs []string
+
+	c, err := s.tokenCollection.Find(ctx,
+		bson.M{
+			"indexID":            bson.M{"$in": indexIDs},
+			"fungible":           false,
+			"burned":             bson.M{"$ne": true},
+			"provenance.0.owner": bson.M{"$ne": owner},
+		},
+		options.Find().SetProjection(bson.M{"indexID": 1, "_id": 0}),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	for c.Next(ctx) {
+		var v struct {
+			IndexID string
+		}
+		if err := c.Decode(&v); err != nil {
+			return nil, err
+		}
+
+		tokenIDs = append(tokenIDs, v.IndexID)
+	}
+
+	return tokenIDs, nil
+}
+
 // GetTokensByIndexIDs returns a list of tokens by a given list of index id
 func (s *MongodbIndexerStore) GetTokensByIndexIDs(ctx context.Context, ids []string) ([]Token, error) {
 	var tokens []Token
@@ -662,8 +695,8 @@ func (s *MongodbIndexerStore) PushProvenance(ctx context.Context, indexID string
 	return nil
 }
 
-// GetTokenIDsByOwner returns a list of tokens which belongs to an owner
-func (s *MongodbIndexerStore) GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
+// GetOwnedTokenIDsByOwner returns a list of tokens which belongs to an owner
+func (s *MongodbIndexerStore) GetOwnedTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
 	tokens := make([]string, 0)
 
 	c, err := s.accountTokenCollection.Find(ctx, bson.M{
