@@ -45,7 +45,7 @@ type Store interface {
 	PushProvenance(ctx context.Context, indexID string, lockedTime time.Time, provenance Provenance) error
 
 	GetTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]Token, error)
-	GetTokensByIndexID(ctx context.Context, indexID string) (*Token, error)
+	GetTokenByIndexID(ctx context.Context, indexID string) (*Token, error)
 	GetOutdatedTokensByOwner(ctx context.Context, owner string) ([]Token, error)
 	GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error)
 
@@ -1563,7 +1563,7 @@ func (s *MongodbIndexerStore) UpdateOwnerForFungibleToken(ctx context.Context, i
 	return nil
 }
 
-func (s *MongodbIndexerStore) GetTokensByIndexID(ctx context.Context, indexID string) (*Token, error) {
+func (s *MongodbIndexerStore) GetTokenByIndexID(ctx context.Context, indexID string) (*Token, error) {
 	tokens, err := s.GetTokensByIndexIDs(ctx, []string{indexID})
 	if err != nil {
 		return nil, err

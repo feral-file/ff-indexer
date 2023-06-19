@@ -252,7 +252,7 @@ func (s *NFTIndexerServer) IndexHistory(c *gin.Context) {
 		return
 	}
 
-	token, err := s.indexerStore.GetTokensByIndexID(c, reqParams.IndexID)
+	token, err := s.indexerStore.GetTokenByIndexID(c, reqParams.IndexID)
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "failed to get token", err)
 		return
