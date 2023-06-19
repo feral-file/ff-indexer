@@ -202,18 +202,3 @@ func (i *IndexerServer) GetDetailedAccountTokensByOwners(ctx context.Context, re
 		DetailedTokenV2: detailedTokenV2,
 	}, nil
 }
-
-// GetAccountTokensByOwners returns the account tokens by owners
-func (i *IndexerServer) GetAccountTokensByOwners(ctx context.Context, request *pb.GetAccountTokensByOwnersRequest) (*pb.AccountTokens, error) {
-	accountTokes, err := i.indexerStore.GetAccountTokensByOwners(ctx, request.Owners, request.IndexIDs, request.Offset, request.Size, request.SortBy)
-
-	if err != nil {
-		return nil, err
-	}
-
-	pbAccountTokens := i.mapper.MapIndexerAccountTokensToGRPCAccountTokens(accountTokes)
-
-	return &pb.AccountTokens{
-		AccountTokens: pbAccountTokens,
-	}, nil
-}

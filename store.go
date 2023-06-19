@@ -83,7 +83,6 @@ type Store interface {
 
 	GetDetailedTokensV2(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error)
 	GetDetailedAccountTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, lastUpdatedAt time.Time, sortBy string, offset, size int64) ([]DetailedTokenV2, error)
-	GetAccountTokensByOwners(ctx context.Context, owners []string, indexIDs []string, offset int64, size int64, sortBy string) ([]AccountToken, error)
 
 	GetDetailedToken(ctx context.Context, indexID string) (DetailedToken, error)
 	GetTotalBalanceOfOwnerAccounts(ctx context.Context, addresses []string) (int, error)
@@ -2034,45 +2033,6 @@ func (s *MongodbIndexerStore) GetOwnerAccountsByIndexIDs(ctx context.Context, in
 	}
 
 	return owners, nil
-}
-
-// GetAccountTokensByOwners returns account tokens by owners
-func (s *MongodbIndexerStore) GetAccountTokensByOwners(ctx context.Context, owners []string, indexIDs []string, offset int64, size int64, sortBy string) ([]AccountToken, error) {
-	accountTokens := []AccountToken{}
-
-	var sortKey string
-	if sortBy == "lastActivityTime" {
-		sortKey = sortBy
-	} else {
-		sortKey = "lastRefreshedTime"
-	}
-
-	pipeline := []bson.M{
-		{"$match": bson.M{"$and": []bson.M{
-			{"ownerAccount": bson.M{"$in": owners}},
-			{"balance": bson.M{"$gt": 0}},
-		}}},
-		{"$sort": bson.M{sortKey: -1}},
-		{"$skip": offset},
-		{"$limit": offset + size},
-	}
-
-	if len(indexIDs) > 0 {
-		pipeline = append(pipeline, bson.M{"$match": bson.M{"indexID": bson.M{"$in": indexIDs}}})
-	}
-
-	cursor, err := s.accountTokenCollection.Aggregate(ctx, pipeline)
-	if err != nil {
-		return nil, err
-	}
-
-	defer cursor.Close(ctx)
-
-	if err := cursor.All(ctx, &accountTokens); err != nil {
-		return nil, err
-	}
-
-	return accountTokens, nil
 }
 
 // CheckAddressOwnTokenByCriteria returns true if address owns token

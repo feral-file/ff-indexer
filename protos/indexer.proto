@@ -15,11 +15,6 @@ service Indexer {
   rpc GetOwnerAccountsByIndexIDs(IndexIDs) returns (Addresses);
 
   rpc GetDetailedAccountTokensByOwners(GetDetailedAccountTokensByOwnersRequest) returns (GetDetailedAccountTokensByOwnersResponse);
-  rpc GetAccountTokensByOwners(GetAccountTokensByOwnersRequest) returns (AccountTokens);
-}
-
-message AccountTokens {
-  repeated AccountToken AccountTokens = 1;
 }
 
 message GetDetailedAccountTokensByOwnersResponse {
@@ -42,14 +37,6 @@ message AssetV2 {
 
 message AssetMetadata {
   VersionedProjectMetadata Project = 1;
-}
-
-message GetAccountTokensByOwnersRequest {
-  repeated string Owners = 1;
-  repeated string IndexIDs = 2;
-  int64 Offset = 3;
-  int64 Size = 4;
-  string SortBy = 5;
 }
 
 message Owners {

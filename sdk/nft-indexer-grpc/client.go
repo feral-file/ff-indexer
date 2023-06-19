@@ -148,24 +148,3 @@ func (i *IndexerGRPCClient) GetDetailedAccountTokensByOwners(
 
 	return i.mapper.MapGrpcDetailedAccountTokensToIndexerDetailedAccountTokens(detailedAccountTokens.DetailedTokenV2), nil
 }
-
-// GetAccountTokensByOwners returns account tokens by owners
-func (i *IndexerGRPCClient) GetAccountTokensByOwners(ctx context.Context, owners []string, indexIDs []string, offset int64, size int64, sortBy string) ([]indexer.AccountToken, error) {
-	GRPCAccountTokens, err := i.client.GetAccountTokensByOwners(ctx, &pb.GetAccountTokensByOwnersRequest{
-		Owners:   owners,
-		IndexIDs: indexIDs,
-		Offset:   offset,
-		Size:     size,
-		SortBy:   sortBy,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	accountTokens, err := i.mapper.MapGRPCAccountTokensToIndexerAccountTokens(GRPCAccountTokens.AccountTokens)
-	if err != nil {
-		return nil, err
-	}
-
-	return accountTokens, nil
-}
