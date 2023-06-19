@@ -91,11 +91,18 @@ type Store interface {
 	GetNullProvenanceTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
 
 	GetOwnerAccountsByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
+
+	CheckAddressOwnTokenByCriteria(ctx context.Context, address string, criteria Criteria) (bool, error)
 }
 
 type FilterParameter struct {
 	Source string
 	IDs    []string
+}
+
+type Criteria struct {
+	IndexID string `bson:"indexID"`
+	Source  string `bson:"source"`
 }
 
 type OwnerBalance struct {
@@ -2066,4 +2073,82 @@ func (s *MongodbIndexerStore) GetAccountTokensByOwners(ctx context.Context, owne
 	}
 
 	return accountTokens, nil
+}
+
+// CheckAddressOwnTokenByCriteria returns true if address owns token
+func (s *MongodbIndexerStore) CheckAddressOwnTokenByCriteria(ctx context.Context, address string, criteria Criteria) (bool, error) {
+	if criteria.IndexID != "" {
+		return s.checkAddressOwnTokenHasIndexID(ctx, address, criteria.IndexID)
+	}
+
+	if criteria.Source != "" {
+		return s.checkAddressOwnTokenInSource(ctx, address, criteria.Source)
+	}
+
+	return false, nil
+}
+
+// checkAddressOwnTokenHasIndexID returns true if address owns token
+func (s *MongodbIndexerStore) checkAddressOwnTokenHasIndexID(ctx context.Context, address string, indexID string) (bool, error) {
+	var accountToken AccountToken
+
+	if err := s.accountTokenCollection.FindOne(ctx, bson.M{
+		"ownerAccount": address,
+		"indexID":      indexID,
+	}).Decode(&accountToken); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	return true, nil
+}
+
+// checkAddressOwnTokenInSource returns true if address owns token in source
+func (s *MongodbIndexerStore) checkAddressOwnTokenInSource(ctx context.Context, address string, source string) (bool, error) {
+	var indexIDs []string
+
+	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{
+		"ownerAccount": address,
+	})
+	if err != nil {
+		return false, err
+	}
+
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		t := AccountToken{}
+
+		if err := cursor.Decode(&t); err != nil {
+			return false, err
+		}
+
+		indexIDs = append(indexIDs, t.IndexID)
+	}
+
+	if len(indexIDs) == 0 {
+		return false, nil
+	}
+
+	// check if any token has source
+	var token Token
+	err = s.tokenCollection.FindOne(ctx, bson.M{
+		"indexID": bson.M{
+			"$in": indexIDs,
+		},
+		"source": source,
+	}).Decode(&token)
+
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	return true, nil
 }

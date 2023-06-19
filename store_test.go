@@ -77,3 +77,28 @@ func TestGetDetailedAccountTokensByOwners(t *testing.T) {
 	assert.Nil(t, err)
 	fmt.Println(detailedTokenV2)
 }
+
+// TestCheckAddressOwnTokenByCriteria test check address own token by criteria
+func TestCheckAddressOwnTokenByCriteria(t *testing.T) {
+	ctx := context.Background()
+	config.LoadConfig("NFT_INDEXER")
+
+	indexerStore, err := NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
+	if err != nil {
+		panic(err)
+	}
+
+	ok, err := indexerStore.CheckAddressOwnTokenByCriteria(ctx, "0x51E92B35a5a182B2d62b2E22f431D8e0797aB60e", Criteria{
+		IndexID: "eth-0xb43c51447405008AEBf7a35B4D15e1f29b7Ce823-84379833228553110502734947101839209675161105358737778734002435191848727499610",
+	})
+
+	assert.Nil(t, err)
+	assert.Equal(t, true, ok)
+
+	ok, err = indexerStore.CheckAddressOwnTokenByCriteria(ctx, "tz1ZRtM64raLrUBFPFfxAWHXpiGrB2KmW4kL", Criteria{
+		Source: "feralfile",
+	})
+
+	assert.Nil(t, err)
+	assert.Equal(t, true, ok)
+}
