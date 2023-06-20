@@ -109,32 +109,6 @@ func TestGetOwnerAccountsByIndexIDs(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestGetDetailedAccountTokensByOwners a test for GetDetailedAccountTokensByOwners
-func TestGetDetailedAccountTokensByOwners(t *testing.T) {
-	client, err := NewIndexerClient(serverURL)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	owners := []string{"tz1LPJ34B1Z8XsxtgoCv5NRBTHTXoeG49A9h"}
-
-	tokens, err := client.GetDetailedAccountTokensByOwners(
-		context.Background(),
-		owners,
-		"tzkt",
-		nil,
-		"",
-		0,
-		1,
-		time.Time{},
-	)
-
-	fmt.Println("tokens:", tokens)
-
-	assert.NoError(t, err)
-}
-
 // TestCheckAddressOwnTokenByCriteria a test for CheckAddressOwnTokenByCriteria
 func TestCheckAddressOwnTokenByCriteria(t *testing.T) {
 	client, err := NewIndexerClient(serverURL)

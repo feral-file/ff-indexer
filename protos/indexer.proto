@@ -14,7 +14,6 @@ service Indexer {
   rpc GetTotalBalanceOfOwnerAccounts(Addresses) returns (TotalBalance);
   rpc GetOwnerAccountsByIndexIDs(IndexIDs) returns (Addresses);
 
-  rpc GetDetailedAccountTokensByOwners(GetDetailedAccountTokensByOwnersRequest) returns (GetDetailedAccountTokensByOwnersResponse);
   rpc CheckAddressOwnTokenByCriteria(CheckAddressOwnTokenByCriteriaRequest) returns (CheckAddressOwnTokenByCriteriaResponse);
 
   rpc GetOwnersByBlockchainContracts(GetOwnersByBlockchainContractsRequest) returns (Addresses);
@@ -32,10 +31,6 @@ message CheckAddressOwnTokenByCriteriaRequest {
 message Criteria {
   string IndexID = 1;
   string Source = 2;
-}
-
-message GetDetailedAccountTokensByOwnersResponse {
-  repeated DetailedTokenV2 DetailedTokenV2 = 1;
 }
 
 message DetailedTokenV2 {
@@ -58,15 +53,6 @@ message AssetMetadata {
 
 message Owners {
   repeated string Owners = 1;
-}
-
-message GetDetailedAccountTokensByOwnersRequest{
-  repeated string Owners = 1;
-  FilterParameter FilterParameter = 2;
-  string LastUpdatedAt = 3;
-  string SortBy = 4;
-  int64 Offset = 5;
-  int64 Size = 6;
 }
 
 message FilterParameter {

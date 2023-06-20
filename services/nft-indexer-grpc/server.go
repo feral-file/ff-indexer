@@ -172,37 +172,6 @@ func (i *IndexerServer) GetOwnerAccountsByIndexIDs(ctx context.Context, indexIDs
 	return &pb.Addresses{Addresses: owners}, nil
 }
 
-// GetDetailedAccountTokensByOwners returns the detailed account tokens by owners
-func (i *IndexerServer) GetDetailedAccountTokensByOwners(ctx context.Context, request *pb.GetDetailedAccountTokensByOwnersRequest) (*pb.GetDetailedAccountTokensByOwnersResponse, error) {
-	filterParameter := indexer.FilterParameter{
-		Source: request.FilterParameter.Source,
-		IDs:    request.FilterParameter.IDs,
-	}
-
-	lastUpdatedAt, err := indexerGRPCSDK.ParseTime(request.LastUpdatedAt)
-	if err != nil {
-		return nil, err
-	}
-
-	detailedTokens, err := i.indexerStore.GetDetailedAccountTokensByOwners(
-		ctx,
-		request.Owners,
-		filterParameter,
-		lastUpdatedAt,
-		request.SortBy,
-		request.Offset,
-		request.Size)
-	if err != nil {
-		return nil, err
-	}
-
-	detailedTokenV2 := i.mapper.MapIndexerDetailedTokensV2ToGRPCDetailedTokens(detailedTokens)
-
-	return &pb.GetDetailedAccountTokensByOwnersResponse{
-		DetailedTokenV2: detailedTokenV2,
-	}, nil
-}
-
 // CheckAddressOwnTokenByCriteria checks if an address owns a token by criteria
 func (i *IndexerServer) CheckAddressOwnTokenByCriteria(ctx context.Context, request *pb.CheckAddressOwnTokenByCriteriaRequest) (*pb.CheckAddressOwnTokenByCriteriaResponse, error) {
 	result, err := i.indexerStore.CheckAddressOwnTokenByCriteria(ctx, request.Address, indexer.Criteria{

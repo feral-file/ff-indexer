@@ -492,21 +492,6 @@ func (m *Mapper) MapIndexerAssetMetadataToGRPCAssetMetadata(metadata *indexer.As
 	}
 }
 
-// MapGrpcDetailedAccountTokensToIndexerDetailedAccountTokens maps grpc detailed account tokens to indexer detailed account tokens
-func (m *Mapper) MapGrpcDetailedAccountTokensToIndexerDetailedAccountTokens(accountTokens []*grpcIndexer.DetailedTokenV2) []indexer.DetailedTokenV2 {
-	indexerAccountTokens := make([]indexer.DetailedTokenV2, len(accountTokens))
-
-	for i, v := range accountTokens {
-		indexerAccountTokens[i] = indexer.DetailedTokenV2{
-			Token:      *m.MapGrpcTokenToIndexerToken(v.Token),
-			IPFSPinned: v.IPFSPinned,
-			Asset:      *m.MapGrpcAssetV2ToIndexerAssetV2(v.Asset),
-		}
-	}
-
-	return indexerAccountTokens
-}
-
 // MapGrpcAssetV2ToIndexerAssetV2 maps grpc asset v2 to indexer asset v2
 func (m *Mapper) MapGrpcAssetV2ToIndexerAssetV2(asset *grpcIndexer.AssetV2) *indexer.AssetV2 {
 	lastRefreshedTime, err := time.Parse(time.RFC3339Nano, asset.LastRefreshedTime)

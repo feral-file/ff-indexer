@@ -120,37 +120,6 @@ func (i *IndexerGRPCClient) GetOwnerAccountsByIndexIDs(ctx context.Context, inde
 	return addresses.Addresses, nil
 }
 
-// GetDetailedAccountTokensByOwners returns detailed account tokens by owners
-func (i *IndexerGRPCClient) GetDetailedAccountTokensByOwners(
-	ctx context.Context,
-	owners []string,
-	source string,
-	IDs []string,
-	sortBy string,
-	offset int64,
-	size int64,
-	lastUpdatedAt time.Time,
-) ([]indexer.DetailedTokenV2, error) {
-
-	detailedAccountTokens, err := i.client.GetDetailedAccountTokensByOwners(ctx, &pb.GetDetailedAccountTokensByOwnersRequest{
-		Owners: owners,
-		FilterParameter: &pb.FilterParameter{
-			Source: source,
-			IDs:    IDs,
-		},
-		LastUpdatedAt: lastUpdatedAt.Format(time.RFC3339Nano),
-		SortBy:        sortBy,
-		Offset:        offset,
-		Size:          size,
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return i.mapper.MapGrpcDetailedAccountTokensToIndexerDetailedAccountTokens(detailedAccountTokens.DetailedTokenV2), nil
-}
-
 // GetOwnersByBlockchainContracts returns owners by blockchains and contracts
 func (i *IndexerGRPCClient) GetOwnersByBlockchainContracts(ctx context.Context, blockchainContracts map[string][]string) ([]string, error) {
 	var GRPCBlockchainContracts pb.GetOwnersByBlockchainContractsRequest
