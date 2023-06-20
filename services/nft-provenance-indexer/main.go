@@ -86,7 +86,7 @@ func main() {
 	// activities
 
 	activity.Register(worker.GetOwnedTokenIDsByOwner)
-	activity.Register(worker.FilterOutdatedNFTIDsForOwner)
+	activity.Register(worker.FilterTokenIDsWithInconsistentProvenanceForOwner)
 	activity.Register(worker.RefreshTokenProvenance)
 	activity.Register(worker.RefreshTokenOwnership)
 

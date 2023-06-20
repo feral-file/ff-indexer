@@ -44,7 +44,7 @@ type Store interface {
 	UpdateTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, ownerBalances []OwnerBalance) error
 	PushProvenance(ctx context.Context, indexID string, lockedTime time.Time, provenance Provenance) error
 
-	FilterTokenIDsNotBelongsToOwner(ctx context.Context, indexIDs []string, owner string) ([]string, error)
+	FilterTokenIDsWithInconsistentProvenanceForOwner(ctx context.Context, indexIDs []string, owner string) ([]string, error)
 
 	GetTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]Token, error)
 	GetTokenByIndexID(ctx context.Context, indexID string) (*Token, error)
@@ -455,8 +455,8 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 	return newTokenIndexID, err
 }
 
-// FilterTokenIDsNotBelongsToOwner returns a list of token ids where the latest token is not the given owner
-func (s *MongodbIndexerStore) FilterTokenIDsNotBelongsToOwner(ctx context.Context, indexIDs []string, owner string) ([]string, error) {
+// FilterTokenIDsWithInconsistentProvenanceForOwner returns a list of token ids where the latest token is not the given owner
+func (s *MongodbIndexerStore) FilterTokenIDsWithInconsistentProvenanceForOwner(ctx context.Context, indexIDs []string, owner string) ([]string, error) {
 	var tokenIDs []string
 
 	c, err := s.tokenCollection.Find(ctx,
