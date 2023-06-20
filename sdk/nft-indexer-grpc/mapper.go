@@ -453,21 +453,6 @@ func (m *Mapper) MapGrpcArtworkMetadataToIndexerArtworkMetadata(artworkMetadata 
 	return b
 }
 
-// MapIndexerDetailedTokensV2ToGRPCDetailedTokens maps indexer detailed account tokens v2 to grpc detailed account tokens v2
-func (m *Mapper) MapIndexerDetailedTokensV2ToGRPCDetailedTokens(accountTokens []indexer.DetailedTokenV2) []*grpcIndexer.DetailedTokenV2 {
-	GRPCAccountTokens := make([]*grpcIndexer.DetailedTokenV2, len(accountTokens))
-
-	for i, v := range accountTokens {
-		GRPCAccountTokens[i] = &grpcIndexer.DetailedTokenV2{
-			Token:      m.MapIndexerTokenToGrpcToken(&v.Token),
-			IPFSPinned: v.IPFSPinned,
-			Asset:      m.MapIndexerAssetV2ToGRPCAssetV2(&v.Asset),
-		}
-	}
-
-	return GRPCAccountTokens
-}
-
 // MapIndexerAssetV2ToGRPCAssetV2 maps indexer asset v2 to grpc asset v2
 func (m *Mapper) MapIndexerAssetV2ToGRPCAssetV2(asset *indexer.AssetV2) *grpcIndexer.AssetV2 {
 	return &grpcIndexer.AssetV2{

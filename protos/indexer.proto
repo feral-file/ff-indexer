@@ -33,33 +33,6 @@ message Criteria {
   string Source = 2;
 }
 
-message DetailedTokenV2 {
-  Token Token = 1;
-  bool IPFSPinned = 2;
-  AssetV2 Asset = 3;
-}
-
-message AssetV2 {
-  string IndexID = 1;
-  string ThumbnailID = 2;
-  string LastRefreshedTime = 3;
-  AssetAttributes Attributes = 4;
-  AssetMetadata Metadata = 5;
-}
-
-message AssetMetadata {
-  VersionedProjectMetadata Project = 1;
-}
-
-message Owners {
-  repeated string Owners = 1;
-}
-
-message FilterParameter {
-  string Source = 1;
-  repeated string IDs = 2;
-}
-
 message GetOwnersByBlockchainContractsRequest {
   map<string, Addresses> BlockchainContracts = 1;
 }
