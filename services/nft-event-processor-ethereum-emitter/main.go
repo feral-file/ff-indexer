@@ -41,7 +41,7 @@ func main() {
 	defer conn.Close()
 
 	c := processor.NewEventProcessorClient(conn)
-	ethereumEventsEmitter := NewEthereumEventsEmitter(wsClient, parameterStore, c)
+	ethereumEventsEmitter := NewEthereumEventsEmitter(viper.GetString("ethereum.lastBlockKeyName"), wsClient, parameterStore, c)
 	ethereumEventsEmitter.Run(ctx)
 
 	log.Info("Ethereum Emitter terminated")

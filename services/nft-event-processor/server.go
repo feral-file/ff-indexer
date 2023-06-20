@@ -81,7 +81,7 @@ func (e *EventProcessor) Run(ctx context.Context) {
 	}
 }
 
-type processorFunc func(ctx context.Context, event NewNFTEvent) error
+type processorFunc func(ctx context.Context, event NFTEvent) error
 
 func (e *EventProcessor) StartWorker(ctx context.Context, currentStage, nextStage int8,
 	types []EventType, processor processorFunc) {
@@ -113,7 +113,7 @@ func (e *EventProcessor) StartWorker(ctx context.Context, currentStage, nextStag
 						log.Error("fail to update failed event", zap.Error(err))
 					}
 
-					if err := eventTx.DeleteEvent(); err != nil {
+					if err := eventTx.ArchiveNFTEvent(); err != nil {
 						log.Error("fail to delete event", zap.Error(err))
 						eventTx.Rollback()
 					}
@@ -125,7 +125,7 @@ func (e *EventProcessor) StartWorker(ctx context.Context, currentStage, nextStag
 						log.Error("fail to update processed event", zap.Error(err))
 					}
 
-					if err := eventTx.DeleteEvent(); err != nil {
+					if err := eventTx.ArchiveNFTEvent(); err != nil {
 						log.Error("fail to delete event", zap.Error(err))
 						eventTx.Rollback()
 					}

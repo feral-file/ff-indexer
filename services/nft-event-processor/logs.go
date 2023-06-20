@@ -13,11 +13,11 @@ func (e *EventProcessor) logStageEvent(stage int8, message string, fields ...zap
 }
 
 // logStartStage log when start a stage
-func (e *EventProcessor) logStartStage(event NewNFTEvent, stage int8) {
+func (e *EventProcessor) logStartStage(event NFTEvent, stage int8) {
 	log.Info("start stage for event: ", zap.Int8("stage", stage), zap.Any("event", event.ID))
 }
 
 // logEndStage log when end a stage
-func (e *EventProcessor) logEndStage(event NewNFTEvent, stage int8) {
+func (e *EventProcessor) logEndStage(event NFTEvent, stage int8) {
 	log.Info("finished stage for event: ", zap.Int8("stage", stage), zap.Any("event", event.ID))
 }

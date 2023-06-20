@@ -32,7 +32,7 @@ const (
 )
 
 // NFTEvent is the model for processed token events
-type NFTEvent struct {
+type ArchivedNFTEvent struct {
 	ID         string      `gorm:"primaryKey;size:255;default:uuid_generate_v4()"`
 	Type       string      `gorm:"index"`
 	Blockchain string      `gorm:"index"`
@@ -48,8 +48,12 @@ type NFTEvent struct {
 	UpdatedAt  time.Time   `gorm:"default:now()"`
 }
 
+func (ArchivedNFTEvent) TableName() string {
+	return "nft_events"
+}
+
 // NFTEvent is the model for token events
-type NewNFTEvent struct {
+type NFTEvent struct {
 	ID         string    `gorm:"primaryKey;size:255;default:uuid_generate_v4()"`
 	Type       string    `gorm:"index:idx_event,unique"`
 	Blockchain string    `gorm:"index:idx_event,unique"`
@@ -65,8 +69,12 @@ type NewNFTEvent struct {
 	UpdatedAt  time.Time `gorm:"default:now()"`
 }
 
-func (e *NewNFTEvent) toProcessedNFTEvent(status EventStatus) NFTEvent {
-	return NFTEvent{
+func (NFTEvent) TableName() string {
+	return "new_nft_events"
+}
+
+func (e *NFTEvent) toProcessedNFTEvent(status EventStatus) ArchivedNFTEvent {
+	return ArchivedNFTEvent{
 		Type:       e.Type,
 		Blockchain: e.Blockchain,
 		Contract:   e.Contract,
@@ -82,7 +90,7 @@ func (e *NewNFTEvent) toProcessedNFTEvent(status EventStatus) NFTEvent {
 // EventTx is an transaction object with event values
 type EventTx struct {
 	*gorm.DB
-	Event NewNFTEvent
+	Event NFTEvent
 }
 
 // UpdateEvent updates events by given stage or status
@@ -100,11 +108,11 @@ func (tx *EventTx) UpdateEvent(stage string) error {
 }
 
 // DeleteEvent delete the event by the id
-func (tx *EventTx) DeleteEvent() error {
+func (tx *EventTx) ArchiveNFTEvent() error {
 	return tx.DB.Where("id = ?", tx.Event.ID).Delete(&NFTEvent{}).Error
 }
 
-func NewEventTx(DB *gorm.DB, event NewNFTEvent) *EventTx {
+func NewEventTx(DB *gorm.DB, event NFTEvent) *EventTx {
 	return &EventTx{
 		DB:    DB,
 		Event: event,
@@ -112,9 +120,9 @@ func NewEventTx(DB *gorm.DB, event NewNFTEvent) *EventTx {
 }
 
 type EventStore interface {
-	CreateEvent(event NewNFTEvent) error
+	CreateEvent(event NFTEvent) error
 	GetEventTransaction(ctx context.Context, filters ...FilterOption) (*EventTx, error)
-	SaveProcessedEvent(event NFTEvent) error
+	SaveProcessedEvent(event ArchivedNFTEvent) error
 }
 
 type PostgresEventStore struct {
@@ -132,7 +140,7 @@ func NewPostgresEventStore(db *gorm.DB) *PostgresEventStore {
 }
 
 // CreateEvent add a new event into event store.
-func (s *PostgresEventStore) CreateEvent(event NewNFTEvent) error {
+func (s *PostgresEventStore) CreateEvent(event NFTEvent) error {
 	err := s.db.Save(&event).Error
 
 	var pgError *pgconn.PgError
@@ -166,7 +174,7 @@ func Filter(statement string, args ...interface{}) FilterOption {
 
 // GetEventTransaction returns an EventTx
 func (s *PostgresEventStore) GetEventTransaction(ctx context.Context, filters ...FilterOption) (*EventTx, error) {
-	var event NewNFTEvent
+	var event NFTEvent
 
 	tx := s.db.WithContext(ctx).Begin()
 	if err := tx.Error; err != nil {
@@ -189,7 +197,7 @@ func (s *PostgresEventStore) GetEventTransaction(ctx context.Context, filters ..
 }
 
 // SaveProcessedEvent add a processed event into event store.
-func (s *PostgresEventStore) SaveProcessedEvent(event NFTEvent) error {
+func (s *PostgresEventStore) SaveProcessedEvent(event ArchivedNFTEvent) error {
 	return s.db.Save(&event).Error
 }
 

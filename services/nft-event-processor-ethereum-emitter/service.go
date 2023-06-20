@@ -19,11 +19,9 @@ import (
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 )
 
-const (
-	LastBlockKeyName = "ethereum-last-stop-block"
-)
-
 type EthereumEventsEmitter struct {
+	lastBlockKeyName string
+
 	grpcClient processor.EventProcessorClient
 	emitter.EventsEmitter
 	wsClient       *ethclient.Client
@@ -34,16 +32,18 @@ type EthereumEventsEmitter struct {
 }
 
 func NewEthereumEventsEmitter(
+	lastBlockKeyName string,
 	wsClient *ethclient.Client,
 	parameterStore *ssm.ParameterStore,
 	grpcClient processor.EventProcessorClient,
 ) *EthereumEventsEmitter {
 	return &EthereumEventsEmitter{
-		grpcClient:     grpcClient,
-		parameterStore: parameterStore,
-		EventsEmitter:  emitter.New(grpcClient),
-		wsClient:       wsClient,
-		ethLogChan:     make(chan types.Log, 100),
+		lastBlockKeyName: lastBlockKeyName,
+		grpcClient:       grpcClient,
+		parameterStore:   parameterStore,
+		EventsEmitter:    emitter.New(grpcClient),
+		wsClient:         wsClient,
+		ethLogChan:       make(chan types.Log, 100),
 	}
 }
 
@@ -67,19 +67,7 @@ func (e *EthereumEventsEmitter) Watch(ctx context.Context) {
 	}
 }
 
-func (e *EthereumEventsEmitter) FetchLogsFromLastStopBlock(ctx context.Context) {
-	lastStopBlock, err := e.parameterStore.GetString(ctx, LastBlockKeyName)
-	if err != nil {
-		log.Error("failed to read last stop bloc from parameter store: ", zap.Error(err), log.SourceETHClient)
-		return
-	}
-
-	fromBlock, err := strconv.ParseUint(lastStopBlock, 10, 64)
-	if err != nil {
-		log.Error("failed to parse last stop block: ", zap.Error(err), log.SourceETHClient)
-		return
-	}
-
+func (e *EthereumEventsEmitter) FetchLogsFromLastStopBlock(ctx context.Context, lastStopBlock uint64) {
 	latestBlock, err := e.wsClient.BlockNumber(ctx)
 	if err != nil {
 		log.Error("failed to fetch latest block: ", zap.Error(err), log.SourceETHClient)
@@ -87,7 +75,7 @@ func (e *EthereumEventsEmitter) FetchLogsFromLastStopBlock(ctx context.Context) 
 	}
 
 	// iterate every block to avoid heavy response
-	for i := fromBlock; i <= latestBlock; i++ {
+	for i := lastStopBlock; i <= latestBlock; i++ {
 		block := new(big.Int)
 		block.SetUint64(i)
 		logs, err := e.wsClient.FilterLogs(ctx, goethereum.FilterQuery{
@@ -111,7 +99,18 @@ func (e *EthereumEventsEmitter) FetchLogsFromLastStopBlock(ctx context.Context) 
 }
 
 func (e *EthereumEventsEmitter) Run(ctx context.Context) {
-	go e.FetchLogsFromLastStopBlock(ctx)
+	lastStopBlock, err := e.parameterStore.GetString(ctx, e.lastBlockKeyName)
+	if err != nil {
+		log.Error("failed to read last stop bloc from parameter store: ", zap.Error(err), log.SourceETHClient)
+	} else {
+		fromBlock, err := strconv.ParseUint(lastStopBlock, 10, 64)
+		if err != nil {
+			log.Error("failed to parse last stop block: ", zap.Error(err), log.SourceETHClient)
+		} else {
+			go e.FetchLogsFromLastStopBlock(ctx, fromBlock)
+		}
+	}
+
 	go e.Watch(ctx)
 
 	for eLog := range e.ethLogChan {
@@ -157,7 +156,7 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 			}
 		}
 
-		if err := e.parameterStore.Put(ctx, LastBlockKeyName, strconv.FormatUint(eLog.BlockNumber, 10)); err != nil {
+		if err := e.parameterStore.Put(ctx, e.lastBlockKeyName, strconv.FormatUint(eLog.BlockNumber, 10)); err != nil {
 			log.Error("error put parameterStore", zap.Error(err), log.SourceGRPC)
 			continue
 		}
