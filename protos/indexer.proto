@@ -16,6 +16,8 @@ service Indexer {
 
   rpc GetDetailedAccountTokensByOwners(GetDetailedAccountTokensByOwnersRequest) returns (GetDetailedAccountTokensByOwnersResponse);
   rpc CheckAddressOwnTokenByCriteria(CheckAddressOwnTokenByCriteriaRequest) returns (CheckAddressOwnTokenByCriteriaResponse);
+
+  rpc GetOwnersByBlockchainContracts(GetOwnersByBlockchainContractsRequest) returns (Addresses);
 }
 
 message CheckAddressOwnTokenByCriteriaResponse {
@@ -70,6 +72,10 @@ message GetDetailedAccountTokensByOwnersRequest{
 message FilterParameter {
   string Source = 1;
   repeated string IDs = 2;
+}
+
+message GetOwnersByBlockchainContractsRequest {
+  map<string, Addresses> BlockchainContracts = 1;
 }
 
 message Addresses {

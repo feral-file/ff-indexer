@@ -32,6 +32,7 @@ type IndexerClient interface {
 	GetOwnerAccountsByIndexIDs(ctx context.Context, in *IndexIDs, opts ...grpc.CallOption) (*Addresses, error)
 	GetDetailedAccountTokensByOwners(ctx context.Context, in *GetDetailedAccountTokensByOwnersRequest, opts ...grpc.CallOption) (*GetDetailedAccountTokensByOwnersResponse, error)
 	CheckAddressOwnTokenByCriteria(ctx context.Context, in *CheckAddressOwnTokenByCriteriaRequest, opts ...grpc.CallOption) (*CheckAddressOwnTokenByCriteriaResponse, error)
+	GetOwnersByBlockchainContracts(ctx context.Context, in *GetOwnersByBlockchainContractsRequest, opts ...grpc.CallOption) (*Addresses, error)
 }
 
 type indexerClient struct {
@@ -132,6 +133,15 @@ func (c *indexerClient) CheckAddressOwnTokenByCriteria(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *indexerClient) GetOwnersByBlockchainContracts(ctx context.Context, in *GetOwnersByBlockchainContractsRequest, opts ...grpc.CallOption) (*Addresses, error) {
+	out := new(Addresses)
+	err := c.cc.Invoke(ctx, "/Indexer/GetOwnersByBlockchainContracts", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // IndexerServer is the server API for Indexer service.
 // All implementations must embed UnimplementedIndexerServer
 // for forward compatibility
@@ -146,6 +156,7 @@ type IndexerServer interface {
 	GetOwnerAccountsByIndexIDs(context.Context, *IndexIDs) (*Addresses, error)
 	GetDetailedAccountTokensByOwners(context.Context, *GetDetailedAccountTokensByOwnersRequest) (*GetDetailedAccountTokensByOwnersResponse, error)
 	CheckAddressOwnTokenByCriteria(context.Context, *CheckAddressOwnTokenByCriteriaRequest) (*CheckAddressOwnTokenByCriteriaResponse, error)
+	GetOwnersByBlockchainContracts(context.Context, *GetOwnersByBlockchainContractsRequest) (*Addresses, error)
 	mustEmbedUnimplementedIndexerServer()
 }
 
@@ -182,6 +193,9 @@ func (UnimplementedIndexerServer) GetDetailedAccountTokensByOwners(context.Conte
 }
 func (UnimplementedIndexerServer) CheckAddressOwnTokenByCriteria(context.Context, *CheckAddressOwnTokenByCriteriaRequest) (*CheckAddressOwnTokenByCriteriaResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckAddressOwnTokenByCriteria not implemented")
+}
+func (UnimplementedIndexerServer) GetOwnersByBlockchainContracts(context.Context, *GetOwnersByBlockchainContractsRequest) (*Addresses, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetOwnersByBlockchainContracts not implemented")
 }
 func (UnimplementedIndexerServer) mustEmbedUnimplementedIndexerServer() {}
 
@@ -376,6 +390,24 @@ func _Indexer_CheckAddressOwnTokenByCriteria_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Indexer_GetOwnersByBlockchainContracts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetOwnersByBlockchainContractsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IndexerServer).GetOwnersByBlockchainContracts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Indexer/GetOwnersByBlockchainContracts",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IndexerServer).GetOwnersByBlockchainContracts(ctx, req.(*GetOwnersByBlockchainContractsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Indexer_ServiceDesc is the grpc.ServiceDesc for Indexer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -422,6 +454,10 @@ var Indexer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CheckAddressOwnTokenByCriteria",
 			Handler:    _Indexer_CheckAddressOwnTokenByCriteria_Handler,
+		},
+		{
+			MethodName: "GetOwnersByBlockchainContracts",
+			Handler:    _Indexer_GetOwnersByBlockchainContracts_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

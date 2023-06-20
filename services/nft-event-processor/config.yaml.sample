@@ -43,3 +43,6 @@ network:
 
 notification:
   endpoint:
+
+indexer_grpc:
+  endpoint: localhost:8888

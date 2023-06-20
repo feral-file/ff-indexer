@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/bitmark-inc/nft-indexer"
+	indexer "github.com/bitmark-inc/nft-indexer"
 	pb "github.com/bitmark-inc/nft-indexer/services/nft-indexer-grpc/grpc/indexer"
 )
 
@@ -110,6 +110,7 @@ func (i *IndexerGRPCClient) GetTotalBalanceOfOwnerAccounts(ctx context.Context, 
 	return totalBalance.Count, nil
 }
 
+// GetOwnerAccountsByIndexIDs returns owner accounts by indexIDs
 func (i *IndexerGRPCClient) GetOwnerAccountsByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error) {
 	addresses, err := i.client.GetOwnerAccountsByIndexIDs(ctx, &pb.IndexIDs{IndexIDs: indexIDs})
 	if err != nil {
@@ -142,11 +143,29 @@ func (i *IndexerGRPCClient) GetDetailedAccountTokensByOwners(
 		Offset:        offset,
 		Size:          size,
 	})
+
 	if err != nil {
 		return nil, err
 	}
 
 	return i.mapper.MapGrpcDetailedAccountTokensToIndexerDetailedAccountTokens(detailedAccountTokens.DetailedTokenV2), nil
+}
+
+// GetOwnersByBlockchainContracts returns owners by blockchains and contracts
+func (i *IndexerGRPCClient) GetOwnersByBlockchainContracts(ctx context.Context, blockchainContracts map[string][]string) ([]string, error) {
+	var GRPCBlockchainContracts pb.GetOwnersByBlockchainContractsRequest
+	GRPCBlockchainContracts.BlockchainContracts = make(map[string]*pb.Addresses)
+
+	for k, v := range blockchainContracts {
+		GRPCBlockchainContracts.BlockchainContracts[k] = &pb.Addresses{Addresses: v}
+	}
+
+	addresses, err := i.client.GetOwnersByBlockchainContracts(ctx, &GRPCBlockchainContracts)
+	if err != nil {
+		return nil, err
+	}
+
+	return addresses.Addresses, nil
 }
 
 // CheckAddressOwnTokenByCriteria checks if an address owns a token by criteria

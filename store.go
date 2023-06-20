@@ -45,7 +45,7 @@ type Store interface {
 	PushProvenance(ctx context.Context, indexID string, lockedTime time.Time, provenance Provenance) error
 
 	GetTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]Token, error)
-	GetTokensByIndexID(ctx context.Context, indexID string) (*Token, error)
+	GetTokenByIndexID(ctx context.Context, indexID string) (*Token, error)
 	GetOutdatedTokensByOwner(ctx context.Context, owner string) ([]Token, error)
 	GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error)
 
@@ -92,6 +92,7 @@ type Store interface {
 	GetOwnerAccountsByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
 
 	CheckAddressOwnTokenByCriteria(ctx context.Context, address string, criteria Criteria) (bool, error)
+	GetOwnersByBlockchainContracts(context.Context, map[string][]string) ([]string, error)
 }
 
 type FilterParameter struct {
@@ -1569,7 +1570,7 @@ func (s *MongodbIndexerStore) UpdateOwnerForFungibleToken(ctx context.Context, i
 	return nil
 }
 
-func (s *MongodbIndexerStore) GetTokensByIndexID(ctx context.Context, indexID string) (*Token, error) {
+func (s *MongodbIndexerStore) GetTokenByIndexID(ctx context.Context, indexID string) (*Token, error) {
 	tokens, err := s.GetTokensByIndexIDs(ctx, []string{indexID})
 	if err != nil {
 		return nil, err
@@ -2111,4 +2112,44 @@ func (s *MongodbIndexerStore) checkAddressOwnTokenInSource(ctx context.Context, 
 	}
 
 	return true, nil
+}
+// GetOwnersByBlockchainContracts returns owners by blockchain and contract
+func (s *MongodbIndexerStore) GetOwnersByBlockchainContracts(ctx context.Context, blockchainContracts map[string][]string) ([]string, error) {
+	var or []bson.M
+
+	for k, v := range blockchainContracts {
+		or = append(or, bson.M{
+			"blockchain":      bson.M{"$eq": k},
+			"contractAddress": bson.M{"$in": v},
+		})
+	}
+
+	filter := bson.M{"$or": or}
+
+	cursor, err := s.accountTokenCollection.Find(
+		ctx,
+		filter,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var owners []string
+	temp := make(map[string]interface{})
+
+	for cursor.Next(ctx) {
+		var accountToken AccountToken
+
+		if err := cursor.Decode(&accountToken); err != nil {
+			return nil, err
+		}
+
+		_, ok := temp[accountToken.OwnerAccount]
+		if !ok {
+			temp[accountToken.OwnerAccount] = nil
+			owners = append(owners, accountToken.OwnerAccount)
+		}
+	}
+
+	return owners, nil
 }

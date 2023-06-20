@@ -9,9 +9,26 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bitmark-inc/nft-indexer"
+	indexer "github.com/bitmark-inc/nft-indexer"
+	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/services/nft-indexer/graph/model"
 )
+
+// IndexHistory is the resolver for the indexHistory field.
+func (r *mutationResolver) IndexHistory(ctx context.Context, indexID string) (bool, error) {
+	token, err := r.indexerStore.GetTokenByIndexID(ctx, indexID)
+	if err != nil {
+		return false, err
+	}
+
+	if token.Fungible {
+		indexerWorker.StartRefreshTokenOwnershipWorkflow(ctx, r.cadenceWorker, "indexer", indexID, 0)
+	} else {
+		indexerWorker.StartRefreshTokenProvenanceWorkflow(ctx, r.cadenceWorker, "indexer", indexID, 0)
+	}
+
+	return true, nil
+}
 
 // Tokens is the resolver for the tokens field.
 func (r *queryResolver) Tokens(ctx context.Context, owners []string, ids []string, source string, lastUpdatedAt *time.Time, sortBy *string, offset int64, size int64) ([]*model.Token, error) {
@@ -74,7 +91,11 @@ func (r *queryResolver) Identity(ctx context.Context, account string) (*model.Id
 	return r.mapGraphQLIdentity(identity), nil
 }
 
+// Mutation returns MutationResolver implementation.
+func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
+
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

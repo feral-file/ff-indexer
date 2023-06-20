@@ -61,7 +61,7 @@ func (i *IndexerServer) Run(context.Context) error {
 
 // GetTokenByIndexID returns a token by index ID
 func (i *IndexerServer) GetTokenByIndexID(ctx context.Context, indexID *pb.IndexID) (*pb.Token, error) {
-	token, err := i.indexerStore.GetTokensByIndexID(ctx, indexID.IndexID)
+	token, err := i.indexerStore.GetTokenByIndexID(ctx, indexID.IndexID)
 	if err != nil {
 		return nil, err
 	}
@@ -214,4 +214,20 @@ func (i *IndexerServer) CheckAddressOwnTokenByCriteria(ctx context.Context, requ
 	}
 
 	return &pb.CheckAddressOwnTokenByCriteriaResponse{Result: result}, nil
+}
+
+// GetOwnersByBlockchainsAndContracts returns owners by blockchains and contracts
+func (i *IndexerServer) GetOwnersByBlockchainContracts(ctx context.Context, request *pb.GetOwnersByBlockchainContractsRequest) (*pb.Addresses, error) {
+	blockchainContract := make(map[string][]string)
+
+	for k, v := range request.BlockchainContracts {
+		blockchainContract[k] = v.Addresses
+	}
+
+	owners, err := i.indexerStore.GetOwnersByBlockchainContracts(ctx, blockchainContract)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.Addresses{Addresses: owners}, nil
 }

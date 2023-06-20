@@ -240,6 +240,35 @@ func (s *NFTIndexerServer) IndexOneNFT(c *gin.Context) {
 	}
 }
 
+func (s *NFTIndexerServer) IndexHistory(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "IndexHistory")
+
+	var reqParams struct {
+		IndexID string `json:"indexID" binding:"required"`
+	}
+
+	if err := c.Bind(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	token, err := s.indexerStore.GetTokenByIndexID(c, reqParams.IndexID)
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "failed to get token", err)
+		return
+	}
+
+	if token.Fungible {
+		indexerWorker.StartRefreshTokenOwnershipWorkflow(c, s.cadenceWorker, "indexer", reqParams.IndexID, 0)
+	} else {
+		indexerWorker.StartRefreshTokenProvenanceWorkflow(c, s.cadenceWorker, "indexer", reqParams.IndexID, 0)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok": 1,
+	})
+}
+
 func (s *NFTIndexerServer) SetTokenPendingV1(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "TokenPending")
 

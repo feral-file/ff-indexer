@@ -25,9 +25,8 @@ data:
     sentry:
       dsn:
 
-    indexer_store:
-      db_uri:
-      db_name:
+    indexer_grpc:
+      endpoint: {{ .Values.serviceConfig.indexer_grpc.endpoint }}
 
     cadence:
       host_port: {{ .Values.serviceConfig.cadence_hostport }}
