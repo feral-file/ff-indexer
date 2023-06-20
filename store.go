@@ -6,14 +6,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/fatih/structs"
+	"github.com/meirf/gopart"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
-
-	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 const (
@@ -90,12 +90,19 @@ type Store interface {
 	GetNullProvenanceTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
 
 	GetOwnerAccountsByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
+
+	CheckAddressOwnTokenByCriteria(ctx context.Context, address string, criteria Criteria) (bool, error)
 	GetOwnersByBlockchainContracts(context.Context, map[string][]string) ([]string, error)
 }
 
 type FilterParameter struct {
 	Source string
 	IDs    []string
+}
+
+type Criteria struct {
+	IndexID string `bson:"indexID"`
+	Source  string `bson:"source"`
 }
 
 type OwnerBalance struct {
@@ -2062,6 +2069,95 @@ func (s *MongodbIndexerStore) GetOwnerAccountsByIndexIDs(ctx context.Context, in
 	}
 
 	return owners, nil
+}
+
+// CheckAddressOwnTokenByCriteria returns true if address owns token
+func (s *MongodbIndexerStore) CheckAddressOwnTokenByCriteria(ctx context.Context, address string, criteria Criteria) (bool, error) {
+	if criteria.IndexID != "" {
+		return s.checkAddressOwnTokenHasIndexID(ctx, address, criteria.IndexID)
+	}
+
+	if criteria.Source != "" {
+		return s.checkAddressOwnTokenInSource(ctx, address, criteria.Source)
+	}
+
+	return false, nil
+}
+
+// checkAddressOwnTokenHasIndexID returns true if address owns token
+func (s *MongodbIndexerStore) checkAddressOwnTokenHasIndexID(ctx context.Context, address string, indexID string) (bool, error) {
+	var accountToken AccountToken
+
+	if err := s.accountTokenCollection.FindOne(ctx, bson.M{
+		"ownerAccount": address,
+		"indexID":      indexID,
+		"balance": bson.M{
+			"$gt": 0,
+		},
+	}).Decode(&accountToken); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	return true, nil
+}
+
+// checkAddressOwnTokenInSource returns true if address owns token in source
+func (s *MongodbIndexerStore) checkAddressOwnTokenInSource(ctx context.Context, address string, source string) (bool, error) {
+	var indexIDs []string
+
+	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{
+		"ownerAccount": address,
+		"balance": bson.M{
+			"$gt": 0,
+		},
+	})
+	if err != nil {
+		return false, err
+	}
+
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		t := AccountToken{}
+
+		if err := cursor.Decode(&t); err != nil {
+			return false, err
+		}
+
+		indexIDs = append(indexIDs, t.IndexID)
+	}
+
+	if len(indexIDs) == 0 {
+		return false, nil
+	}
+
+	// check if any token has source
+	for idxRange := range gopart.Partition(len(indexIDs), 25) {
+		var token Token
+
+		err = s.tokenCollection.FindOne(ctx, bson.M{
+			"indexID": bson.M{
+				"$in": indexIDs[idxRange.Low:idxRange.High],
+			},
+			"source": source,
+		}).Decode(&token)
+
+		if err != nil {
+			if err == mongo.ErrNoDocuments {
+				continue
+			}
+
+			return false, err
+		}
+
+		return true, nil
+	}
+
+	return false, nil
 }
 
 // GetOwnersByBlockchainContracts returns owners by blockchain and contract
