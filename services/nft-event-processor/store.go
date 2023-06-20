@@ -54,37 +54,24 @@ func (ArchivedNFTEvent) TableName() string {
 
 // NFTEvent is the model for token events
 type NFTEvent struct {
-	ID         string    `gorm:"primaryKey;size:255;default:uuid_generate_v4()"`
-	Type       string    `gorm:"index:idx_event,unique"`
-	Blockchain string    `gorm:"index:idx_event,unique"`
-	Contract   string    `gorm:"index:idx_event,unique"`
-	TokenID    string    `gorm:"index:idx_event,unique"`
-	From       string    `gorm:"index:idx_event,unique"`
-	To         string    `gorm:"index:idx_event,unique"`
-	TXID       string    `gorm:"index:idx_event,unique"`
-	TXIndex    uint      `gorm:"index:idx_event,unique"`
-	TXTime     time.Time `gorm:"index:idx_event,unique"`
-	Stage      string    `gorm:"index"`
-	CreatedAt  time.Time `gorm:"default:now()"`
-	UpdatedAt  time.Time `gorm:"default:now()"`
+	ID         string      `gorm:"primaryKey;size:255;default:uuid_generate_v4()"`
+	Type       string      `gorm:"index:idx_event,unique"`
+	Blockchain string      `gorm:"index:idx_event,unique"`
+	Contract   string      `gorm:"index:idx_event,unique"`
+	TokenID    string      `gorm:"index:idx_event,unique"`
+	From       string      `gorm:"index:idx_event,unique"`
+	To         string      `gorm:"index:idx_event,unique"`
+	TXID       string      `gorm:"index:idx_event,unique"`
+	TXIndex    uint        `gorm:"index:idx_event,unique"`
+	TXTime     time.Time   `gorm:"index:idx_event,unique"`
+	Stage      string      `gorm:"index"`
+	Status     EventStatus `gorm:"index"`
+	CreatedAt  time.Time   `gorm:"default:now()"`
+	UpdatedAt  time.Time   `gorm:"default:now()"`
 }
 
 func (NFTEvent) TableName() string {
 	return "new_nft_events"
-}
-
-func (e *NFTEvent) toProcessedNFTEvent(status EventStatus) ArchivedNFTEvent {
-	return ArchivedNFTEvent{
-		Type:       e.Type,
-		Blockchain: e.Blockchain,
-		Contract:   e.Contract,
-		TokenID:    e.TokenID,
-		From:       e.From,
-		To:         e.To,
-		TXID:       e.TXID,
-		TXTime:     e.TXTime,
-		Status:     status,
-	}
 }
 
 // EventTx is an transaction object with event values
@@ -94,10 +81,14 @@ type EventTx struct {
 }
 
 // UpdateEvent updates events by given stage or status
-func (tx *EventTx) UpdateEvent(stage string) error {
+func (tx *EventTx) UpdateEvent(stage, status string) error {
 	updates := map[string]interface{}{}
 	if stage != "" {
 		updates["stage"] = stage
+	}
+
+	if status != "" {
+		updates["status"] = status
 	}
 
 	if len(updates) == 0 {
@@ -109,7 +100,27 @@ func (tx *EventTx) UpdateEvent(stage string) error {
 
 // DeleteEvent delete the event by the id
 func (tx *EventTx) ArchiveNFTEvent() error {
-	return tx.DB.Where("id = ?", tx.Event.ID).Delete(&NFTEvent{}).Error
+	archivedEvent := ArchivedNFTEvent{
+		Type:       tx.Event.Type,
+		Blockchain: tx.Event.Blockchain,
+		Contract:   tx.Event.Contract,
+		TokenID:    tx.Event.TokenID,
+		From:       tx.Event.From,
+		To:         tx.Event.To,
+		TXID:       tx.Event.TXID,
+		TXTime:     tx.Event.TXTime,
+		Status:     EventStatusProcessed,
+	}
+
+	if err := tx.DB.Save(&archivedEvent).Error; err != nil {
+		return err
+	}
+
+	if err := tx.DB.Where("id = ?", tx.Event.ID).Delete(&NFTEvent{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func NewEventTx(DB *gorm.DB, event NFTEvent) *EventTx {
@@ -122,7 +133,6 @@ func NewEventTx(DB *gorm.DB, event NFTEvent) *EventTx {
 type EventStore interface {
 	CreateEvent(event NFTEvent) error
 	GetEventTransaction(ctx context.Context, filters ...FilterOption) (*EventTx, error)
-	SaveProcessedEvent(event ArchivedNFTEvent) error
 }
 
 type PostgresEventStore struct {
@@ -194,11 +204,6 @@ func (s *PostgresEventStore) GetEventTransaction(ctx context.Context, filters ..
 	}
 
 	return NewEventTx(tx, event), nil
-}
-
-// SaveProcessedEvent add a processed event into event store.
-func (s *PostgresEventStore) SaveProcessedEvent(event ArchivedNFTEvent) error {
-	return s.db.Save(&event).Error
 }
 
 // AutoMigrate is a help function that update db when the schema changed.

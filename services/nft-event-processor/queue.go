@@ -22,7 +22,3 @@ func (q *EventQueue) PushEvent(event NFTEvent) error {
 func (q *EventQueue) GetEventTransaction(ctx context.Context, filters ...FilterOption) (*EventTx, error) {
 	return q.store.GetEventTransaction(ctx, filters...)
 }
-
-func (q *EventQueue) SaveProcessedEvent(event ArchivedNFTEvent) error {
-	return q.store.SaveProcessedEvent(event)
-}
