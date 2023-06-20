@@ -92,8 +92,7 @@ func (e *EthereumEventsEmitter) FetchLogsFromLastStopBlock(ctx context.Context, 
 		}
 
 		for _, log := range logs {
-			e.ethLogChan <- log
-			time.Sleep(100 * time.Millisecond)
+			e.processETHLog(ctx, log)
 		}
 	}
 }
@@ -107,59 +106,63 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 		if err != nil {
 			log.Error("failed to parse last stop block: ", zap.Error(err), log.SourceETHClient)
 		} else {
-			go e.FetchLogsFromLastStopBlock(ctx, fromBlock)
+			e.FetchLogsFromLastStopBlock(ctx, fromBlock)
 		}
 	}
 
 	go e.Watch(ctx)
 
 	for eLog := range e.ethLogChan {
-		paringStartTime := time.Now()
-		log.Debug("start processing ethereum log",
-			zap.Any("txHash", eLog.TxHash),
-			zap.Uint("logIndex", eLog.Index),
-			zap.Time("time", paringStartTime))
+		e.processETHLog(ctx, eLog)
+	}
+}
 
-		if topicLen := len(eLog.Topics); topicLen == 4 {
+func (e *EthereumEventsEmitter) processETHLog(ctx context.Context, eLog types.Log) {
+	paringStartTime := time.Now()
+	log.Debug("start processing ethereum log",
+		zap.Any("txHash", eLog.TxHash),
+		zap.Uint("logIndex", eLog.Index),
+		zap.Time("time", paringStartTime))
 
-			fromAddress := indexer.EthereumChecksumAddress(eLog.Topics[1].Hex())
-			toAddress := indexer.EthereumChecksumAddress(eLog.Topics[2].Hex())
-			contractAddress := indexer.EthereumChecksumAddress(eLog.Address.String())
-			tokenIDHash := eLog.Topics[3]
+	if topicLen := len(eLog.Topics); topicLen == 4 {
 
-			txTime, err := indexer.GetETHBlockTime(ctx, e.wsClient, eLog.BlockHash)
-			if err != nil {
-				log.Error("fail to get the block time", zap.Error(err), log.SourceGRPC)
-				continue
-			}
+		fromAddress := indexer.EthereumChecksumAddress(eLog.Topics[1].Hex())
+		toAddress := indexer.EthereumChecksumAddress(eLog.Topics[2].Hex())
+		contractAddress := indexer.EthereumChecksumAddress(eLog.Address.String())
+		tokenIDHash := eLog.Topics[3]
 
-			log.Debug("receive transfer event on ethereum",
-				zap.String("from", fromAddress),
-				zap.String("to", toAddress),
-				zap.String("contractAddress", contractAddress),
-				zap.String("tokenIDHash", tokenIDHash.Hex()),
-				zap.String("txID", eLog.TxHash.Hex()),
-				zap.Uint("txIndex", eLog.TxIndex),
-				zap.String("txTime", txTime.String()),
-			)
-
-			eventType := "transfer"
-			if fromAddress == indexer.EthereumZeroAddress {
-				eventType = "mint"
-			} else if toAddress == indexer.EthereumZeroAddress {
-				eventType = "burned"
-			}
-
-			if err := e.PushEvent(ctx, eventType, fromAddress, toAddress, contractAddress, indexer.EthereumBlockchain, tokenIDHash.Big().Text(10), eLog.TxHash.Hex(), eLog.TxIndex, txTime); err != nil {
-				log.Error("gRPC request failed", zap.Error(err), log.SourceGRPC)
-				continue
-			}
+		txTime, err := indexer.GetETHBlockTime(ctx, e.wsClient, eLog.BlockHash)
+		if err != nil {
+			log.Error("fail to get the block time", zap.Error(err), log.SourceGRPC)
+			return
 		}
 
-		if err := e.parameterStore.Put(ctx, e.lastBlockKeyName, strconv.FormatUint(eLog.BlockNumber, 10)); err != nil {
-			log.Error("error put parameterStore", zap.Error(err), log.SourceGRPC)
-			continue
+		log.Debug("receive transfer event on ethereum",
+			zap.String("from", fromAddress),
+			zap.String("to", toAddress),
+			zap.String("contractAddress", contractAddress),
+			zap.String("tokenIDHash", tokenIDHash.Hex()),
+			zap.String("txID", eLog.TxHash.Hex()),
+			zap.Uint("txIndex", eLog.TxIndex),
+			zap.String("txTime", txTime.String()),
+		)
+
+		eventType := "transfer"
+		if fromAddress == indexer.EthereumZeroAddress {
+			eventType = "mint"
+		} else if toAddress == indexer.EthereumZeroAddress {
+			eventType = "burned"
 		}
+
+		if err := e.PushEvent(ctx, eventType, fromAddress, toAddress, contractAddress, indexer.EthereumBlockchain, tokenIDHash.Big().Text(10), eLog.TxHash.Hex(), eLog.TxIndex, txTime); err != nil {
+			log.Error("gRPC request failed", zap.Error(err), log.SourceGRPC)
+			return
+		}
+	}
+
+	if err := e.parameterStore.Put(ctx, e.lastBlockKeyName, strconv.FormatUint(eLog.BlockNumber, 10)); err != nil {
+		log.Error("error put parameterStore", zap.Error(err), log.SourceGRPC)
+		return
 	}
 }
 
