@@ -21,6 +21,10 @@ func (r *mutationResolver) IndexHistory(ctx context.Context, indexID string) (bo
 		return false, err
 	}
 
+	if token == nil {
+		return false, fmt.Errorf("token does not exist")
+	}
+
 	if token.Fungible {
 		indexerWorker.StartRefreshTokenOwnershipWorkflow(ctx, r.cadenceWorker, "indexer", indexID, 0)
 	} else {
