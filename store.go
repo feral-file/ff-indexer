@@ -6,14 +6,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/fatih/structs"
+	"github.com/meirf/gopart"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
-
-	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 const (
@@ -2056,6 +2056,9 @@ func (s *MongodbIndexerStore) checkAddressOwnTokenHasIndexID(ctx context.Context
 	if err := s.accountTokenCollection.FindOne(ctx, bson.M{
 		"ownerAccount": address,
 		"indexID":      indexID,
+		"balance": bson.M{
+			"$gt": 0,
+		},
 	}).Decode(&accountToken); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return false, nil
@@ -2073,6 +2076,9 @@ func (s *MongodbIndexerStore) checkAddressOwnTokenInSource(ctx context.Context, 
 
 	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{
 		"ownerAccount": address,
+		"balance": bson.M{
+			"$gt": 0,
+		},
 	})
 	if err != nil {
 		return false, err
@@ -2095,24 +2101,30 @@ func (s *MongodbIndexerStore) checkAddressOwnTokenInSource(ctx context.Context, 
 	}
 
 	// check if any token has source
-	var token Token
-	err = s.tokenCollection.FindOne(ctx, bson.M{
-		"indexID": bson.M{
-			"$in": indexIDs,
-		},
-		"source": source,
-	}).Decode(&token)
+	for idxRange := range gopart.Partition(len(indexIDs), 25) {
+		var token Token
 
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return false, nil
+		err = s.tokenCollection.FindOne(ctx, bson.M{
+			"indexID": bson.M{
+				"$in": indexIDs[idxRange.Low:idxRange.High],
+			},
+			"source": source,
+		}).Decode(&token)
+
+		if err != nil {
+			if err == mongo.ErrNoDocuments {
+				continue
+			}
+
+			return false, err
 		}
 
-		return false, err
+		return true, nil
 	}
 
-	return true, nil
+	return false, nil
 }
+
 // GetOwnersByBlockchainContracts returns owners by blockchain and contract
 func (s *MongodbIndexerStore) GetOwnersByBlockchainContracts(ctx context.Context, blockchainContracts map[string][]string) ([]string, error) {
 	var or []bson.M
