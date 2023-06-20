@@ -136,3 +136,19 @@ func (i *IndexerGRPCClient) GetOwnersByBlockchainContracts(ctx context.Context, 
 
 	return addresses.Addresses, nil
 }
+
+// CheckAddressOwnTokenByCriteria checks if an address owns a token by criteria
+func (i *IndexerGRPCClient) CheckAddressOwnTokenByCriteria(ctx context.Context, address string, criteria indexer.Criteria) (bool, error) {
+	res, err := i.client.CheckAddressOwnTokenByCriteria(ctx, &pb.CheckAddressOwnTokenByCriteriaRequest{
+		Address: address,
+		Criteria: &pb.Criteria{
+			Source:  criteria.Source,
+			IndexID: criteria.IndexID,
+		},
+	})
+	if err != nil {
+		return false, err
+	}
+
+	return res.Result, nil
+}
