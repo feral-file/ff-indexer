@@ -116,11 +116,7 @@ func (tx *EventTx) ArchiveNFTEvent() error {
 		return err
 	}
 
-	if err := tx.DB.Where("id = ?", tx.Event.ID).Delete(&NFTEvent{}).Error; err != nil {
-		return err
-	}
-
-	return nil
+	return tx.DB.Where("id = ?", tx.Event.ID).Delete(&NFTEvent{}).Error
 }
 
 func NewEventTx(DB *gorm.DB, event NFTEvent) *EventTx {
