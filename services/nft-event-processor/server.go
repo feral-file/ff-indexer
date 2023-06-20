@@ -111,7 +111,7 @@ func (e *EventProcessor) StartWorker(ctx context.Context, currentStage, nextStag
 				if err := processor(ctx, eventTx.Event); err != nil {
 					log.Error("stage processing failed", zap.Error(err))
 					if err := eventTx.UpdateEvent("", string(EventStatusFailed)); err != nil {
-						log.Error("fail to delete event", zap.Error(err))
+						log.Error("fail to update event", zap.Error(err))
 						eventTx.Rollback()
 					}
 				}
@@ -119,7 +119,7 @@ func (e *EventProcessor) StartWorker(ctx context.Context, currentStage, nextStag
 				// stage starts from 1. stage zero means there is no next stage.
 				if nextStage == 0 {
 					if err := eventTx.ArchiveNFTEvent(); err != nil {
-						log.Error("fail to delete event", zap.Error(err))
+						log.Error("fail to archive event", zap.Error(err))
 						eventTx.Rollback()
 					}
 				} else {
