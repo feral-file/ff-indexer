@@ -1808,9 +1808,12 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 	page := 0
 	for {
 		queryOffset := int64(page * QueryPageSize)
-		// will need to do manually offset for source since data was filtered
+		expectedSize := size
+		// need to do manually offset for source since data was filtered
 		if filterParameter.Source == "" {
 			queryOffset = offset + queryOffset
+		} else {
+			expectedSize = offset + expectedSize
 		}
 
 		findOptions.SetSkip(queryOffset)
@@ -1846,14 +1849,8 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 
 		detailTokens = append(detailTokens, tokens...)
 
-		if filterParameter.Source == "" {
-			if len(detailTokens) >= int(size) {
-				break
-			}
-		} else {
-			if len(detailTokens) >= int(size+offset) {
-				break
-			}
+		if len(detailTokens) >= int(expectedSize) {
+			break
 		}
 
 		page++
