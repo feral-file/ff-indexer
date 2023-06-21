@@ -5,8 +5,6 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	"go.uber.org/cadence"
-	cadenceClient "go.uber.org/cadence/client"
 	"go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
 
@@ -15,40 +13,29 @@ import (
 
 const TokenRefreshingDelay = 7 * time.Minute
 
-// triggerIndexOutdatedTokenWorkflow triggers two workflows for checking both ownership and provenance
-// func (w *NFTIndexerWorker) triggerIndexOutdatedTokenWorkflow(ctx workflow.Context, owner string, ownedFungibleToken, ownedNonFungibleToken []string) {
-// 	log := workflow.GetLogger(ctx)
-
-// 	if len(ownedFungibleToken) > 0 {
-// 		log.Debug("Start child workflow to check existence token ownership", zap.String("owner", owner))
-// 		cwoOwnership := workflow.ChildWorkflowOptions{
-// 			TaskList:                     ProvenanceTaskListName,
-// 			WorkflowID:                   WorkflowIDIndexTokenOwnershipByOwner(owner),
-// 			WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-// 			ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-// 			ExecutionStartToCloseTimeout: time.Hour,
-// 		}
-// 		_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoOwnership),
-// 			w.RefreshTokenOwnershipWorkflow, ownedFungibleToken, TokenRefreshingDelay)
-// 	}
-
-// 	if len(ownedNonFungibleToken) > 0 {
-// 		log.Debug("Start child workflow to check existence token provenance", zap.String("owner", owner))
-// 		cwoProvenance := workflow.ChildWorkflowOptions{
-// 			TaskList:                     ProvenanceTaskListName,
-// 			WorkflowID:                   WorkflowIDIndexTokenProvenanceByOwner(owner),
-// 			WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-// 			ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-// 			ExecutionStartToCloseTimeout: time.Hour,
-// 		}
-// 		_ = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoProvenance),
-// 			w.RefreshTokenProvenanceWorkflow, ownedNonFungibleToken, TokenRefreshingDelay)
-// 	}
-// }
-
-// IndexOpenseaTokenWorkflow is a workflow to summarize NFT data from OpenSea and save it to the storage.
-func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, tokenOwner string) error {
+// refreshTokenProvenanceByOwnerDetachedWorkflow creates a detached workflow to trigger token provenance check
+func (w *NFTIndexerWorker) refreshTokenProvenanceByOwnerDetachedWorkflow(ctx workflow.Context, caller, owner string) {
 	log := workflow.GetLogger(ctx)
+
+	cwo := ContextDetachedChildWorkflow(ctx, WorkflowIDRefreshTokenProvenanceByOwner(caller, owner), ProvenanceTaskListName)
+
+	var cw workflow.Execution
+	if err := workflow.
+		ExecuteChildWorkflow(cwo, w.RefreshTokenProvenanceByOwnerWorkflow, owner).
+		GetChildWorkflowExecution().Get(ctx, cw); err != nil {
+		log.Error("fail to start workflow RefreshTokenProvenanceByOwnerWorkflow", zap.Error(err), zap.String("owner", owner))
+	}
+	log.Info("workflow RefreshTokenProvenanceByOwnerWorkflow started", zap.String("workflow_id", cw.ID), zap.String("owner", owner))
+}
+
+// IndexETHTokenWorkflow is a workflow to index and summarize ETH tokens for a owner.
+// The data now comes from OpenSea.
+func (w *NFTIndexerWorker) IndexETHTokenWorkflow(ctx workflow.Context, tokenOwner string, includeHistory bool) error {
+	log := workflow.GetLogger(ctx)
+
+	if includeHistory {
+		defer w.refreshTokenProvenanceByOwnerDetachedWorkflow(ctx, "nft-indexer-background", tokenOwner)
+	}
 
 	ethTokenOwner := indexer.EthereumChecksumAddress(tokenOwner)
 	if ethTokenOwner == indexer.EthereumZeroAddress {
@@ -58,33 +45,11 @@ func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, token
 		return err
 	}
 
-	// {
-	// 	ctx = ContextNoRetryActivity(ctx)
-	// 	var outdatedTokens []indexer.Token
-	// 	if err := workflow.ExecuteActivity(ctx, w.GetOutdatedTokensByOwner, ethTokenOwner).Get(ctx, &outdatedTokens); err != nil {
-	// 		sentry.CaptureException(err)
-	// 		return err
-	// 	}
-
-	// 	log.Debug("Classify outdated tokens for owner", zap.Any("tokens", outdatedTokens), zap.String("owner", ethTokenOwner))
-	// 	ownedFungibleToken := []string{}
-	// 	ownedNonFungibleToken := []string{}
-	// 	for _, t := range outdatedTokens {
-	// 		if t.Fungible {
-	// 			ownedFungibleToken = append(ownedFungibleToken, t.IndexID)
-	// 		} else {
-	// 			ownedNonFungibleToken = append(ownedNonFungibleToken, t.IndexID)
-	// 		}
-	// 	}
-	// 	log.Info("Start workflows to check existence token ownership and provenance", zap.String("owner", ethTokenOwner))
-	// 	w.triggerIndexOutdatedTokenWorkflow(ctx, ethTokenOwner, ownedFungibleToken, ownedNonFungibleToken)
-	// }
-
 	var offset = 0
 	for {
 		var updateCounts int
 
-		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx), w.IndexETHTokenByOwner, ethTokenOwner, offset).Get(ctx, &updateCounts); err != nil {
+		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx, ""), w.IndexETHTokenByOwner, ethTokenOwner, offset).Get(ctx, &updateCounts); err != nil {
 			sentry.CaptureException(err)
 			return err
 		}
@@ -101,36 +66,19 @@ func (w *NFTIndexerWorker) IndexOpenseaTokenWorkflow(ctx workflow.Context, token
 	return nil
 }
 
-func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOwner string) error {
+// IndexTezosTokenWorkflow is a workflow to index and summarized Tezos tokens for a owner
+func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOwner string, includeHistory bool) error {
 	log := workflow.GetLogger(ctx)
 
-	// {
-	// 	ctx = ContextNoRetryActivity(ctx)
-	// 	var outdatedTokens []indexer.Token
-	// 	if err := workflow.ExecuteActivity(ctx, w.GetOutdatedTokensByOwner, tokenOwner).Get(ctx, &outdatedTokens); err != nil {
-	// 		sentry.CaptureException(err)
-	// 		return err
-	// 	}
-
-	// 	log.Debug("Classify outdated tokens for owner", zap.Any("tokens", outdatedTokens), zap.String("owner", tokenOwner))
-	// 	ownedFungibleToken := []string{}
-	// 	ownedNonFungibleToken := []string{}
-	// 	for _, t := range outdatedTokens {
-	// 		if t.Fungible {
-	// 			ownedFungibleToken = append(ownedFungibleToken, t.IndexID)
-	// 		} else {
-	// 			ownedNonFungibleToken = append(ownedNonFungibleToken, t.IndexID)
-	// 		}
-	// 	}
-	// 	log.Info("Start workflows to check existence token ownership and provenance", zap.String("owner", tokenOwner))
-	// 	w.triggerIndexOutdatedTokenWorkflow(ctx, tokenOwner, ownedFungibleToken, ownedNonFungibleToken)
-	// }
+	if includeHistory {
+		defer w.refreshTokenProvenanceByOwnerDetachedWorkflow(ctx, "nft-indexer-background", tokenOwner)
+	}
 
 	var isFirstPage = true
 	for {
 		var shouldContinue bool
 
-		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx), w.IndexTezosTokenByOwner, tokenOwner, isFirstPage).Get(ctx, &shouldContinue); err != nil {
+		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx, ""), w.IndexTezosTokenByOwner, tokenOwner, isFirstPage).Get(ctx, &shouldContinue); err != nil {
 			sentry.CaptureException(err)
 			return err
 		}
@@ -201,29 +149,21 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 	if indexProvenance {
 		if update.Tokens[0].Fungible {
 			log.Debug("Start child workflow to update token ownership", zap.String("owner", owner), zap.String("indexID: ", update.Tokens[0].IndexID))
-			cwoOwnership := workflow.ChildWorkflowOptions{
-				TaskList:                     ProvenanceTaskListName,
-				WorkflowID:                   WorkflowIDIndexTokenOwnershipByOwner(owner),
-				WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-				ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-				ExecutionStartToCloseTimeout: time.Hour,
-			}
-			if err := workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoOwnership),
-				w.RefreshTokenOwnershipWorkflow, []string{update.Tokens[0].IndexID}, 0).Get(ctx, nil); err != nil {
+
+			if err := workflow.ExecuteChildWorkflow(
+				ContextNamedRegularChildWorkflow(ctx, WorkflowIDIndexTokenOwnershipByOwner(owner), ProvenanceTaskListName),
+				w.RefreshTokenOwnershipWorkflow, []string{update.Tokens[0].IndexID}, 0,
+			).Get(ctx, nil); err != nil {
 				sentry.CaptureException(err)
 				return err
 			}
 		} else {
 			log.Debug("Start child workflow to update token provenance", zap.String("owner", owner), zap.String("indexID: ", update.Tokens[0].IndexID))
-			cwoProvenance := workflow.ChildWorkflowOptions{
-				TaskList:                     ProvenanceTaskListName,
-				WorkflowID:                   WorkflowIDIndexTokenProvenanceByOwner(owner),
-				WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-				ParentClosePolicy:            cadenceClient.ParentClosePolicyAbandon,
-				ExecutionStartToCloseTimeout: time.Hour,
-			}
-			if err := workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, cwoProvenance),
-				w.RefreshTokenProvenanceWorkflow, []string{update.Tokens[0].IndexID}, 0).Get(ctx, nil); err != nil {
+
+			if err := workflow.ExecuteChildWorkflow(
+				ContextNamedRegularChildWorkflow(ctx, WorkflowIDIndexTokenProvenanceByOwner(owner), ProvenanceTaskListName),
+				w.RefreshTokenProvenanceWorkflow, []string{update.Tokens[0].IndexID}, 0,
+			).Get(ctx, nil); err != nil {
 				sentry.CaptureException(err)
 				return err
 			}
@@ -232,6 +172,46 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 
 	log.Info("token indexed", zap.String("owner", owner),
 		zap.String("contract", contract), zap.String("tokenID", tokenID))
+	return nil
+}
+
+// RefreshTokenProvenanceByOwnerWorkflow is a workflow to refresh provenance for a specific owner
+func (w *NFTIndexerWorker) RefreshTokenProvenanceByOwnerWorkflow(ctx workflow.Context, owner string) error {
+	log := workflow.GetLogger(ctx)
+
+	var ownedTokenIDs []string
+
+	if err := workflow.ExecuteActivity(
+		ContextRegularActivity(ctx, w.ProvenanceTaskListName),
+		w.GetOwnedTokenIDsByOwner, owner,
+	).Get(ctx, &ownedTokenIDs); err != nil {
+		log.Error("fail to refresh provenance for indexIDs", zap.Error(err), zap.String("owner", owner))
+	}
+
+	if err := workflow.ExecuteActivity(
+		ContextRegularActivity(ctx, w.ProvenanceTaskListName),
+		w.FilterTokenIDsWithInconsistentProvenanceForOwner, ownedTokenIDs, owner,
+	).Get(ctx, &ownedTokenIDs); err != nil {
+		log.Error("fail to refresh provenance for indexIDs", zap.Error(err), zap.String("owner", owner))
+	}
+
+	batchIndexingTokens := 25
+
+	for i := 0; i < len(ownedTokenIDs); i += batchIndexingTokens {
+		endIndex := i + batchIndexingTokens
+		if endIndex > len(ownedTokenIDs) {
+			endIndex = len(ownedTokenIDs)
+		}
+
+		if err := workflow.ExecuteChildWorkflow(
+			ContextSlowChildWorkflow(ctx, ProvenanceTaskListName),
+			w.RefreshTokenProvenanceWorkflow, ownedTokenIDs[i:endIndex], 0,
+		).Get(ctx, nil); err != nil {
+			log.Error("fail to refresh provenance for indexIDs", zap.Error(err), zap.String("owner", owner))
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -367,20 +347,10 @@ func (w *NFTIndexerWorker) PendingTxFollowUpWorkflow(ctx workflow.Context, delay
 		if hasNewTx {
 			var err error
 
-			cwo := workflow.WithChildOptions(ctx, workflow.ChildWorkflowOptions{
-				TaskList:                     ProvenanceTaskListName,
-				ExecutionStartToCloseTimeout: 10 * time.Minute,
-				RetryPolicy: &cadence.RetryPolicy{
-					InitialInterval:    10 * time.Second,
-					BackoffCoefficient: 1.0,
-					MaximumAttempts:    60,
-				},
-			})
-
 			if a.Fungible {
-				err = workflow.ExecuteChildWorkflow(cwo, w.RefreshTokenOwnershipWorkflow, []string{a.IndexID}, delay).Get(ctx, nil)
+				err = workflow.ExecuteChildWorkflow(ContextRegularChildWorkflow(ctx, ProvenanceTaskListName), w.RefreshTokenOwnershipWorkflow, []string{a.IndexID}, delay).Get(ctx, nil)
 			} else {
-				err = workflow.ExecuteChildWorkflow(cwo, w.RefreshTokenProvenanceWorkflow, []string{a.IndexID}, delay).Get(ctx, nil)
+				err = workflow.ExecuteChildWorkflow(ContextRegularChildWorkflow(ctx, ProvenanceTaskListName), w.RefreshTokenProvenanceWorkflow, []string{a.IndexID}, delay).Get(ctx, nil)
 			}
 
 			if err != nil {

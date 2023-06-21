@@ -43,9 +43,25 @@ func NewIndexerGRPCServer(
 	}, nil
 }
 
+// Run starts the IndexerServer
+func (i *IndexerServer) Run(context.Context) error {
+	listener, err := net.Listen(i.network, fmt.Sprintf("0.0.0.0:%d", i.port))
+	if err != nil {
+		return err
+	}
+
+	pb.RegisterIndexerServer(i.grpcServer, i)
+	err = i.grpcServer.Serve(listener)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GetTokenByIndexID returns a token by index ID
 func (i *IndexerServer) GetTokenByIndexID(ctx context.Context, indexID *pb.IndexID) (*pb.Token, error) {
-	token, err := i.indexerStore.GetTokensByIndexID(ctx, indexID.IndexID)
+	token, err := i.indexerStore.GetTokenByIndexID(ctx, indexID.IndexID)
 	if err != nil {
 		return nil, err
 	}
@@ -156,20 +172,17 @@ func (i *IndexerServer) GetOwnerAccountsByIndexIDs(ctx context.Context, indexIDs
 	return &pb.Addresses{Addresses: owners}, nil
 }
 
-// Run starts the IndexerServer
-func (i *IndexerServer) Run(context.Context) error {
-	listener, err := net.Listen(i.network, fmt.Sprintf("0.0.0.0:%d", i.port))
+// CheckAddressOwnTokenByCriteria checks if an address owns a token by criteria
+func (i *IndexerServer) CheckAddressOwnTokenByCriteria(ctx context.Context, request *pb.CheckAddressOwnTokenByCriteriaRequest) (*pb.CheckAddressOwnTokenByCriteriaResponse, error) {
+	result, err := i.indexerStore.CheckAddressOwnTokenByCriteria(ctx, request.Address, indexer.Criteria{
+		IndexID: request.Criteria.IndexID,
+		Source:  request.Criteria.Source,
+	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	pb.RegisterIndexerServer(i.grpcServer, i)
-	err = i.grpcServer.Serve(listener)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return &pb.CheckAddressOwnTokenByCriteriaResponse{Result: result}, nil
 }
 
 // GetOwnersByBlockchainsAndContracts returns owners by blockchains and contracts

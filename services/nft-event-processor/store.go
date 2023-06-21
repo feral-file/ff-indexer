@@ -2,12 +2,17 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgconn"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+
+	log "github.com/bitmark-inc/autonomy-logger"
 )
 
 type EventType string
@@ -27,8 +32,8 @@ const (
 	EventStatusFailed     EventStatus = "failed"
 )
 
-// NFTEvent is the model for token events
-type NFTEvent struct {
+// NFTEvent is the model for processed token events
+type ArchivedNFTEvent struct {
 	ID         string      `gorm:"primaryKey;size:255;default:uuid_generate_v4()"`
 	Type       string      `gorm:"index"`
 	Blockchain string      `gorm:"index"`
@@ -42,6 +47,32 @@ type NFTEvent struct {
 	Status     EventStatus `gorm:"index"`
 	CreatedAt  time.Time   `gorm:"default:now()"`
 	UpdatedAt  time.Time   `gorm:"default:now()"`
+}
+
+func (ArchivedNFTEvent) TableName() string {
+	return "nft_events"
+}
+
+// NFTEvent is the model for token events
+type NFTEvent struct {
+	ID         string      `gorm:"primaryKey;size:255;default:uuid_generate_v4()"`
+	Type       string      `gorm:"index:idx_event,unique"`
+	Blockchain string      `gorm:"index:idx_event,unique"`
+	Contract   string      `gorm:"index:idx_event,unique"`
+	TokenID    string      `gorm:"index:idx_event,unique"`
+	From       string      `gorm:"index:idx_event,unique"`
+	To         string      `gorm:"index:idx_event,unique"`
+	TXID       string      `gorm:"index:idx_event,unique"`
+	EventIndex uint        `gorm:"index:idx_event,unique"`
+	TXTime     time.Time   `gorm:"index:idx_event,unique"`
+	Stage      string      `gorm:"index"`
+	Status     EventStatus `gorm:"index"`
+	CreatedAt  time.Time   `gorm:"default:now()"`
+	UpdatedAt  time.Time   `gorm:"default:now()"`
+}
+
+func (NFTEvent) TableName() string {
+	return "new_nft_events"
 }
 
 // EventTx is an transaction object with event values
@@ -66,6 +97,27 @@ func (tx *EventTx) UpdateEvent(stage, status string) error {
 	}
 
 	return tx.DB.Model(&NFTEvent{}).Where("id = ?", tx.Event.ID).Updates(updates).Error
+}
+
+// DeleteEvent delete the event by the id
+func (tx *EventTx) ArchiveNFTEvent() error {
+	archivedEvent := ArchivedNFTEvent{
+		Type:       tx.Event.Type,
+		Blockchain: tx.Event.Blockchain,
+		Contract:   tx.Event.Contract,
+		TokenID:    tx.Event.TokenID,
+		From:       tx.Event.From,
+		To:         tx.Event.To,
+		TXID:       tx.Event.TXID,
+		TXTime:     tx.Event.TXTime,
+		Status:     EventStatusProcessed,
+	}
+
+	if err := tx.DB.Save(&archivedEvent).Error; err != nil {
+		return err
+	}
+
+	return tx.DB.Where("id = ?", tx.Event.ID).Delete(&NFTEvent{}).Error
 }
 
 func NewEventTx(DB *gorm.DB, event NFTEvent) *EventTx {
@@ -94,10 +146,19 @@ func NewPostgresEventStore(db *gorm.DB) *PostgresEventStore {
 	}
 }
 
-// TODO: Do dedup for duplicated events.
 // CreateEvent add a new event into event store.
 func (s *PostgresEventStore) CreateEvent(event NFTEvent) error {
-	return s.db.Save(&event).Error
+	err := s.db.Save(&event).Error
+
+	var pgError *pgconn.PgError
+	if err != nil && errors.As(err, &pgError) {
+		if pgError.Code == "23505" { // Unique violation error code
+			log.Warn("duplicated event", zap.Error(err))
+			return nil
+		}
+	}
+
+	return err
 }
 
 // FilterOption is an abstraction to help filtering events with

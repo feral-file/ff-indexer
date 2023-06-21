@@ -81,8 +81,12 @@ func main() {
 	// workflows
 	workflow.Register(worker.RefreshTokenProvenanceWorkflow)
 	workflow.Register(worker.RefreshTokenOwnershipWorkflow)
+	workflow.Register(worker.RefreshTokenProvenanceByOwnerWorkflow)
 
 	// activities
+
+	activity.Register(worker.GetOwnedTokenIDsByOwner)
+	activity.Register(worker.FilterTokenIDsWithInconsistentProvenanceForOwner)
 	activity.Register(worker.RefreshTokenProvenance)
 	activity.Register(worker.RefreshTokenOwnership)
 

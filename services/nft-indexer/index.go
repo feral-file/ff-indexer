@@ -62,7 +62,7 @@ type RequestedTokenFeedback struct {
 func (s *NFTIndexerServer) startIndexWorkflow(c context.Context, owner, blockchain string, workflowFunc interface{}) {
 	workflowContext := buildIndexNFTsContext(owner, blockchain)
 
-	workflow, err := s.cadenceWorker.StartWorkflow(c, indexerWorker.ClientName, workflowContext, workflowFunc, owner)
+	workflow, err := s.cadenceWorker.StartWorkflow(c, indexerWorker.ClientName, workflowContext, workflowFunc, owner, false)
 	if err != nil {
 		log.Error("fail to start indexing workflow", zap.Error(err), zap.String("owner", owner), zap.String("blockchain", blockchain))
 	} else {
@@ -133,12 +133,12 @@ func (s *NFTIndexerServer) IndexNFTs(c *gin.Context) {
 
 	switch req.Blockchain {
 	case "eth":
-		go s.startIndexWorkflow(c, owner, req.Blockchain, w.IndexOpenseaTokenWorkflow)
+		go s.startIndexWorkflow(c, owner, req.Blockchain, w.IndexETHTokenWorkflow)
 	case "tezos":
 		go s.startIndexWorkflow(c, owner, req.Blockchain, w.IndexTezosTokenWorkflow)
 	default:
 		if strings.HasPrefix(owner, "0x") {
-			go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[indexer.EthereumBlockchain], w.IndexOpenseaTokenWorkflow)
+			go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[indexer.EthereumBlockchain], w.IndexETHTokenWorkflow)
 		} else if strings.HasPrefix(owner, "tz") {
 			go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[indexer.TezosBlockchain], w.IndexTezosTokenWorkflow)
 		} else {
@@ -152,10 +152,11 @@ func (s *NFTIndexerServer) IndexNFTs(c *gin.Context) {
 	})
 }
 
-func (s *NFTIndexerServer) IndexNFTByOwner(c *gin.Context) {
-	traceutils.SetHandlerTag(c, "IndexNFTByOwner")
+func (s *NFTIndexerServer) IndexNFTsV2(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "IndexNFTsV2")
 	var req struct {
-		Owner indexer.BlockchainAddress `json:"owner" binding:"required"`
+		Owner          indexer.BlockchainAddress `json:"owner"`
+		IncludeHistory bool                      `json:"history"`
 	}
 
 	if err := c.Bind(&req); err != nil {
@@ -163,44 +164,21 @@ func (s *NFTIndexerServer) IndexNFTByOwner(c *gin.Context) {
 		return
 	}
 
-	// FIXME: remove this addition step by replace the input of startIndexWorkflow by indexer.BlockchainAddress
-	owner := string(req.Owner)
+	owner := req.Owner.String()
+	blockchain := indexer.GetBlockchainByAddress(owner)
 
-	var ownerIndexFunc func(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error)
-	switch indexer.GetBlockchainByAddress(owner) {
+	switch blockchain {
 	case indexer.EthereumBlockchain:
-		ownerIndexFunc = func(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
-			return s.indexerEngine.IndexETHTokenByOwner(owner, offset)
-		}
+		indexerWorker.StartIndexETHTokenWorkflow(c, s.cadenceWorker, "indexer", owner, req.IncludeHistory)
 	case indexer.TezosBlockchain:
-		ownerIndexFunc = func(ctx context.Context, owner string, offset int) ([]indexer.AssetUpdates, error) {
-			assetUpdates, _, err := s.indexerEngine.IndexTezosTokenByOwner(c, owner, time.Time{}, offset)
-			return assetUpdates, err
-		}
+		indexerWorker.StartIndexTezosTokenWorkflow(c, s.cadenceWorker, "indexer", owner, req.IncludeHistory)
 	default:
-		abortWithError(c, http.StatusBadRequest, "unsupported blockchain", nil)
+		abortWithError(c, http.StatusInternalServerError, "owner address with unsupported blockchain", fmt.Errorf("owner address with unsupported blockchain"))
 		return
 	}
 
-	var updates []indexer.AssetUpdates
-	offset := 0
-	for {
-		u, err := ownerIndexFunc(c, owner, offset)
-		if err != nil {
-			abortWithError(c, http.StatusInternalServerError, "fail to index token", err)
-			return
-		}
-
-		if len(u) == 0 {
-			break
-		}
-		offset += len(u)
-
-		updates = append(updates, u...)
-	}
-
-	c.JSON(200, gin.H{
-		"updates": updates,
+	c.JSON(http.StatusOK, gin.H{
+		"ok": 1,
 	})
 }
 
@@ -252,9 +230,14 @@ func (s *NFTIndexerServer) IndexHistory(c *gin.Context) {
 		return
 	}
 
-	token, err := s.indexerStore.GetTokensByIndexID(c, reqParams.IndexID)
+	token, err := s.indexerStore.GetTokenByIndexID(c, reqParams.IndexID)
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "failed to get token", err)
+		return
+	}
+
+	if token == nil {
+		abortWithError(c, http.StatusBadRequest, "token does not exist", fmt.Errorf("token does not exist"))
 		return
 	}
 

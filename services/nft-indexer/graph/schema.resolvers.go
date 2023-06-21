@@ -16,9 +16,13 @@ import (
 
 // IndexHistory is the resolver for the indexHistory field.
 func (r *mutationResolver) IndexHistory(ctx context.Context, indexID string) (bool, error) {
-	token, err := r.indexerStore.GetTokensByIndexID(ctx, indexID)
+	token, err := r.indexerStore.GetTokenByIndexID(ctx, indexID)
 	if err != nil {
 		return false, err
+	}
+
+	if token == nil {
+		return false, fmt.Errorf("token does not exist")
 	}
 
 	if token.Fungible {

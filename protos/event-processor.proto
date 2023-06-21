@@ -17,6 +17,7 @@ message EventInput {
   string TokenID = 6;
   string TXID = 7;
   google.protobuf.Timestamp TXTime = 8;
+  uint64 EventIndex = 9;
 }
 
 message EventOutput {

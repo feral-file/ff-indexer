@@ -10,11 +10,11 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/bitmark-inc/autonomy-account/storage"
-	"github.com/bitmark-inc/autonomy-logger"
+	log "github.com/bitmark-inc/autonomy-logger"
 	notification "github.com/bitmark-inc/autonomy-notification"
 	notificationSdk "github.com/bitmark-inc/autonomy-notification/sdk"
-	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/cadence"
+	indexerGRPCSDK "github.com/bitmark-inc/nft-indexer/sdk/nft-indexer-grpc"
 )
 
 type EventProcessor struct {
@@ -23,7 +23,7 @@ type EventProcessor struct {
 
 	grpcServer   *GRPCServer
 	eventQueue   *EventQueue
-	indexerStore *indexer.MongodbIndexerStore
+	indexerGRPC  *indexerGRPCSDK.IndexerGRPCClient
 	worker       *cadence.WorkerClient
 	accountStore *storage.AccountInformationStorage
 	notification *notificationSdk.NotificationClient
@@ -36,7 +36,7 @@ func NewEventProcessor(
 	network string,
 	address string,
 	store EventStore,
-	indexerStore *indexer.MongodbIndexerStore,
+	indexerGRPC *indexerGRPCSDK.IndexerGRPCClient,
 	worker *cadence.WorkerClient,
 	accountStore *storage.AccountInformationStorage,
 	notification *notificationSdk.NotificationClient,
@@ -51,17 +51,12 @@ func NewEventProcessor(
 
 		grpcServer:   grpcServer,
 		eventQueue:   queue,
-		indexerStore: indexerStore,
+		indexerGRPC:  indexerGRPC,
 		worker:       worker,
 		accountStore: accountStore,
 		notification: notification,
 		feedServer:   feedServer,
 	}
-}
-
-// UpdateOwner update owner for a specific non-fungible token
-func (e *EventProcessor) UpdateOwner(c context.Context, id, owner string, updatedAt time.Time) error {
-	return e.indexerStore.UpdateOwner(c, id, owner, updatedAt)
 }
 
 // notifyChangeOwner send change_token_owner notification to notification server
@@ -122,15 +117,16 @@ func (e *EventProcessor) StartWorker(ctx context.Context, currentStage, nextStag
 				}
 
 				// stage starts from 1. stage zero means there is no next stage.
-				var newStage, newStatus string
 				if nextStage == 0 {
-					newStatus = string(EventStatusProcessed)
+					if err := eventTx.ArchiveNFTEvent(); err != nil {
+						log.Error("fail to archive event", zap.Error(err))
+						eventTx.Rollback()
+					}
 				} else {
-					newStage = EventStages[nextStage]
-				}
-				if err := eventTx.UpdateEvent(newStage, newStatus); err != nil {
-					log.Error("fail to update event", zap.Error(err))
-					eventTx.Rollback()
+					if err := eventTx.UpdateEvent(EventStages[nextStage], ""); err != nil {
+						log.Error("fail to update event", zap.Error(err))
+						eventTx.Rollback()
+					}
 				}
 
 				eventTx.Commit()

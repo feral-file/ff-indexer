@@ -29,5 +29,5 @@ spec:
       protocol: TCP
       name: grpc
   selector:
-    {{- include "nft-indexer.selectorLabels" . | nindent 4 }}
+    {{- include "nft-indexer.selectorLabels" . | nindent 4 }}-grpc
 {{- end }}

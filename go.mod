@@ -7,8 +7,10 @@ require (
 	github.com/99designs/gqlgen v0.17.24
 	github.com/aws/aws-sdk-go v1.43.9
 	github.com/bitmark-inc/autonomy-account v0.0.5-1
+	github.com/bitmark-inc/autonomy-logger v0.0.2
 	github.com/bitmark-inc/autonomy-notification v0.0.3
 	github.com/bitmark-inc/config-loader v0.0.5
+	github.com/bitmark-inc/traceutils v0.1.0
 	github.com/bitmark-inc/tzkt-go v0.0.5
 	github.com/chromedp/chromedp v0.9.1
 	github.com/cloudflare/cloudflare-go v0.62.0
@@ -20,7 +22,10 @@ require (
 	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-gonic/gin v1.8.1
 	github.com/hasura/go-graphql-client v0.9.3
+	github.com/jackc/pgconn v1.10.1
 	github.com/lib/pq v1.10.2
+	github.com/meirf/gopart v0.0.0-20180520194036-37e9492a85a8
+	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/viper v1.8.1
 	github.com/stretchr/testify v1.8.2
 	github.com/uber-go/tally v3.5.3+incompatible
@@ -58,9 +63,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.4 // indirect
 	github.com/aws/smithy-go v1.13.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bitmark-inc/autonomy-logger v0.0.1 // indirect
 	github.com/bitmark-inc/go-utils v0.0.0-20220509034903-59f3369237d3 // indirect
-	github.com/bitmark-inc/traceutils v0.1.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chromedp/cdproto v0.0.0-20230220211738-2b1ec77315c9 // indirect
@@ -98,7 +101,6 @@ require (
 	github.com/holiman/uint256 v1.2.2-0.20230321075855-87b91420868c // indirect
 	github.com/ipfs/go-cid v0.2.0 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
-	github.com/jackc/pgconn v1.10.1 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgproto3/v2 v2.2.0 // indirect
@@ -144,7 +146,6 @@ require (
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shirou/gopsutil v3.21.4-0.20210419000835-c7a38de76ee5+incompatible // indirect
-	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/afero v1.6.0 // indirect
 	github.com/spf13/cast v1.3.1 // indirect

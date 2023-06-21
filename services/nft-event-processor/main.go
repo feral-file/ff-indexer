@@ -13,12 +13,12 @@ import (
 	"gorm.io/gorm/logger"
 
 	"github.com/bitmark-inc/autonomy-account/storage"
-	"github.com/bitmark-inc/autonomy-logger"
+	log "github.com/bitmark-inc/autonomy-logger"
 	notification "github.com/bitmark-inc/autonomy-notification/sdk"
 	"github.com/bitmark-inc/config-loader"
-	indexer "github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/cadence"
+	indexerGRPCSDK "github.com/bitmark-inc/nft-indexer/sdk/nft-indexer-grpc"
 )
 
 func main() {
@@ -60,9 +60,9 @@ func main() {
 
 	accountStore := storage.NewAccountInformationStorage(accountDb)
 
-	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("indexer_store.db_uri"), viper.GetString("indexer_store.db_name"))
+	indexerGRPC, err := indexerGRPCSDK.NewIndexerClient(viper.GetString("indexer_grpc.endpoint"))
 	if err != nil {
-		log.Panic("fail to initiate indexer store", zap.Error(err))
+		log.Fatal("fail to connect indexer grpc", zap.Error(err))
 	}
 
 	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
@@ -85,7 +85,7 @@ func main() {
 		viper.GetString("server.network"),
 		viper.GetString("server.address"),
 		NewPostgresEventStore(db),
-		indexerStore,
+		indexerGRPC,
 		cadenceClient,
 		accountStore,
 		notification,

@@ -191,13 +191,13 @@ func (m *Mapper) MapIndexerProvenancesToGRPCProvenances(provenance []indexer.Pro
 func ConvertTimeStringsToTimes(timeStrings []string) ([]time.Time, error) {
 	times := make([]time.Time, len(timeStrings))
 
-	for _, k := range timeStrings {
+	for i, k := range timeStrings {
 		t, err := ParseTime(k)
 		if err != nil {
 			return nil, err
 		}
 
-		times = append(times, t)
+		times[i] = t
 	}
 
 	return times, nil
@@ -298,8 +298,7 @@ func (m *Mapper) MapIndexerProjectMetadataToGRPCProjectMetadata(projectMetadata 
 		AssetData:           projectMetadata.AssetData,
 		AssetURL:            projectMetadata.AssetURL,
 
-		Attributes: attributes,
-		// convert map[string]interface{} to string to transfer data via gRPC
+		Attributes:       attributes,
 		ArtworkMetadata:  m.MapIndexerArtworkMetadataToGRPCArtworkMetadata(projectMetadata.ArtworkMetadata),
 		LastUpdatedAt:    projectMetadata.LastUpdatedAt.Format(time.RFC3339Nano),
 		InitialSaleModel: projectMetadata.InitialSaleModel,
