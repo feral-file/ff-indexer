@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 
+	"github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/config-loader"
 	"github.com/bitmark-inc/config-loader/external/aws/ssm"
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -22,7 +23,6 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	tezosDomain "github.com/bitmark-inc/nft-indexer/externals/tezos-domain"
-	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/tzkt-go"
 )
 

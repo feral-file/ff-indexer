@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/bitmark-inc/nft-indexer/log"
+	"github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/utils"
 	"github.com/gabriel-vasile/mimetype"
 	"go.uber.org/zap"

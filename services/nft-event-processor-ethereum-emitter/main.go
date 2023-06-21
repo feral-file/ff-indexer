@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	log "github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/config-loader"
 	"github.com/bitmark-inc/config-loader/external/aws/ssm"
-	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"

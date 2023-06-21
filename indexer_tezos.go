@@ -11,8 +11,8 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/crypto/sha3"
 
+	"github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
-	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/bitmark-inc/tzkt-go"
 )
 

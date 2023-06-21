@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/bitmark-inc/nft-indexer/log"
+	"github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 	"go.uber.org/zap"
 )

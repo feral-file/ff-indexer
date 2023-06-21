@@ -14,8 +14,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 
+	"github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/config-loader"
-	"github.com/bitmark-inc/nft-indexer/log"
 	imageStore "github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/store"
 )
 

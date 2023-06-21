@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/jackc/pgconn"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+
+	log "github.com/bitmark-inc/autonomy-logger"
 )
 
 type EventType string

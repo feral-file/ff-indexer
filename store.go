@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bitmark-inc/nft-indexer/log"
 	"github.com/fatih/structs"
 	"github.com/meirf/gopart"
 	"go.mongodb.org/mongo-driver/bson"
@@ -14,6 +13,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
+
+	log "github.com/bitmark-inc/autonomy-logger"
 )
 
 const (

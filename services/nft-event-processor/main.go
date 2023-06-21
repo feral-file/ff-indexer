@@ -13,11 +13,11 @@ import (
 	"gorm.io/gorm/logger"
 
 	"github.com/bitmark-inc/autonomy-account/storage"
+	log "github.com/bitmark-inc/autonomy-logger"
 	notification "github.com/bitmark-inc/autonomy-notification/sdk"
 	"github.com/bitmark-inc/config-loader"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/cadence"
-	"github.com/bitmark-inc/nft-indexer/log"
 	indexerGRPCSDK "github.com/bitmark-inc/nft-indexer/sdk/nft-indexer-grpc"
 )
 
