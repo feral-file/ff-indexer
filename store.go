@@ -44,10 +44,11 @@ type Store interface {
 	UpdateTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, ownerBalances []OwnerBalance) error
 	PushProvenance(ctx context.Context, indexID string, lockedTime time.Time, provenance Provenance) error
 
+	FilterTokenIDsWithInconsistentProvenanceForOwner(ctx context.Context, indexIDs []string, owner string) ([]string, error)
+
 	GetTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]Token, error)
 	GetTokenByIndexID(ctx context.Context, indexID string) (*Token, error)
-	GetOutdatedTokensByOwner(ctx context.Context, owner string) ([]Token, error)
-	GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error)
+	GetOwnedTokenIDsByOwner(ctx context.Context, owner string) ([]string, error)
 
 	GetDetailedTokens(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
 	GetDetailedTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
@@ -454,6 +455,37 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 	return newTokenIndexID, err
 }
 
+// FilterTokenIDsWithInconsistentProvenanceForOwner returns a list of token ids where the latest token is not the given owner
+func (s *MongodbIndexerStore) FilterTokenIDsWithInconsistentProvenanceForOwner(ctx context.Context, indexIDs []string, owner string) ([]string, error) {
+	var tokenIDs []string
+
+	c, err := s.tokenCollection.Find(ctx,
+		bson.M{
+			"indexID":            bson.M{"$in": indexIDs},
+			"fungible":           false,
+			"burned":             bson.M{"$ne": true},
+			"provenance.0.owner": bson.M{"$ne": owner},
+		},
+		options.Find().SetProjection(bson.M{"indexID": 1, "_id": 0}),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	for c.Next(ctx) {
+		var v struct {
+			IndexID string
+		}
+		if err := c.Decode(&v); err != nil {
+			return nil, err
+		}
+
+		tokenIDs = append(tokenIDs, v.IndexID)
+	}
+
+	return tokenIDs, nil
+}
+
 // GetTokensByIndexIDs returns a list of tokens by a given list of index id
 func (s *MongodbIndexerStore) GetTokensByIndexIDs(ctx context.Context, ids []string) ([]Token, error) {
 	var tokens []Token
@@ -464,33 +496,6 @@ func (s *MongodbIndexerStore) GetTokensByIndexIDs(ctx context.Context, ids []str
 	}
 
 	if err := c.All(ctx, &tokens); err != nil {
-		return nil, err
-	}
-
-	return tokens, nil
-}
-
-// GetOutdatedTokensByOwner returns a list of outdated tokens for a specific owner
-func (s *MongodbIndexerStore) GetOutdatedTokensByOwner(ctx context.Context, owner string) ([]Token, error) {
-	var tokens []Token
-
-	cursor, err := s.tokenCollection.Find(ctx, bson.M{
-		fmt.Sprintf("owners.%s", owner): bson.M{"$gte": 1},
-		"ownersArray":                   bson.M{"$in": bson.A{owner}},
-
-		"burned":  bson.M{"$ne": true},
-		"is_demo": bson.M{"$ne": true},
-		"$or": bson.A{
-			bson.M{"lastRefreshedTime": bson.M{"$exists": false}},
-			bson.M{"lastRefreshedTime": bson.M{"$lt": time.Now().Add(-time.Hour)}},
-		},
-	}, options.Find().SetProjection(bson.M{"indexID": 1, "_id": 0, "fungible": 1}).SetSort(bson.M{"lastRefreshedTime": 1}))
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
-	if err := cursor.All(ctx, &tokens); err != nil {
 		return nil, err
 	}
 
@@ -690,8 +695,8 @@ func (s *MongodbIndexerStore) PushProvenance(ctx context.Context, indexID string
 	return nil
 }
 
-// GetTokenIDsByOwner returns a list of tokens which belongs to an owner
-func (s *MongodbIndexerStore) GetTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
+// GetOwnedTokenIDsByOwner returns a list of tokens which belongs to an owner
+func (s *MongodbIndexerStore) GetOwnedTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
 	tokens := make([]string, 0)
 
 	c, err := s.accountTokenCollection.Find(ctx, bson.M{

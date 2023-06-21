@@ -210,7 +210,7 @@ func (s *NFTIndexerServer) OwnedNFTIDs(c *gin.Context) {
 		return
 	}
 
-	tokens, err := s.indexerStore.GetTokenIDsByOwner(c, reqParams.Owner)
+	tokens, err := s.indexerStore.GetOwnedTokenIDsByOwner(c, reqParams.Owner)
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
 		return
@@ -452,12 +452,12 @@ func (s *NFTIndexerServer) ForceReindexNFT(c *gin.Context) {
 
 	switch blockchain {
 	case "eth":
-		go s.startIndexWorkflow(c, owner, blockchain, w.IndexOpenseaTokenWorkflow)
+		go s.startIndexWorkflow(c, owner, blockchain, w.IndexETHTokenWorkflow)
 	case "tezos":
 		go s.startIndexWorkflow(c, owner, blockchain, w.IndexTezosTokenWorkflow)
 	default:
 		if strings.HasPrefix(owner, "0x") {
-			go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[indexer.EthereumBlockchain], w.IndexOpenseaTokenWorkflow)
+			go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[indexer.EthereumBlockchain], w.IndexETHTokenWorkflow)
 		} else if strings.HasPrefix(owner, "tz") {
 			go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[indexer.TezosBlockchain], w.IndexTezosTokenWorkflow)
 		} else {
