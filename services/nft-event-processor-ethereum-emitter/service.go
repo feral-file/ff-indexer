@@ -67,7 +67,7 @@ func (e *EthereumEventsEmitter) Watch(ctx context.Context) {
 	}
 }
 
-func (e *EthereumEventsEmitter) FetchLogsFromLastStopBlock(ctx context.Context, lastStopBlock uint64) {
+func (e *EthereumEventsEmitter) fetchLogsFromLastStoppedBlock(ctx context.Context, lastStopBlock uint64) {
 	latestBlock, err := e.wsClient.BlockNumber(ctx)
 	if err != nil {
 		log.Error("failed to fetch latest block: ", zap.Error(err), log.SourceETHClient)
@@ -97,7 +97,7 @@ func (e *EthereumEventsEmitter) FetchLogsFromLastStopBlock(ctx context.Context, 
 	}
 }
 
-func (e *EthereumEventsEmitter) Run(ctx context.Context) {
+func (e *EthereumEventsEmitter) processLogsSinceLastStoppedBlock(ctx context.Context) {
 	lastStopBlock, err := e.parameterStore.GetString(ctx, e.lastBlockKeyName)
 	if err != nil {
 		log.Error("failed to read last stop bloc from parameter store: ", zap.Error(err), log.SourceETHClient)
@@ -106,9 +106,13 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 		if err != nil {
 			log.Error("failed to parse last stop block: ", zap.Error(err), log.SourceETHClient)
 		} else {
-			e.FetchLogsFromLastStopBlock(ctx, fromBlock)
+			e.fetchLogsFromLastStoppedBlock(ctx, fromBlock)
 		}
 	}
+}
+
+func (e *EthereumEventsEmitter) Run(ctx context.Context) {
+	e.processLogsSinceLastStoppedBlock(ctx)
 
 	go e.Watch(ctx)
 
@@ -154,7 +158,7 @@ func (e *EthereumEventsEmitter) processETHLog(ctx context.Context, eLog types.Lo
 			eventType = "burned"
 		}
 
-		if err := e.PushEvent(ctx, eventType, fromAddress, toAddress, contractAddress, indexer.EthereumBlockchain, tokenIDHash.Big().Text(10), eLog.TxHash.Hex(), eLog.TxIndex, txTime); err != nil {
+		if err := e.PushEvent(ctx, eventType, fromAddress, toAddress, contractAddress, indexer.EthereumBlockchain, tokenIDHash.Big().Text(10), eLog.TxHash.Hex(), eLog.Index, txTime); err != nil {
 			log.Error("gRPC request failed", zap.Error(err), log.SourceGRPC)
 			return
 		}
