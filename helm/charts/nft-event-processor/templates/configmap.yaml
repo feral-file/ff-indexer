@@ -47,6 +47,7 @@ data:
   ethereum.yaml: |
     ethereum:
       ws_url:
+      lastBlockKeyName: {{ .Values.serviceConfig.lastBlockKeyName }}
 
     log:
       level: debug
