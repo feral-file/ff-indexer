@@ -236,6 +236,11 @@ func (s *NFTIndexerServer) IndexHistory(c *gin.Context) {
 		return
 	}
 
+	if token == nil {
+		abortWithError(c, http.StatusBadRequest, "token does not exist", fmt.Errorf("token does not exist"))
+		return
+	}
+
 	if token.Fungible {
 		indexerWorker.StartRefreshTokenOwnershipWorkflow(c, s.cadenceWorker, "indexer", reqParams.IndexID, 0)
 	} else {

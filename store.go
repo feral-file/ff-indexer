@@ -1808,51 +1808,74 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 		sortKey = "lastRefreshedTime"
 	}
 
-	findOptions := options.Find().SetSort(bson.D{{Key: sortKey, Value: -1}, {Key: "_id", Value: -1}}).SetLimit(size).SetSkip(offset)
-
 	filter := bson.M{
 		"ownerAccount":      bson.M{"$in": owner},
 		"lastRefreshedTime": bson.M{"$gte": lastUpdatedAt},
 	}
 
-	cursor, err := s.accountTokenCollection.Find(ctx, filter, findOptions)
-	if err != nil {
-		return nil, err
-	}
+	findOptions := options.Find().SetSort(bson.D{{Key: sortKey, Value: -1}, {Key: "_id", Value: -1}}).SetLimit(QueryPageSize)
 
-	defer cursor.Close(ctx)
-
-	indexIDs := make([]string, 0)
 	accountTokens := []AccountToken{}
-	for cursor.Next(ctx) {
-		var token AccountToken
+	detailTokens := []DetailedTokenV2{}
+	page := 0
+	for {
+		queryOffset := int64(page * QueryPageSize)
+		expectedSize := size
+		// need to do manually offset for source since data was filtered
+		if filterParameter.Source == "" {
+			queryOffset = offset + queryOffset
+		} else {
+			expectedSize = offset + expectedSize
+		}
 
-		if err := cursor.Decode(&token); err != nil {
+		findOptions.SetSkip(queryOffset)
+		cursor, err := s.accountTokenCollection.Find(ctx, filter, findOptions)
+		if err != nil {
 			return nil, err
 		}
 
-		indexIDs = append(indexIDs, token.IndexID)
-		accountTokens = append(accountTokens, token)
-	}
+		indexIDs := make([]string, 0)
+		for cursor.Next(ctx) {
+			var token AccountToken
 
-	if len(indexIDs) == 0 {
-		return []DetailedTokenV2{}, nil
-	}
+			if err := cursor.Decode(&token); err != nil {
+				return nil, err
+			}
 
-	filterParameter.IDs = indexIDs
-	tokens, err := s.GetDetailedTokensV2(ctx, filterParameter, 0, int64(len(indexIDs)))
+			indexIDs = append(indexIDs, token.IndexID)
+			accountTokens = append(accountTokens, token)
+		}
 
-	if err != nil {
-		return nil, err
+		cursor.Close(ctx)
+
+		if len(indexIDs) == 0 {
+			break
+		}
+
+		filterParameter.IDs = indexIDs
+		tokens, err := s.GetDetailedTokensV2(ctx, filterParameter, 0, int64(len(indexIDs)))
+
+		if err != nil {
+			return nil, err
+		}
+
+		detailTokens = append(detailTokens, tokens...)
+
+		if len(detailTokens) >= int(expectedSize) {
+			break
+		}
+
+		page++
 	}
 
 	detailedTokenMap := map[string]DetailedTokenV2{}
 	results := []DetailedTokenV2{}
 
-	for _, t := range tokens {
+	for _, t := range detailTokens {
 		detailedTokenMap[t.IndexID] = t
 	}
 
+	skipped := 0
 	for _, a := range accountTokens {
 		token, ok := detailedTokenMap[a.IndexID]
 
@@ -1867,7 +1890,16 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 			token.LastActivityTime = a.LastActivityTime
 		}
 
+		if filterParameter.Source != "" && skipped < int(offset) {
+			skipped++
+			continue
+		}
+
 		results = append(results, token)
+
+		if len(results) == int(size) {
+			break
+		}
 	}
 
 	return results, nil
@@ -1920,13 +1952,16 @@ func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, fil
 		{"$match": bson.M{"indexID": bson.M{"$in": filterParameter.IDs}, "burned": bson.M{"$ne": true}}},
 		{"$addFields": bson.M{"__order": bson.M{"$indexOfArray": bson.A{filterParameter.IDs, "$indexID"}}}},
 		{"$sort": bson.M{"__order": 1}},
-		{"$skip": offset},
-		{"$limit": size},
 	}
 
 	if filterParameter.Source != "" {
 		pipelines = append(pipelines, bson.M{"$match": bson.M{"asset.source": filterParameter.Source}})
 	}
+
+	pipelines = append(pipelines,
+		bson.M{"$skip": offset},
+		bson.M{"$limit": size},
+	)
 
 	cursor, err := s.tokenAssetCollection.Aggregate(ctx, pipelines)
 
