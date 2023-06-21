@@ -78,8 +78,9 @@ func (t *GRPCHandler) PushEvent(
 		To:         i.To,
 		TXID:       i.TXID,
 		TXTime:     i.TXTime.AsTime(),
-		Status:     EventStatusCreated,
+		EventIndex: uint(i.EventIndex),
 		Stage:      EventStages[1],
+		Status:     EventStatusCreated,
 	}); err != nil {
 		return nil, err
 	}
