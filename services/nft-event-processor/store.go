@@ -62,7 +62,7 @@ type NFTEvent struct {
 	From       string      `gorm:"index:idx_event,unique"`
 	To         string      `gorm:"index:idx_event,unique"`
 	TXID       string      `gorm:"index:idx_event,unique"`
-	TXIndex    uint        `gorm:"index:idx_event,unique"`
+	EventIndex uint        `gorm:"index:idx_event,unique"`
 	TXTime     time.Time   `gorm:"index:idx_event,unique"`
 	Stage      string      `gorm:"index"`
 	Status     EventStatus `gorm:"index"`
