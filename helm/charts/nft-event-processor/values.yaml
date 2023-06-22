@@ -23,7 +23,7 @@ serviceConfig:
   eventProcessorEndpoint: nft-event-processor.autonomy.svc.cluster.local:8765
   tezosNodeRPCURL: https://rpc.ghost.tzstats.com
   contractBoostUrl: "https://api.tzkt.io/"
-  lastBlockKeyName: /autonomy/development/ethereum-last-stop-block
+  lastBlockKeyName: /autonomy/development/event-processor-ethereum-emitter/last-stop-block
   indexer_grpc:
     endpoint: nft-indexer-grpc.autonomy.svc.cluster.local:8888
 
