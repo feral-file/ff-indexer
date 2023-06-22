@@ -19,6 +19,8 @@ import (
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 )
 
+var currentLastStoppedBlock = uint64(0)
+
 type EthereumEventsEmitter struct {
 	lastBlockKeyName string
 
@@ -164,9 +166,12 @@ func (e *EthereumEventsEmitter) processETHLog(ctx context.Context, eLog types.Lo
 		}
 	}
 
-	if err := e.parameterStore.Put(ctx, e.lastBlockKeyName, strconv.FormatUint(eLog.BlockNumber, 10)); err != nil {
-		log.Error("error put parameterStore", zap.Error(err), log.SourceGRPC)
-		return
+	if eLog.BlockNumber > currentLastStoppedBlock {
+		currentLastStoppedBlock = eLog.BlockNumber
+		if err := e.parameterStore.Put(ctx, e.lastBlockKeyName, strconv.FormatUint(currentLastStoppedBlock, 10)); err != nil {
+			log.Error("error put parameterStore", zap.Error(err), log.SourceGRPC)
+			return
+		}
 	}
 }
 
