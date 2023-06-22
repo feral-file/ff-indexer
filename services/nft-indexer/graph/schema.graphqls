@@ -106,6 +106,10 @@ type Query {
   identity(account: String!): Identity
 }
 
+type Mutation {
+  indexHistory(indexID: String!): Boolean!
+}
+
 scalar Time
 scalar Int64
 scalar JSON

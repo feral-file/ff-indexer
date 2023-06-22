@@ -13,6 +13,28 @@ service Indexer {
   rpc GetDetailedToken(IndexID) returns (DetailedToken);
   rpc GetTotalBalanceOfOwnerAccounts(Addresses) returns (TotalBalance);
   rpc GetOwnerAccountsByIndexIDs(IndexIDs) returns (Addresses);
+
+  rpc CheckAddressOwnTokenByCriteria(CheckAddressOwnTokenByCriteriaRequest) returns (CheckAddressOwnTokenByCriteriaResponse);
+
+  rpc GetOwnersByBlockchainContracts(GetOwnersByBlockchainContractsRequest) returns (Addresses);
+}
+
+message CheckAddressOwnTokenByCriteriaResponse {
+  bool result = 1;
+}
+
+message CheckAddressOwnTokenByCriteriaRequest {
+  string Address = 1;
+  Criteria Criteria = 2;
+}
+
+message Criteria {
+  string IndexID = 1;
+  string Source = 2;
+}
+
+message GetOwnersByBlockchainContractsRequest {
+  map<string, Addresses> BlockchainContracts = 1;
 }
 
 message Addresses {

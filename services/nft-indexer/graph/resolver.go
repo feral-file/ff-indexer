@@ -2,16 +2,19 @@ package graph
 
 import (
 	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer/cadence"
 	"github.com/bitmark-inc/nft-indexer/services/nft-indexer/graph/model"
 )
 
 type Resolver struct {
-	indexerStore indexer.Store
+	indexerStore  indexer.Store
+	cadenceWorker *cadence.WorkerClient
 }
 
-func NewResolver(indexerStore indexer.Store) *Resolver {
+func NewResolver(indexerStore indexer.Store, cadenceWorker *cadence.WorkerClient) *Resolver {
 	return &Resolver{
-		indexerStore: indexerStore,
+		indexerStore:  indexerStore,
+		cadenceWorker: cadenceWorker,
 	}
 }
 

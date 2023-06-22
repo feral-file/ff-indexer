@@ -11,10 +11,12 @@ import (
 	indexer "github.com/bitmark-inc/nft-indexer"
 )
 
+const serverURL = "localhost:8888"
+
 func TestGetTokenByIndexID(t *testing.T) {
 	indexID := "tez-KT1VZ6Zkoae9DtXkbuw4wtFCg9WH8eywcvEX-23798030035473632618901897089878275372960165372586891230635421889000008911882"
 
-	client, err := NewIndexerClient("localhost:8889")
+	client, err := NewIndexerClient(serverURL)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -31,7 +33,7 @@ func TestGetTokenByIndexID(t *testing.T) {
 func TestPushProvenance(t *testing.T) {
 	indexID := "tez-KT1VZ6Zkoae9DtXkbuw4wtFCg9WH8eywcvEX-23798030035473632618901897089878275372960165372586891230635421889000008911882"
 
-	client, err := NewIndexerClient("localhost:8889")
+	client, err := NewIndexerClient(serverURL)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -57,7 +59,7 @@ func TestPushProvenance(t *testing.T) {
 }
 
 func TestGetTotalBalanceOfOwnerAccounts(t *testing.T) {
-	client, err := NewIndexerClient("localhost:8889")
+	client, err := NewIndexerClient(serverURL)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -76,7 +78,7 @@ func TestGetTotalBalanceOfOwnerAccounts(t *testing.T) {
 
 // TestGetDetailedToken is a test for GetDetailedToken
 func TestGetDetailedToken(t *testing.T) {
-	client, err := NewIndexerClient("localhost:8889")
+	client, err := NewIndexerClient(serverURL)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -93,7 +95,7 @@ func TestGetDetailedToken(t *testing.T) {
 
 // TestGetOwnerAccountsByIndexIDs a test for GetOwnerAccountsByIndexIDs
 func TestGetOwnerAccountsByIndexIDs(t *testing.T) {
-	client, err := NewIndexerClient("localhost:8889")
+	client, err := NewIndexerClient(serverURL)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -102,6 +104,54 @@ func TestGetOwnerAccountsByIndexIDs(t *testing.T) {
 	indexIDs := []string{"tez-KT1ESGez4dEuDjjNt4k2HPAK5Nzh7e8X8jyX-1683031758835", "tez-KT1ESGez4dEuDjjNt4k2HPAK5Nzh7e8X8jyX-1683863093457"}
 
 	owners, err := client.GetOwnerAccountsByIndexIDs(context.Background(), indexIDs)
+
+	fmt.Println(owners)
+	assert.NoError(t, err)
+}
+
+// TestCheckAddressOwnTokenByCriteria a test for CheckAddressOwnTokenByCriteria
+func TestCheckAddressOwnTokenByCriteria(t *testing.T) {
+	client, err := NewIndexerClient(serverURL)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	check, err := client.CheckAddressOwnTokenByCriteria(
+		context.Background(),
+		"0x51E92B35a5a182B2d62b2E22f431D8e0797aB60e",
+		indexer.Criteria{
+			IndexID: "eth-0xb43c51447405008AEBf7a35B4D15e1f29b7Ce823-84379833228553110502734947101839209675161105358737778734002435191848727499610",
+		},
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, true, check)
+
+	check, err = client.CheckAddressOwnTokenByCriteria(
+		context.Background(),
+		"tz1ZRtM64raLrUBFPFfxAWHXpiGrB2KmW4kL",
+		indexer.Criteria{
+			Source: "feralfile",
+		},
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, true, check)
+}
+
+// TestGetOwnersByBlockchainAndContracts a test for GetOwnersByBlockchainContracts
+func TestGetOwnersByBlockchainAndContracts(t *testing.T) {
+	client, err := NewIndexerClient("localhost:8889")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	owners, err := client.GetOwnersByBlockchainContracts(context.Background(), map[string][]string{
+		"tezos":    {"KT1ESGez4dEuDjjNt4k2HPAK5Nzh7e8X8jyX"},
+		"ethereum": {"0xb43c51447405008AEBf7a35B4D15e1f29b7Ce823"},
+	})
 
 	fmt.Println(owners)
 	assert.NoError(t, err)

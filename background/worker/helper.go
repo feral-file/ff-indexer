@@ -14,6 +14,7 @@ import (
 	"github.com/bitmark-inc/nft-indexer/log"
 )
 
+// StartIndexTokenWorkflow starts a workflow to index a single token
 func StartIndexTokenWorkflow(c context.Context, client *cadence.WorkerClient, owner, contract, tokenID string, indexProvenance, indexPreview bool) {
 	workflowContext := cadenceClient.StartWorkflowOptions{
 		ID:                           fmt.Sprintf("index-single-nft-%s-%s", contract, tokenID),
@@ -38,6 +39,63 @@ func StartIndexTokenWorkflow(c context.Context, client *cadence.WorkerClient, ow
 			zap.String("token_id", tokenID),
 			zap.String("workflow_id", workflow.ID))
 
+	}
+}
+
+// StartIndexETHTokenWorkflow starts a workflow to index tokens for an ethereum address
+func StartIndexETHTokenWorkflow(c context.Context, client *cadence.WorkerClient, caller string, owner string, includeHistory bool) {
+	option := cadenceClient.StartWorkflowOptions{
+		ID:                           WorkflowIDIndexTokenByOwner(caller, owner),
+		TaskList:                     TaskListName,
+		ExecutionStartToCloseTimeout: time.Hour,
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+	}
+
+	var w NFTIndexerWorker
+
+	workflow, err := client.StartWorkflow(c, ClientName, option, w.IndexETHTokenWorkflow, owner, includeHistory)
+	if err != nil {
+		log.Error("fail to start workflow to index token for owner", zap.Error(err), zap.String("caller", caller), zap.String("owner", owner))
+	} else {
+		log.Debug("start workflow for index ETH tokens from opensea for owner", zap.String("workflow_id", workflow.ID), zap.String("caller", caller), zap.String("owner", owner))
+	}
+}
+
+// StartIndexTezosTokenWorkflow starts a workflow to index tokens for an ethereum address
+func StartIndexTezosTokenWorkflow(c context.Context, client *cadence.WorkerClient, caller string, owner string, includeHistory bool) {
+	option := cadenceClient.StartWorkflowOptions{
+		ID:                           WorkflowIDIndexTokenByOwner(caller, owner),
+		TaskList:                     TaskListName,
+		ExecutionStartToCloseTimeout: time.Hour,
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+	}
+
+	var w NFTIndexerWorker
+
+	workflow, err := client.StartWorkflow(c, ClientName, option, w.IndexTezosTokenWorkflow, owner, includeHistory)
+	if err != nil {
+		log.Error("fail to start workflow to index token for owner", zap.Error(err), zap.String("caller", caller), zap.String("owner", owner))
+	} else {
+		log.Debug("start workflow for index Tezos tokens from opensea for owner", zap.String("workflow_id", workflow.ID), zap.String("caller", caller), zap.String("owner", owner))
+	}
+}
+
+// StartRefreshTokenProvenanceByOwnerWorkflow starts a workflow to refresh token provenance by owner
+func StartRefreshTokenProvenanceByOwnerWorkflow(c context.Context, client *cadence.WorkerClient, caller string, owner string) {
+	option := cadenceClient.StartWorkflowOptions{
+		ID:                           WorkflowIDRefreshTokenProvenanceByOwner(caller, owner),
+		TaskList:                     ProvenanceTaskListName,
+		ExecutionStartToCloseTimeout: time.Hour,
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+	}
+
+	var w NFTIndexerWorker
+
+	workflow, err := client.StartWorkflow(c, ClientName, option, w.RefreshTokenProvenanceByOwnerWorkflow, owner)
+	if err != nil {
+		log.Error("fail to start workflow to index token for owner", zap.Error(err), zap.String("caller", caller), zap.String("owner", owner))
+	} else {
+		log.Debug("start workflow for index Tezos tokens from opensea for owner", zap.String("workflow_id", workflow.ID), zap.String("caller", caller), zap.String("owner", owner))
 	}
 }
 

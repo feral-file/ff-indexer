@@ -25,32 +25,6 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-        - name: {{ .Chart.Name }}-grpc
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tags.grpc | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command:
-            - /nft-indexer-grpc
-          ports:
-            - name: grpc
-              containerPort: 8888
-              protocol: TCP
-          env:
-            - name: NFT_INDEXER_STORE_DB_URI
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "nft-indexer.fullname" . }}
-                  key: store_db_uri
-            - name: NFT_INDEXER_STORE_DB_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "nft-indexer.fullname" . }}
-                  key: store_db_name
-          volumeMounts:
-            - name: config
-              mountPath: "/.config"
-              readOnly: true
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
@@ -143,6 +117,86 @@ spec:
           items:
             - key: jwt-pubkey.pem
               path: jwt-pubkey.pem
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nft-indexer.fullname" . }}-grpc
+  labels:
+    {{- include "nft-indexer.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCounts.api }}
+  selector:
+    matchLabels:
+      {{- include "nft-indexer.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        {{- include "nft-indexer.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}-grpc
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tags.grpc | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /nft-indexer-grpc
+          ports:
+            - name: grpc
+              containerPort: 8888
+              protocol: TCP
+          env:
+            - name: NFT_INDEXER_STORE_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: store_db_uri
+            - name: NFT_INDEXER_STORE_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: store_db_name
+          volumeMounts:
+            - name: config
+              mountPath: "/.config"
+              readOnly: true
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+          - name: config
+            mountPath: "/.config"
+            readOnly: true
+      volumes:
+      # You set volumes at the Pod level, then mount them into containers inside that Pod
+      - name: config
+        configMap:
+          name: {{ include "nft-indexer.fullname" . }}
+          items:
+          - key: "config.yaml"
+            path: "config.yaml"
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

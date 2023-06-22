@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -28,8 +29,60 @@ func TestGetTokensByIndexID(t *testing.T) {
 		panic(err)
 	}
 
-	token, err := indexerStore.GetTokensByIndexID(ctx, "eth-0xb43c51447405008AEBf7a35B4D15e1f29b7Ce823-84379833228553110502734947101839209675161105358737778734002435191848727499610")
+	token, err := indexerStore.GetTokenByIndexID(ctx, "eth-0xb43c51447405008AEBf7a35B4D15e1f29b7Ce823-84379833228553110502734947101839209675161105358737778734002435191848727499610")
 
 	assert.Nil(t, err)
 	fmt.Println(token)
+}
+
+// TestGetDetailedAccountTokensByOwners test get detailed account tokens by owners
+func TestGetDetailedAccountTokensByOwners(t *testing.T) {
+	ctx := context.Background()
+	config.LoadConfig("NFT_INDEXER")
+
+	indexerStore, err := NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
+	if err != nil {
+		panic(err)
+	}
+
+	detailedTokenV2, err := indexerStore.GetDetailedAccountTokensByOwners(
+		ctx,
+		[]string{"tz1LPJ34B1Z8XsxtgoCv5NRBTHTXoeG49A9h"},
+		FilterParameter{
+			Source: "tzkt",
+			IDs:    nil,
+		},
+		time.Time{},
+		"",
+		0,
+		1,
+	)
+
+	assert.Nil(t, err)
+	fmt.Println(detailedTokenV2)
+}
+
+// TestCheckAddressOwnTokenByCriteria test check address own token by criteria
+func TestCheckAddressOwnTokenByCriteria(t *testing.T) {
+	ctx := context.Background()
+	config.LoadConfig("NFT_INDEXER")
+
+	indexerStore, err := NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
+	if err != nil {
+		panic(err)
+	}
+
+	ok, err := indexerStore.CheckAddressOwnTokenByCriteria(ctx, "0x51E92B35a5a182B2d62b2E22f431D8e0797aB60e", Criteria{
+		IndexID: "eth-0xb43c51447405008AEBf7a35B4D15e1f29b7Ce823-84379833228553110502734947101839209675161105358737778734002435191848727499610",
+	})
+
+	assert.Nil(t, err)
+	assert.Equal(t, true, ok)
+
+	ok, err = indexerStore.CheckAddressOwnTokenByCriteria(ctx, "tz1ZRtM64raLrUBFPFfxAWHXpiGrB2KmW4kL", Criteria{
+		Source: "feralfile",
+	})
+
+	assert.Nil(t, err)
+	assert.Equal(t, true, ok)
 }

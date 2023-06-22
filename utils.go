@@ -155,8 +155,8 @@ func IsTimeInRange(actual, target time.Time, deviationInMinutes float64) bool {
 	return math.Abs(duration.Minutes()) < deviationInMinutes
 }
 
-// VerifyETHPersonalSignature
-func VerifyETHPersonalSignature(message, signature, address string) (bool, error) {
+// VerifyETHSignature verifies a signature with a given message and address
+func VerifyETHSignature(message, signature, address string) (bool, error) {
 	hash := accounts.TextHash([]byte(message))
 	signatureBytes := common.FromHex(signature)
 
@@ -184,7 +184,7 @@ func VerifyETHPersonalSignature(message, signature, address string) (bool, error
 	return true, nil
 }
 
-// VerifyTezosSignature
+// VerifyTezosSignature verifies a signature with a given message and address
 func VerifyTezosSignature(message, signature, address, publicKey string) (bool, error) {
 	ta, err := tezos.ParseAddress(address)
 	if err != nil {

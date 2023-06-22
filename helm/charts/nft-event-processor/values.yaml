@@ -23,6 +23,8 @@ serviceConfig:
   eventProcessorEndpoint: nft-event-processor.autonomy.svc.cluster.local:8765
   tezosNodeRPCURL: https://rpc.ghost.tzstats.com
   contractBoostUrl: "https://api.tzkt.io/"
+  indexer_grpc:
+    endpoint: nft-indexer-grpc.autonomy.svc.cluster.local:8888
 
 imagePullSecrets: []
 nameOverride: ""
