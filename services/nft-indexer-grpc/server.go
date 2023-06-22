@@ -66,6 +66,10 @@ func (i *IndexerServer) GetTokenByIndexID(ctx context.Context, indexID *pb.Index
 		return nil, err
 	}
 
+	if token == nil {
+		return nil, fmt.Errorf("token does not exist")
+	}
+
 	pbToken := i.mapper.MapIndexerTokenToGrpcToken(token)
 
 	return pbToken, nil

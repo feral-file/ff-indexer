@@ -147,8 +147,11 @@ func (e *EventProcessor) ProcessEvents(ctx context.Context) {
 	//stage 1: update the latest owner into mongodb
 	e.UpdateLatestOwner(ctx)
 
-	//stage 2: trigger full updates for the token
+	//stage 2-1: trigger full updates for the token
 	e.UpdateOwnerAndProvenance(ctx)
+
+	//stage 2-2: trigger full updates for the token for burned token
+	e.UpdateOwnerAndProvenanceForBurnedToken(ctx)
 
 	//stage 3: send notificationSdk
 	e.NotifyChangeTokenOwner(ctx)
