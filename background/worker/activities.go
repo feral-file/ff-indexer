@@ -16,7 +16,6 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
-	"github.com/bitmark-inc/autonomy-logger"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/contracts"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
@@ -371,7 +370,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 				return err
 			}
 
-			if delay > 0 && lastActivityTime.Sub(token.LastActivityTime) <= 0 {
+			if len(token.Provenances) != 0 && lastActivityTime.Sub(token.LastActivityTime) <= 0 {
 				log.Debug("no new updates since last check", zap.String("indexID", token.IndexID))
 				continue
 			}
