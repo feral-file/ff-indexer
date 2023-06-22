@@ -102,7 +102,7 @@ func StartRefreshTokenProvenanceByOwnerWorkflow(c context.Context, client *caden
 func StartRefreshTokenOwnershipWorkflow(c context.Context, client *cadence.WorkerClient,
 	caller string, indexID string, delay time.Duration) {
 	workflowContext := cadenceClient.StartWorkflowOptions{
-		ID:                           WorkflowIDIndexTokenOwnershipByHelper(caller, indexID),
+		ID:                           WorkflowIDIndexTokenOwnershipByIndexID(caller, indexID),
 		TaskList:                     ProvenanceTaskListName,
 		ExecutionStartToCloseTimeout: time.Hour,
 		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
@@ -121,7 +121,7 @@ func StartRefreshTokenOwnershipWorkflow(c context.Context, client *cadence.Worke
 func StartRefreshTokenProvenanceWorkflow(c context.Context, client *cadence.WorkerClient,
 	caller string, indexID string, delay time.Duration) {
 	workflowContext := cadenceClient.StartWorkflowOptions{
-		ID:                           WorkflowIDIndexTokenProvenanceByHelper(caller, indexID),
+		ID:                           WorkflowIDIndexTokenProvenanceByIndexID(caller, indexID),
 		TaskList:                     ProvenanceTaskListName,
 		ExecutionStartToCloseTimeout: time.Hour,
 		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,

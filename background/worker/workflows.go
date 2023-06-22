@@ -147,22 +147,23 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 	}
 
 	if indexProvenance {
+		tokenID := update.Tokens[0].IndexID
 		if update.Tokens[0].Fungible {
-			log.Debug("Start child workflow to update token ownership", zap.String("owner", owner), zap.String("indexID: ", update.Tokens[0].IndexID))
+			log.Debug("Start child workflow to update token ownership", zap.String("owner", owner), zap.String("indexID: ", tokenID))
 
 			if err := workflow.ExecuteChildWorkflow(
-				ContextNamedRegularChildWorkflow(ctx, WorkflowIDIndexTokenOwnershipByOwner(owner), ProvenanceTaskListName),
-				w.RefreshTokenOwnershipWorkflow, []string{update.Tokens[0].IndexID}, 0,
+				ContextNamedRegularChildWorkflow(ctx, WorkflowIDIndexTokenOwnershipByIndexID("background-IndexTokenWorkflow", tokenID), ProvenanceTaskListName),
+				w.RefreshTokenOwnershipWorkflow, []string{tokenID}, 0,
 			).Get(ctx, nil); err != nil {
 				sentry.CaptureException(err)
 				return err
 			}
 		} else {
-			log.Debug("Start child workflow to update token provenance", zap.String("owner", owner), zap.String("indexID: ", update.Tokens[0].IndexID))
+			log.Debug("Start child workflow to update token provenance", zap.String("owner", owner), zap.String("indexID: ", tokenID))
 
 			if err := workflow.ExecuteChildWorkflow(
-				ContextNamedRegularChildWorkflow(ctx, WorkflowIDIndexTokenProvenanceByOwner(owner), ProvenanceTaskListName),
-				w.RefreshTokenProvenanceWorkflow, []string{update.Tokens[0].IndexID}, 0,
+				ContextNamedRegularChildWorkflow(ctx, WorkflowIDIndexTokenProvenanceByIndexID("background-IndexTokenWorkflow", tokenID), ProvenanceTaskListName),
+				w.RefreshTokenProvenanceWorkflow, []string{tokenID}, 0,
 			).Get(ctx, nil); err != nil {
 				sentry.CaptureException(err)
 				return err
