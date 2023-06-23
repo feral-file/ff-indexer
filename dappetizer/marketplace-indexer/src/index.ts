@@ -1,6 +1,8 @@
 import { IndexerModuleUsingDb } from '@tezos-dappetizer/database';
 import { createContractIndexerFromDecorators } from '@tezos-dappetizer/decorators';
 
+import { BlockDataIndexer } from "./block-indexer"
+
 import { FxhashIndexer } from './fxhash-indexer';
 import { Fxhashv2Indexer } from './fxhashv-2-indexer';
 import { HicetniucIndexer } from './hicetniuc-indexer';
@@ -21,7 +23,7 @@ export const indexerModule: IndexerModuleUsingDb = {
     ],
     blockDataIndexers: [
         // Create your block data indexers here:
-        // new MyBlockDataIndexer(),
+        new BlockDataIndexer(),
     ],
     // Create your indexing cycle handler here:
     // indexingCycleHandler: new MyIndexingCycleHandler(),

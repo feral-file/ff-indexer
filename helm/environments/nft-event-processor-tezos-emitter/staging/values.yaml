@@ -2,9 +2,9 @@ replicaCount: 1
 
 image:
   tags:
-    tezosMarketplaceIndexer: tezos-marketplace-indexer-2.7.1
-    tezosPostcardIndexer: tezos-postcard-indexer-2.7.1-4
-    tezosFeralfileIndexer: tezos-feralfile-indexer-2.7.1-1
+    tezosMarketplaceIndexer: tezos-marketplace-indexer-2.11.0-3
+    tezosPostcardIndexer: tezos-postcard-indexer-2.11.0-3
+    tezosFeralfileIndexer: tezos-feralfile-indexer-2.11.0-3
 
 serviceConfig:
   tezosNodeRPCURL: https://mainnet-tezos.autonomy.io
@@ -20,3 +20,9 @@ serviceConfig:
     tezos: livenet
     ethereum: livenet
     bitmark: livenet
+  postcard:
+    lastStopBlockKeyName: /autonomy/staging/event-emitter/tezos/postcard/last-stop-block
+  marketplace:
+    lastStopBlockKeyName: /autonomy/staging/event-emitter/tezos/marketplace/last-stop-block
+  feralfile:
+    lastStopBlockKeyName: /autonomy/staging/event-emitter/tezos/feralfile/last-stop-block

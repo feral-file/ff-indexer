@@ -1,9 +1,6 @@
 {
   "indexing": {
     "fromBlockLevel": 2844973,
-    "contractBoost": {
-      "type": "tzkt"
-    },
     "contracts": [
       {
         "name": "fxhash",

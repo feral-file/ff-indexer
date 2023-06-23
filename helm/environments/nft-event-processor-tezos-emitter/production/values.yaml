@@ -2,9 +2,9 @@ replicaCount: 1
 
 image:
   tags:
-    tezosMarketplaceIndexer: tezos-marketplace-indexer-2.7.1
-    tezosPostcardIndexer: tezos-postcard-indexer-2.7.1-4
-    tezosFeralfileIndexer: tezos-feralfile-indexer-2.7.1-1
+    tezosMarketplaceIndexer: tezos-marketplace-indexer-2.11.0-3
+    tezosPostcardIndexer: tezos-postcard-indexer-2.11.0-3
+    tezosFeralfileIndexer: tezos-feralfile-indexer-2.11.0-3
 
 serviceConfig:
   tezosNodeRPCURL: https://mainnet-tezos.autonomy.io
@@ -27,6 +27,8 @@ serviceConfig:
     "KT1CtDPiLjHiU1LVLrhshDry8jkR9h29tXNo", # FF029
     "KT1JCd3QHFgNZRatQuniDi8evTtyuhKFb3DC", # FF030
     "KT1KzEtNm6Bb9qip8trTsnBohoriH2g2dvc7", # airdrop Memento 4
+    "KT1VNooU9Nrj6hB1SwTkCA5yFXJxjZQCtBRM", # Wedgwood Portland Vase
+    "KT1RWFkvQPkhjxQQzg1ZvS2EKbprbkAdPRSc", # airdrop Memento 5
   ]
   postcardAddresses: [
     "KT1Lak6VLc3k33EqvpTBfpXspoRAKUa4ycVJ"
@@ -37,3 +39,9 @@ serviceConfig:
     tezos: livenet
     ethereum: livenet
     bitmark: livenet
+  postcard:
+    lastStopBlockKeyName: /autonomy/production/event-emitter/tezos/postcard/last-stop-block
+  marketplace:
+    lastStopBlockKeyName: /autonomy/production/event-emitter/tezos/marketplace/last-stop-block
+  feralfile:
+    lastStopBlockKeyName: /autonomy/production/event-emitter/tezos/feralfile/last-stop-block

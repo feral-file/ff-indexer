@@ -21,6 +21,12 @@ serviceConfig:
   contractAddresses: []
   postcardAddresses: []
   contractBoostUrl: "https://api.tzkt.io/"
+  postcard:
+    lastStopBlockKeyName: /autonomy/development/event-emitter/tezos/postcard/last-stop-block
+  marketplace:
+    lastStopBlockKeyName: /autonomy/development/event-emitter/tezos/marketplace/last-stop-block
+  feralfile:
+    lastStopBlockKeyName: /autonomy/development/event-emitter/tezos/feralfile/last-stop-block
 
 imagePullSecrets: []
 nameOverride: ""
