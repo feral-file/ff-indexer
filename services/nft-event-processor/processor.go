@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/status"
 
 	"github.com/bitmark-inc/autonomy-logger"
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -25,8 +26,10 @@ func (e *EventProcessor) updateLatestOwner(ctx context.Context, event NFTEvent) 
 	case string(EventTypeTransfer):
 		token, err := e.indexerGRPC.GetTokenByIndexID(ctx, indexID)
 		if err != nil {
-			log.Error("fail to get token by index id", zap.Error(err))
-			return err
+			if grpcError, ok := status.FromError(err); !ok || grpcError.Message() != "token does not exist" {
+				log.Error("fail to query token from indexer", zap.Error(err))
+				return err
+			}
 		}
 
 		if token != nil {
@@ -109,8 +112,10 @@ func (e *EventProcessor) updateOwnerAndProvenance(ctx context.Context, event NFT
 	indexID := indexer.TokenIndexID(blockchain, contract, tokenID)
 	token, err := e.indexerGRPC.GetTokenByIndexID(ctx, indexID)
 	if err != nil {
-		log.Error("fail to check token by index ID", zap.Error(err))
-		return err
+		if grpcError, ok := status.FromError(err); !ok || grpcError.Message() != "token does not exist" {
+			log.Error("fail to query token from indexer", zap.Error(err))
+			return err
+		}
 	}
 
 	// check if a token is existent
