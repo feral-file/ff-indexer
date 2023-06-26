@@ -132,7 +132,7 @@ export interface VersumMintParameter {
     metadata: MichelsonMap<string, string>;
 
     /** Date ISO 8601 string. */
-    no_transfers_until: string | null;
+    no_transfers_until: { Some: string } | null;
 
     /** Simple boolean. */
     req_verified_to_own: boolean;
@@ -570,7 +570,7 @@ export interface VersumCurrentStorageTokenExtraDataValue {
     minter: string;
 
     /** Date ISO 8601 string. */
-    no_transfers_until: string | null;
+    no_transfers_until: { Some: string } | null;
 
     /** Simple boolean. */
     req_verified_to_own: boolean;
@@ -881,7 +881,7 @@ export interface VersumInitialStorageTokenExtraDataValue {
     minter: string;
 
     /** Date ISO 8601 string. */
-    no_transfers_until: string | null;
+    no_transfers_until: { Some: string } | null;
 
     /** Simple boolean. */
     req_verified_to_own: boolean;
@@ -1014,7 +1014,7 @@ export interface VersumTokenExtraDataValue {
     minter: string;
 
     /** Date ISO 8601 string. */
-    no_transfers_until: string | null;
+    no_transfers_until: { Some: string } | null;
 
     /** Simple boolean. */
     req_verified_to_own: boolean;

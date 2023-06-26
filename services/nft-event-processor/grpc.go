@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/bitmark-inc/nft-indexer/log"
+	"github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 )
 
@@ -78,8 +78,9 @@ func (t *GRPCHandler) PushEvent(
 		To:         i.To,
 		TXID:       i.TXID,
 		TXTime:     i.TXTime.AsTime(),
-		Status:     EventStatusCreated,
+		EventIndex: uint(i.EventIndex),
 		Stage:      EventStages[1],
+		Status:     EventStatusCreated,
 	}); err != nil {
 		return nil, err
 	}

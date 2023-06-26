@@ -3,7 +3,7 @@ package main
 import (
 	"go.uber.org/zap"
 
-	"github.com/bitmark-inc/nft-indexer/log"
+	"github.com/bitmark-inc/autonomy-logger"
 )
 
 // logStageEvent logs events by stages

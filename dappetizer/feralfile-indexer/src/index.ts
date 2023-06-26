@@ -1,6 +1,7 @@
 import { IndexerModuleUsingDb } from '@tezos-dappetizer/database';
 import { createContractIndexerFromDecorators } from '@tezos-dappetizer/decorators';
 
+import { BlockDataIndexer } from "./block-indexer"
 import { FeralFileV1Indexer } from './feral-file-v-1-indexer';
 
 export const indexerModule: IndexerModuleUsingDb = {
@@ -15,7 +16,7 @@ export const indexerModule: IndexerModuleUsingDb = {
     ],
     blockDataIndexers: [
         // Create your block data indexers here:
-        // new MyBlockDataIndexer(),
+        new BlockDataIndexer(),
     ],
     // Create your indexing cycle handler here:
     // indexingCycleHandler: new MyIndexingCycleHandler(),

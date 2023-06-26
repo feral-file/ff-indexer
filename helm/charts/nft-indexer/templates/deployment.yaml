@@ -149,6 +149,7 @@ spec:
     {{- end }}
       labels:
         {{- include "nft-indexer.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/podname: {{ include "nft-indexer.name" . }}-grpc
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:

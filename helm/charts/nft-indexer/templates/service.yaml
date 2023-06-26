@@ -29,5 +29,6 @@ spec:
       protocol: TCP
       name: grpc
   selector:
-    {{- include "nft-indexer.selectorLabels" . | nindent 4 }}-grpc
+    {{- include "nft-indexer.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/podname: {{ include "nft-indexer.name" . }}-grpc
 {{- end }}

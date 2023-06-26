@@ -10,10 +10,10 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/bitmark-inc/autonomy-account/storage"
+	log "github.com/bitmark-inc/autonomy-logger"
 	notification "github.com/bitmark-inc/autonomy-notification"
 	notificationSdk "github.com/bitmark-inc/autonomy-notification/sdk"
 	"github.com/bitmark-inc/nft-indexer/cadence"
-	"github.com/bitmark-inc/nft-indexer/log"
 	indexerGRPCSDK "github.com/bitmark-inc/nft-indexer/sdk/nft-indexer-grpc"
 )
 
@@ -117,15 +117,16 @@ func (e *EventProcessor) StartWorker(ctx context.Context, currentStage, nextStag
 				}
 
 				// stage starts from 1. stage zero means there is no next stage.
-				var newStage, newStatus string
 				if nextStage == 0 {
-					newStatus = string(EventStatusProcessed)
+					if err := eventTx.ArchiveNFTEvent(); err != nil {
+						log.Error("fail to archive event", zap.Error(err))
+						eventTx.Rollback()
+					}
 				} else {
-					newStage = EventStages[nextStage]
-				}
-				if err := eventTx.UpdateEvent(newStage, newStatus); err != nil {
-					log.Error("fail to update event", zap.Error(err))
-					eventTx.Rollback()
+					if err := eventTx.UpdateEvent(EventStages[nextStage], ""); err != nil {
+						log.Error("fail to update event", zap.Error(err))
+						eventTx.Rollback()
+					}
 				}
 
 				eventTx.Commit()

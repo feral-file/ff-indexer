@@ -5,14 +5,11 @@ metadata:
   labels:
     {{- include "nft-event-processor-tezos-emitter.labels" . | nindent 4 }}
 data:
+  feralfile_last_stop_block_key_name: {{ .Values.serviceConfig.feralfile.lastStopBlockKeyName }}
   dappetizer.feralfile.config.json: |
     {
       "indexing": {
         "fromBlockLevel": 2845033,
-        "contractBoost": {
-          "type": "tzkt",
-          "apiUrl": "{{ .Values.serviceConfig.contractBoostUrl }}"
-        },
         "contracts": [
           {
             "name": "FeralFileV1",
@@ -25,14 +22,11 @@ data:
       }
     }
 {{- if not (empty .Values.image.tags.tezosPostcardIndexer) }}
+  postcard_last_stop_block_key_name: {{ .Values.serviceConfig.postcard.lastStopBlockKeyName }}
   dappetizer.postcard.config.json: |
     {
       "indexing": {
         "fromBlockLevel": 2845033,
-        "contractBoost": {
-          "type": "tzkt",
-          "apiUrl": "{{ .Values.serviceConfig.contractBoostUrl }}"
-        },
         "contracts": [
           {
             "name": "postcard",
@@ -45,13 +39,12 @@ data:
       }
     }
 {{- end }}
+{{- if ne .Values.serviceConfig.environment "development" }}
+  marketplace_last_stop_block_key_name: {{ .Values.serviceConfig.marketplace.lastStopBlockKeyName }}
   dappetizer.marketplace.config.json: |
     {
       "indexing": {
         "fromBlockLevel": 2845173,
-        "contractBoost": {
-          "type": "tzkt"
-        },
         "contracts": [
           {
             "name": "fxhash",
@@ -83,3 +76,4 @@ data:
         "url": "{{ .Values.serviceConfig.tezosNodeRPCURL }}"
       }
     }
+{{- end }}

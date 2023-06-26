@@ -1,17 +1,17 @@
 {
     "dependencies": {
         "@grpc/grpc-js": "^1.8.4",
-        "@taquito/michelson-encoder": "^16.1.2",
-        "@taquito/taquito": "^16.1.2",
-        "@tezos-dappetizer/cli": "^2.7.1",
-        "@tezos-dappetizer/database": "^2.7.1",
-        "@tezos-dappetizer/decorators": "^2.7.1",
-        "@tezos-dappetizer/indexer": "^2.7.1",
-        "@tezos-dappetizer/utils": "^2.7.1",
+        "@taquito/taquito": "^17.0.0",
+        "@tezos-dappetizer/cli": "^2.11.0",
+        "@tezos-dappetizer/database": "^2.11.0",
+        "@tezos-dappetizer/decorators": "^2.11.0",
+        "@tezos-dappetizer/indexer": "^2.11.0",
+        "@tezos-dappetizer/utils": "^2.11.0",
         "@types/google-protobuf": "^3.15.6",
-        "bignumber.js": "^9.1.1",
-        "sqlite3": "^5.1.6",
-        "typeorm": "^0.3.16"
+        "aws-sdk": "^2.1403.0",
+        "bignumber.js": "^9.1.0",
+        "sqlite3": "^5.1.2",
+        "typeorm": "^0.3.10"
     },
     "devDependencies": {
         "grpc_tools_node_protoc_ts": "^5.3.3",

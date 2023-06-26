@@ -33,6 +33,23 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tags.tezosPostcardIndexer | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
+            - name: AWS_REGION
+              value: ap-northeast-1
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: nft-event-processor
+                  key: aws_access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nft-event-processor
+                  key: aws_secret_access_key
+            - name: LAST_STOP_BLOCK_KEY_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "nft-event-processor-tezos-emitter.fullname" . }}
+                  key: postcard_last_stop_block_key_name
             - name: DEFAULT_CONFIG_PATH
               value: /.config/dappetizer.default.config.json
 {{- if ne .Values.serviceConfig.eventProcessorURI "" }}
@@ -53,6 +70,23 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tags.tezosMarketplaceIndexer | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
+            - name: AWS_REGION
+              value: ap-northeast-1
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: nft-event-processor
+                  key: aws_access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nft-event-processor
+                  key: aws_secret_access_key
+            - name: LAST_STOP_BLOCK_KEY_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "nft-event-processor-tezos-emitter.fullname" . }}
+                  key: marketplace_last_stop_block_key_name
             - name: DEFAULT_CONFIG_PATH
               value: /.config/dappetizer.default.config.json
 {{- if ne .Values.serviceConfig.eventProcessorURI "" }}
@@ -72,6 +106,23 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tags.tezosFeralfileIndexer | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
+            - name: AWS_REGION
+              value: ap-northeast-1
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: nft-event-processor
+                  key: aws_access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nft-event-processor
+                  key: aws_secret_access_key
+            - name: LAST_STOP_BLOCK_KEY_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "nft-event-processor-tezos-emitter.fullname" . }}
+                  key: feralfile_last_stop_block_key_name
 {{- if eq .Values.serviceConfig.environment "development" }}
             - name: NETWORK
               value: testnet

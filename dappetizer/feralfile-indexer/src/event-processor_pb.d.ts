@@ -27,6 +27,8 @@ export class EventInput extends jspb.Message {
     clearTxtime(): void;
     getTxtime(): google_protobuf_timestamp_pb.Timestamp | undefined;
     setTxtime(value?: google_protobuf_timestamp_pb.Timestamp): EventInput;
+    getEventindex(): number;
+    setEventindex(value: number): EventInput;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): EventInput.AsObject;
@@ -48,6 +50,7 @@ export namespace EventInput {
         tokenid: string,
         txid: string,
         txtime?: google_protobuf_timestamp_pb.Timestamp.AsObject,
+        eventindex: number,
     }
 }
 

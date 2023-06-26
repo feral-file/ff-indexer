@@ -7,9 +7,9 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
+	"github.com/bitmark-inc/autonomy-logger"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
-	"github.com/bitmark-inc/nft-indexer/log"
 )
 
 // updateLatestOwner updates the latest owner of an existent token

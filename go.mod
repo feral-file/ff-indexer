@@ -5,10 +5,11 @@ go 1.20
 require (
 	blockwatch.cc/tzgo v1.16.6
 	github.com/99designs/gqlgen v0.17.24
-	github.com/aws/aws-sdk-go v1.43.9
+	github.com/aws/aws-sdk-go v1.44.283
 	github.com/bitmark-inc/autonomy-account v0.0.5-1
+	github.com/bitmark-inc/autonomy-logger v0.0.2
 	github.com/bitmark-inc/autonomy-notification v0.0.3
-	github.com/bitmark-inc/config-loader v0.0.5
+	github.com/bitmark-inc/config-loader v0.0.7
 	github.com/bitmark-inc/traceutils v0.1.0
 	github.com/bitmark-inc/tzkt-go v0.0.5
 	github.com/chromedp/chromedp v0.9.1
@@ -21,7 +22,9 @@ require (
 	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-gonic/gin v1.8.1
 	github.com/hasura/go-graphql-client v0.9.3
+	github.com/jackc/pgconn v1.10.1
 	github.com/lib/pq v1.10.2
+	github.com/meirf/gopart v0.0.0-20180520194036-37e9492a85a8
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/viper v1.8.1
 	github.com/stretchr/testify v1.8.2
@@ -31,7 +34,7 @@ require (
 	go.mongodb.org/mongo-driver v1.11.6
 	go.uber.org/cadence v0.19.1
 	go.uber.org/yarpc v1.70.2
-	go.uber.org/zap v1.17.0
+	go.uber.org/zap v1.24.0
 	golang.org/x/crypto v0.1.0
 	google.golang.org/grpc v1.40.1
 	google.golang.org/protobuf v1.28.1
@@ -98,7 +101,6 @@ require (
 	github.com/holiman/uint256 v1.2.2-0.20230321075855-87b91420868c // indirect
 	github.com/ipfs/go-cid v0.2.0 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
-	github.com/jackc/pgconn v1.10.1 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgproto3/v2 v2.2.0 // indirect
@@ -119,7 +121,6 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
-	github.com/meirf/gopart v0.0.0-20180520194036-37e9492a85a8 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
