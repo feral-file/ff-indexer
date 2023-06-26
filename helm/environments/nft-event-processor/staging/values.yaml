@@ -17,3 +17,5 @@ serviceConfig:
     tezos: livenet
     ethereum: livenet
     bitmark: livenet
+  indexer_grpc:
+    endpoint: nft-indexer-grpc.autonomy-staging.svc.cluster.local:8888
