@@ -106,7 +106,8 @@ proto.EventInput.toObject = function(includeInstance, msg) {
     to: jspb.Message.getFieldWithDefault(msg, 5, ""),
     tokenid: jspb.Message.getFieldWithDefault(msg, 6, ""),
     txid: jspb.Message.getFieldWithDefault(msg, 7, ""),
-    txtime: (f = msg.getTxtime()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f)
+    txtime: (f = msg.getTxtime()) && google_protobuf_timestamp_pb.Timestamp.toObject(includeInstance, f),
+    eventindex: jspb.Message.getFieldWithDefault(msg, 9, 0)
   };
 
   if (includeInstance) {
@@ -175,6 +176,10 @@ proto.EventInput.deserializeBinaryFromReader = function(msg, reader) {
       var value = new google_protobuf_timestamp_pb.Timestamp;
       reader.readMessage(value,google_protobuf_timestamp_pb.Timestamp.deserializeBinaryFromReader);
       msg.setTxtime(value);
+      break;
+    case 9:
+      var value = /** @type {number} */ (reader.readUint64());
+      msg.setEventindex(value);
       break;
     default:
       reader.skipField();
@@ -260,6 +265,13 @@ proto.EventInput.serializeBinaryToWriter = function(message, writer) {
       8,
       f,
       google_protobuf_timestamp_pb.Timestamp.serializeBinaryToWriter
+    );
+  }
+  f = message.getEventindex();
+  if (f !== 0) {
+    writer.writeUint64(
+      9,
+      f
     );
   }
 };
@@ -425,6 +437,24 @@ proto.EventInput.prototype.clearTxtime = function() {
  */
 proto.EventInput.prototype.hasTxtime = function() {
   return jspb.Message.getField(this, 8) != null;
+};
+
+
+/**
+ * optional uint64 EventIndex = 9;
+ * @return {number}
+ */
+proto.EventInput.prototype.getEventindex = function() {
+  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 9, 0));
+};
+
+
+/**
+ * @param {number} value
+ * @return {!proto.EventInput} returns this
+ */
+proto.EventInput.prototype.setEventindex = function(value) {
+  return jspb.Message.setProto3IntField(this, 9, value);
 };
 
 

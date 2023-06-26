@@ -4,7 +4,6 @@ import {
 import {
   TransactionIndexingContext,
 } from '@tezos-dappetizer/indexer';
-import axios from 'axios';
 
 import { EventProcessorClient } from './event-processor_grpc_pb'
 import { EventInput } from './event-processor_pb'
