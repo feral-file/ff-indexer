@@ -172,13 +172,14 @@ type TokenUpdateSet struct {
 	Edition           int64     `structs:"edition,omitempty"`
 	EditionName       string    `structs:"editionName,omitempty"`
 	ContractAddress   string    `structs:"contractAddress,omitempty"`
+	MintedAt          time.Time `structs:"mintedAt,omitempty"`
 	LastRefreshedTime time.Time `structs:"lastRefreshedTime"`
 	LastActivityTime  time.Time `structs:"lastActivityTime,omitempty"`
 }
 
 // checkIfTokenNeedToUpdate returns true if the new token data is suppose to be
 // better than existent one.
-func checkIfTokenNeedToUpdate(assetSource string, currentToken, newToken Token) bool {
+func checkIfTokenNeedToUpdate(assetSource string, currentToken Token) bool {
 	// ignore updates for swapped and burned token
 	if currentToken.Swapped || currentToken.Burned {
 		return false
@@ -189,9 +190,8 @@ func checkIfTokenNeedToUpdate(assetSource string, currentToken, newToken Token) 
 		return true
 	}
 
-	// assetSource is not feral file
-	// only update if token source is not feral file and token balance is greater than zero.
-	if newToken.Balance > 0 && currentToken.Source != SourceFeralFile {
+	// update only if the token source is not feral file
+	if currentToken.Source != SourceFeralFile {
 		return true
 	}
 
@@ -323,7 +323,9 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 			return err
 		}
 
-		if checkIfTokenNeedToUpdate(assetUpdates.Source, currentToken, token) {
+		if checkIfTokenNeedToUpdate(assetUpdates.Source, currentToken) {
+			log.Debug("token data need to update", zap.String("token_id", token.ID))
+
 			tokenUpdateSet := TokenUpdateSet{
 				Fungible:          token.Fungible,
 				Source:            token.Source,
@@ -332,6 +334,10 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 				EditionName:       token.EditionName,
 				ContractAddress:   token.ContractAddress,
 				LastRefreshedTime: indexTime,
+			}
+
+			if currentToken.MintedAt.IsZero() && !token.MintedAt.IsZero() {
+				tokenUpdateSet.MintedAt = token.MintedAt
 			}
 
 			if !token.LastActivityTime.IsZero() {
