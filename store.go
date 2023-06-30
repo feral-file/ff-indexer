@@ -172,6 +172,7 @@ type TokenUpdateSet struct {
 	Edition           int64     `structs:"edition,omitempty"`
 	EditionName       string    `structs:"editionName,omitempty"`
 	ContractAddress   string    `structs:"contractAddress,omitempty"`
+	MintedAt          time.Time `structs:"mintedAt,omitempty"`
 	LastRefreshedTime time.Time `structs:"lastRefreshedTime"`
 	LastActivityTime  time.Time `structs:"lastActivityTime,omitempty"`
 }
@@ -332,6 +333,10 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 				EditionName:       token.EditionName,
 				ContractAddress:   token.ContractAddress,
 				LastRefreshedTime: indexTime,
+			}
+
+			if currentToken.MintedAt.IsZero() && !token.MintedAt.IsZero() {
+				tokenUpdateSet.MintedAt = token.MintedAt
 			}
 
 			if !token.LastActivityTime.IsZero() {
