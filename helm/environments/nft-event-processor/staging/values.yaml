@@ -13,6 +13,7 @@ serviceConfig:
   eventProcessorEndpoint: nft-event-processor.autonomy-staging.svc.cluster.local:8765
   feedEndpoint: http://autonomy-event-feed.autonomy-staging.svc.cluster.local:80
   notificationEndpoint: http://autonomy-notification.autonomy-staging.svc.cluster.local:80
+  lastBlockKeyName: /autonomy/staging/event-emitter/ethereum/last-stop-block
   network:
     tezos: livenet
     ethereum: livenet
