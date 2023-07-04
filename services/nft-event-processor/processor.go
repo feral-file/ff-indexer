@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/status"
 
@@ -227,7 +226,7 @@ func (e *EventProcessor) sendEventToFeedServer(ctx context.Context, event NFTEve
 	eventType := event.Type
 
 	return e.feedServer.SendEvent(ctx, blockchain, contract, tokenID, to, eventType,
-		viper.GetString("network.ethereum") == "testnet")
+		e.environment == indexer.DevelopmentEnvironment)
 }
 
 // SendEventToFeedServer is a stage 4 worker.
