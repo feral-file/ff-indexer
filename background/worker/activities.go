@@ -371,7 +371,13 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 				return err
 			}
 
-			if len(token.Provenances) != 0 && lastActivityTime.Sub(token.LastActivityTime) <= 0 {
+			// Ignore the refreshing process when
+			// 1. provenances is not empty
+			// 2. the latest provenance timestamp match the token's lastActivityTime
+			// 3. the token's lastActivityTime is greater than the record from tzkt
+			if len(token.Provenances) != 0 &&
+				token.Provenances[0].Timestamp.Sub(token.LastActivityTime) == 0 &&
+				lastActivityTime.Sub(token.LastActivityTime) <= 0 {
 				log.Debug("no new updates since last check", zap.String("indexID", token.IndexID))
 				continue
 			}
