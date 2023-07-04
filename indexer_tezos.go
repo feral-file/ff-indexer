@@ -132,13 +132,13 @@ func (e *IndexEngine) searchMetadataFromIPFS(ipfsURI string) (*tzkt.TokenMetadat
 		u := ipfsURLToGatewayURL(gateway, ipfsURI)
 		metadata, err := e.fetchMetadataByLink(u)
 		if err == nil {
-			log.Info("read token metadata from ipfs",
+			log.Debug("read token metadata from ipfs",
 				zap.String("gateway", gateway), log.SourceTZKT)
 			return metadata, nil
 		}
 
 		log.Error("fail to read token metadata from ipfs",
-			zap.Error(err), zap.String("gateway", gateway), log.SourceTZKT)
+			zap.Error(err), zap.String("ipfsURI", ipfsURI), zap.String("gateway", gateway), log.SourceTZKT)
 	}
 
 	return nil, fmt.Errorf("fail to get metadata from the preferred gateways")
