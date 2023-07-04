@@ -22,7 +22,7 @@ func (w *NFTIndexerWorker) refreshTokenProvenanceByOwnerDetachedWorkflow(ctx wor
 	var cw workflow.Execution
 	if err := workflow.
 		ExecuteChildWorkflow(cwo, w.RefreshTokenProvenanceByOwnerWorkflow, owner).
-		GetChildWorkflowExecution().Get(ctx, cw); err != nil {
+		GetChildWorkflowExecution().Get(ctx, &cw); err != nil {
 		log.Error("fail to start workflow RefreshTokenProvenanceByOwnerWorkflow", zap.Error(err), zap.String("owner", owner))
 	}
 	log.Info("workflow RefreshTokenProvenanceByOwnerWorkflow started", zap.String("workflow_id", cw.ID), zap.String("owner", owner))
