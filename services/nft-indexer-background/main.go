@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/viper"
@@ -79,13 +77,9 @@ func main() {
 		cacheStore,
 	)
 
-	awsSession := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String(viper.GetString("aws.region")),
-	}))
-
 	assetClient := assetSDK.New(viper.GetString("asset_server.server_url"), nil, viper.GetString("asset_server.secret_key"))
 
-	worker := indexerWorker.New(environment, indexerEngine, cacheStore, awsSession, indexerStore, assetClient)
+	worker := indexerWorker.New(environment, indexerEngine, cacheStore, indexerStore, assetClient)
 
 	// workflows
 	workflow.Register(worker.IndexETHTokenWorkflow)

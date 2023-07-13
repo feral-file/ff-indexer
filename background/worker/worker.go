@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"
 
@@ -19,8 +18,7 @@ var ProvenanceTaskListName = "nft-provenance-indexer"
 var AccountTokenTaskListName = "nft-account-token-indexer"
 
 type NFTIndexerWorker struct {
-	http       *http.Client
-	awsSession *session.Session
+	http *http.Client
 
 	ipfsCacheBucketName string
 
@@ -42,7 +40,6 @@ type NFTIndexerWorker struct {
 func New(environment string,
 	indexerEngine *indexer.IndexEngine,
 	cacheStore cache.Store,
-	awsSession *session.Session,
 	store indexer.Store,
 	assetClient *assetSDK.Client,
 ) *NFTIndexerWorker {
@@ -65,8 +62,7 @@ func New(environment string,
 		http: &http.Client{
 			Timeout: 15 * time.Second,
 		},
-		ethClient:  wsClient,
-		awsSession: awsSession,
+		ethClient: wsClient,
 
 		ipfsCacheBucketName: viper.GetString("cache.bucket_name"),
 

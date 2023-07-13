@@ -29,9 +29,6 @@ fxhash:
 objkt:
   api_endpoint: https://data.objkt.com/v3/graphql
 
-aws:
-  region: ap-northeast-1
-
 cache:
   bucket_name:
 
