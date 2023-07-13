@@ -103,7 +103,8 @@ func ipfsURLToGatewayURL(gateway, ipfsURL string) string {
 		return ipfsURL
 	}
 
-	u.Path = fmt.Sprintf("ipfs/%s%s", u.Host, u.Path)
+	// enforce a slash at the end of the path to prevent the redirect issue
+	u.Path = fmt.Sprintf("ipfs/%s%s/", u.Host, u.Path)
 	u.Host = gateway
 	u.Scheme = "https"
 
