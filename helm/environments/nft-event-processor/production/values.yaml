@@ -13,6 +13,7 @@ serviceConfig:
   cadence_hostport: cadenceau-frontend.cadenceau.svc.cluster.local:7933
   feedEndpoint: http://autonomy-event-feed.autonomy.svc.cluster.local:80
   notificationEndpoint: http://autonomy-notification.autonomy.svc.cluster.local:80
+  lastBlockKeyName: /autonomy/production/event-emitter/ethereum/last-stop-block
   network:
     tezos: livenet
     ethereum: livenet
