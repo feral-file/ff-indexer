@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"
 
+	assetSDK "github.com/bitmark-inc/autonomy-asset-server/sdk/api"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/cache"
 )
@@ -26,6 +27,7 @@ type NFTIndexerWorker struct {
 	indexerEngine *indexer.IndexEngine
 	indexerStore  indexer.Store
 	cacheStore    cache.Store
+	assetClient   *assetSDK.Client
 	ethClient     *ethclient.Client
 
 	bitmarkZeroAddress string
@@ -41,7 +43,9 @@ func New(environment string,
 	indexerEngine *indexer.IndexEngine,
 	cacheStore cache.Store,
 	awsSession *session.Session,
-	store indexer.Store) *NFTIndexerWorker {
+	store indexer.Store,
+	assetClient *assetSDK.Client,
+) *NFTIndexerWorker {
 
 	wsClient, err := ethclient.Dial(viper.GetString("ethereum.rpc_url"))
 	if err != nil {
@@ -69,6 +73,7 @@ func New(environment string,
 		indexerEngine: indexerEngine,
 		indexerStore:  store,
 		cacheStore:    cacheStore,
+		assetClient:   assetClient,
 
 		bitmarkZeroAddress: bitmarkZeroAddress,
 		bitmarkAPIEndpoint: bitmarkAPIEndpoint,

@@ -14,6 +14,7 @@ import (
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 
+	assetSDK "github.com/bitmark-inc/autonomy-asset-server/sdk/api"
 	log "github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/config-loader"
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -82,7 +83,9 @@ func main() {
 		Region: aws.String(viper.GetString("aws.region")),
 	}))
 
-	worker := indexerWorker.New(environment, indexerEngine, cacheStore, awsSession, indexerStore)
+	assetClient := assetSDK.New(viper.GetString("asset_server.server_url"), nil, viper.GetString("asset_server.secret_key"))
+
+	worker := indexerWorker.New(environment, indexerEngine, cacheStore, awsSession, indexerStore, assetClient)
 
 	// workflows
 	workflow.Register(worker.RefreshTokenProvenanceWorkflow)
