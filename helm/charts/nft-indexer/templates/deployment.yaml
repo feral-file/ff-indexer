@@ -281,6 +281,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-indexer.fullname" . }}
                   key: opensea_api_key
+            - name: NFT_INDEXER_ASSET_SERVER_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: asset_server_secret_key
             - name: NFT_INDEXER_SENTRY_DSN
               valueFrom:
                 secretKeyRef:
@@ -383,6 +388,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-indexer.fullname" . }}
                   key: opensea_api_key
+            - name: NFT_INDEXER_ASSET_SERVER_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: asset_server_secret_key
             - name: NFT_INDEXER_SENTRY_DSN
               valueFrom:
                 secretKeyRef:
@@ -485,6 +495,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-indexer.fullname" . }}
                   key: opensea_api_key
+            - name: NFT_INDEXER_ASSET_SERVER_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: asset_server_secret_key
             - name: NFT_INDEXER_SENTRY_DSN
               valueFrom:
                 secretKeyRef:
