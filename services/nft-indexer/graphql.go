@@ -10,7 +10,7 @@ import (
 
 // Defining the Graphql handler
 func (s *NFTIndexerServer) graphqlHandler(c *gin.Context) {
-	h := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: graph.NewResolver(s.indexerStore, s.cadenceWorker)}))
+	h := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: graph.NewResolver(s.indexerStore, s.cacheClient, s.cadenceWorker)}))
 
 	h.ServeHTTP(c.Writer, c.Request)
 }

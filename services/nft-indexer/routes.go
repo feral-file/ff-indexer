@@ -37,6 +37,8 @@ func (s *NFTIndexerServer) SetupRoute() {
 	s.route.POST("/nft/swap", TokenAuthenticate("API-TOKEN", s.apiToken), s.SwapNFT)
 	s.route.PUT("/asset/:asset_id", TokenAuthenticate("API-TOKEN", s.apiToken), s.IndexAsset)
 
+	s.route.GET("/eth/:block_hash/block_time", s.GetETHBlockTime)
+
 	v1 := s.route.Group("/v1")
 	v1NFT := v1.Group("/nft")
 	v1NFT.GET("", s.GetAccountNFTs)

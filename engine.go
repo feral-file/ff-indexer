@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/bitmark-inc/nft-indexer/cache"
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
@@ -17,12 +18,13 @@ type IndexEngine struct {
 
 	minterGateways map[string]string
 
-	http     *http.Client
-	opensea  *opensea.Client
-	tzkt     *tzkt.TZKT
-	fxhash   *fxhash.Client
-	objkt    *objkt.Client
-	ethereum *ethclient.Client
+	http        *http.Client
+	opensea     *opensea.Client
+	tzkt        *tzkt.TZKT
+	fxhash      *fxhash.Client
+	objkt       *objkt.Client
+	ethereum    *ethclient.Client
+	cacheClient *cache.CacheClient
 }
 
 func New(
@@ -34,6 +36,7 @@ func New(
 	fxhash *fxhash.Client,
 	objkt *objkt.Client,
 	ethereum *ethclient.Client,
+	cacheClient *cache.CacheClient,
 ) *IndexEngine {
 	if len(ipfsGateways) == 0 {
 		ipfsGateways = []string{DefaultIPFSGateway}
@@ -48,10 +51,11 @@ func New(
 		http: &http.Client{
 			Timeout: 15 * time.Second,
 		},
-		opensea:  opensea,
-		tzkt:     tzkt,
-		fxhash:   fxhash,
-		objkt:    objkt,
-		ethereum: ethereum,
+		opensea:     opensea,
+		tzkt:        tzkt,
+		fxhash:      fxhash,
+		objkt:       objkt,
+		ethereum:    ethereum,
+		cacheClient: cacheClient,
 	}
 }

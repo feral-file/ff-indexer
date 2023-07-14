@@ -36,6 +36,10 @@ type BaseTokenInfo struct {
 	ContractAddress string `json:"contractAddress"`
 }
 
+type BlockTime struct {
+	BlockTime time.Time `json:"blockTime"`
+}
+
 type Identity struct {
 	AccountNumber string `json:"accountNumber"`
 	Blockchain    string `json:"blockchain"`

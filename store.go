@@ -154,6 +154,7 @@ type MongodbIndexerStore struct {
 	accountTokenCollection  *mongo.Collection
 	tokenFeedbackCollection *mongo.Collection
 	tokenAssetCollection    *mongo.Collection
+	blockCacheCollection    *mongo.Collection
 }
 
 type AssetUpdateSet struct {

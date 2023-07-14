@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer/cache"
 	"github.com/bitmark-inc/nft-indexer/cadence"
 	"github.com/bitmark-inc/nft-indexer/externals/ens"
 	"github.com/bitmark-inc/nft-indexer/externals/feralfile"
@@ -23,6 +24,7 @@ type NFTIndexerServer struct {
 	feralfile          *feralfile.Feralfile
 	cadenceWorker      *cadence.WorkerClient
 	indexerStore       indexer.Store
+	cacheClient        *cache.CacheClient
 	indexerEngine      *indexer.IndexEngine
 }
 
@@ -31,6 +33,7 @@ func NewNFTIndexerServer(cadenceWorker *cadence.WorkerClient,
 	tezosDomain *tezosDomain.Client,
 	feralfileClient *feralfile.Feralfile,
 	indexerStore indexer.Store,
+	cacheClient *cache.CacheClient,
 	indexerEngine *indexer.IndexEngine,
 	jwtPubkey *rsa.PublicKey,
 	apiToken string,
@@ -49,6 +52,7 @@ func NewNFTIndexerServer(cadenceWorker *cadence.WorkerClient,
 		feralfile:          feralfileClient,
 		cadenceWorker:      cadenceWorker,
 		indexerStore:       indexerStore,
+		cacheClient:        cacheClient,
 		indexerEngine:      indexerEngine,
 	}
 }

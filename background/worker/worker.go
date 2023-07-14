@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/viper"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer/cache"
 )
 
 var ClientName = "nft-indexer-worker"
@@ -24,6 +25,7 @@ type NFTIndexerWorker struct {
 
 	indexerEngine *indexer.IndexEngine
 	indexerStore  indexer.Store
+	cacheClient   *cache.CacheClient
 	ethClient     *ethclient.Client
 
 	bitmarkZeroAddress string
@@ -37,6 +39,7 @@ type NFTIndexerWorker struct {
 
 func New(environment string,
 	indexerEngine *indexer.IndexEngine,
+	cacheClient *cache.CacheClient,
 	awsSession *session.Session,
 	store indexer.Store) *NFTIndexerWorker {
 
@@ -65,6 +68,7 @@ func New(environment string,
 
 		indexerEngine: indexerEngine,
 		indexerStore:  store,
+		cacheClient:   cacheClient,
 
 		bitmarkZeroAddress: bitmarkZeroAddress,
 		bitmarkAPIEndpoint: bitmarkAPIEndpoint,
