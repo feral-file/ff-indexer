@@ -9,11 +9,11 @@ import (
 
 type Resolver struct {
 	indexerStore  indexer.Store
-	cacheClient   *cache.CacheClient
+	cacheClient   *cache.Client
 	cadenceWorker *cadence.WorkerClient
 }
 
-func NewResolver(indexerStore indexer.Store, cacheClient *cache.CacheClient, cadenceWorker *cadence.WorkerClient) *Resolver {
+func NewResolver(indexerStore indexer.Store, cacheClient *cache.Client, cadenceWorker *cadence.WorkerClient) *Resolver {
 	return &Resolver{
 		indexerStore:  indexerStore,
 		cacheClient:   cacheClient,

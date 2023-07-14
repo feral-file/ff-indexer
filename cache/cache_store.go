@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type CacheStore interface {
+type Store interface {
 	SaveData(ctx context.Context, cacheKey string, value interface{}) error
 	GetData(ctx context.Context, cacheKey string) (interface{}, error)
 }

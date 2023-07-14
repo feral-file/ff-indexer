@@ -25,7 +25,7 @@ type NFTIndexerWorker struct {
 
 	indexerEngine *indexer.IndexEngine
 	indexerStore  indexer.Store
-	cacheClient   *cache.CacheClient
+	cacheClient   *cache.Client
 	ethClient     *ethclient.Client
 
 	bitmarkZeroAddress string
@@ -39,7 +39,7 @@ type NFTIndexerWorker struct {
 
 func New(environment string,
 	indexerEngine *indexer.IndexEngine,
-	cacheClient *cache.CacheClient,
+	cacheClient *cache.Client,
 	awsSession *session.Session,
 	store indexer.Store) *NFTIndexerWorker {
 

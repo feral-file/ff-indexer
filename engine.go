@@ -24,7 +24,7 @@ type IndexEngine struct {
 	fxhash      *fxhash.Client
 	objkt       *objkt.Client
 	ethereum    *ethclient.Client
-	cacheClient *cache.CacheClient
+	cacheClient *cache.Client
 }
 
 func New(
@@ -36,7 +36,7 @@ func New(
 	fxhash *fxhash.Client,
 	objkt *objkt.Client,
 	ethereum *ethclient.Client,
-	cacheClient *cache.CacheClient,
+	cacheClient *cache.Client,
 ) *IndexEngine {
 	if len(ipfsGateways) == 0 {
 		ipfsGateways = []string{DefaultIPFSGateway}

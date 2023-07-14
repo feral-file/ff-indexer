@@ -24,7 +24,7 @@ type NFTIndexerServer struct {
 	feralfile          *feralfile.Feralfile
 	cadenceWorker      *cadence.WorkerClient
 	indexerStore       indexer.Store
-	cacheClient        *cache.CacheClient
+	cacheClient        *cache.Client
 	indexerEngine      *indexer.IndexEngine
 }
 
@@ -33,7 +33,7 @@ func NewNFTIndexerServer(cadenceWorker *cadence.WorkerClient,
 	tezosDomain *tezosDomain.Client,
 	feralfileClient *feralfile.Feralfile,
 	indexerStore indexer.Store,
-	cacheClient *cache.CacheClient,
+	cacheClient *cache.Client,
 	indexerEngine *indexer.IndexEngine,
 	jwtPubkey *rsa.PublicKey,
 	apiToken string,

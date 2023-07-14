@@ -11,19 +11,19 @@ import (
 	"go.uber.org/zap"
 )
 
-type CacheClient struct {
+type Client struct {
 	ethClient *ethclient.Client
-	store     CacheStore
+	store     Store
 }
 
-func NewCacheClient(ethClient *ethclient.Client, store CacheStore) *CacheClient {
-	return &CacheClient{
+func NewCacheClient(ethClient *ethclient.Client, store Store) *Client {
+	return &Client{
 		ethClient: ethClient,
 		store:     store,
 	}
 }
 
-func (c *CacheClient) GetETHBlockTime(ctx context.Context, blockHash common.Hash) (time.Time, error) {
+func (c *Client) GetETHBlockTime(ctx context.Context, blockHash common.Hash) (time.Time, error) {
 	data, err := c.store.GetData(ctx, blockHash.Hex())
 
 	if err == nil {
