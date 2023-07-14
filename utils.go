@@ -288,6 +288,7 @@ func AESOpen(hexString string, passphrase string) ([]byte, error) {
 	return message, nil
 }
 
+// GetCIDFromIPFSLink seaches and returns the CID for a give url
 func GetCIDFromIPFSLink(link string) (string, error) {
 	u, err := url.Parse(link)
 	if err != nil {
