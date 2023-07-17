@@ -11,8 +11,8 @@ import (
 )
 
 type Store interface {
-	SaveData(ctx context.Context, cacheKey string, value interface{}) error
-	GetData(ctx context.Context, cacheKey string) (interface{}, error)
+	Set(ctx context.Context, cacheKey string, value interface{}) error
+	Get(ctx context.Context, cacheKey string) (interface{}, error)
 }
 
 type MongoDBCacheStore struct {
@@ -42,7 +42,7 @@ func NewMongoDBCacheStore(ctx context.Context, mongodbURI, dbName string) (*Mong
 }
 
 // SaveData insert or update the the value for the cacheKey
-func (s *MongoDBCacheStore) SaveData(ctx context.Context, cacheKey string, value interface{}) error {
+func (s *MongoDBCacheStore) Set(ctx context.Context, cacheKey string, value interface{}) error {
 	r, err := s.blockCacheCollection.UpdateOne(ctx,
 		bson.M{"key": cacheKey},
 		bson.M{"$set": bson.M{"key": cacheKey, "data": value}},
@@ -60,7 +60,7 @@ func (s *MongoDBCacheStore) SaveData(ctx context.Context, cacheKey string, value
 }
 
 // GetData get the data by cacheKey
-func (s *MongoDBCacheStore) GetData(ctx context.Context, cacheKey string) (interface{}, error) {
+func (s *MongoDBCacheStore) Get(ctx context.Context, cacheKey string) (interface{}, error) {
 	var info struct {
 		Key  string      `bson:"key"`
 		Data interface{} `bson:"data"`

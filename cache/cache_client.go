@@ -24,7 +24,7 @@ func NewCacheClient(ethClient *ethclient.Client, store Store) *Client {
 }
 
 func (c *Client) GetETHBlockTime(ctx context.Context, blockHash common.Hash) (time.Time, error) {
-	data, err := c.store.GetData(ctx, blockHash.Hex())
+	data, err := c.store.Get(ctx, blockHash.Hex())
 
 	if err == nil {
 		if t, ok := data.(primitive.DateTime); ok {
@@ -39,7 +39,7 @@ func (c *Client) GetETHBlockTime(ctx context.Context, blockHash common.Hash) (ti
 	}
 
 	blockTime := time.Unix(int64(block.Time()), 0)
-	err = c.store.SaveData(ctx, blockHash.Hex(), blockTime)
+	err = c.store.Set(ctx, blockHash.Hex(), blockTime)
 	if err != nil {
 		log.Warn("failed to save cache data", zap.Error(err))
 	}
