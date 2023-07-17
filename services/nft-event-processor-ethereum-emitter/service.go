@@ -12,7 +12,8 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"go.uber.org/zap"
 
-	"github.com/bitmark-inc/autonomy-logger"
+	log "github.com/bitmark-inc/autonomy-logger"
+	utils "github.com/bitmark-inc/autonomy-utils"
 	"github.com/bitmark-inc/config-loader/external/aws/ssm"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/emitter"
@@ -160,7 +161,7 @@ func (e *EthereumEventsEmitter) processETHLog(ctx context.Context, eLog types.Lo
 			eventType = "burned"
 		}
 
-		if err := e.PushEvent(ctx, eventType, fromAddress, toAddress, contractAddress, indexer.EthereumBlockchain, tokenIDHash.Big().Text(10), eLog.TxHash.Hex(), eLog.Index, txTime); err != nil {
+		if err := e.PushEvent(ctx, eventType, fromAddress, toAddress, contractAddress, utils.EthereumBlockchain, tokenIDHash.Big().Text(10), eLog.TxHash.Hex(), eLog.Index, txTime); err != nil {
 			log.Error("gRPC request failed", zap.Error(err), log.SourceGRPC)
 			return
 		}

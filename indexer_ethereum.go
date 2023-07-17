@@ -12,7 +12,8 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
-	"github.com/bitmark-inc/autonomy-logger"
+	log "github.com/bitmark-inc/autonomy-logger"
+	utils "github.com/bitmark-inc/autonomy-utils"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 )
 
@@ -169,12 +170,12 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 			{
 				BaseTokenInfo: BaseTokenInfo{
 					ID:              a.TokenID,
-					Blockchain:      EthereumBlockchain,
+					Blockchain:      utils.EthereumBlockchain,
 					Fungible:        fungible,
 					ContractType:    contractType,
 					ContractAddress: contractAddress,
 				},
-				IndexID:           TokenIndexID(EthereumBlockchain, contractAddress, a.TokenID),
+				IndexID:           TokenIndexID(utils.EthereumBlockchain, contractAddress, a.TokenID),
 				Edition:           0,
 				Balance:           balance,
 				Owner:             owner,
@@ -187,8 +188,8 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 	}
 
 	log.Debug("asset updating data prepared",
-		zap.String("blockchain", EthereumBlockchain),
-		zap.String("id", TokenIndexID(EthereumBlockchain, contractAddress, a.TokenID)),
+		zap.String("blockchain", utils.EthereumBlockchain),
+		zap.String("id", TokenIndexID(utils.EthereumBlockchain, contractAddress, a.TokenID)),
 		zap.Any("tokenUpdate", tokenUpdate))
 
 	return tokenUpdate, nil
@@ -202,7 +203,7 @@ func (e *IndexEngine) IndexETHTokenLastActivityTime(contract, tokenID string) (t
 // IndexETHTokenOwners indexes owners of a given token
 func (e *IndexEngine) IndexETHTokenOwners(contract, tokenID string) ([]OwnerBalance, error) {
 	log.Debug("index eth token owners",
-		zap.String("blockchain", EthereumBlockchain),
+		zap.String("blockchain", utils.EthereumBlockchain),
 		zap.String("contract", contract), zap.String("tokenID", tokenID))
 
 	var next *string
@@ -281,7 +282,7 @@ func (e *IndexEngine) GetETHTransactionDetailsByPendingTx(ctx context.Context, c
 		transactionDetail := TransactionDetails{
 			From:      common.HexToAddress(log.Topics[1].String()).String(),
 			To:        common.HexToAddress(log.Topics[2].String()).String(),
-			IndexID:   TokenIndexID(EthereumBlockchain, log.Address.String(), tokenID),
+			IndexID:   TokenIndexID(utils.EthereumBlockchain, log.Address.String(), tokenID),
 			Timestamp: timestamp,
 		}
 
