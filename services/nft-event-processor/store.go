@@ -155,8 +155,7 @@ func (s *PostgresEventStore) CreateEvent(event NFTEvent) error {
 	INSERT INTO new_nft_events("type","blockchain","contract","token_id","from","to","tx_id","event_index","tx_time","stage","status")
 	SELECT @Type, @Blockchain, @Contract, @TokenID, @From, @To, @TXID, @EventIndex, @TXTime, @Stage, @Status
 	WHERE NOT EXISTS (SELECT * FROM nft_events WHERE "type"=@Type AND "blockchain"=@Blockchain AND "contract"=@Contract
-		AND "token_id"=@TokenID AND "from"=@From AND "to"=@To AND "tx_id"=@TXID AND "event_index"=@EventIndex 
-		AND "tx_time"=@TXTime)`, structs.Map(event)).Error
+		AND "token_id"=@TokenID AND "from"=@From AND "to"=@To AND "tx_id"=@TXID AND "event_index"=@EventIndex)`, structs.Map(event)).Error
 
 	var pgError *pgconn.PgError
 	if err != nil && errors.As(err, &pgError) {
