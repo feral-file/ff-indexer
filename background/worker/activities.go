@@ -300,7 +300,7 @@ func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID,
 			txType = "mint"
 		}
 
-		txTime, err := indexer.GetETHBlockTime(ctx, w.ethClient, l.BlockHash)
+		txTime, err := indexer.GetETHBlockTime(ctx, w.cacheStore, w.ethClient, l.BlockHash)
 		if err != nil {
 			return nil, err
 		}

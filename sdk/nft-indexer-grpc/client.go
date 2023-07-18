@@ -152,3 +152,15 @@ func (i *IndexerGRPCClient) CheckAddressOwnTokenByCriteria(ctx context.Context, 
 
 	return res.Result, nil
 }
+
+// GetETHBlockTime get block time for a blockHash
+func (i *IndexerGRPCClient) GetETHBlockTime(ctx context.Context, blockHash string) (time.Time, error) {
+	res, err := i.client.GetETHBlockTime(ctx, &pb.GetETHBlockTimeRequest{
+		BlockHash: blockHash,
+	})
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return ParseTime(res.BlockTime)
+}
