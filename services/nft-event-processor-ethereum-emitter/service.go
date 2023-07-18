@@ -12,9 +12,10 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"go.uber.org/zap"
 
-	"github.com/bitmark-inc/autonomy-logger"
+	log "github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/config-loader/external/aws/ssm"
 	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer/cache"
 	"github.com/bitmark-inc/nft-indexer/emitter"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 )
@@ -28,6 +29,7 @@ type EthereumEventsEmitter struct {
 	emitter.EventsEmitter
 	wsClient       *ethclient.Client
 	parameterStore *ssm.ParameterStore
+	cacheStore     cache.Store
 
 	ethLogChan      chan types.Log
 	ethSubscription *goethereum.Subscription
@@ -37,12 +39,14 @@ func NewEthereumEventsEmitter(
 	lastBlockKeyName string,
 	wsClient *ethclient.Client,
 	parameterStore *ssm.ParameterStore,
+	cacheStore cache.Store,
 	grpcClient processor.EventProcessorClient,
 ) *EthereumEventsEmitter {
 	return &EthereumEventsEmitter{
 		lastBlockKeyName: lastBlockKeyName,
 		grpcClient:       grpcClient,
 		parameterStore:   parameterStore,
+		cacheStore:       cacheStore,
 		EventsEmitter:    emitter.New(grpcClient),
 		wsClient:         wsClient,
 		ethLogChan:       make(chan types.Log, 100),
@@ -137,7 +141,7 @@ func (e *EthereumEventsEmitter) processETHLog(ctx context.Context, eLog types.Lo
 		contractAddress := indexer.EthereumChecksumAddress(eLog.Address.String())
 		tokenIDHash := eLog.Topics[3]
 
-		txTime, err := indexer.GetETHBlockTime(ctx, e.wsClient, eLog.BlockHash)
+		txTime, err := indexer.GetETHBlockTime(ctx, e.cacheStore, e.wsClient, eLog.BlockHash)
 		if err != nil {
 			log.Error("fail to get the block time", zap.Error(err), log.SourceGRPC)
 			return

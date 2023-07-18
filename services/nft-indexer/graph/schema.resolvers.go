@@ -98,7 +98,7 @@ func (r *queryResolver) Identity(ctx context.Context, account string) (*model.Id
 
 // EthBlockTime is the resolver for the ethBlockTime field.
 func (r *queryResolver) EthBlockTime(ctx context.Context, blockHash string) (*model.BlockTime, error) {
-	blockTime, err := r.cacheClient.GetETHBlockTime(ctx, common.HexToHash(blockHash))
+	blockTime, err := indexer.GetETHBlockTime(ctx, r.cacheStore, r.ethClient, common.HexToHash(blockHash))
 	if err != nil {
 		return nil, err
 	}

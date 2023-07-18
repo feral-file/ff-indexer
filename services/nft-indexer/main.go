@@ -70,7 +70,6 @@ func main() {
 	if err != nil {
 		log.Panic("fail to initiate eth client", zap.Error(err))
 	}
-	cacheClient := cache.NewCacheClient(ethClient, cacheStore)
 
 	engine := indexer.New(
 		environment,
@@ -81,7 +80,7 @@ func main() {
 		fxhash.New(viper.GetString("fxhash.api_endpoint")),
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 		ethClient,
-		cacheClient,
+		cacheStore,
 	)
 
 	parameterStore, err := ssm.NewParameterStore(ctx)
@@ -99,7 +98,7 @@ func main() {
 		log.Panic("jwt public key parsing failed", zap.Error(err))
 	}
 
-	s := NewNFTIndexerServer(cadenceClient, ensClient, tezosDomain, feralfileClient, indexerStore, cacheClient, engine, jwtPubkey, viper.GetString("server.api_token"), viper.GetString("server.admin_api_token"), viper.GetString("server.secret_symmetric_key"))
+	s := NewNFTIndexerServer(cadenceClient, ensClient, tezosDomain, ethClient, feralfileClient, indexerStore, cacheStore, engine, jwtPubkey, viper.GetString("server.api_token"), viper.GetString("server.admin_api_token"), viper.GetString("server.secret_symmetric_key"))
 	s.SetupRoute()
 	if err := s.Run(viper.GetString("server.port")); err != nil {
 		log.Panic("server interrupted", zap.Error(err))

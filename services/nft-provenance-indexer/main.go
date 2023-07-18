@@ -65,7 +65,6 @@ func main() {
 	if err != nil {
 		log.Panic("fail to initiate eth client: %s", zap.Error(err))
 	}
-	cacheClient := cache.NewCacheClient(ethClient, cacheStore)
 
 	indexerEngine := indexer.New(
 		environment,
@@ -76,14 +75,14 @@ func main() {
 		fxhash.New(viper.GetString("fxhash.api_endpoint")),
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 		ethClient,
-		cacheClient,
+		cacheStore,
 	)
 
 	awsSession := session.Must(session.NewSession(&aws.Config{
 		Region: aws.String(viper.GetString("aws.region")),
 	}))
 
-	worker := indexerWorker.New(environment, indexerEngine, cacheClient, awsSession, indexerStore)
+	worker := indexerWorker.New(environment, indexerEngine, cacheStore, awsSession, indexerStore)
 
 	// workflows
 	workflow.Register(worker.RefreshTokenProvenanceWorkflow)

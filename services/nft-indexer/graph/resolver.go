@@ -5,18 +5,21 @@ import (
 	"github.com/bitmark-inc/nft-indexer/cache"
 	"github.com/bitmark-inc/nft-indexer/cadence"
 	"github.com/bitmark-inc/nft-indexer/services/nft-indexer/graph/model"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 type Resolver struct {
 	indexerStore  indexer.Store
-	cacheClient   *cache.Client
+	cacheStore    cache.Store
+	ethClient     *ethclient.Client
 	cadenceWorker *cadence.WorkerClient
 }
 
-func NewResolver(indexerStore indexer.Store, cacheClient *cache.Client, cadenceWorker *cadence.WorkerClient) *Resolver {
+func NewResolver(indexerStore indexer.Store, cacheStore cache.Store, ethClient *ethclient.Client, cadenceWorker *cadence.WorkerClient) *Resolver {
 	return &Resolver{
 		indexerStore:  indexerStore,
-		cacheClient:   cacheClient,
+		cacheStore:    cacheStore,
+		ethClient:     ethClient,
 		cadenceWorker: cadenceWorker,
 	}
 }

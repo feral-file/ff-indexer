@@ -704,7 +704,7 @@ func (s *NFTIndexerServer) GetETHBlockTime(c *gin.Context) {
 
 	blockHash := c.Param("block_hash")
 
-	blockTime, err := s.cacheClient.GetETHBlockTime(c, common.HexToHash(blockHash))
+	blockTime, err := indexer.GetETHBlockTime(c, s.cacheStore, s.ethClient, common.HexToHash(blockHash))
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "fail to get block", err)
 		return

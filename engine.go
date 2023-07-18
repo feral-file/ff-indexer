@@ -18,13 +18,13 @@ type IndexEngine struct {
 
 	minterGateways map[string]string
 
-	http        *http.Client
-	opensea     *opensea.Client
-	tzkt        *tzkt.TZKT
-	fxhash      *fxhash.Client
-	objkt       *objkt.Client
-	ethereum    *ethclient.Client
-	cacheClient *cache.Client
+	http       *http.Client
+	opensea    *opensea.Client
+	tzkt       *tzkt.TZKT
+	fxhash     *fxhash.Client
+	objkt      *objkt.Client
+	ethereum   *ethclient.Client
+	cacheStore cache.Store
 }
 
 func New(
@@ -36,7 +36,7 @@ func New(
 	fxhash *fxhash.Client,
 	objkt *objkt.Client,
 	ethereum *ethclient.Client,
-	cacheClient *cache.Client,
+	cacheStore cache.Store,
 ) *IndexEngine {
 	if len(ipfsGateways) == 0 {
 		ipfsGateways = []string{DefaultIPFSGateway}
@@ -51,11 +51,11 @@ func New(
 		http: &http.Client{
 			Timeout: 15 * time.Second,
 		},
-		opensea:     opensea,
-		tzkt:        tzkt,
-		fxhash:      fxhash,
-		objkt:       objkt,
-		ethereum:    ethereum,
-		cacheClient: cacheClient,
+		opensea:    opensea,
+		tzkt:       tzkt,
+		fxhash:     fxhash,
+		objkt:      objkt,
+		ethereum:   ethereum,
+		cacheStore: cacheStore,
 	}
 }

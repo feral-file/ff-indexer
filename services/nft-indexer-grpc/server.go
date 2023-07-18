@@ -13,6 +13,7 @@ import (
 	indexerGRPCSDK "github.com/bitmark-inc/nft-indexer/sdk/nft-indexer-grpc"
 	pb "github.com/bitmark-inc/nft-indexer/services/nft-indexer-grpc/grpc/indexer"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 type IndexerServer struct {
@@ -20,7 +21,8 @@ type IndexerServer struct {
 
 	grpcServer   *grpc.Server
 	indexerStore *indexer.MongodbIndexerStore
-	cacheClient  *cache.Client
+	cacheStore   *cache.MongoDBCacheStore
+	ethClient    *ethclient.Client
 
 	network string
 	port    int
@@ -33,7 +35,8 @@ func NewIndexerGRPCServer(
 	network string,
 	port int,
 	indexerStore *indexer.MongodbIndexerStore,
-	cacheClient *cache.Client,
+	cacheStore *cache.MongoDBCacheStore,
+	ethClient *ethclient.Client,
 ) (*IndexerServer, error) {
 
 	grpcServer := grpc.NewServer()
@@ -43,7 +46,8 @@ func NewIndexerGRPCServer(
 		network:      network,
 		port:         port,
 		indexerStore: indexerStore,
-		cacheClient:  cacheClient,
+		cacheStore:   cacheStore,
+		ethClient:    ethClient,
 		grpcServer:   grpcServer,
 		mapper:       mapper,
 	}, nil
@@ -213,7 +217,7 @@ func (i *IndexerServer) GetOwnersByBlockchainContracts(ctx context.Context, requ
 
 // GetETHBlockTime returns blockTime by blockHash
 func (i *IndexerServer) GetETHBlockTime(ctx context.Context, request *pb.GetETHBlockTimeRequest) (*pb.BlockTime, error) {
-	blockTime, err := i.cacheClient.GetETHBlockTime(ctx, common.HexToHash(request.BlockHash))
+	blockTime, err := indexer.GetETHBlockTime(ctx, i.cacheStore, i.ethClient, common.HexToHash(request.BlockHash))
 
 	if err != nil {
 		return nil, err

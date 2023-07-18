@@ -7,6 +7,7 @@ import (
 	log "github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/config-loader"
 	"github.com/bitmark-inc/config-loader/external/aws/ssm"
+	"github.com/bitmark-inc/nft-indexer/cache"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"
@@ -33,6 +34,11 @@ func main() {
 		log.Panic("can not create new parameter store", zap.Error(err))
 	}
 
+	cacheStore, err := cache.NewMongoDBCacheStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
+	if err != nil {
+		log.Panic("fail to initiate cache store", zap.Error(err))
+	}
+
 	// connect to the processor
 	conn, err := grpc.Dial(viper.GetString("event_processor_server.address"), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -41,7 +47,7 @@ func main() {
 	defer conn.Close()
 
 	c := processor.NewEventProcessorClient(conn)
-	ethereumEventsEmitter := NewEthereumEventsEmitter(viper.GetString("ethereum.lastBlockKeyName"), wsClient, parameterStore, c)
+	ethereumEventsEmitter := NewEthereumEventsEmitter(viper.GetString("ethereum.lastBlockKeyName"), wsClient, parameterStore, cacheStore, c)
 	ethereumEventsEmitter.Run(ctx)
 
 	log.Info("Ethereum Emitter terminated")

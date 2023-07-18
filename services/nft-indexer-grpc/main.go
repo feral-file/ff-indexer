@@ -35,13 +35,13 @@ func main() {
 	if err != nil {
 		log.Panic("fail to initiate eth client: %s", zap.Error(err))
 	}
-	cacheClient := cache.NewCacheClient(ethClient, cacheStore)
 
 	indexerServer, err := NewIndexerGRPCServer(
 		viper.GetString("server.grpc_network"),
 		viper.GetInt("server.grpc_port"),
 		indexerStore,
-		cacheClient,
+		cacheStore,
+		ethClient,
 	)
 	if err != nil {
 		log.Panic("fail to initiate indexer GRPC server", zap.Error(err))
