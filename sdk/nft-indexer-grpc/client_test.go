@@ -156,3 +156,17 @@ func TestGetOwnersByBlockchainAndContracts(t *testing.T) {
 	fmt.Println(owners)
 	assert.NoError(t, err)
 }
+
+// TestGetETHBlockTime a test for GetETHBlockTime
+func TestGetETHBlockTime(t *testing.T) {
+	client, err := NewIndexerClient("localhost:8889")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	blockTime, err := client.GetETHBlockTime(context.Background(), "0xc220dc38d77f6105631461f85d9e6ca0b7048047f030d631e9f95d6c5eaa3fd2")
+
+	assert.Equal(t, blockTime.Format(time.RFC3339Nano), "2023-06-23T09:45:12+07:00")
+	assert.NoError(t, err)
+}

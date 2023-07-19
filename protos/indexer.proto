@@ -17,6 +17,8 @@ service Indexer {
   rpc CheckAddressOwnTokenByCriteria(CheckAddressOwnTokenByCriteriaRequest) returns (CheckAddressOwnTokenByCriteriaResponse);
 
   rpc GetOwnersByBlockchainContracts(GetOwnersByBlockchainContractsRequest) returns (Addresses);
+
+  rpc GetETHBlockTime(GetETHBlockTimeRequest) returns (BlockTime);
 }
 
 message CheckAddressOwnTokenByCriteriaResponse {
@@ -197,4 +199,12 @@ message BaseTokenInfo {
   bool Fungible = 3;
   string ContractType = 4;
   string ContractAddress = 5;
+}
+
+message GetETHBlockTimeRequest {
+  string BlockHash = 1;
+}
+
+message BlockTime {
+  string BlockTime = 1;
 }

@@ -12,6 +12,7 @@ import (
 	indexer "github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/services/nft-indexer/graph/model"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 // IndexHistory is the resolver for the indexHistory field.
@@ -93,6 +94,16 @@ func (r *queryResolver) Identity(ctx context.Context, account string) (*model.Id
 	}
 
 	return r.mapGraphQLIdentity(identity), nil
+}
+
+// EthBlockTime is the resolver for the ethBlockTime field.
+func (r *queryResolver) EthBlockTime(ctx context.Context, blockHash string) (*model.BlockTime, error) {
+	blockTime, err := indexer.GetETHBlockTime(ctx, r.cacheStore, r.ethClient, common.HexToHash(blockHash))
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.BlockTime{BlockTime: blockTime}, nil
 }
 
 // Mutation returns MutationResolver implementation.
