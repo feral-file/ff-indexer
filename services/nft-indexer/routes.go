@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"time"
 
 	sentrygin "github.com/getsentry/sentry-go/gin"
@@ -69,6 +70,26 @@ func (s *NFTIndexerServer) SetupRoute() {
 
 	v2.POST("/graphql", s.graphqlHandler)
 	v2.GET("/graphiql", s.playgroundHandler)
+
+	s.route.GET("/healthz", func(c *gin.Context) {
+		if err := s.indexerStore.Healthz(c); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": err.Error(),
+			})
+			return
+		}
+
+		if err := s.cacheStore.Healthz(c); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": err.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"ok": 1,
+		})
+	})
 
 	s.route.NoRoute(func(c *gin.Context) {
 		c.JSON(404, gin.H{

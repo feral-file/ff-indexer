@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.uber.org/zap"
 
 	log "github.com/bitmark-inc/autonomy-logger"
@@ -37,6 +38,8 @@ const (
 var ErrNoRecordUpdated = fmt.Errorf("no record updated")
 
 type Store interface {
+	Healthz(ctx context.Context) error
+
 	IndexAsset(ctx context.Context, id string, assetUpdates AssetUpdates) error
 	SwapToken(ctx context.Context, swapUpdate SwapUpdate) (string, error)
 
@@ -196,6 +199,15 @@ func checkIfTokenNeedToUpdate(assetSource string, currentToken Token) bool {
 	}
 
 	return false
+}
+
+// Healthz checks the db health status and returns errors if any
+func (s *MongodbIndexerStore) Healthz(ctx context.Context) error {
+	if err := s.mongoClient.Ping(ctx, readpref.Primary()); err != nil {
+		return err
+	}
+
+	return s.mongoClient.Ping(ctx, readpref.Secondary())
 }
 
 // IndexAsset creates an asset and its corresponded tokens by inputs
