@@ -180,6 +180,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-indexer.fullname" . }}
                   key: store_db_name
+            - name: NFT_INDEXER_ETHEREUM_RPC_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: ethereum_rpc_url
           volumeMounts:
             - name: config
               mountPath: "/.config"
