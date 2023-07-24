@@ -1,11 +1,12 @@
 package ens
 
 import (
-	"github.com/bitmark-inc/autonomy-logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/wealdtech/go-ens/v3"
 	"go.uber.org/zap"
+
+	logger "github.com/bitmark-inc/autonomy-logger"
 )
 
 type ENS struct {
@@ -16,7 +17,7 @@ type ENS struct {
 func New(rpcEndpoint string) *ENS {
 	client, err := ethclient.Dial(rpcEndpoint)
 	if err != nil {
-		log.Panic("fail to dial ethereum rpc", zap.Error(err))
+		logger.Fatal("fail to initiate ETH client", zap.Error(err))
 	}
 
 	return &ENS{
@@ -26,9 +27,5 @@ func New(rpcEndpoint string) *ENS {
 }
 
 func (e *ENS) ResolveDomain(accountNumber string) (string, error) {
-	resolver, err := ens.NewReverseResolver(e.rpcClient)
-	if err != nil {
-		return "", err
-	}
-	return resolver.Name(common.HexToAddress(accountNumber))
+	return ens.ReverseResolve(e.rpcClient, common.HexToAddress(accountNumber))
 }
