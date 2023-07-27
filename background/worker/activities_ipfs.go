@@ -2,15 +2,9 @@ package worker
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"go.uber.org/cadence/activity"
 	"go.uber.org/zap"
 
@@ -23,36 +17,24 @@ const DefaultDownloadRetry = 3
 func (w *NFTIndexerWorker) CacheIPFSArtifactInS3(ctx context.Context, fileURI string) error {
 	log := activity.GetLogger(ctx)
 
-	log.Debug("start caching IPFS file", zap.String("fileURI", fileURI))
+	log.Debug("find CID from IPFS link", zap.String("fileURI", fileURI))
 
-	var cid string
-	if strings.HasPrefix(fileURI, indexer.DefaultIPFSGateway) {
-		cid = strings.Replace(fileURI, indexer.DefaultIPFSGateway, "", -1)
-	} else {
-		log.Debug("ignore non IPFS file", zap.String("fileURI", fileURI))
+	cid, err := indexer.GetCIDFromIPFSLink(fileURI)
+	if err != nil {
+		log.Warn("fail to get ipfs cid", zap.Error(err), zap.String("fileURI", fileURI))
 		return nil
 	}
 
-	if _, err := s3.New(w.awsSession).HeadObject(&s3.HeadObjectInput{
-		Bucket: aws.String(w.ipfsCacheBucketName),
-		Key:    aws.String(fmt.Sprintf("ipfs/%s", cid)),
-	}); err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			if aerr.Code() != "NotFound" {
-				return err
-			}
-		}
-	} else {
-		log.Debug("IPFS data has already cached", zap.String("cid", cid))
-		return nil
-	}
+	log.Debug("start caching IPFS file", zap.String("cid", cid), zap.String("fileURI", fileURI))
+	// TODO: check if the file in asset server
 
 	d := indexer.NewURLDownloader(fileURI, 5*time.Minute)
 
-	count := 0
+	counter := 0
 	f, mime, err := d.Download()
 	for err != nil {
-		if count < DefaultDownloadRetry {
+		counter++
+		if counter < DefaultDownloadRetry {
 			log.Warn("fail to download artwork", zap.Error(err))
 			f, mime, err = d.Download()
 		} else {
@@ -66,15 +48,7 @@ func (w *NFTIndexerWorker) CacheIPFSArtifactInS3(ctx context.Context, fileURI st
 		return nil
 	}
 
-	uploader := s3manager.NewUploader(w.awsSession)
-	if _, err := uploader.UploadWithContext(ctx, &s3manager.UploadInput{
-		Body:        f,
-		Bucket:      aws.String(w.ipfsCacheBucketName),
-		Key:         aws.String(fmt.Sprintf("ipfs/%s", cid)),
-		ContentType: &mime,
-		Metadata:    map[string]*string{},
-	}); err != nil {
-		return err
-	}
-	return nil
+	_, err = w.assetClient.Upload(f, cid, "30d")
+
+	return err
 }

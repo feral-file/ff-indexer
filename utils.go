@@ -287,3 +287,30 @@ func AESOpen(hexString string, passphrase string) ([]byte, error) {
 
 	return message, nil
 }
+
+// GetCIDFromIPFSLink seaches and returns the CID for a give url
+func GetCIDFromIPFSLink(link string) (string, error) {
+	u, err := url.Parse(link)
+	if err != nil {
+		return "", err
+	}
+
+	switch u.Scheme {
+	case "ipfs":
+		return u.Host, nil
+	case "http", "https":
+		paths := strings.Split(path.Clean(u.Path), "/")
+
+		for i := 0; i < len(paths); i++ {
+			if paths[i] == "ipfs" {
+				if i+1 < len(paths) {
+					return paths[i+1], nil
+				}
+			}
+		}
+	default:
+		return "", fmt.Errorf("unsupported ipfs link")
+	}
+
+	return "", fmt.Errorf("cid not found")
+}
