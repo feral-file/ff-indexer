@@ -132,6 +132,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-event-processor.fullname" . }}
                   key: ethereum_worker_account_mnemonic
+            - name: NFT_INDEXER_CACHE_STORE_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-processor.fullname" . }}
+                  key: cache_store_db_uri
             - name: NFT_INDEXER_ETHEREUM_RPC_URL
               valueFrom:
                 secretKeyRef:

@@ -15,6 +15,10 @@ data:
       cache_expiry: 24h
       log_level: 1
 
+    cache_store:
+      db_uri:
+      db_name: cache
+
     check_interval: {{ .Values.serviceConfig.check_interval }}
 
     log:
