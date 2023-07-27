@@ -28,6 +28,8 @@ serviceConfig:
     bitmark: testnet
   minter_gateways:
     tz1hQbuRax3op9knY3YDxqNnqxzcmoxmv1qa: ipfs.test.bitmark.com
+  asset_server:
+    server_url: http://autonomy-asset-server.autonomy.svc.cluster.local
 
 imagePullSecrets: []
 nameOverride: ""

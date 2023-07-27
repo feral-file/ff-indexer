@@ -1,3 +1,7 @@
+store:
+  db_uri:
+  db_name:
+
 ethereum:
   ws_url: wss://rinkeby.infura.io/ws/v3/<project_id>
   lastBlockKeyName: /autonomy/development/ethereum-last-stop-block

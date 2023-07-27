@@ -37,3 +37,42 @@ func TestGetMIMEType(t *testing.T) {
 	mimeType = GetMIMEType(url)
 	assert.Equal(t, mimeType, "")
 }
+
+func TestGetCIDFromIPFSLink(t *testing.T) {
+	url := "https://ipfs.io/ipfs/QmbNtTu7k2E2UDYDQTyiVzV8rVbCU44hc9js1erKzeSogY"
+	cid, err := GetCIDFromIPFSLink(url)
+	assert.NoError(t, err)
+	assert.Equal(t, cid, "QmbNtTu7k2E2UDYDQTyiVzV8rVbCU44hc9js1erKzeSogY")
+
+	url = "ipfs://QmbNtTu7k2E2UDYDQTyiVzV8rVbCU44hc9js1erKzeSogY"
+	cid, err = GetCIDFromIPFSLink(url)
+	assert.NoError(t, err)
+	assert.Equal(t, cid, "QmbNtTu7k2E2UDYDQTyiVzV8rVbCU44hc9js1erKzeSogY")
+
+	url = "ipfs://QmbNtTu7k2E2UDYDQTyiVzV8rVbCU44hc9js1erKzeSogY?test=true"
+	cid, err = GetCIDFromIPFSLink(url)
+	assert.NoError(t, err)
+	assert.Equal(t, cid, "QmbNtTu7k2E2UDYDQTyiVzV8rVbCU44hc9js1erKzeSogY")
+
+	url = "https://myipfs.test.com/prefix/ipfs/QmbNtTu7k2E2UDYDQTyiVzV8rVbCU44hc9js1erKzeSogY?test=true"
+	cid, err = GetCIDFromIPFSLink(url)
+	assert.NoError(t, err)
+	assert.Equal(t, cid, "QmbNtTu7k2E2UDYDQTyiVzV8rVbCU44hc9js1erKzeSogY")
+
+	url = "https://myipfs.test.com/prefix/ipfs/QmbNtTu7k2E2UDYDQTyiVzV8rVbCU44hc9js1erKzeSogY/index.html?test=true"
+	cid, err = GetCIDFromIPFSLink(url)
+	assert.NoError(t, err)
+	assert.Equal(t, cid, "QmbNtTu7k2E2UDYDQTyiVzV8rVbCU44hc9js1erKzeSogY")
+}
+
+func TestGetCIDFromIPFSLinkFailed(t *testing.T) {
+	url := "https://ipfs.io/ipfffs/QmbNtTu7k2E2UDYDQTyiVzV8rVbCU44hc9js1erKzeSogY"
+	cid, err := GetCIDFromIPFSLink(url)
+	assert.Error(t, err, "cid not found")
+	assert.Equal(t, cid, "")
+
+	url = "wss://myipfs.test.com/prefix/ipfs/connect"
+	cid, err = GetCIDFromIPFSLink(url)
+	assert.Error(t, err, "unsupported ipfs link")
+	assert.Equal(t, cid, "")
+}

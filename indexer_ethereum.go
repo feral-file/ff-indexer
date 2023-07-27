@@ -246,7 +246,7 @@ func (e *IndexEngine) GetEthereumTxTimestamp(ctx context.Context, txHashString s
 	if receipt.Status == 0 {
 		return time.Time{}, fmt.Errorf("the transaction is not success")
 	} else if receipt.Status == 1 {
-		t, err := GetETHBlockTime(ctx, e.ethereum, receipt.BlockHash)
+		t, err := GetETHBlockTime(ctx, e.cacheStore, e.ethereum, receipt.BlockHash)
 		if err != nil {
 			return time.Time{}, err
 		}
@@ -267,7 +267,7 @@ func (e *IndexEngine) GetETHTransactionDetailsByPendingTx(ctx context.Context, c
 		return nil, fmt.Errorf("the transaction is not success")
 	}
 
-	timestamp, err := GetETHBlockTime(ctx, client, receipt.BlockHash)
+	timestamp, err := GetETHBlockTime(ctx, e.cacheStore, e.ethereum, receipt.BlockHash)
 	if err != nil {
 		return nil, fmt.Errorf("cannot get transaction timestamp")
 	}

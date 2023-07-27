@@ -24,7 +24,7 @@ type NFTAsset struct {
 func main() {
 	var asset NFTAsset
 	var assetMetadataDetail indexer.AssetMetadataDetail
-	engine := indexer.New("", []string{}, map[string]string{}, nil, tzkt.New(""), nil, objkt.New("https://data.objkt.com/v3/graphql"), nil)
+	engine := indexer.New("", []string{}, map[string]string{}, nil, tzkt.New(""), nil, objkt.New("https://data.objkt.com/v3/graphql"), nil, nil)
 
 	config.LoadConfig("NFT_INDEXER")
 	ctx := context.Background()

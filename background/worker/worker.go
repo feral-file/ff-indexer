@@ -4,11 +4,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"
 
+	assetSDK "github.com/bitmark-inc/autonomy-asset-server/sdk/api"
 	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer/cache"
 )
 
 var ClientName = "nft-indexer-worker"
@@ -17,13 +18,14 @@ var ProvenanceTaskListName = "nft-provenance-indexer"
 var AccountTokenTaskListName = "nft-account-token-indexer"
 
 type NFTIndexerWorker struct {
-	http       *http.Client
-	awsSession *session.Session
+	http *http.Client
 
 	ipfsCacheBucketName string
 
 	indexerEngine *indexer.IndexEngine
 	indexerStore  indexer.Store
+	cacheStore    cache.Store
+	assetClient   *assetSDK.Client
 	ethClient     *ethclient.Client
 
 	bitmarkZeroAddress string
@@ -37,8 +39,10 @@ type NFTIndexerWorker struct {
 
 func New(environment string,
 	indexerEngine *indexer.IndexEngine,
-	awsSession *session.Session,
-	store indexer.Store) *NFTIndexerWorker {
+	cacheStore cache.Store,
+	store indexer.Store,
+	assetClient *assetSDK.Client,
+) *NFTIndexerWorker {
 
 	wsClient, err := ethclient.Dial(viper.GetString("ethereum.rpc_url"))
 	if err != nil {
@@ -58,13 +62,14 @@ func New(environment string,
 		http: &http.Client{
 			Timeout: 15 * time.Second,
 		},
-		ethClient:  wsClient,
-		awsSession: awsSession,
+		ethClient: wsClient,
 
 		ipfsCacheBucketName: viper.GetString("cache.bucket_name"),
 
 		indexerEngine: indexerEngine,
 		indexerStore:  store,
+		cacheStore:    cacheStore,
+		assetClient:   assetClient,
 
 		bitmarkZeroAddress: bitmarkZeroAddress,
 		bitmarkAPIEndpoint: bitmarkAPIEndpoint,

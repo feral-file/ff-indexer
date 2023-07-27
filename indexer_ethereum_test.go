@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/bitmark-inc/autonomy-logger"
+	log "github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
@@ -35,6 +35,7 @@ func TestIndexETHToken(t *testing.T) {
 		fxhash.New("https://api.fxhash.xyz/graphql"),
 		objkt.New("https://data.objkt.com/v3/graphql"),
 		ethClient,
+		nil,
 	)
 
 	assetUpdates, err := engine.IndexETHToken(context.Background(), "0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d", "9616")

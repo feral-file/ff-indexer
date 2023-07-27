@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/viper"
@@ -14,10 +12,12 @@ import (
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 
-	"github.com/bitmark-inc/autonomy-logger"
+	assetSDK "github.com/bitmark-inc/autonomy-asset-server/sdk/api"
+	log "github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/config-loader"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
+	"github.com/bitmark-inc/nft-indexer/cache"
 	"github.com/bitmark-inc/nft-indexer/cadence"
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
@@ -51,6 +51,10 @@ func main() {
 	if err != nil {
 		log.Panic("fail to initiate indexer store", zap.Error(err))
 	}
+	cacheStore, err := cache.NewMongoDBCacheStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
+	if err != nil {
+		log.Panic("fail to initiate cache store", zap.Error(err))
+	}
 
 	var minterGateways map[string]string
 	if err := yaml.Unmarshal([]byte(viper.GetString("ipfs.minter_gateways")), &minterGateways); err != nil {
@@ -71,13 +75,12 @@ func main() {
 		fxhash.New(viper.GetString("fxhash.api_endpoint")),
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 		ethClient,
+		cacheStore,
 	)
 
-	awsSession := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String(viper.GetString("aws.region")),
-	}))
+	assetClient := assetSDK.New(viper.GetString("asset_server.server_url"), nil, viper.GetString("asset_server.secret_key"))
 
-	worker := indexerWorker.New(environment, indexerEngine, awsSession, indexerStore)
+	worker := indexerWorker.New(environment, indexerEngine, cacheStore, indexerStore, assetClient)
 
 	// workflows
 	workflow.Register(worker.PendingTxFollowUpWorkflow)

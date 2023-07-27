@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"time"
 
 	sentrygin "github.com/getsentry/sentry-go/gin"
@@ -37,6 +38,8 @@ func (s *NFTIndexerServer) SetupRoute() {
 	s.route.POST("/nft/swap", TokenAuthenticate("API-TOKEN", s.apiToken), s.SwapNFT)
 	s.route.PUT("/asset/:asset_id", TokenAuthenticate("API-TOKEN", s.apiToken), s.IndexAsset)
 
+	s.route.GET("/eth/:block_hash/block_time", s.GetETHBlockTime)
+
 	v1 := s.route.Group("/v1")
 	v1NFT := v1.Group("/nft")
 	v1NFT.GET("", s.GetAccountNFTs)
@@ -67,6 +70,26 @@ func (s *NFTIndexerServer) SetupRoute() {
 
 	v2.POST("/graphql", s.graphqlHandler)
 	v2.GET("/graphiql", s.playgroundHandler)
+
+	s.route.GET("/healthz", func(c *gin.Context) {
+		if err := s.indexerStore.Healthz(c); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": err.Error(),
+			})
+			return
+		}
+
+		if err := s.cacheStore.Healthz(c); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": err.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"ok": 1,
+		})
+	})
 
 	s.route.NoRoute(func(c *gin.Context) {
 		c.JSON(404, gin.H{

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
@@ -697,4 +698,21 @@ func (s *NFTIndexerServer) QueryNFTsV2(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, tokenInfo)
+}
+
+func (s *NFTIndexerServer) GetETHBlockTime(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "GetETHBlockTime")
+
+	blockHash := c.Param("block_hash")
+
+	blockTime, err := indexer.GetETHBlockTime(c, s.cacheStore, s.ethClient, common.HexToHash(blockHash))
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to get block", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"blockTime": blockTime,
+	})
+
 }
