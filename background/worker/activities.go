@@ -17,6 +17,7 @@ import (
 	"go.uber.org/zap"
 
 	log "github.com/bitmark-inc/autonomy-logger"
+	utils "github.com/bitmark-inc/autonomy-utils"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/contracts"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
@@ -256,10 +257,10 @@ func (w *NFTIndexerWorker) fetchBitmarkProvenance(bitmarkID string) ([]indexer.P
 		provenances = append(provenances, indexer.Provenance{
 			Type:       txType,
 			Owner:      p.Owner,
-			Blockchain: indexer.BitmarkBlockchain,
+			Blockchain: utils.BitmarkBlockchain,
 			Timestamp:  p.CreatedAt,
 			TxID:       p.TxID,
-			TxURL:      indexer.TxURL(indexer.BitmarkBlockchain, w.Environment, p.TxID),
+			TxURL:      indexer.TxURL(utils.BitmarkBlockchain, w.Environment, p.TxID),
 		})
 	}
 
@@ -300,7 +301,7 @@ func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID,
 			txType = "mint"
 		}
 
-		txTime, err := indexer.GetETHBlockTime(ctx, w.ethClient, l.BlockHash)
+		txTime, err := indexer.GetETHBlockTime(ctx, w.cacheStore, w.ethClient, l.BlockHash)
 		if err != nil {
 			return nil, err
 		}
@@ -309,10 +310,10 @@ func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID,
 			Timestamp:   txTime,
 			Type:        txType,
 			Owner:       indexer.EthereumChecksumAddress(toAccountHash.Hex()),
-			Blockchain:  indexer.EthereumBlockchain,
+			Blockchain:  utils.EthereumBlockchain,
 			BlockNumber: &l.BlockNumber,
 			TxID:        l.TxHash.Hex(),
-			TxURL:       indexer.TxURL(indexer.EthereumBlockchain, w.Environment, l.TxHash.Hex()),
+			TxURL:       indexer.TxURL(utils.EthereumBlockchain, w.Environment, l.TxHash.Hex()),
 		})
 	}
 
@@ -349,7 +350,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 
 		totalProvenances := []indexer.Provenance{}
 		switch token.Blockchain {
-		case indexer.BitmarkBlockchain:
+		case utils.BitmarkBlockchain:
 			provenance, err := w.fetchBitmarkProvenance(token.ID)
 			if err != nil {
 				log.Error("cannot fetch bitmark provenance", zap.String("tokenID: ", token.ID), zap.Error(err))
@@ -357,14 +358,14 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 			}
 
 			totalProvenances = append(totalProvenances, provenance...)
-		case indexer.EthereumBlockchain:
+		case utils.EthereumBlockchain:
 			provenance, err := w.fetchEthereumProvenance(ctx, token.ID, token.ContractAddress)
 			if err != nil {
 				log.Error("cannot fetch ethereum provenance", zap.String("contractAddress: ", token.ContractAddress), zap.String("tokenID: ", token.ID), zap.Error(err))
 				return err
 			}
 			totalProvenances = append(totalProvenances, provenance...)
-		case indexer.TezosBlockchain:
+		case utils.TezosBlockchain:
 			lastActivityTime, err := w.indexerEngine.IndexTezosTokenLastActivityTime(token.ContractAddress, token.ID)
 			if err != nil {
 				log.Error("cannot fetch lastActivityTime", zap.String("contractAddress: ", token.ContractAddress), zap.String("tokenID: ", token.ID), zap.Error(err))
@@ -393,7 +394,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 		// recursively fetch provenance records from migrated blockchains
 		for _, tokenInfo := range token.OriginTokenInfo {
 			switch tokenInfo.Blockchain {
-			case indexer.BitmarkBlockchain:
+			case utils.BitmarkBlockchain:
 				provenance, err := w.fetchBitmarkProvenance(tokenInfo.ID)
 				if err != nil {
 					log.Error("cannot fetch bitmark provenance", zap.String("tokenID: ", tokenInfo.ID), zap.Error(err))
@@ -401,14 +402,14 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 				}
 
 				totalProvenances = append(totalProvenances, provenance...)
-			case indexer.EthereumBlockchain:
+			case utils.EthereumBlockchain:
 				provenance, err := w.fetchEthereumProvenance(ctx, tokenInfo.ID, tokenInfo.ContractAddress)
 				if err != nil {
 					log.Error("cannot fetch ethereum provenance", zap.String("contractAddress: ", token.ContractAddress), zap.String("tokenID: ", token.ID), zap.Error(err))
 					return err
 				}
 				totalProvenances = append(totalProvenances, provenance...)
-			case indexer.TezosBlockchain:
+			case utils.TezosBlockchain:
 				provenance, err := w.fetchTezosProvenance(tokenInfo.ID, tokenInfo.ContractAddress)
 				if err != nil {
 					log.Error("cannot fetch tezos provenance", zap.String("contractAddress: ", token.ContractAddress), zap.String("tokenID: ", token.ID), zap.Error(err))
@@ -500,7 +501,7 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 			err              error
 		)
 		switch token.Blockchain {
-		case indexer.EthereumBlockchain:
+		case utils.EthereumBlockchain:
 			lastActivityTime, err = w.indexerEngine.IndexETHTokenLastActivityTime(token.ContractAddress, token.ID)
 			if err != nil {
 				log.Error("fail to get lastActivityTime", zap.String("indexID", token.IndexID), zap.Error(err))
@@ -518,7 +519,7 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 				log.Error("fail to fetch ownership", zap.String("indexID", token.IndexID), zap.Error(err))
 				return err
 			}
-		case indexer.TezosBlockchain:
+		case utils.TezosBlockchain:
 			lastActivityTime, err = w.indexerEngine.IndexTezosTokenLastActivityTime(token.ContractAddress, token.ID)
 			if err != nil {
 				log.Error("fail to get lastActivityTime", zap.String("indexID", token.IndexID), zap.Error(err))

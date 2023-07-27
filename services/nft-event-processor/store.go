@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/fatih/structs"
 	"github.com/jackc/pgconn"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -43,6 +44,7 @@ type ArchivedNFTEvent struct {
 	From       string      `gorm:"index"`
 	To         string      `gorm:"index"`
 	TXID       string      `gorm:"index"`
+	EventIndex uint        `gorm:"index"`
 	TXTime     time.Time   `gorm:"index"`
 	Stage      string      `gorm:"index"`
 	Status     EventStatus `gorm:"index"`
@@ -149,7 +151,11 @@ func NewPostgresEventStore(db *gorm.DB) *PostgresEventStore {
 
 // CreateEvent add a new event into event store.
 func (s *PostgresEventStore) CreateEvent(event NFTEvent) error {
-	err := s.db.Save(&event).Error
+	err := s.db.Exec(`
+	INSERT INTO new_nft_events("type","blockchain","contract","token_id","from","to","tx_id","event_index","tx_time","stage","status")
+	SELECT @Type, @Blockchain, @Contract, @TokenID, @From, @To, @TXID, @EventIndex, @TXTime, @Stage, @Status
+	WHERE NOT EXISTS (SELECT * FROM nft_events WHERE "type"=@Type AND "blockchain"=@Blockchain AND "contract"=@Contract
+		AND "token_id"=@TokenID AND "from"=@From AND "to"=@To AND "tx_id"=@TXID AND "event_index"=@EventIndex)`, structs.Map(event)).Error
 
 	var pgError *pgconn.PgError
 	if err != nil && errors.As(err, &pgError) {
@@ -206,5 +212,8 @@ func (s *PostgresEventStore) GetEventTransaction(ctx context.Context, filters ..
 
 // AutoMigrate is a help function that update db when the schema changed.
 func (s *PostgresEventStore) AutoMigrate() error {
+	if err := s.db.AutoMigrate(&ArchivedNFTEvent{}); err != nil {
+		return err
+	}
 	return s.db.AutoMigrate(&NFTEvent{})
 }

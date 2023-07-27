@@ -180,6 +180,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-indexer.fullname" . }}
                   key: store_db_name
+            - name: NFT_INDEXER_ETHEREUM_RPC_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: ethereum_rpc_url
           volumeMounts:
             - name: config
               mountPath: "/.config"
@@ -281,6 +286,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-indexer.fullname" . }}
                   key: opensea_api_key
+            - name: NFT_INDEXER_ASSET_SERVER_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: asset_server_secret_key
             - name: NFT_INDEXER_SENTRY_DSN
               valueFrom:
                 secretKeyRef:
@@ -383,6 +393,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-indexer.fullname" . }}
                   key: opensea_api_key
+            - name: NFT_INDEXER_ASSET_SERVER_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: asset_server_secret_key
             - name: NFT_INDEXER_SENTRY_DSN
               valueFrom:
                 secretKeyRef:
@@ -485,6 +500,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-indexer.fullname" . }}
                   key: opensea_api_key
+            - name: NFT_INDEXER_ASSET_SERVER_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: asset_server_secret_key
             - name: NFT_INDEXER_SENTRY_DSN
               valueFrom:
                 secretKeyRef:

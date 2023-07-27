@@ -6,22 +6,17 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
-	"math"
 	"math/big"
 	"net/http"
 	"net/url"
 	"path"
-	"strconv"
 	"strings"
 	"time"
 
-	"blockwatch.cc/tzgo/tezos"
-	"github.com/ethereum/go-ethereum/accounts"
+	utils "github.com/bitmark-inc/autonomy-utils"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func EthereumChecksumAddress(address string) string {
@@ -51,7 +46,7 @@ func TokenIndexID(blockchainType, contractAddress, id string) string {
 		blockchainAlias = "undefined"
 	}
 
-	if blockchainType == EthereumBlockchain {
+	if blockchainType == utils.EthereumBlockchain {
 		contractAddress = EthereumChecksumAddress(contractAddress)
 	}
 
@@ -66,35 +61,22 @@ func ParseTokenIndexID(indexID string) (string, string, string, error) {
 		return "", "", "", fmt.Errorf("error while parsing indexID: %v", indexID)
 	}
 
-	if v[0] == BlockchainAlias[EthereumBlockchain] {
+	if v[0] == BlockchainAlias[utils.EthereumBlockchain] {
 		v[1] = EthereumChecksumAddress(v[1])
 	}
 
 	return v[0], v[1], v[2], nil
 }
 
-// GetBlockchainByAddress returns underlying blockchain of a given address
-func GetBlockchainByAddress(address string) string {
-	if strings.HasPrefix(address, "0x") {
-		return EthereumBlockchain
-	} else if len(address) == 50 {
-		return BitmarkBlockchain
-	} else if strings.HasPrefix(address, "tz") || strings.HasPrefix(address, "KT1") {
-		return TezosBlockchain
-	}
-
-	return UnknownBlockchain
-}
-
 // TxURL returns corresponded blockchain transaction URL
 func TxURL(blockchain, environment, txID string) string {
 	switch blockchain {
-	case BitmarkBlockchain:
+	case utils.BitmarkBlockchain:
 		if environment == DevelopmentEnvironment {
 			return fmt.Sprintf("https://registry.test.bitmark.com/transaction/%s", txID)
 		}
 		return fmt.Sprintf("https://registry.bitmark.com/transaction/%s", txID)
-	case EthereumBlockchain:
+	case utils.EthereumBlockchain:
 		if environment == DevelopmentEnvironment {
 			return fmt.Sprintf("https://goerli.etherscan.io/tx/%s", txID)
 		}
@@ -137,76 +119,6 @@ func CheckCDNURLIsExist(url string) bool {
 	}
 
 	return false
-}
-
-// EpochStringToTime returns the time object of a milliseconds epoch time string
-func EpochStringToTime(ts string) (time.Time, error) {
-	t, err := strconv.ParseInt(ts, 10, 64)
-	if err != nil {
-		return time.Time{}, err
-	}
-
-	return time.Unix(0, t*1000000), nil
-}
-
-// IsTimeInRange ensures a given timestamp is within a range of a target time
-func IsTimeInRange(actual, target time.Time, deviationInMinutes float64) bool {
-	duration := target.Sub(actual)
-	return math.Abs(duration.Minutes()) < deviationInMinutes
-}
-
-// VerifyETHSignature verifies a signature with a given message and address
-func VerifyETHSignature(message, signature, address string) (bool, error) {
-	hash := accounts.TextHash([]byte(message))
-	signatureBytes := common.FromHex(signature)
-
-	if len(signatureBytes) != 65 {
-		return false, fmt.Errorf("signature must be 65 bytes long")
-	}
-
-	// see crypto.Ecrecover description
-	if signatureBytes[64] == 27 || signatureBytes[64] == 28 {
-		signatureBytes[64] -= 27
-	}
-
-	// get ecdsa public key
-	sigPublicKeyECDSA, err := crypto.SigToPub(hash, signatureBytes)
-	if err != nil {
-		return false, err
-	}
-
-	// check for address match
-	sigAddress := crypto.PubkeyToAddress(*sigPublicKeyECDSA)
-	if sigAddress.String() != address {
-		return false, fmt.Errorf("address doesn't match with signature's")
-	}
-
-	return true, nil
-}
-
-// VerifyTezosSignature verifies a signature with a given message and address
-func VerifyTezosSignature(message, signature, address, publicKey string) (bool, error) {
-	ta, err := tezos.ParseAddress(address)
-	if err != nil {
-		return false, err
-	}
-	pk, err := tezos.ParseKey(publicKey)
-	if err != nil {
-		return false, err
-	}
-	if pk.Address().String() != ta.String() {
-		return false, errors.New("publicKey address is different from provided address")
-	}
-	sig, err := tezos.ParseSignature(signature)
-	if err != nil {
-		return false, err
-	}
-	dmp := tezos.Digest([]byte(message))
-	err = pk.Verify(dmp[:], sig)
-	if err != nil {
-		return false, err
-	}
-	return true, nil
 }
 
 // GetMIMEType returns mimeType of a file based on the extension of the url
@@ -286,4 +198,31 @@ func AESOpen(hexString string, passphrase string) ([]byte, error) {
 	}
 
 	return message, nil
+}
+
+// GetCIDFromIPFSLink seaches and returns the CID for a give url
+func GetCIDFromIPFSLink(link string) (string, error) {
+	u, err := url.Parse(link)
+	if err != nil {
+		return "", err
+	}
+
+	switch u.Scheme {
+	case "ipfs":
+		return u.Host, nil
+	case "http", "https":
+		paths := strings.Split(path.Clean(u.Path), "/")
+
+		for i := 0; i < len(paths); i++ {
+			if paths[i] == "ipfs" {
+				if i+1 < len(paths) {
+					return paths[i+1], nil
+				}
+			}
+		}
+	default:
+		return "", fmt.Errorf("unsupported ipfs link")
+	}
+
+	return "", fmt.Errorf("cid not found")
 }

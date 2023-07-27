@@ -11,11 +11,12 @@ import (
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 
-	"github.com/bitmark-inc/autonomy-logger"
+	log "github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/config-loader"
 	"github.com/bitmark-inc/config-loader/external/aws/ssm"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
+	"github.com/bitmark-inc/nft-indexer/cache"
 	"github.com/bitmark-inc/nft-indexer/cadence"
 	"github.com/bitmark-inc/nft-indexer/externals/ens"
 	"github.com/bitmark-inc/nft-indexer/externals/feralfile"
@@ -48,6 +49,11 @@ func main() {
 		log.Panic("fail to initiate indexer store", zap.Error(err))
 	}
 
+	cacheStore, err := cache.NewMongoDBCacheStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
+	if err != nil {
+		log.Panic("fail to initiate cache store", zap.Error(err))
+	}
+
 	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
 	cadenceClient.AddService(indexerWorker.ClientName)
 
@@ -74,6 +80,7 @@ func main() {
 		fxhash.New(viper.GetString("fxhash.api_endpoint")),
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 		ethClient,
+		cacheStore,
 	)
 
 	parameterStore, err := ssm.NewParameterStore(ctx)
@@ -91,7 +98,7 @@ func main() {
 		log.Panic("jwt public key parsing failed", zap.Error(err))
 	}
 
-	s := NewNFTIndexerServer(cadenceClient, ensClient, tezosDomain, feralfileClient, indexerStore, engine, jwtPubkey, viper.GetString("server.api_token"), viper.GetString("server.admin_api_token"), viper.GetString("server.secret_symmetric_key"))
+	s := NewNFTIndexerServer(cadenceClient, ensClient, tezosDomain, ethClient, feralfileClient, indexerStore, cacheStore, engine, jwtPubkey, viper.GetString("server.api_token"), viper.GetString("server.admin_api_token"), viper.GetString("server.secret_symmetric_key"))
 	s.SetupRoute()
 	if err := s.Run(viper.GetString("server.port")); err != nil {
 		log.Panic("server interrupted", zap.Error(err))

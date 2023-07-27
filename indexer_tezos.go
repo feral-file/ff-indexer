@@ -11,7 +11,8 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/crypto/sha3"
 
-	"github.com/bitmark-inc/autonomy-logger"
+	log "github.com/bitmark-inc/autonomy-logger"
+	utils "github.com/bitmark-inc/autonomy-utils"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/tzkt-go"
 )
@@ -347,12 +348,12 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			{
 				BaseTokenInfo: BaseTokenInfo{
 					ID:              tzktToken.ID.String(),
-					Blockchain:      TezosBlockchain,
+					Blockchain:      utils.TezosBlockchain,
 					Fungible:        tokenDetail.Fungible,
 					ContractType:    tzktToken.Standard,
 					ContractAddress: tzktToken.Contract.Address,
 				},
-				IndexID:           TokenIndexID(TezosBlockchain, tzktToken.Contract.Address, tzktToken.ID.String()),
+				IndexID:           TokenIndexID(utils.TezosBlockchain, tzktToken.Contract.Address, tzktToken.ID.String()),
 				Owner:             owner,
 				Balance:           balance,
 				Owners:            map[string]int64{owner: balance},
@@ -365,8 +366,8 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 	}
 
 	log.Debug("asset updating data prepared",
-		zap.String("blockchain", TezosBlockchain),
-		zap.String("id", TokenIndexID(TezosBlockchain, tzktToken.Contract.Address, tzktToken.ID.String())),
+		zap.String("blockchain", utils.TezosBlockchain),
+		zap.String("id", TokenIndexID(utils.TezosBlockchain, tzktToken.Contract.Address, tzktToken.ID.String())),
 		zap.Any("tokenUpdate", tokenUpdate))
 
 	return &tokenUpdate, nil
@@ -375,7 +376,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 // IndexTezosTokenProvenance indexes provenance of a specific token
 func (e *IndexEngine) IndexTezosTokenProvenance(contract, tokenID string) ([]Provenance, error) {
 	log.Debug("index tezos token provenance",
-		zap.String("blockchain", TezosBlockchain),
+		zap.String("blockchain", utils.TezosBlockchain),
 		zap.String("contract", contract), zap.String("tokenID", tokenID))
 
 	count, err := e.tzkt.GetTokenTransfersCount(contract, tokenID)
@@ -397,7 +398,7 @@ func (e *IndexEngine) IndexTezosTokenProvenance(contract, tokenID string) ([]Pro
 			log.Error("fail to get transaction",
 				log.SourceTZKT,
 				zap.Error(err),
-				zap.String("blockchain", TezosBlockchain),
+				zap.String("blockchain", utils.TezosBlockchain),
 				zap.Uint64("txID", t.TransactionID),
 				zap.Any("transfer", t),
 			)
@@ -412,7 +413,7 @@ func (e *IndexEngine) IndexTezosTokenProvenance(contract, tokenID string) ([]Pro
 		provenances = append(provenances, Provenance{
 			Type:        txType,
 			Owner:       t.To.Address,
-			Blockchain:  TezosBlockchain,
+			Blockchain:  utils.TezosBlockchain,
 			BlockNumber: &t.Level,
 			Timestamp:   t.Timestamp,
 			TxID:        tx.Hash,
@@ -431,7 +432,7 @@ func (e *IndexEngine) IndexTezosTokenLastActivityTime(contract, tokenID string) 
 // IndexTezosTokenOwners indexes owners of a given token
 func (e *IndexEngine) IndexTezosTokenOwners(contract, tokenID string) ([]OwnerBalance, error) {
 	log.Debug("index tezos token owners",
-		zap.String("blockchain", TezosBlockchain),
+		zap.String("blockchain", utils.TezosBlockchain),
 		zap.String("contract", contract), zap.String("tokenID", tokenID))
 
 	var lastTime time.Time

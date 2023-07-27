@@ -10,10 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"github.com/bitmark-inc/autonomy-logger"
+	log "github.com/bitmark-inc/autonomy-logger"
+	utils "github.com/bitmark-inc/autonomy-utils"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
@@ -48,7 +50,7 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 	}
 
 	for i, t := range tokenInfo {
-		if t.Blockchain != indexer.EthereumBlockchain {
+		if t.Blockchain != utils.EthereumBlockchain {
 			continue
 		}
 
@@ -57,7 +59,7 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 			continue
 		}
 
-		oldIndexID := indexer.TokenIndexID(indexer.EthereumBlockchain, t.ContractAddress, fmt.Sprintf("%x", id))
+		oldIndexID := indexer.TokenIndexID(utils.EthereumBlockchain, t.ContractAddress, fmt.Sprintf("%x", id))
 		tokenInfo[i].IndexID = oldIndexID
 	}
 
@@ -121,7 +123,7 @@ func PreprocessTokens(indexIDs []string, isConvertToDecimal bool) []string {
 			continue
 		}
 
-		if blockchain == indexer.BlockchainAlias[indexer.EthereumBlockchain] {
+		if blockchain == indexer.BlockchainAlias[utils.EthereumBlockchain] {
 			if isConvertToDecimal {
 				decimalTokenID, ok := big.NewInt(0).SetString(tokenID, 16)
 				if !ok {
@@ -249,7 +251,7 @@ func (s *NFTIndexerServer) SearchNFTs(c *gin.Context) {
 
 // fetchIdentity collects information from the blockchains and returns an identity object
 func (s *NFTIndexerServer) fetchIdentity(c context.Context, accountNumber string) (*indexer.AccountIdentity, error) {
-	blockchain := indexer.GetBlockchainByAddress(accountNumber)
+	blockchain := utils.GetBlockchainByAddress(accountNumber)
 
 	id := indexer.AccountIdentity{
 		AccountNumber: accountNumber,
@@ -257,19 +259,19 @@ func (s *NFTIndexerServer) fetchIdentity(c context.Context, accountNumber string
 	}
 
 	switch blockchain {
-	case indexer.EthereumBlockchain:
+	case utils.EthereumBlockchain:
 		domain, err := s.ensClient.ResolveDomain(accountNumber)
 		if err != nil {
 			return nil, err
 		}
 		id.Name = domain
-	case indexer.TezosBlockchain:
+	case utils.TezosBlockchain:
 		domain, err := s.tezosDomain.ResolveDomain(c, accountNumber)
 		if err != nil {
 			return nil, err
 		}
 		id.Name = domain
-	case indexer.BitmarkBlockchain:
+	case utils.BitmarkBlockchain:
 		account, err := s.feralfile.GetAccountInfo(accountNumber)
 		if err != nil {
 			return nil, err
@@ -359,10 +361,10 @@ func (s *NFTIndexerServer) GetIdentities(c *gin.Context) {
 
 func (s *NFTIndexerServer) verifyAddressOwner(blockchain, message, signature, address, publicKey string) (bool, error) {
 	switch blockchain {
-	case indexer.EthereumBlockchain:
-		return indexer.VerifyETHSignature(message, signature, address)
-	case indexer.TezosBlockchain:
-		return indexer.VerifyTezosSignature(message, signature, address, publicKey)
+	case utils.EthereumBlockchain:
+		return utils.VerifyETHSignature(message, signature, address)
+	case utils.TezosBlockchain:
+		return utils.VerifyTezosSignature(message, signature, address, publicKey)
 	default:
 		return false, fmt.Errorf("unsupported blockchain")
 	}
@@ -391,11 +393,11 @@ func (s *NFTIndexerServer) GetAccountNFTs(c *gin.Context) {
 	var tokensInfo []indexer.DetailedToken
 	var err error
 
-	switch indexer.GetBlockchainByAddress(owner) {
-	case indexer.EthereumBlockchain:
+	switch utils.GetBlockchainByAddress(owner) {
+	case utils.EthereumBlockchain:
 		owner = indexer.EthereumChecksumAddress(owner)
 		fallthrough
-	case indexer.TezosBlockchain:
+	case utils.TezosBlockchain:
 		tokensInfo, err = s.indexerStore.GetDetailedAccountTokensByOwner(c, owner,
 			indexer.FilterParameter{
 				Source: reqParams.Source,
@@ -430,8 +432,8 @@ func (s *NFTIndexerServer) ForceReindexNFT(c *gin.Context) {
 	}
 
 	owner := string(req.Owner)
-	blockchain := indexer.GetBlockchainByAddress(owner)
-	if blockchain == indexer.UnknownBlockchain {
+	blockchain := utils.GetBlockchainByAddress(owner)
+	if blockchain == utils.UnknownBlockchain {
 		abortWithError(c, http.StatusInternalServerError, "unknow blockchain", fmt.Errorf("unknow blockchain"))
 		return
 	}
@@ -457,9 +459,9 @@ func (s *NFTIndexerServer) ForceReindexNFT(c *gin.Context) {
 		go s.startIndexWorkflow(c, owner, blockchain, w.IndexTezosTokenWorkflow)
 	default:
 		if strings.HasPrefix(owner, "0x") {
-			go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[indexer.EthereumBlockchain], w.IndexETHTokenWorkflow)
+			go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[utils.EthereumBlockchain], w.IndexETHTokenWorkflow)
 		} else if strings.HasPrefix(owner, "tz") {
-			go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[indexer.TezosBlockchain], w.IndexTezosTokenWorkflow)
+			go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[utils.TezosBlockchain], w.IndexTezosTokenWorkflow)
 		} else {
 			abortWithError(c, http.StatusInternalServerError, "owner address with unsupported blockchain", fmt.Errorf("owner address with unsupported blockchain"))
 			return
@@ -696,4 +698,21 @@ func (s *NFTIndexerServer) QueryNFTsV2(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, tokenInfo)
+}
+
+func (s *NFTIndexerServer) GetETHBlockTime(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "GetETHBlockTime")
+
+	blockHash := c.Param("block_hash")
+
+	blockTime, err := indexer.GetETHBlockTime(c, s.cacheStore, s.ethClient, common.HexToHash(blockHash))
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to get block", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"blockTime": blockTime,
+	})
+
 }

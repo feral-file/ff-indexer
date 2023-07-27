@@ -75,6 +75,10 @@ type ComplexityRoot struct {
 		ID              func(childComplexity int) int
 	}
 
+	BlockTime struct {
+		BlockTime func(childComplexity int) int
+	}
+
 	Identity struct {
 		AccountNumber func(childComplexity int) int
 		Blockchain    func(childComplexity int) int
@@ -119,8 +123,9 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Identity func(childComplexity int, account string) int
-		Tokens   func(childComplexity int, owners []string, ids []string, source string, lastUpdatedAt *time.Time, sortBy *string, offset int64, size int64) int
+		EthBlockTime func(childComplexity int, blockHash string) int
+		Identity     func(childComplexity int, account string) int
+		Tokens       func(childComplexity int, owners []string, ids []string, source string, lastUpdatedAt *time.Time, sortBy *string, offset int64, size int64) int
 	}
 
 	Token struct {
@@ -158,6 +163,7 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Tokens(ctx context.Context, owners []string, ids []string, source string, lastUpdatedAt *time.Time, sortBy *string, offset int64, size int64) ([]*model.Token, error)
 	Identity(ctx context.Context, account string) (*model.Identity, error)
+	EthBlockTime(ctx context.Context, blockHash string) (*model.BlockTime, error)
 }
 
 type executableSchema struct {
@@ -279,6 +285,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.BaseTokenInfo.ID(childComplexity), true
+
+	case "BlockTime.blockTime":
+		if e.complexity.BlockTime.BlockTime == nil {
+			break
+		}
+
+		return e.complexity.BlockTime.BlockTime(childComplexity), true
 
 	case "Identity.accountNumber":
 		if e.complexity.Identity.AccountNumber == nil {
@@ -501,6 +514,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Provenance.Type(childComplexity), true
+
+	case "Query.ethBlockTime":
+		if e.complexity.Query.EthBlockTime == nil {
+			break
+		}
+
+		args, err := ec.field_Query_ethBlockTime_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.EthBlockTime(childComplexity, args["blockHash"].(string)), true
 
 	case "Query.identity":
 		if e.complexity.Query.Identity == nil {
@@ -793,6 +818,21 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_ethBlockTime_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["blockHash"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("blockHash"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["blockHash"] = arg0
 	return args, nil
 }
 
@@ -1581,6 +1621,50 @@ func (ec *executionContext) fieldContext_BaseTokenInfo_contractAddress(ctx conte
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BlockTime_blockTime(ctx context.Context, field graphql.CollectedField, obj *model.BlockTime) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BlockTime_blockTime(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.BlockTime, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_BlockTime_blockTime(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BlockTime",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3108,6 +3192,61 @@ func (ec *executionContext) fieldContext_Query_identity(ctx context.Context, fie
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_identity_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_ethBlockTime(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_ethBlockTime(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().EthBlockTime(rctx, fc.Args["blockHash"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.BlockTime)
+	fc.Result = res
+	return ec.marshalOBlockTime2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐBlockTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_ethBlockTime(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "blockTime":
+				return ec.fieldContext_BlockTime_blockTime(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BlockTime", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_ethBlockTime_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -6303,6 +6442,34 @@ func (ec *executionContext) _BaseTokenInfo(ctx context.Context, sel ast.Selectio
 	return out
 }
 
+var blockTimeImplementors = []string{"BlockTime"}
+
+func (ec *executionContext) _BlockTime(ctx context.Context, sel ast.SelectionSet, obj *model.BlockTime) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, blockTimeImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BlockTime")
+		case "blockTime":
+
+			out.Values[i] = ec._BlockTime_blockTime(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var identityImplementors = []string{"Identity"}
 
 func (ec *executionContext) _Identity(ctx context.Context, sel ast.SelectionSet, obj *model.Identity) graphql.Marshaler {
@@ -6647,6 +6814,26 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_identity(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "ethBlockTime":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_ethBlockTime(ctx, field)
 				return res
 			}
 
@@ -7416,6 +7603,21 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	return ret
 }
 
+func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
+	res, err := graphql.UnmarshalTime(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
+	res := graphql.MarshalTime(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) marshalNToken2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐTokenᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Token) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -7785,6 +7987,13 @@ func (ec *executionContext) marshalOBaseTokenInfo2ᚕᚖgithubᚗcomᚋbitmark�
 	}
 
 	return ret
+}
+
+func (ec *executionContext) marshalOBlockTime2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐBlockTime(ctx context.Context, sel ast.SelectionSet, v *model.BlockTime) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._BlockTime(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {

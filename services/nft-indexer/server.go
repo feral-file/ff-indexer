@@ -3,9 +3,11 @@ package main
 import (
 	"crypto/rsa"
 
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gin-gonic/gin"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer/cache"
 	"github.com/bitmark-inc/nft-indexer/cadence"
 	"github.com/bitmark-inc/nft-indexer/externals/ens"
 	"github.com/bitmark-inc/nft-indexer/externals/feralfile"
@@ -20,17 +22,21 @@ type NFTIndexerServer struct {
 	route              *gin.Engine
 	ensClient          *ens.ENS
 	tezosDomain        *tezosDomain.Client
+	ethClient          *ethclient.Client
 	feralfile          *feralfile.Feralfile
 	cadenceWorker      *cadence.WorkerClient
 	indexerStore       indexer.Store
+	cacheStore         cache.Store
 	indexerEngine      *indexer.IndexEngine
 }
 
 func NewNFTIndexerServer(cadenceWorker *cadence.WorkerClient,
 	ensClient *ens.ENS,
 	tezosDomain *tezosDomain.Client,
+	ethClient *ethclient.Client,
 	feralfileClient *feralfile.Feralfile,
 	indexerStore indexer.Store,
+	cacheStore cache.Store,
 	indexerEngine *indexer.IndexEngine,
 	jwtPubkey *rsa.PublicKey,
 	apiToken string,
@@ -46,9 +52,11 @@ func NewNFTIndexerServer(cadenceWorker *cadence.WorkerClient,
 		route:              r,
 		ensClient:          ensClient,
 		tezosDomain:        tezosDomain,
+		ethClient:          ethClient,
 		feralfile:          feralfileClient,
 		cadenceWorker:      cadenceWorker,
 		indexerStore:       indexerStore,
+		cacheStore:         cacheStore,
 		indexerEngine:      indexerEngine,
 	}
 }

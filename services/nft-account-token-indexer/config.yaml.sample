@@ -30,8 +30,9 @@ fxhash:
 objkt:
   api_endpoint: https://api2.objkt.com/v1/graphql
 
-aws:
-  region: ap-northeast-1
-
 cache:
   bucket_name:
+
+asset_server:
+  server_url:
+  secret_key:

@@ -3,6 +3,8 @@ package indexer
 import (
 	"encoding/json"
 	"time"
+
+	utils "github.com/bitmark-inc/autonomy-utils"
 )
 
 type Medium string
@@ -32,10 +34,10 @@ func (a *BlockchainAddress) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	switch GetBlockchainByAddress(s) {
-	case EthereumBlockchain:
+	switch utils.GetBlockchainByAddress(s) {
+	case utils.EthereumBlockchain:
 		s = EthereumChecksumAddress(s)
-	case UnknownBlockchain:
+	case utils.UnknownBlockchain:
 		return ErrUnsupportedBlockchain
 	}
 
