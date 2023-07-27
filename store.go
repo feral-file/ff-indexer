@@ -16,6 +16,7 @@ import (
 	"go.uber.org/zap"
 
 	log "github.com/bitmark-inc/autonomy-logger"
+	utils "github.com/bitmark-inc/autonomy-utils"
 )
 
 const (
@@ -380,7 +381,7 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 	var newTokenIndexID string
 
 	switch swap.NewBlockchain {
-	case EthereumBlockchain, TezosBlockchain:
+	case utils.EthereumBlockchain, utils.TezosBlockchain:
 		newTokenIndexID = TokenIndexID(swap.NewBlockchain, swap.NewContractAddress, swap.NewTokenID)
 	default:
 		return "", fmt.Errorf("blockchain is not supported")

@@ -10,6 +10,7 @@ import (
 
 	"github.com/fatih/structs"
 
+	utils "github.com/bitmark-inc/autonomy-utils"
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/tzkt-go"
@@ -36,8 +37,8 @@ var (
 
 // getTokenSourceByContract token source name by inspecting a contract address
 func getTokenSourceByContract(contractAddress string) string {
-	switch GetBlockchainByAddress(contractAddress) {
-	case EthereumBlockchain:
+	switch utils.GetBlockchainByAddress(contractAddress) {
+	case utils.EthereumBlockchain:
 		if _, ok := artblocksContracts[contractAddress]; ok {
 			return "Art Blocks"
 
@@ -46,7 +47,7 @@ func getTokenSourceByContract(contractAddress string) string {
 		}
 
 		return SourceOpensea
-	case TezosBlockchain:
+	case utils.TezosBlockchain:
 		// WIP
 		return ""
 	default:
@@ -287,8 +288,8 @@ func (e *IndexEngine) GetTokenOwnerAddress(contract, tokenID string) (string, er
 		return "", fmt.Errorf("contract must not be empty")
 	}
 
-	switch GetBlockchainByAddress(contract) {
-	case TezosBlockchain:
+	switch utils.GetBlockchainByAddress(contract) {
+	case utils.TezosBlockchain:
 		tokenOwners, err := e.tzkt.GetTokenOwners(contract, tokenID, 1, time.Time{})
 		if err != nil {
 			return "", err
@@ -299,7 +300,7 @@ func (e *IndexEngine) GetTokenOwnerAddress(contract, tokenID string) (string, er
 		}
 
 		return tokenOwners[0].Address, nil
-	case EthereumBlockchain:
+	case utils.EthereumBlockchain:
 		switch EthereumChecksumAddress(contract) {
 		case ENSContractAddress:
 			return "", fmt.Errorf("this contract is in the black list")
@@ -323,10 +324,10 @@ func (e *IndexEngine) GetTokenOwnerAddress(contract, tokenID string) (string, er
 
 // GetTokenBalanceOfOwner returns the balance of a token for an owner
 func (e *IndexEngine) GetTokenBalanceOfOwner(c context.Context, contract, tokenID, owner string) (int64, error) {
-	switch GetBlockchainByAddress(contract) {
-	case EthereumBlockchain:
+	switch utils.GetBlockchainByAddress(contract) {
+	case utils.EthereumBlockchain:
 		return e.getEthereumTokenBalanceOfOwner(c, contract, tokenID, owner)
-	case TezosBlockchain:
+	case utils.TezosBlockchain:
 		return e.getTezosTokenBalanceOfOwner(c, contract, tokenID, owner)
 	default:
 		return 0, ErrUnsupportedBlockchain
@@ -336,10 +337,10 @@ func (e *IndexEngine) GetTokenBalanceOfOwner(c context.Context, contract, tokenI
 // IndexToken indexes tokens by detecting the blockchain of a contract. This function returns
 // an `AssetUpdates“ object for using in `IndexAsset“ function
 func (e *IndexEngine) IndexToken(c context.Context, contract, tokenID string) (*AssetUpdates, error) {
-	switch GetBlockchainByAddress(contract) {
-	case EthereumBlockchain:
+	switch utils.GetBlockchainByAddress(contract) {
+	case utils.EthereumBlockchain:
 		return e.IndexETHToken(c, contract, tokenID)
-	case TezosBlockchain:
+	case utils.TezosBlockchain:
 		return e.IndexTezosToken(c, contract, tokenID)
 	default:
 		return nil, ErrUnsupportedBlockchain
@@ -503,9 +504,9 @@ func MakeCDNURIFromIPFSURI(assetURI, assetType, contract, tokenID string) (strin
 // GetTxTimestamp returns transaction timestamp of a blockchain
 func (e *IndexEngine) GetTxTimestamp(ctx context.Context, blockchain, txHash string) (time.Time, error) {
 	switch blockchain {
-	case TezosBlockchain:
+	case utils.TezosBlockchain:
 		return e.GetTezosTxTimestamp(ctx, txHash)
-	case EthereumBlockchain:
+	case utils.EthereumBlockchain:
 		return e.GetEthereumTxTimestamp(ctx, txHash)
 	}
 

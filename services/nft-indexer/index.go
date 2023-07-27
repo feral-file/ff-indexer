@@ -11,7 +11,8 @@ import (
 	cadenceClient "go.uber.org/cadence/client"
 	"go.uber.org/zap"
 
-	"github.com/bitmark-inc/autonomy-logger"
+	log "github.com/bitmark-inc/autonomy-logger"
+	utils "github.com/bitmark-inc/autonomy-utils"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
@@ -138,9 +139,9 @@ func (s *NFTIndexerServer) IndexNFTs(c *gin.Context) {
 		go s.startIndexWorkflow(c, owner, req.Blockchain, w.IndexTezosTokenWorkflow)
 	default:
 		if strings.HasPrefix(owner, "0x") {
-			go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[indexer.EthereumBlockchain], w.IndexETHTokenWorkflow)
+			go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[utils.EthereumBlockchain], w.IndexETHTokenWorkflow)
 		} else if strings.HasPrefix(owner, "tz") {
-			go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[indexer.TezosBlockchain], w.IndexTezosTokenWorkflow)
+			go s.startIndexWorkflow(c, owner, indexer.BlockchainAlias[utils.TezosBlockchain], w.IndexTezosTokenWorkflow)
 		} else {
 			abortWithError(c, http.StatusInternalServerError, "owner address with unsupported blockchain", fmt.Errorf("owner address with unsupported blockchain"))
 			return
@@ -165,12 +166,12 @@ func (s *NFTIndexerServer) IndexNFTsV2(c *gin.Context) {
 	}
 
 	owner := req.Owner.String()
-	blockchain := indexer.GetBlockchainByAddress(owner)
+	blockchain := utils.GetBlockchainByAddress(owner)
 
 	switch blockchain {
-	case indexer.EthereumBlockchain:
+	case utils.EthereumBlockchain:
 		indexerWorker.StartIndexETHTokenWorkflow(c, s.cadenceWorker, "indexer", owner, req.IncludeHistory)
-	case indexer.TezosBlockchain:
+	case utils.TezosBlockchain:
 		indexerWorker.StartIndexTezosTokenWorkflow(c, s.cadenceWorker, "indexer", owner, req.IncludeHistory)
 	default:
 		abortWithError(c, http.StatusInternalServerError, "owner address with unsupported blockchain", fmt.Errorf("owner address with unsupported blockchain"))
@@ -272,14 +273,14 @@ func (s *NFTIndexerServer) SetTokenPendingV1(c *gin.Context) {
 		return
 	}
 
-	createdAt, err := indexer.EpochStringToTime(reqParams.Timestamp)
+	createdAt, err := utils.EpochStringToTime(reqParams.Timestamp)
 	if err != nil {
 		abortWithError(c, http.StatusBadRequest, "invalid parameter", err)
 		return
 	}
 
 	now := time.Now()
-	if !indexer.IsTimeInRange(createdAt, now, 5) {
+	if !utils.IsTimeInRange(createdAt, now, 5) {
 		abortWithError(c, http.StatusBadRequest, "invalid parameter", fmt.Errorf("request time too skewed"))
 		return
 	}

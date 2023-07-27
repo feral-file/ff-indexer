@@ -1,5 +1,7 @@
 package indexer
 
+import utils "github.com/bitmark-inc/autonomy-utils"
+
 const (
 	LivenetZeroAddress = "a3ezwdYVEVrHwszQrYzDTCAZwUD3yKtNsCq9YhEu97bPaGAKy1"
 	TestnetZeroAddress = "dw9MQXcC5rJZb3QE1nz86PiQAheMP1dx9M3dr52tT8NNs14m33"
@@ -34,17 +36,10 @@ const (
 	SourceTZKT      = "tzkt"
 )
 
-const (
-	BitmarkBlockchain  = "bitmark"
-	EthereumBlockchain = "ethereum"
-	TezosBlockchain    = "tezos"
-	UnknownBlockchain  = ""
-)
-
 var BlockchainAlias = map[string]string{
-	BitmarkBlockchain:  "bmk",
-	EthereumBlockchain: "eth",
-	TezosBlockchain:    "tez",
+	utils.BitmarkBlockchain:  "bmk",
+	utils.EthereumBlockchain: "eth",
+	utils.TezosBlockchain:    "tez",
 }
 
 const (

@@ -3,13 +3,13 @@ module github.com/bitmark-inc/nft-indexer
 go 1.20
 
 require (
-	blockwatch.cc/tzgo v1.16.6
 	github.com/99designs/gqlgen v0.17.24
 	github.com/aws/aws-sdk-go v1.44.283
 	github.com/bitmark-inc/autonomy-account v0.0.5-1
 	github.com/bitmark-inc/autonomy-asset-server v0.0.2-2
 	github.com/bitmark-inc/autonomy-logger v0.0.2
 	github.com/bitmark-inc/autonomy-notification v0.0.3
+	github.com/bitmark-inc/autonomy-utils v0.0.2
 	github.com/bitmark-inc/config-loader v0.0.7
 	github.com/bitmark-inc/traceutils v0.1.0
 	github.com/bitmark-inc/tzkt-go v0.0.5
@@ -26,7 +26,6 @@ require (
 	github.com/jackc/pgconn v1.10.1
 	github.com/lib/pq v1.10.2
 	github.com/meirf/gopart v0.0.0-20180520194036-37e9492a85a8
-	github.com/sirupsen/logrus v1.9.2
 	github.com/spf13/viper v1.15.0
 	github.com/stretchr/testify v1.8.4
 	github.com/uber-go/tally v3.5.3+incompatible
@@ -36,7 +35,7 @@ require (
 	go.uber.org/cadence v0.19.1
 	go.uber.org/yarpc v1.70.2
 	go.uber.org/zap v1.24.0
-	golang.org/x/crypto v0.9.0
+	golang.org/x/crypto v0.10.0
 	google.golang.org/grpc v1.52.0
 	google.golang.org/protobuf v1.29.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -45,6 +44,7 @@ require (
 )
 
 require (
+	blockwatch.cc/tzgo v1.16.6 // indirect
 	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
@@ -78,7 +78,7 @@ require (
 	github.com/deckarep/golang-set/v2 v2.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1 v1.0.3 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v2 v2.0.0 // indirect
-	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a // indirect
 	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
@@ -123,7 +123,7 @@ require (
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/mattn/go-isatty v0.0.17 // indirect
+	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
@@ -148,6 +148,7 @@ require (
 	github.com/robfig/cron v1.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shirou/gopsutil v3.21.4-0.20210419000835-c7a38de76ee5+incompatible // indirect
+	github.com/sirupsen/logrus v1.9.2 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/afero v1.9.3 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
@@ -179,8 +180,8 @@ require (
 	golang.org/x/mod v0.9.0 // indirect
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.8.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
+	golang.org/x/sys v0.9.0 // indirect
+	golang.org/x/text v0.10.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.7.0 // indirect
 	google.golang.org/genproto v0.0.0-20221227171554-f9683d7f8bef // indirect
