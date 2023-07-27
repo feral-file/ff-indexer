@@ -3,14 +3,17 @@ package cache
 import (
 	"context"
 
-	log "github.com/bitmark-inc/autonomy-logger"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.uber.org/zap"
+
+	log "github.com/bitmark-inc/autonomy-logger"
 )
 
 type Store interface {
+	Healthz(ctx context.Context) error
 	Set(ctx context.Context, cacheKey string, value interface{}) error
 	Get(ctx context.Context, cacheKey string) (interface{}, error)
 }
@@ -39,6 +42,15 @@ func NewMongoDBCacheStore(ctx context.Context, mongodbURI, dbName string) (*Mong
 		mongoClient:          mongoClient,
 		blockCacheCollection: blockCacheCollection,
 	}, nil
+}
+
+// Healthz checks the db health status and returns errors if any
+func (s *MongoDBCacheStore) Healthz(ctx context.Context) error {
+	if err := s.mongoClient.Ping(ctx, readpref.Primary()); err != nil {
+		return err
+	}
+
+	return s.mongoClient.Ping(ctx, readpref.Secondary())
 }
 
 // SaveData insert or update the the value for the cacheKey
