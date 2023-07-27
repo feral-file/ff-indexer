@@ -15,9 +15,7 @@ data:
       cache_expiry: 24h
       log_level: 1
 
-    cache_store:
-      db_uri:
-      db_name: cache
+
 
     check_interval: {{ .Values.serviceConfig.check_interval }}
 
@@ -53,22 +51,9 @@ data:
       ws_url:
       lastBlockKeyName: {{ .Values.serviceConfig.lastBlockKeyName }}
 
-    log:
-      level: debug
-
-    event_processor_server:
-      network: tcp
-      address: {{ .Values.serviceConfig.eventProcessorEndpoint }}
-
-  bitmark.yaml: |
-    network:
-      bitmark: {{ .Values.serviceConfig.network.bitmark }}
-
-    bitmark:
+    cache_store:
       db_uri:
-
-    bitmarksdk:
-      apikey:
+      db_name: cache
 
     log:
       level: debug
@@ -76,5 +61,3 @@ data:
     event_processor_server:
       network: tcp
       address: {{ .Values.serviceConfig.eventProcessorEndpoint }}
-
-
