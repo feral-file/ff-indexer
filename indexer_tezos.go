@@ -237,29 +237,31 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			metadataDetail.ArtistURL = fmt.Sprintf("https://versum.xyz/user/%s", metadataDetail.ArtistName)
 
 		default:
-			// fallback marketplace
-			source := "unknown"
-			tokenDetail.Fungible = true
-			objktToken, err := e.GetObjktToken(tzktToken.Contract.Address, tzktToken.ID.String())
-			if err != nil {
-				log.Error("fail to get token detail from objkt", zap.Error(err), log.SourceObjkt)
-			} else {
-				metadataDetail.FromObjkt(objktToken)
-			}
-
-			if metadataDetail.Source != "" {
-				source = metadataDetail.Source
-			}
-			if tzktToken.Metadata != nil {
-				switch tzktToken.Metadata.Symbol {
-				case "OBJKTCOM":
-					source = "objkt"
-				case "OBJKT":
-					source = "hic et nunc"
+			if _, ok := inhouseMinter[metadataDetail.Minter]; !ok {
+				// fallback to objkt marketplace if the minter is not autonomy inhouse minter
+				source := "unknown"
+				tokenDetail.Fungible = true
+				objktToken, err := e.GetObjktToken(tzktToken.Contract.Address, tzktToken.ID.String())
+				if err != nil {
+					log.Error("fail to get token detail from objkt", zap.Error(err), log.SourceObjkt)
+				} else {
+					metadataDetail.FromObjkt(objktToken)
 				}
+
+				if metadataDetail.Source != "" {
+					source = metadataDetail.Source
+				}
+				if tzktToken.Metadata != nil {
+					switch tzktToken.Metadata.Symbol {
+					case "OBJKTCOM":
+						source = "objkt"
+					case "OBJKT":
+						source = "hic et nunc"
+					}
+				}
+				assetURL := fmt.Sprintf("https://objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())
+				metadataDetail.SetMarketplace(MarketplaceProfile{source, "https://objkt.com", assetURL})
 			}
-			assetURL := fmt.Sprintf("https://objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())
-			metadataDetail.SetMarketplace(MarketplaceProfile{source, "https://objkt.com", assetURL})
 		}
 	} else { // development indexing process
 		switch tzktToken.Contract.Address {

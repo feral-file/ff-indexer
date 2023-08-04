@@ -24,6 +24,10 @@ const (
 	FxhashDevIPFSGateway = "gateway.fxhash-dev2.xyz"
 )
 
+var inhouseMinter = map[string]struct{}{
+	"tz1d6EdHCR6YSpW1dNcbF9BqG1SaY1nCxrLx": {},
+}
+
 // artblocksContracts indexes the addresses which are ERC721 contracts of Artblocks
 var artblocksContracts = map[string]struct{}{
 	"0x059EDD72Cd353dF5106D2B9cC5ab83a52287aC3a": {},
