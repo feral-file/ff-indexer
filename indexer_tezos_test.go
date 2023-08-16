@@ -131,6 +131,26 @@ func TestIndexTezosToken(t *testing.T) {
 	//assert.Equal(t, assetUpdates.ProjectMetadata.Title == "", false)
 }
 
+func TestIndexTezosTokenWithCorrectFungibleStatus(t *testing.T) {
+	ctx := context.Background()
+	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), fxhash.New("https://api.fxhash.xyz/graphql"), objkt.New("https://data.objkt.com/v3/graphql"), nil, nil)
+	assetUpdates, err := engine.IndexTezosToken(ctx, "KT195VeAcEJ1wioXjDhqjmQ6CrgfZYKtqhro", "2")
+	assert.NoError(t, err)
+	assert.Equal(t, assetUpdates.Tokens[0].Fungible, true)
+
+	assetUpdates, err = engine.IndexTezosToken(ctx, "KT1EfsNuqwLAWDd3o4pvfUx1CAh5GMdTrRvr", "82992")
+	assert.NoError(t, err)
+	assert.Equal(t, assetUpdates.Tokens[0].Fungible, false)
+
+	assetUpdates, err = engine.IndexTezosToken(ctx, "KT1Rg1hhAPD8HSKaNKV6zuu7y8Zuk4QXaq2V", "1691158776819")
+	assert.NoError(t, err)
+	assert.Equal(t, assetUpdates.Tokens[0].Fungible, true)
+
+	assetUpdates, err = engine.IndexTezosToken(ctx, "KT1Rg1hhAPD8HSKaNKV6zuu7y8Zuk4QXaq2V", "1691799762205")
+	assert.NoError(t, err)
+	assert.Equal(t, assetUpdates.Tokens[0].Fungible, true)
+}
+
 func TestIndexTezosTokenByOwner(t *testing.T) {
 
 	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), nil, objkt.New("https://data.objkt.com/v3/graphql"), nil, nil)

@@ -216,15 +216,19 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			}
 		}
 
+		tokenDetail.Fungible = metadataDetail.MaxEdition > 1 || !metadataDetail.IsBooleanAmount
+
 		switch tzktToken.Contract.Address {
 		case KALAMContractAddress, TezDaoContractAddress, TezosDNSContractAddress:
 			return nil, nil
 
 		case FXHASHContractAddressFX0_0, FXHASHContractAddressFX0_1, FXHASHContractAddressFX0_2:
+			tokenDetail.Fungible = false
 			fxObjktID := fmt.Sprintf("FX0-%s", tzktToken.ID.String())
 			e.indexTezosTokenFromFXHASH(ctx, fxObjktID, metadataDetail, &tokenDetail)
 
 		case FXHASHContractAddressFX1:
+			tokenDetail.Fungible = false
 			fxObjktID := fmt.Sprintf("FX1-%s", tzktToken.ID.String())
 			e.indexTezosTokenFromFXHASH(ctx, fxObjktID, metadataDetail, &tokenDetail)
 
@@ -240,7 +244,6 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			if _, ok := inhouseMinter[metadataDetail.Minter]; !ok {
 				// fallback to objkt marketplace if the minter is not autonomy inhouse minter
 				source := "unknown"
-				tokenDetail.Fungible = true
 				objktToken, err := e.GetObjktToken(tzktToken.Contract.Address, tzktToken.ID.String())
 				if err != nil {
 					log.Error("fail to get token detail from objkt", zap.Error(err), log.SourceObjkt)
@@ -303,8 +306,9 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 
 		if metadata != nil {
 			metadataDetail.FromTZIP21TokenMetadata(*metadata)
-			tokenDetail.Fungible = !bool(metadata.IsBooleanAmount)
 		}
+
+		tokenDetail.Fungible = metadataDetail.MaxEdition > 1 || !metadataDetail.IsBooleanAmount
 	}
 
 	if g, ok := e.minterGateways[metadataDetail.Minter]; ok {

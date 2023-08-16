@@ -148,6 +148,8 @@ type AssetMetadataDetail struct {
 	DisplayURI string
 	PreviewURI string
 
+	IsBooleanAmount bool
+
 	ArtworkMetadata map[string]interface{}
 	Artists         []Artist
 }
@@ -245,6 +247,7 @@ func (detail *AssetMetadataDetail) FromTZIP21TokenMetadata(md tzkt.TokenMetadata
 	detail.DisplayURI = displayURI
 	detail.PreviewURI = previewURI
 
+	detail.IsBooleanAmount = bool(md.IsBooleanAmount)
 	detail.ArtworkMetadata = md.ArtworkMetadata
 }
 
