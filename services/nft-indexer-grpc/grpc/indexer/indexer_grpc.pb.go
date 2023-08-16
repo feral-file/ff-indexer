@@ -30,6 +30,7 @@ const (
 	Indexer_CheckAddressOwnTokenByCriteria_FullMethodName = "/Indexer/CheckAddressOwnTokenByCriteria"
 	Indexer_GetOwnersByBlockchainContracts_FullMethodName = "/Indexer/GetOwnersByBlockchainContracts"
 	Indexer_GetETHBlockTime_FullMethodName                = "/Indexer/GetETHBlockTime"
+	Indexer_GetIdentity_FullMethodName                    = "/Indexer/GetIdentity"
 )
 
 // IndexerClient is the client API for Indexer service.
@@ -47,6 +48,7 @@ type IndexerClient interface {
 	CheckAddressOwnTokenByCriteria(ctx context.Context, in *CheckAddressOwnTokenByCriteriaRequest, opts ...grpc.CallOption) (*CheckAddressOwnTokenByCriteriaResponse, error)
 	GetOwnersByBlockchainContracts(ctx context.Context, in *GetOwnersByBlockchainContractsRequest, opts ...grpc.CallOption) (*Addresses, error)
 	GetETHBlockTime(ctx context.Context, in *GetETHBlockTimeRequest, opts ...grpc.CallOption) (*BlockTime, error)
+	GetIdentity(ctx context.Context, in *Address, opts ...grpc.CallOption) (*AccountIdentity, error)
 }
 
 type indexerClient struct {
@@ -156,6 +158,15 @@ func (c *indexerClient) GetETHBlockTime(ctx context.Context, in *GetETHBlockTime
 	return out, nil
 }
 
+func (c *indexerClient) GetIdentity(ctx context.Context, in *Address, opts ...grpc.CallOption) (*AccountIdentity, error) {
+	out := new(AccountIdentity)
+	err := c.cc.Invoke(ctx, Indexer_GetIdentity_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // IndexerServer is the server API for Indexer service.
 // All implementations must embed UnimplementedIndexerServer
 // for forward compatibility
@@ -171,6 +182,7 @@ type IndexerServer interface {
 	CheckAddressOwnTokenByCriteria(context.Context, *CheckAddressOwnTokenByCriteriaRequest) (*CheckAddressOwnTokenByCriteriaResponse, error)
 	GetOwnersByBlockchainContracts(context.Context, *GetOwnersByBlockchainContractsRequest) (*Addresses, error)
 	GetETHBlockTime(context.Context, *GetETHBlockTimeRequest) (*BlockTime, error)
+	GetIdentity(context.Context, *Address) (*AccountIdentity, error)
 	mustEmbedUnimplementedIndexerServer()
 }
 
@@ -210,6 +222,9 @@ func (UnimplementedIndexerServer) GetOwnersByBlockchainContracts(context.Context
 }
 func (UnimplementedIndexerServer) GetETHBlockTime(context.Context, *GetETHBlockTimeRequest) (*BlockTime, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetETHBlockTime not implemented")
+}
+func (UnimplementedIndexerServer) GetIdentity(context.Context, *Address) (*AccountIdentity, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetIdentity not implemented")
 }
 func (UnimplementedIndexerServer) mustEmbedUnimplementedIndexerServer() {}
 
@@ -422,6 +437,24 @@ func _Indexer_GetETHBlockTime_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Indexer_GetIdentity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Address)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IndexerServer).GetIdentity(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Indexer_GetIdentity_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IndexerServer).GetIdentity(ctx, req.(*Address))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Indexer_ServiceDesc is the grpc.ServiceDesc for Indexer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -472,6 +505,10 @@ var Indexer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetETHBlockTime",
 			Handler:    _Indexer_GetETHBlockTime_Handler,
+		},
+		{
+			MethodName: "GetIdentity",
+			Handler:    _Indexer_GetIdentity_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
