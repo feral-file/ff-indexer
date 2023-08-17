@@ -239,6 +239,9 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			)
 
 			metadataDetail.ArtistURL = fmt.Sprintf("https://versum.xyz/user/%s", metadataDetail.ArtistName)
+			for i, artist := range metadataDetail.Artists {
+				metadataDetail.Artists[i].URL = fmt.Sprintf("https://versum.xyz/user/%s", artist.Name)
+			}
 
 		default:
 			if _, ok := inhouseMinter[metadataDetail.Minter]; !ok {
