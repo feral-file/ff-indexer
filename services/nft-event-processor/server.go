@@ -84,7 +84,7 @@ func (e *EventProcessor) Run(ctx context.Context) {
 type processorFunc func(ctx context.Context, event NFTEvent) error
 
 func (e *EventProcessor) StartWorker(ctx context.Context, currentStage, nextStage int8,
-	types []EventType, processor processorFunc) {
+	types []EventType, deferSecond int64, processor processorFunc) {
 	go func() {
 		for {
 			select {
@@ -93,11 +93,18 @@ func (e *EventProcessor) StartWorker(ctx context.Context, currentStage, nextStag
 				return
 			default:
 				e.logStageEvent(currentStage, "query event")
-				eventTx, err := e.eventQueue.GetEventTransaction(ctx,
+
+				filters := []FilterOption{
 					Filter("type = ANY(?)", pq.Array(types)),
 					Filter("status = ANY(?)", pq.Array([]EventStatus{EventStatusCreated, EventStatusProcessing})),
 					Filter("stage = ?", EventStages[currentStage]),
-				)
+				}
+
+				if deferSecond > 0 {
+					filters = append(filters, Filter("created_at < ?", time.Now().Add(-time.Duration(deferSecond)*time.Second)))
+				}
+
+				eventTx, err := e.eventQueue.GetEventTransaction(ctx, filters...)
 				if err != nil {
 					if err == gorm.ErrRecordNotFound {
 						log.Info("No new events")

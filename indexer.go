@@ -24,6 +24,10 @@ const (
 	FxhashDevIPFSGateway = "gateway.fxhash-dev2.xyz"
 )
 
+var inhouseMinter = map[string]struct{}{
+	"tz1d6EdHCR6YSpW1dNcbF9BqG1SaY1nCxrLx": {},
+}
+
 // artblocksContracts indexes the addresses which are ERC721 contracts of Artblocks
 var artblocksContracts = map[string]struct{}{
 	"0x059EDD72Cd353dF5106D2B9cC5ab83a52287aC3a": {},
@@ -104,8 +108,10 @@ func ipfsURLToGatewayURL(gateway, ipfsURL string) string {
 		return ipfsURL
 	}
 
-	// enforce a slash at the end of the path to prevent the redirect issue
-	u.Path = fmt.Sprintf("ipfs/%s%s/", u.Host, u.Path)
+	// remove the leading "/" from the path
+	p := strings.TrimLeft(u.Path, "/")
+
+	u.Path = fmt.Sprintf("ipfs/%s/%s", u.Host, p)
 	u.Host = gateway
 	u.Scheme = "https"
 
@@ -141,6 +147,8 @@ type AssetMetadataDetail struct {
 
 	DisplayURI string
 	PreviewURI string
+
+	IsBooleanAmount bool
 
 	ArtworkMetadata map[string]interface{}
 	Artists         []Artist
@@ -239,6 +247,7 @@ func (detail *AssetMetadataDetail) FromTZIP21TokenMetadata(md tzkt.TokenMetadata
 	detail.DisplayURI = displayURI
 	detail.PreviewURI = previewURI
 
+	detail.IsBooleanAmount = bool(md.IsBooleanAmount)
 	detail.ArtworkMetadata = md.ArtworkMetadata
 }
 

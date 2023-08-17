@@ -12,6 +12,19 @@ db.createUser({
   ]
 })
 
+db.createUser({
+  user: 'cache',
+  pwd: passwordPrompt(),
+  roles: [{
+      role: 'dbAdmin',
+      db: 'cache'
+    },
+    {
+      role: 'readWrite',
+      db: 'cache'
+    }
+  ]
+})
 
 // tokens index
 db.tokens.createIndex({

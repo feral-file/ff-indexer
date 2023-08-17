@@ -34,7 +34,7 @@ func main() {
 		log.Panic("can not create new parameter store", zap.Error(err))
 	}
 
-	cacheStore, err := cache.NewMongoDBCacheStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
+	cacheStore, err := cache.NewMongoDBCacheStore(ctx, viper.GetString("cache_store.db_uri"), viper.GetString("cache_store.db_name"))
 	if err != nil {
 		log.Panic("fail to initiate cache store", zap.Error(err))
 	}

@@ -33,7 +33,9 @@ serviceConfig:
     "KT1X7i8EeQHChQ2cKGVthHrBS2jsPLSDWoEw", # airdrop Memento 6
   ]
   postcardAddresses: [
-    "KT1Lak6VLc3k33EqvpTBfpXspoRAKUa4ycVJ"
+    "KT1Lak6VLc3k33EqvpTBfpXspoRAKUa4ycVJ",
+    "KT1Lr3bYb7MUzWrk6HFiN97g45En8ateEpWT",
+    "KT1Rg1hhAPD8HSKaNKV6zuu7y8Zuk4QXaq2V"
   ]
   eventProcessorURI: nft-event-processor.autonomy.svc.cluster.local:8765
   environment: production

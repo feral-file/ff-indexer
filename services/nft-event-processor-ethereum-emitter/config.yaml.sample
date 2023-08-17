@@ -1,4 +1,4 @@
-store:
+cache_store:
   db_uri:
   db_name:
 

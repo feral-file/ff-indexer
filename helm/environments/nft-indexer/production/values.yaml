@@ -31,6 +31,7 @@ serviceConfig:
     bitmark: livenet
   minter_gateways:
     tz1Td5qwQxz5mDZiwk7TsRGhDU2HBvXgULip: ipfs.bitmark.com
+    tz1d6EdHCR6YSpW1dNcbF9BqG1SaY1nCxrLx: ipfs.bitmark.com
 
 imagePullSecrets: []
 nameOverride: ""
