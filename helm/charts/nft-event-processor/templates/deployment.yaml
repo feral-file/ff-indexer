@@ -183,3 +183,77 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nft-event-processor.fullname" . }}-tezos-emitter
+  labels:
+    v: "1"
+    {{- include "nft-event-processor.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "nft-event-processor.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        {{- include "nft-event-processor.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tags.tezosEmitter | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+          - /nft-event-processor-tezos-emitter
+          env:
+            - name: AWS_REGION
+              value: ap-northeast-1
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-processor.fullname" . }}
+                  key: aws_access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-processor.fullname" . }}
+                  key: aws_secret_access_key
+          volumeMounts:
+          - name: config
+            mountPath: "/.config"
+            readOnly: true
+      volumes:
+      # You set volumes at the Pod level, then mount them into containers inside that Pod
+      - name: config
+        configMap:
+          name: {{ include "nft-event-processor.fullname" . }}
+          items:
+          - key: "tezos.yaml"
+            path: "config.yaml"
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
