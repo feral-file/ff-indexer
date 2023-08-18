@@ -1,0 +1,5 @@
+tzkt:
+  ws_url: https://api.tzkt.io/v1/ws
+  
+event_processor_server:
+  address: localhost:8765
