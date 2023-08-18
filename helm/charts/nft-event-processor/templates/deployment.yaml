@@ -188,7 +188,7 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "nft-event-processor.fullname" . }}-tezos-emitter
+  name: {{ include "nft-event-processor.fullname" . }}-tezos-emitter-new
   labels:
     v: "1"
     {{- include "nft-event-processor.labels" . | nindent 4 }}
