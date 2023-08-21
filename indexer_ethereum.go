@@ -3,9 +3,13 @@ package indexer
 import (
 	"context"
 	"fmt"
+	"math/big"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/managedblockchainquery"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -206,27 +210,49 @@ func (e *IndexEngine) IndexETHTokenOwners(contract, tokenID string) ([]OwnerBala
 		zap.String("blockchain", utils.EthereumBlockchain),
 		zap.String("contract", contract), zap.String("tokenID", tokenID))
 
-	var next *string
+	// FIXME: does not support testnet indexing for now
+	network := managedblockchainquery.QueryNetworkEthereumMainnet
+
+	var nextToken *string
 	ownerBalances := []OwnerBalance{}
 	for {
-		owners, n, err := e.opensea.RetrieveTokenOwners(contract, tokenID, next)
+		id, ok := big.NewInt(0).SetString(tokenID, 10)
+		if !ok {
+			return nil, fmt.Errorf("fail to convert to hex")
+		}
+
+		result, err := e.blockchainQueryClient.ListTokenBalances(&managedblockchainquery.ListTokenBalancesInput{
+			MaxResults: aws.Int64(250),
+			NextToken:  nextToken,
+
+			TokenFilter: &managedblockchainquery.TokenFilter{
+				Network:         &network,
+				ContractAddress: aws.String(contract),
+				TokenId:         aws.String(fmt.Sprintf("0x%064x", id)),
+			},
+		})
 		if err != nil {
 			return nil, err
 		}
 
-		for _, o := range owners {
+		nextToken = result.NextToken
+		for _, o := range result.TokenBalances {
+
+			balance, err := strconv.Atoi(*o.Balance)
+			if err != nil {
+				return nil, err
+			}
+
 			ownerBalances = append(ownerBalances, OwnerBalance{
-				Address:  o.Owner.Address,
-				Balance:  o.Quantity,
-				LastTime: o.CreatedDate.Time,
+				Address:  EthereumChecksumAddress(*o.OwnerIdentifier.Address),
+				Balance:  int64(balance),
+				LastTime: *o.LastUpdatedTime.Time,
 			})
 		}
 
-		if n == nil {
+		if nextToken == nil {
 			break
 		}
-
-		next = n
 	}
 
 	return ownerBalances, nil

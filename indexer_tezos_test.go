@@ -24,14 +24,14 @@ func TestMain(m *testing.M) {
 }
 
 func TestIndexTezosTokenProvenance(t *testing.T) {
-	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), nil, nil, nil, nil)
+	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), nil, nil, nil, nil, nil)
 	provenances, err := engine.IndexTezosTokenProvenance("KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE", "178227")
 	assert.NoError(t, err)
 	assert.GreaterOrEqual(t, len(provenances), 6)
 }
 
 func TestIndexTezosTokenOwnersWithNFT(t *testing.T) {
-	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), nil, nil, nil, nil)
+	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), nil, nil, nil, nil, nil)
 	ownerBalances, err := engine.IndexTezosTokenOwners("KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE", "178227")
 	assert.NoError(t, err)
 	assert.Len(t, ownerBalances, 1)
@@ -39,14 +39,14 @@ func TestIndexTezosTokenOwnersWithNFT(t *testing.T) {
 }
 
 func TestGetTezosTokenByOwner(t *testing.T) {
-	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), nil, nil, nil, nil)
+	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), nil, nil, nil, nil, nil)
 	owners, err := engine.GetTezosTokenByOwner("tz1YiYx6TwBnsAgEnXSyhFiM9bqFD54QVhy4", time.Time{}, 0) // incorrect metadata format case
 	assert.NoError(t, err)
 	assert.NotEmpty(t, owners)
 }
 
 func TestIndexTezosTokenOwnersFT(t *testing.T) {
-	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), nil, nil, nil, nil)
+	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), nil, nil, nil, nil, nil)
 	ownerBalances, err := engine.IndexTezosTokenOwners("KT1LjmAdYQCLBjwv4S2oFkEzyHVkomAf5MrW", "24216")
 	assert.NoError(t, err)
 	assert.Len(t, ownerBalances, 13)
@@ -54,7 +54,7 @@ func TestIndexTezosTokenOwnersFT(t *testing.T) {
 }
 
 func TestIndexTezosTokenOwnersWithNFTOwnByManyAddress(t *testing.T) {
-	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), nil, nil, nil, nil)
+	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), nil, nil, nil, nil, nil)
 	ownerBalances, err := engine.IndexTezosTokenOwners("KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton", "784317")
 	assert.NoError(t, err)
 	assert.LessOrEqual(t, len(ownerBalances), 333)
@@ -63,7 +63,7 @@ func TestIndexTezosTokenOwnersWithNFTOwnByManyAddress(t *testing.T) {
 
 func TestIndexTezosToken(t *testing.T) {
 
-	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), fxhash.New("https://api.fxhash.xyz/graphql"), objkt.New("https://data.objkt.com/v3/graphql"), nil, nil)
+	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), fxhash.New("https://api.fxhash.xyz/graphql"), objkt.New("https://data.objkt.com/v3/graphql"), nil, nil, nil)
 	assetUpdates, err := engine.IndexTezosToken(context.Background(), "KT1EfsNuqwLAWDd3o4pvfUx1CAh5GMdTrRvr", "17446")
 	assert.NoError(t, err)
 	assert.NotEqual(t, assetUpdates.ProjectMetadata.Artists, nil)
@@ -133,7 +133,7 @@ func TestIndexTezosToken(t *testing.T) {
 
 func TestIndexTezosTokenWithCorrectFungibleStatus(t *testing.T) {
 	ctx := context.Background()
-	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), fxhash.New("https://api.fxhash.xyz/graphql"), objkt.New("https://data.objkt.com/v3/graphql"), nil, nil)
+	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), fxhash.New("https://api.fxhash.xyz/graphql"), objkt.New("https://data.objkt.com/v3/graphql"), nil, nil, nil)
 	assetUpdates, err := engine.IndexTezosToken(ctx, "KT195VeAcEJ1wioXjDhqjmQ6CrgfZYKtqhro", "2")
 	assert.NoError(t, err)
 	assert.Equal(t, assetUpdates.Tokens[0].Fungible, true)
@@ -153,7 +153,7 @@ func TestIndexTezosTokenWithCorrectFungibleStatus(t *testing.T) {
 
 func TestIndexTezosTokenByOwner(t *testing.T) {
 
-	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), nil, objkt.New("https://data.objkt.com/v3/graphql"), nil, nil)
+	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), nil, objkt.New("https://data.objkt.com/v3/graphql"), nil, nil, nil)
 	_, _, err := engine.IndexTezosTokenByOwner(context.Background(), "tz1eZUHkQDC1bBEbvrrUxkbWEagdZJXQyszc", time.Now().Add(-100*24*time.Hour), 0)
 	assert.NoError(t, err)
 }

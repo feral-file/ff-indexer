@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/managedblockchainquery"
 	"github.com/bitmark-inc/nft-indexer/cache"
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
@@ -25,6 +26,8 @@ type IndexEngine struct {
 	objkt      *objkt.Client
 	ethereum   *ethclient.Client
 	cacheStore cache.Store
+
+	blockchainQueryClient *managedblockchainquery.ManagedBlockchainQuery
 }
 
 func New(
@@ -37,6 +40,7 @@ func New(
 	objkt *objkt.Client,
 	ethereum *ethclient.Client,
 	cacheStore cache.Store,
+	blockchainQueryClient *managedblockchainquery.ManagedBlockchainQuery,
 ) *IndexEngine {
 	if len(ipfsGateways) == 0 {
 		ipfsGateways = []string{DefaultIPFSGateway}
@@ -57,5 +61,7 @@ func New(
 		objkt:      objkt,
 		ethereum:   ethereum,
 		cacheStore: cacheStore,
+
+		blockchainQueryClient: blockchainQueryClient,
 	}
 }
