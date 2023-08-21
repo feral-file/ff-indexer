@@ -166,29 +166,32 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 		log.Info("fail to get token lastActivityTime")
 	}
 
+	token := Token{
+		BaseTokenInfo: BaseTokenInfo{
+			ID:              a.TokenID,
+			Blockchain:      utils.EthereumBlockchain,
+			Fungible:        fungible,
+			ContractType:    contractType,
+			ContractAddress: contractAddress,
+		},
+		IndexID:           TokenIndexID(utils.EthereumBlockchain, contractAddress, a.TokenID),
+		Edition:           0,
+		Balance:           balance,
+		Owner:             owner,
+		MintedAt:          a.AssetContract.CreatedDate.Time, // set minted_at to the contract creation time
+		LastRefreshedTime: time.Now(),
+		LastActivityTime:  lastActivityTime,
+	}
+
+	if owner != "" {
+		token.Owners = map[string]int64{owner: balance}
+	}
+
 	tokenUpdate := &AssetUpdates{
 		ID:              fmt.Sprintf("%d", a.ID),
 		Source:          dataSource,
 		ProjectMetadata: metadata,
-		Tokens: []Token{
-			{
-				BaseTokenInfo: BaseTokenInfo{
-					ID:              a.TokenID,
-					Blockchain:      utils.EthereumBlockchain,
-					Fungible:        fungible,
-					ContractType:    contractType,
-					ContractAddress: contractAddress,
-				},
-				IndexID:           TokenIndexID(utils.EthereumBlockchain, contractAddress, a.TokenID),
-				Edition:           0,
-				Balance:           balance,
-				Owner:             owner,
-				Owners:            map[string]int64{owner: balance},
-				MintedAt:          a.AssetContract.CreatedDate.Time, // set minted_at to the contract creation time
-				LastRefreshedTime: time.Now(),
-				LastActivityTime:  lastActivityTime,
-			},
-		},
+		Tokens:          []Token{token},
 	}
 
 	log.Debug("asset updating data prepared",
@@ -255,6 +258,9 @@ func (e *IndexEngine) IndexETHTokenOwners(contract, tokenID string) ([]OwnerBala
 		}
 	}
 
+	log.Debug("indexed eth token owners",
+		zap.String("blockchain", utils.EthereumBlockchain),
+		zap.String("contract", contract), zap.String("tokenID", tokenID))
 	return ownerBalances, nil
 }
 
