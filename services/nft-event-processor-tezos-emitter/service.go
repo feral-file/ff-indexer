@@ -8,6 +8,7 @@ import (
 
 	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
+	"github.com/bitmark-inc/config-loader/external/aws/ssm"
 	"github.com/bitmark-inc/nft-indexer/emitter"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 	"github.com/philippseith/signalr"
@@ -15,6 +16,9 @@ import (
 )
 
 type TezosEventsEmitter struct {
+	lastBlockKeyName string
+	parameterStore   *ssm.ParameterStore
+
 	grpcClient processor.EventProcessorClient
 	emitter.EventsEmitter
 	tzktWebsocketURL string
@@ -23,10 +27,14 @@ type TezosEventsEmitter struct {
 }
 
 func NewTezosEventsEmitter(
+	lastBlockKeyName string,
+	parameterStore *ssm.ParameterStore,
 	grpcClient processor.EventProcessorClient,
 	tzktWebsocketURL string,
 ) *TezosEventsEmitter {
 	return &TezosEventsEmitter{
+		lastBlockKeyName: lastBlockKeyName,
+		parameterStore:   parameterStore,
 		grpcClient:       grpcClient,
 		EventsEmitter:    emitter.New(grpcClient),
 		tzktWebsocketURL: tzktWebsocketURL,
@@ -47,6 +55,12 @@ func (e *TezosEventsEmitter) Transfers(data json.RawMessage) {
 
 	for _, t := range res.Data {
 		e.transferChan <- t
+	}
+
+	//save laststop block
+	lastBlock := res.Data[len(res.Data)-1].Level
+	if err := e.parameterStore.Put(context.Background(), e.lastBlockKeyName, strconv.FormatUint(lastBlock, 10)); err != nil {
+		log.Error("error put parameterStore", zap.Error(err), log.SourceGRPC)
 	}
 }
 
@@ -97,7 +111,7 @@ func (e *TezosEventsEmitter) Run(ctx context.Context) {
 			zap.String("txTime", t.Timestamp.String()),
 		)
 
-		if err := e.PushEvent(context.Background(), eventType, t.From.Address, t.To.Address,
+		if err := e.PushEvent(ctx, eventType, t.From.Address, t.To.Address,
 			t.Token.Contract.Address, utils.TezosBlockchain, t.Token.TokenID, strconv.FormatUint(t.TransactionID, 10), 0, t.Timestamp); err != nil {
 			log.Error("gRPC request failed", zap.Error(err), log.SourceGRPC)
 			return
