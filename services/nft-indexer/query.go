@@ -148,16 +148,7 @@ func (s *NFTIndexerServer) IndexMissingTokens(c *gin.Context, idMap map[string]b
 			continue
 		}
 
-		owner, err := s.indexerEngine.GetTokenOwnerAddress(contract, tokenID)
-		if err != nil {
-			log.Warn("unexpected error while getting token owner address of the contract",
-				zap.String("contract", contract),
-				zap.String("tokenId", tokenID),
-				zap.Error(err))
-			continue
-		}
-
-		go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, owner, contract, tokenID, false, false)
+		go indexerWorker.StartIndexTokenWorkflow(c, s.cadenceWorker, "", contract, tokenID, true, false)
 	}
 }
 
