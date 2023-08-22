@@ -60,7 +60,32 @@ func (e *IndexEngine) IndexETHTokenByOwner(owner string, offset int) ([]AssetUpd
 
 // getEthereumTokenBalanceOfOwner returns current balance of a token that the owner owns
 func (e *IndexEngine) getEthereumTokenBalanceOfOwner(_ context.Context, contract, tokenID, owner string) (int64, error) {
-	return e.opensea.GetTokenBalanceForOwner(contract, tokenID, owner)
+	id, ok := big.NewInt(0).SetString(tokenID, 10)
+	if !ok {
+		return 0, fmt.Errorf("fail to convert token id to hex")
+	}
+
+	network := managedblockchainquery.QueryNetworkEthereumMainnet
+
+	result, err := e.blockchainQueryClient.GetTokenBalance(&managedblockchainquery.GetTokenBalanceInput{
+		OwnerIdentifier: &managedblockchainquery.OwnerIdentifier{
+			Address: aws.String(owner),
+		},
+		TokenIdentifier: &managedblockchainquery.TokenIdentifier{
+			Network:         &network,
+			ContractAddress: aws.String(contract),
+			TokenId:         aws.String(fmt.Sprintf("0x%064x", id)),
+		},
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	balance, err := strconv.Atoi(*result.Balance)
+	if err != nil {
+		return 0, err
+	}
+	return int64(balance), nil
 }
 
 // IndexETHToken indexes an Ethereum token with a specific contract and ID
