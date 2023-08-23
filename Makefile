@@ -58,6 +58,10 @@ nft-account-token-indexer:
 nft-ethereum-emitter:
 	go build -o bin/nft-ethereum-emitter ./services/nft-event-processor-ethereum-emitter
 
+.PHONY: nft-tezos-emitter
+nft-tezos-emitter:
+	go build -o bin/nft-tezos-emitter ./services/nft-event-processor-tezos-emitter
+
 .PHONY: nft-bitmark-emitter
 nft-bitmark-emitter:
 	go build -o bin/nft-bitmark-emitter ./services/nft-event-processor-bitmark-emitter
@@ -94,6 +98,10 @@ run-nft-account-token-indexer: nft-account-token-indexer
 run-nft-ethereum-emitter: nft-ethereum-emitter
 	./bin/nft-ethereum-emitter -c config.yaml
 
+.PHONY: run-nft-tezos-emitter
+run-nft-tezos-emitter: nft-tezos-emitter
+	./bin/nft-tezos-emitter -c config.yaml
+
 .PHONY: run-nft-bitmark-emitter
 run-nft-bitmark-emitter: nft-bitmark-emitter
 	./bin/nft-bitmark-emitter -c config.yaml
@@ -103,7 +111,7 @@ renew-event-processor-grpc:
 	protoc --proto_path=protos --go-grpc_out=services/nft-event-processor/ --go_out=services/nft-event-processor/ event-processor.proto
 
 .PHONY: build
-build: nft-indexer nft-indexer-background nft-event-processor nft-provenance-indexer nft-account-token-indexer nft-ethereum-emitter nft-bitmark-emitter
+build: nft-indexer nft-indexer-background nft-event-processor nft-provenance-indexer nft-account-token-indexer nft-ethereum-emitter nft-tezos-emitter nft-bitmark-emitter
 
 .PHONY: run
 run: config run-nft-indexer
@@ -173,6 +181,17 @@ endif
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t nft-indexer:ethereum-emitter-$(dist) -f Dockerfile-ethereum-emitter .
 	docker tag nft-indexer:ethereum-emitter-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:ethereum-emitter-$(dist)
+
+.PHONY: build-nft-tezos-emitter
+build-nft-tezos-emitter:
+ifndef dist
+	$(error dist is undefined)
+endif
+	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
+	--build-arg GITHUB_USER=$(GITHUB_USER) \
+	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
+	-t nft-indexer:tezos-emitter-$(dist) -f Dockerfile-tezos-emitter .
+	docker tag nft-indexer:tezos-emitter-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:tezos-emitter-$(dist)
 
 .PHONY: build-nft-bitmark-emitter
 build-nft-bitmark-emitter:

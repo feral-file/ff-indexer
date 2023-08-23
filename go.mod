@@ -4,14 +4,12 @@ go 1.20
 
 require (
 	github.com/99designs/gqlgen v0.17.24
-	github.com/aws/aws-sdk-go v1.44.283
 	github.com/bitmark-inc/autonomy-account v0.0.5-1
 	github.com/bitmark-inc/autonomy-asset-server v0.0.2-2
 	github.com/bitmark-inc/autonomy-logger v0.0.2
 	github.com/bitmark-inc/autonomy-notification v0.0.3
 	github.com/bitmark-inc/autonomy-utils v0.0.2
 	github.com/bitmark-inc/config-loader v0.0.7
-	github.com/bitmark-inc/traceutils v0.1.0
 	github.com/bitmark-inc/tzkt-go v0.0.5
 	github.com/chromedp/chromedp v0.9.1
 	github.com/cloudflare/cloudflare-go v0.62.0
@@ -26,6 +24,7 @@ require (
 	github.com/jackc/pgconn v1.10.1
 	github.com/lib/pq v1.10.2
 	github.com/meirf/gopart v0.0.0-20180520194036-37e9492a85a8
+	github.com/philippseith/signalr v0.6.2
 	github.com/spf13/viper v1.15.0
 	github.com/stretchr/testify v1.8.4
 	github.com/uber-go/tally v3.5.3+incompatible
@@ -50,6 +49,7 @@ require (
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239 // indirect
 	github.com/apache/thrift v0.0.0-20161221203622-b2a4d4ae21c7 // indirect
+	github.com/aws/aws-sdk-go v1.44.283 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.18.0 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.18.25 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.24 // indirect
@@ -66,8 +66,10 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bitmark-inc/go-utils v0.0.0-20220509034903-59f3369237d3 // indirect
 	github.com/bitmark-inc/httpsign v0.0.2-2 // indirect
+	github.com/bitmark-inc/traceutils v0.1.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
 	github.com/bytedance/sonic v1.8.0 // indirect
+	github.com/cenkalti/backoff/v4 v4.1.2 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/chromedp/cdproto v0.0.0-20230220211738-2b1ec77315c9 // indirect
@@ -83,6 +85,8 @@ require (
 	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
+	github.com/go-kit/log v0.2.1 // indirect
+	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/go-ole/go-ole v1.2.1 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
@@ -156,6 +160,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
+	github.com/teivah/onecontext v1.3.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.5 // indirect
 	github.com/tklauser/numcpus v0.2.2 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
@@ -164,6 +169,8 @@ require (
 	github.com/uber/tchannel-go v1.22.2 // indirect
 	github.com/ugorji/go/codec v1.2.9 // indirect
 	github.com/urfave/cli/v2 v2.24.4 // indirect
+	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
+	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/wealdtech/go-multicodec v1.4.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.1 // indirect
