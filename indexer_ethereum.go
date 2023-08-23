@@ -26,6 +26,10 @@ type TransactionDetails struct {
 
 // IndexETHTokenByOwner indexes all tokens owned by a specific ethereum address
 func (e *IndexEngine) IndexETHTokenByOwner(owner string, offset int) ([]AssetUpdates, error) {
+	if _, excluded := EthereumIndexExcludedOwners[owner]; excluded {
+		return nil, nil
+	}
+
 	assets, err := e.opensea.RetrieveAssets(owner, offset)
 	if err != nil {
 		return nil, err
@@ -56,6 +60,10 @@ func (e *IndexEngine) IndexETHTokenByOwner(owner string, offset int) ([]AssetUpd
 
 // getEthereumTokenBalanceOfOwner returns current balance of a token that the owner owns
 func (e *IndexEngine) getEthereumTokenBalanceOfOwner(_ context.Context, contract, tokenID, owner string) (int64, error) {
+	if _, excluded := EthereumIndexExcludedOwners[owner]; excluded {
+		return 0, nil
+	}
+
 	return e.opensea.GetTokenBalanceForOwner(contract, tokenID, owner)
 }
 
