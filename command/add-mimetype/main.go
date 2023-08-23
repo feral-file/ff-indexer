@@ -86,7 +86,7 @@ func main() {
 		}
 		fmt.Printf("\n[%v] %s-%s.\n", time.Now(), contractAddress, tokenID)
 
-		mimeType := indexer.GetMIMEType(asset.ProjectMetadata.Latest.PreviewURL)
+		mimeType := indexer.GetMIMETypeByURL(asset.ProjectMetadata.Latest.PreviewURL)
 
 		fmt.Printf("==> Mime type: %s, url: %s\n", mimeType, asset.ProjectMetadata.Latest.PreviewURL)
 

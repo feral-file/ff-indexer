@@ -130,6 +130,21 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 		},
 	}
 
+	imageURL := a.ImageURL
+	if imageURL == "" {
+		imageURL = a.ImageOriginURL
+	}
+
+	imagePreviewURL := a.ImagePreviewURL
+	if imagePreviewURL == "" {
+		imagePreviewURL = a.ImageOriginURL
+	}
+
+	animationURL := a.AnimationURL
+	if animationURL == "" {
+		animationURL = a.AnimationOriginURL
+	}
+
 	metadata := ProjectMetadata{
 		ArtistID:            artistID,
 		ArtistName:          artistName,
@@ -137,21 +152,21 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 		AssetID:             contractAddress,
 		Title:               a.Name,
 		Description:         a.Description,
-		MIMEType:            GetMIMEType(a.ImageURL),
+		MIMEType:            GetMIMETypeByURL(imageURL),
 		Medium:              MediumUnknown,
 		Source:              source,
 		SourceURL:           sourceURL,
-		PreviewURL:          a.ImageURL,
-		ThumbnailURL:        a.ImageURL,
-		GalleryThumbnailURL: a.ImagePreviewURL,
+		PreviewURL:          imageURL,
+		ThumbnailURL:        imageURL,
+		GalleryThumbnailURL: imagePreviewURL,
 		AssetURL:            a.Permalink,
 		LastUpdatedAt:       time.Now(),
 		Artists:             artists,
 	}
 
-	if a.AnimationURL != "" {
-		metadata.PreviewURL = a.AnimationURL
-		metadata.MIMEType = GetMIMEType(a.AnimationURL)
+	if animationURL != "" {
+		metadata.PreviewURL = animationURL
+		metadata.MIMEType = GetMIMETypeByURL(animationURL)
 
 		if source == sourceArtBlocks {
 			metadata.Medium = MediumSoftware
@@ -160,7 +175,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 			log.Debug("fallback medium check", zap.String("previewURL", metadata.PreviewURL), zap.Any("medium", medium))
 			metadata.Medium = medium
 		}
-	} else if a.ImageURL != "" {
+	} else if imageURL != "" {
 		metadata.Medium = MediumImage
 	}
 

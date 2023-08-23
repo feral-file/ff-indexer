@@ -121,8 +121,8 @@ func CheckCDNURLIsExist(url string) bool {
 	return false
 }
 
-// GetMIMEType returns mimeType of a file based on the extension of the url
-func GetMIMEType(urlString string) string {
+// GetMIMETypeByURL returns mimeType of a file based on the extension of the url
+func GetMIMETypeByURL(urlString string) string {
 	u, err := url.Parse(urlString)
 	if err != nil {
 		return ""

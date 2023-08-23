@@ -22,19 +22,19 @@ func TestParseTokenIndexID(t *testing.T) {
 
 func TestGetMIMEType(t *testing.T) {
 	url := "https://i.seadn.io/gcs/files/bbc0a44987656c60494fd646e0f670d0.gif?w=500&auto=format"
-	mimeType := GetMIMEType(url)
+	mimeType := GetMIMETypeByURL(url)
 	assert.Equal(t, mimeType, "image/gif")
 
 	url = "https://i.seadn.io/gcs/files/d2fe56690de325daa49cad0600304345.png"
-	mimeType = GetMIMEType(url)
+	mimeType = GetMIMETypeByURL(url)
 	assert.Equal(t, mimeType, "image/png")
 
 	url = "https://i.seadn.io/gcs/files/669bd5d03542a1a8fb9b6587e2103ae7.png?w=500&auto=format"
-	mimeType = GetMIMEType(url)
+	mimeType = GetMIMETypeByURL(url)
 	assert.Equal(t, mimeType, "image/png")
 
 	url = "https://ipfs.io/ipfs/QmbNtTu7k2E2UDYDQTyiVzV8rVbCU44hc9js1erKzeSogY"
-	mimeType = GetMIMEType(url)
+	mimeType = GetMIMETypeByURL(url)
 	assert.Equal(t, mimeType, "")
 }
 
