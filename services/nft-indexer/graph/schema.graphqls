@@ -15,6 +15,7 @@ type Token {
 	mintedAt:          	Time
 	balance:         	Int64!
 	owner:           	String!
+	owners: 			[Owner!]
 	originTokenInfo: 	[BaseTokenInfo!]
 
 	indexID:         	String!
@@ -33,6 +34,11 @@ type BaseTokenInfo {
 	fungible:        Boolean!
 	contractType:    String!
 	contractAddress: String!
+}
+
+type Owner {
+	address: String!
+	balance: Int64!
 }
 
 type Provenance {

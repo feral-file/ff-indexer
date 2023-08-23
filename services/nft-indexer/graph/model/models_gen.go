@@ -46,6 +46,11 @@ type Identity struct {
 	Name          string `json:"name"`
 }
 
+type Owner struct {
+	Address string `json:"address"`
+	Balance int64  `json:"balance"`
+}
+
 type ProjectMetadata struct {
 	ArtistID            string    `json:"artistID"`
 	ArtistName          string    `json:"artistName"`
@@ -91,6 +96,7 @@ type Token struct {
 	MintedAt          *time.Time       `json:"mintedAt"`
 	Balance           int64            `json:"balance"`
 	Owner             string           `json:"owner"`
+	Owners            []*Owner         `json:"owners"`
 	OriginTokenInfo   []*BaseTokenInfo `json:"originTokenInfo"`
 	IndexID           string           `json:"indexID"`
 	Source            string           `json:"source"`
