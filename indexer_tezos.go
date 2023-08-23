@@ -46,6 +46,10 @@ type TezosTokenMetadata struct {
 }
 
 func (e *IndexEngine) GetTezosTokenByOwner(owner string, lastTime time.Time, offset int) ([]tzkt.OwnedToken, error) {
+	if _, excluded := TezosIndexExcludedOwners[owner]; excluded {
+		return nil, nil
+	}
+
 	tokens, err := e.tzkt.RetrieveTokens(owner, lastTime, offset)
 	if err != nil {
 		return nil, err
@@ -183,6 +187,10 @@ func (e *IndexEngine) getTokenMetadataURL(contractAddress, tokenID string) (stri
 
 // getTezosTokenBalanceOfOwner returns current balance of a token that the owner owns
 func (e *IndexEngine) getTezosTokenBalanceOfOwner(_ context.Context, contract, tokenID, owner string) (int64, error) {
+	if _, excluded := TezosIndexExcludedOwners[owner]; excluded {
+		return 0, nil
+	}
+
 	return e.tzkt.GetTokenBalanceOfOwner(contract, tokenID, owner)
 }
 
