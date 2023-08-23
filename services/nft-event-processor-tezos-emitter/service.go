@@ -43,7 +43,9 @@ func NewTezosEventsEmitter(
 	}
 }
 
-// receive event for transfers function
+// Transfers is a callback function for handling events from `transfers` channel
+// According to https://github.com/philippseith/signalr#client-side-go, we need to create a same name
+// function according to the server response channel. See https://api.tzkt.io/#section/SubscribeToTokenTransfers
 func (e *TezosEventsEmitter) Transfers(data json.RawMessage) {
 	var res TokenTransferResponse
 
@@ -67,7 +69,7 @@ func (e *TezosEventsEmitter) Transfers(data json.RawMessage) {
 func (e *TezosEventsEmitter) Run(ctx context.Context) {
 	client, err := signalr.NewClient(ctx,
 		signalr.WithConnector(func() (signalr.Connection, error) {
-			creationCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			creationCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 			defer cancel()
 
 			return signalr.NewHTTPConnection(creationCtx, e.tzktWebsocketURL)
