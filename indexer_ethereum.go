@@ -84,13 +84,16 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 		return nil, nil
 	}
 
-	source := getTokenSourceByContract(contractAddress)
+	source := getTokenSourceByPreviewURL(a.AnimationOriginURL)
+	if source == "" {
+		source = getTokenSourceByContract(contractAddress)
+	}
 
 	switch source {
-	case "Art Blocks":
+	case sourceArtBlocks:
 		sourceURL = "https://www.artblocks.io/"
 		artistURL = fmt.Sprintf("%s/%s", sourceURL, a.Creator.Address)
-	case "Crayon Codes":
+	case sourceCrayonCodes:
 		sourceURL = "https://openprocessing.org/crayon/"
 		artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator.Address)
 	default:
@@ -142,7 +145,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 		metadata.PreviewURL = a.AnimationURL
 		metadata.MIMEType = GetMIMEType(a.AnimationURL)
 
-		if source == "Art Blocks" {
+		if source == sourceArtBlocks {
 			metadata.Medium = MediumSoftware
 		} else {
 			medium := mediumByPreviewFileExtension(metadata.PreviewURL)
