@@ -43,6 +43,7 @@ releases:
       tags:
         eventProcessor: "event-processor-{{ env "GITHUB_SHA" }}"
         ethereumEmitter: "ethereum-emitter-{{ env "GITHUB_SHA" }}"
+        tezosEmitter: "tezos-emitter-{{ env "GITHUB_SHA" }}"
         bitmarkEmitter: "bitmark-emitter-{{ env "GITHUB_SHA" }}"
   {{- end }}
   secrets:

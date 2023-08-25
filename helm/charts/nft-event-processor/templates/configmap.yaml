@@ -61,3 +61,14 @@ data:
     event_processor_server:
       network: tcp
       address: {{ .Values.serviceConfig.eventProcessorEndpoint }}
+
+  tezos.yaml: |
+    tzkt:
+      ws_url: {{ .Values.serviceConfig.tzktWsUrl }}
+
+    log:
+      level: debug
+
+    event_processor_server:
+      network: tcp
+      address: {{ .Values.serviceConfig.eventProcessorEndpoint }}
