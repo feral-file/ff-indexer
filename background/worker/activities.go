@@ -447,18 +447,6 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 
 // RefreshTokenOwnership refreshes ownership for each tokens
 func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs []string, delay time.Duration) error {
-	indexTokens := map[string]indexer.AccountToken{}
-
-	accountTokens, err := w.indexerStore.GetAccountTokensByIndexIDs(ctx, indexIDs)
-	if err != nil {
-		log.Error("fail to get account tokens", zap.Any("indexIDs", indexIDs), zap.Error(err))
-		return err
-	}
-
-	for _, token := range accountTokens {
-		indexTokens[token.IndexID] = token
-	}
-
 	tokens, err := w.indexerStore.GetTokensByIndexIDs(ctx, indexIDs)
 	if err != nil {
 		log.Error("fail to get tokens", zap.Any("indexIDs", indexIDs), zap.Error(err))
@@ -466,21 +454,6 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 	}
 
 	for _, token := range tokens {
-		_, tokenExist := indexTokens[token.IndexID]
-		if !tokenExist {
-			indexTokens[token.IndexID] = indexer.AccountToken{
-				BaseTokenInfo:     token.BaseTokenInfo,
-				IndexID:           token.IndexID,
-				OwnerAccount:      token.Owner,
-				Balance:           token.Balance,
-				LastActivityTime:  token.LastActivityTime,
-				LastRefreshedTime: token.LastRefreshedTime,
-			}
-		}
-
-	}
-
-	for _, token := range indexTokens {
 		if token.LastRefreshedTime.Unix() > time.Now().Add(-delay).Unix() {
 			log.Debug("ownership refresh too frequently",
 				zap.Int64("lastRefresh", token.LastRefreshedTime.Unix()),
@@ -502,13 +475,7 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 		)
 		switch token.Blockchain {
 		case utils.EthereumBlockchain:
-			lastActivityTime, err = w.indexerEngine.IndexETHTokenLastActivityTime(token.ContractAddress, token.ID)
-			if err != nil {
-				log.Error("fail to get lastActivityTime", zap.String("indexID", token.IndexID), zap.Error(err))
-				return err
-			}
-
-			if lastActivityTime.Sub(token.LastActivityTime) <= 0 {
+			if time.Since(token.LastActivityTime) >= 86400*time.Second && len(token.OwnersArray) != 0 {
 				log.Debug("no new updates since last check", zap.String("indexID", token.IndexID))
 				continue
 			}
