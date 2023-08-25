@@ -102,7 +102,7 @@ func main() {
 	})
 
 	// cache
-	activity.Register(worker.CacheIPFSArtifactInS3)
+	activity.Register(worker.CacheArtifact)
 
 	// all blockchain
 	activity.Register(worker.IndexToken)
