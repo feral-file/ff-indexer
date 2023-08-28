@@ -118,6 +118,20 @@ func ipfsURLToGatewayURL(gateway, ipfsURL string) string {
 	return u.String()
 }
 
+func IsIPFSLink(url string) bool {
+	// case: ipfs://QmbbrSdifmQDLyh8ARNkAoC4Sc9mDQaMTwgHSXv5a2FJHd
+	if strings.HasPrefix(url, "ipfs://") {
+		return true
+	}
+
+	// case: https://gateway.ipfs.io/ipfs/QmbbrSdifmQDLyh8ARNkAoC4Sc9mDQaMTwgHSXv5a2FJHd
+	if strings.Contains(url, "/ipfs/") {
+		return true
+	}
+
+	return false
+}
+
 type MarketplaceProfile struct {
 	Source    string
 	SourceURL string
