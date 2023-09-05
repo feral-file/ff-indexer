@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -195,6 +194,23 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageReade
 
 		i, err := s.cloudflareAPI.UploadImage(ctx, s.cloudflareAccountID, uploadRequest)
 		if err != nil {
+			switch cerr := err.(type) {
+			case *cloudflare.RatelimitError:
+				log.Debug("caught cloudflare ratelimit error", zap.String("type", string(cerr.Type())))
+				return err
+			case *cloudflare.RequestError:
+				log.Debug("caught cloudflare request error", zap.Any("codes", cerr.ErrorCodes()))
+				for _, code := range cerr.ErrorCodes() {
+					if code == 9422 {
+						return NewImageCachingError(ReasonBrokenImage)
+					}
+				}
+				return err
+			case *cloudflare.ServiceError:
+				log.Debug("caught cloudflare serivce error", zap.Any("codes", cerr.ErrorCodes()))
+				return err
+			}
+
 			isErrSizeTooLarge, _ := regexp.MatchString("entity.*too large", err.Error())
 			if isErrSizeTooLarge {
 				return NewImageCachingError(ReasonFileSizeTooLarge)
@@ -250,7 +266,8 @@ func compressImage(file io.Reader) (io.Reader, error) {
 		"-update", "1",
 		"-f", "image2", "pipe:1")
 
-	cmd.Stderr = os.Stderr
+	var execErr bytes.Buffer
+	cmd.Stderr = &execErr
 	cmd.Stdout = resultBuffer
 
 	stdin, _ := cmd.StdinPipe()
@@ -274,5 +291,5 @@ func compressImage(file io.Reader) (io.Reader, error) {
 		return compressImage(resultBuffer)
 	}
 
-	return file, nil
+	return resultBuffer, nil
 }

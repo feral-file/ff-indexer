@@ -74,6 +74,12 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 				if err != nil {
 					if uerr, ok := err.(imageStore.UnsupportedImageCachingError); ok {
 						// add failure to the asset
+						if uerr.Reason() == imageStore.ReasonBrokenImage {
+							log.Error("broken image",
+								zap.String("indexID", asset.IndexID),
+								zap.String("thumbnailURL", asset.ProjectMetadata.Latest.ThumbnailURL))
+						}
+
 						if err := s.markAssetThumbnailFailed(ctx, asset.IndexID, uerr.Reason()); err != nil {
 							log.Error("add thumbnail failure was failed", zap.String("indexID", asset.IndexID), zap.Error(err))
 						}
