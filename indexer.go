@@ -133,6 +133,20 @@ func ipfsURLToGatewayURL(gateway, ipfsURL string) string {
 	return u.String()
 }
 
+func IsIPFSLink(url string) bool {
+	// case: ipfs://QmbbrSdifmQDLyh8ARNkAoC4Sc9mDQaMTwgHSXv5a2FJHd
+	if strings.HasPrefix(url, "ipfs://") {
+		return true
+	}
+
+	// case: https://gateway.ipfs.io/ipfs/QmbbrSdifmQDLyh8ARNkAoC4Sc9mDQaMTwgHSXv5a2FJHd
+	if strings.Contains(url, "/ipfs/") {
+		return true
+	}
+
+	return false
+}
+
 type MarketplaceProfile struct {
 	Source    string
 	SourceURL string
@@ -304,46 +318,6 @@ type TokenDetail struct {
 	Edition  int64
 	Fungible bool
 	MintedAt time.Time
-}
-
-// GetTokenOwnerAddress get token owners of a specific contract and tokenID
-func (e *IndexEngine) GetTokenOwnerAddress(contract, tokenID string) (string, error) {
-	if contract == "" {
-		return "", fmt.Errorf("contract must not be empty")
-	}
-
-	switch utils.GetBlockchainByAddress(contract) {
-	case utils.TezosBlockchain:
-		tokenOwners, err := e.tzkt.GetTokenOwners(contract, tokenID, 1, time.Time{})
-		if err != nil {
-			return "", err
-		}
-
-		if len(tokenOwners) == 0 {
-			return "", fmt.Errorf("no token owners found")
-		}
-
-		return tokenOwners[0].Address, nil
-	case utils.EthereumBlockchain:
-		switch EthereumChecksumAddress(contract) {
-		case ENSContractAddress:
-			return "", fmt.Errorf("this contract is in the black list")
-		}
-
-		tokenOwners, _, err := e.opensea.RetrieveTokenOwners(contract, tokenID, nil)
-		if err != nil {
-			return "", err
-		}
-
-		if len(tokenOwners) == 0 {
-			return "", fmt.Errorf("no token owners found")
-		}
-
-		return EthereumChecksumAddress(tokenOwners[0].Owner.Address), nil
-	default:
-		return "", ErrUnsupportedBlockchain
-	}
-
 }
 
 // GetTokenBalanceOfOwner returns the balance of a token for an owner

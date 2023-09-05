@@ -164,3 +164,20 @@ func (i *IndexerGRPCClient) GetETHBlockTime(ctx context.Context, blockHash strin
 
 	return ParseTime(res.BlockTime)
 }
+
+func (i *IndexerGRPCClient) GetIdentity(ctx context.Context, address string) (indexer.AccountIdentity, error) {
+	identity, err := i.client.GetIdentity(ctx, &pb.Address{Address: address})
+
+	if err != nil {
+		return indexer.AccountIdentity{}, err
+	}
+
+	lastUpdatedTime, _ := ParseTime(identity.LastUpdatedTime)
+
+	return indexer.AccountIdentity{
+		AccountNumber:   identity.AccountNumber,
+		Blockchain:      identity.Blockchain,
+		Name:            identity.Name,
+		LastUpdatedTime: lastUpdatedTime,
+	}, nil
+}

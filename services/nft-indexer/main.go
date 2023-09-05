@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/managedblockchainquery"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/getsentry/sentry-go"
@@ -71,6 +74,15 @@ func main() {
 		log.Panic("fail to initiate eth client", zap.Error(err))
 	}
 
+	awsSession, err := session.NewSessionWithOptions(session.Options{
+		Config: aws.Config{
+			Region: aws.String("us-east-1"),
+		},
+	})
+	if err != nil {
+		log.Panic("fail to set up aws session", zap.Error(err))
+	}
+
 	engine := indexer.New(
 		environment,
 		viper.GetStringSlice("ipfs.preferred_gateways"),
@@ -81,6 +93,7 @@ func main() {
 		objkt.New(viper.GetString("objkt.api_endpoint")),
 		ethClient,
 		cacheStore,
+		managedblockchainquery.New(awsSession),
 	)
 
 	parameterStore, err := ssm.NewParameterStore(ctx)

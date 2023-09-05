@@ -10,6 +10,7 @@ serviceConfig:
   debug: true
   tezosNodeRPCURL: https://rpc.lima.tzstats.com
   contractBoostUrl: "https://api.limanet.tzkt.io/"
+  tzktWsUrl: https://api.ghostnet.tzkt.io/v1/ws
   environment: development
   network:
     tezos: testnet

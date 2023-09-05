@@ -19,6 +19,8 @@ service Indexer {
   rpc GetOwnersByBlockchainContracts(GetOwnersByBlockchainContractsRequest) returns (Addresses);
 
   rpc GetETHBlockTime(GetETHBlockTimeRequest) returns (BlockTime);
+
+  rpc GetIdentity(Address) returns (AccountIdentity);
 }
 
 message CheckAddressOwnTokenByCriteriaResponse {
@@ -207,4 +209,15 @@ message GetETHBlockTimeRequest {
 
 message BlockTime {
   string BlockTime = 1;
+}
+
+message Address {
+  string Address = 1;
+}
+
+message AccountIdentity {
+	string AccountNumber = 1;
+  string Blockchain = 2;
+	string Name = 3;
+	string LastUpdatedTime = 4;
 }

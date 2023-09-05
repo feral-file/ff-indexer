@@ -225,3 +225,19 @@ func (i *IndexerServer) GetETHBlockTime(ctx context.Context, request *pb.GetETHB
 
 	return &pb.BlockTime{BlockTime: blockTime.Format(time.RFC3339Nano)}, nil
 }
+
+// GetIdentity returns account identity by address
+func (i *IndexerServer) GetIdentity(ctx context.Context, request *pb.Address) (*pb.AccountIdentity, error) {
+	identity, err := i.indexerStore.GetIdentity(ctx, request.Address)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.AccountIdentity{
+		AccountNumber:   identity.AccountNumber,
+		Blockchain:      identity.Blockchain,
+		Name:            identity.Name,
+		LastUpdatedTime: identity.LastUpdatedTime.Format(time.RFC3339Nano),
+	}, nil
+}

@@ -274,6 +274,7 @@ type AssetOwners struct {
 	Owners []TokenOwner `json:"owners"`
 }
 
+// DEPRECATED: This function is replaced by AWS blockquery. Leave it here for future usage.
 func (c *Client) GetTokenBalanceForOwner(contract, tokenID, owner string) (int64, error) {
 	v := url.Values{
 		"account_address": []string{owner},
@@ -309,6 +310,7 @@ func (c *Client) GetTokenBalanceForOwner(contract, tokenID, owner string) (int64
 	return ownership.Quantity, nil
 }
 
+// DEPRECATED: This function is replaced by AWS blockquery. Leave it here for future usage.
 func (c *Client) RetrieveTokenOwners(contract, tokenID string, cursor *string) ([]TokenOwner, *string, error) {
 	v := url.Values{
 		"limit":           []string{"50"},

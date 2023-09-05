@@ -139,10 +139,19 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 		}
 	}
 
-	if indexPreview {
-		if err := workflow.ExecuteActivity(ctx, w.CacheIPFSArtifactInS3, update.ProjectMetadata.PreviewURL).Get(ctx, nil); err != nil {
-			sentry.CaptureException(err)
-			return fmt.Errorf("IndexTokenWorkflow-preview: %w", err)
+	if indexPreview && indexer.IsIPFSLink(update.ProjectMetadata.PreviewURL) {
+		switch update.ProjectMetadata.Medium {
+		case "video", "image":
+			log.Debug("start indexing preview for the token",
+				zap.String("medium", string(update.ProjectMetadata.Medium)),
+				zap.String("medium", update.ProjectMetadata.PreviewURL),
+				zap.String("indexID: ", tokenID))
+			if err := workflow.ExecuteActivity(ctx, w.CacheArtifact, update.ProjectMetadata.PreviewURL).Get(ctx, nil); err != nil {
+				sentry.CaptureException(err)
+				return fmt.Errorf("IndexTokenWorkflow-preview: %w", err)
+			}
+		default:
+			log.Debug("unsupported preview file", zap.String("medium", string(update.ProjectMetadata.Medium)), zap.String("indexID: ", tokenID))
 		}
 	}
 
@@ -272,7 +281,7 @@ func (w *NFTIndexerWorker) CacheIPFSArtifactWorkflow(ctx workflow.Context, fullD
 	ctx = workflow.WithActivityOptions(ctx, ao)
 	log := workflow.GetLogger(ctx)
 
-	if err := workflow.ExecuteActivity(ctx, w.CacheIPFSArtifactInS3, fullDataLink).Get(ctx, nil); err != nil {
+	if err := workflow.ExecuteActivity(ctx, w.CacheArtifact, fullDataLink).Get(ctx, nil); err != nil {
 		// sentry.CaptureException(err)
 		log.Error("fail to cache IPFS data", zap.Error(err))
 		return err

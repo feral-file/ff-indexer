@@ -1,0 +1,6 @@
+tzkt:
+  ws_url: https://api.tzkt.io/v1/ws
+  lastBlockKeyName: /autonomy/development/tezos-last-stop-block
+  
+event_processor_server:
+  address: localhost:8765
