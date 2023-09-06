@@ -55,6 +55,10 @@ func (e *TezosEventsEmitter) Transfers(data json.RawMessage) {
 		return
 	}
 
+	if len(res.Data) == 0 {
+		return
+	}
+
 	for _, t := range res.Data {
 		e.transferChan <- t
 	}
@@ -113,7 +117,7 @@ func (e *TezosEventsEmitter) Run(ctx context.Context) {
 			zap.String("txTime", t.Timestamp.String()),
 		)
 
-		if err := e.PushEvent(ctx, eventType, t.From.Address, t.To.Address,
+		if err := e.PushEvent(ctx, eventType, fromAddress, t.To.Address,
 			t.Token.Contract.Address, utils.TezosBlockchain, t.Token.TokenID, strconv.FormatUint(t.TransactionID, 10), 0, t.Timestamp); err != nil {
 			log.Error("gRPC request failed", zap.Error(err), log.SourceGRPC)
 			return
