@@ -15,8 +15,6 @@ data:
       cache_expiry: 24h
       log_level: 1
 
-
-
     check_interval: {{ .Values.serviceConfig.check_interval }}
 
     log:
@@ -64,7 +62,8 @@ data:
 
   tezos.yaml: |
     tzkt:
-      ws_url: {{ .Values.serviceConfig.tzktWsUrl }}
+      ws_url: {{ .Values.serviceConfig.tezos.tzktWsUrl }}
+      lastBlockKeyName: {{ .Values.serviceConfig.tezos.lastBlockKeyName }}
 
     log:
       level: debug
