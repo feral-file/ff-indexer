@@ -3,16 +3,19 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"time"
+
+	"github.com/philippseith/signalr"
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
 
 	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
 	"github.com/bitmark-inc/config-loader/external/aws/ssm"
 	"github.com/bitmark-inc/nft-indexer/emitter"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
-	"github.com/philippseith/signalr"
-	"go.uber.org/zap"
 )
 
 type TezosEventsEmitter struct {
@@ -70,8 +73,41 @@ func (e *TezosEventsEmitter) Transfers(data json.RawMessage) {
 	}
 }
 
+type SignalrLogger struct{}
+
+func (s *SignalrLogger) Log(keyVals ...interface{}) error {
+	if len(keyVals)%2 != 0 {
+		// Suppose this should not happen
+		log.Warn("signalr log", zap.Any("keyVals", keyVals))
+		return nil
+	}
+
+	signalrDebug := false
+	zapFields := []zap.Field{}
+	for i := 0; i < len(keyVals); i += 2 {
+		key := fmt.Sprint(keyVals[i])
+		value := keyVals[i+1]
+		if key == "level" {
+			if fmt.Sprint(value) == "debug" {
+				signalrDebug = true
+			}
+			// omit the level in the log fields
+			continue
+		}
+		zapFields = append(zapFields, zap.Any(key, value))
+	}
+	if signalrDebug {
+		log.Debug("signalr log", zapFields...)
+	} else {
+		log.Info("signalr log", zapFields...)
+	}
+
+	return nil
+}
+
 func (e *TezosEventsEmitter) Run(ctx context.Context) {
 	client, err := signalr.NewClient(ctx,
+		signalr.Logger(&SignalrLogger{}, viper.GetBool("debug")),
 		signalr.WithConnector(func() (signalr.Connection, error) {
 			creationCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 			defer cancel()
