@@ -122,17 +122,23 @@ func (e *TezosEventsEmitter) Run(ctx context.Context) {
 
 	client.Start()
 
-	err = <-client.WaitForState(ctx, signalr.ClientConnected)
-	if err != nil {
-		log.Error("fail to wait for connected state", zap.Error(err))
-		return
-	}
+	//handle state changed
+	stateChan := make(chan signalr.ClientState, 1)
+	_ = client.ObserveStateChanged(stateChan)
 
-	result := <-client.Invoke("SubscribeToTokenTransfers", struct{}{})
-	if result.Error != nil {
-		log.Error("fail to SubscribeToTokenTransfers", zap.Error(err))
-		return
-	}
+	go func() {
+		for state := range stateChan {
+			switch state {
+			case signalr.ClientConnected:
+				result := <-client.Invoke("SubscribeToTokenTransfers", struct{}{})
+				if result.Error != nil {
+					log.Panic("fail to SubscribeToTokenTransfers", zap.Error(err))
+				}
+			case signalr.ClientClosed:
+				log.Panic("client closed", zap.Error(err))
+			}
+		}
+	}()
 
 	for t := range e.transferChan {
 		var fromAddress string
