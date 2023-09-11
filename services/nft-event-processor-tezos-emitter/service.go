@@ -16,6 +16,7 @@ import (
 	"github.com/bitmark-inc/config-loader/external/aws/ssm"
 	"github.com/bitmark-inc/nft-indexer/emitter"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
+	"github.com/bitmark-inc/tzkt-go"
 )
 
 const maxMessageSize = 1 << 20 // 1MiB
@@ -27,8 +28,9 @@ type TezosEventsEmitter struct {
 	grpcClient processor.EventProcessorClient
 	emitter.EventsEmitter
 	tzktWebsocketURL string
+	tzkt             *tzkt.TZKT
 
-	transferChan chan TokenTransfer
+	transferChan chan tzkt.TokenTransfer
 }
 
 func NewTezosEventsEmitter(
@@ -44,7 +46,7 @@ func NewTezosEventsEmitter(
 		EventsEmitter:    emitter.New(grpcClient),
 		tzktWebsocketURL: tzktWebsocketURL,
 
-		transferChan: make(chan TokenTransfer, 100),
+		transferChan: make(chan tzkt.TokenTransfer, 100),
 	}
 }
 
@@ -133,6 +135,8 @@ func (e *TezosEventsEmitter) Run(ctx context.Context) {
 		for state := range stateChan {
 			switch state {
 			case signalr.ClientConnected:
+				e.processTransfersSinceLastStoppedLevel(ctx)
+
 				result := <-client.Invoke("SubscribeToTokenTransfers", struct{}{})
 				if result.Error != nil {
 					log.Panic("fail to SubscribeToTokenTransfers", zap.Error(err))
@@ -144,27 +148,65 @@ func (e *TezosEventsEmitter) Run(ctx context.Context) {
 	}()
 
 	for t := range e.transferChan {
-		var fromAddress string
-		eventType := "mint"
+		e.processTranferEvent(ctx, t)
+	}
+}
 
-		if t.From != nil {
-			fromAddress = t.From.Address
-			eventType = "transfer"
+func (e *TezosEventsEmitter) processTransfersSinceLastStoppedLevel(ctx context.Context) {
+	lastStopLevel, err := e.parameterStore.GetString(ctx, e.lastBlockKeyName)
+	if err != nil {
+		log.Error("failed to read last stop bloc from parameter store: ", zap.Error(err), log.SourceTZKT)
+	} else {
+		e.fetchTransfersFromLastStoppedLevel(ctx, lastStopLevel)
+	}
+}
+
+func (e *TezosEventsEmitter) fetchTransfersFromLastStoppedLevel(ctx context.Context, lastStoppedLevel string) {
+	lastLevel := lastStoppedLevel
+	pageSize := 100
+
+	for {
+		transfers, err := e.tzkt.GetTokenTransfersByLevel(lastLevel, pageSize)
+		if err != nil {
+			log.Error("failed to fetch token transfer from last level: ",
+				zap.Error(err), zap.String("lastLevel", lastLevel), log.SourceTZKT)
+			return
 		}
 
-		log.Debug("received transfer event on tezos",
-			zap.String("eventType", eventType),
-			zap.String("from", fromAddress),
-			zap.String("to", t.To.Address),
-			zap.String("contractAddress", t.Token.Contract.Address),
-			zap.String("tokenID", t.Token.TokenID),
-			zap.String("txID", strconv.FormatUint(t.TransactionID, 10)),
-			zap.String("txTime", t.Timestamp.String()),
-		)
-
-		if err := e.PushEvent(ctx, eventType, fromAddress, t.To.Address,
-			t.Token.Contract.Address, utils.TezosBlockchain, t.Token.TokenID, strconv.FormatUint(t.TransactionID, 10), 0, t.Timestamp); err != nil {
-			log.Error("gRPC request failed", zap.Error(err), log.SourceGRPC)
+		for _, transfer := range transfers {
+			e.processTranferEvent(ctx, transfer)
 		}
+
+		if len(transfers) < pageSize {
+			break
+		}
+
+		lastLevel = fmt.Sprintf("%d", transfers[len(transfers)-1].Level)
+	}
+}
+
+func (e *TezosEventsEmitter) processTranferEvent(ctx context.Context, transfer tzkt.TokenTransfer) {
+	var fromAddress string
+	eventType := "mint"
+
+	if transfer.From != nil {
+		fromAddress = transfer.From.Address
+		eventType = "transfer"
+	}
+
+	log.Debug("received transfer event on tezos",
+		zap.String("eventType", eventType),
+		zap.String("from", fromAddress),
+		zap.String("to", transfer.To.Address),
+		zap.String("contractAddress", transfer.Token.Contract.Address),
+		zap.String("tokenID", transfer.Token.ID.String()),
+		zap.String("txID", strconv.FormatUint(transfer.TransactionID, 10)),
+		zap.String("txTime", transfer.Timestamp.String()),
+	)
+
+	if err := e.PushEvent(ctx, eventType, fromAddress, transfer.To.Address,
+		transfer.Token.Contract.Address, utils.TezosBlockchain, transfer.Token.ID.String(),
+		strconv.FormatUint(transfer.TransactionID, 10), 0, transfer.Timestamp); err != nil {
+		log.Error("gRPC request failed", zap.Error(err), log.SourceGRPC)
 	}
 }
