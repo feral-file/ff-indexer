@@ -18,6 +18,8 @@ import (
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 )
 
+const maxMessageSize = 1 << 20 // 1MiB
+
 type TezosEventsEmitter struct {
 	lastBlockKeyName string
 	parameterStore   *ssm.ParameterStore
@@ -108,6 +110,7 @@ func (s *SignalrLogger) Log(keyVals ...interface{}) error {
 func (e *TezosEventsEmitter) Run(ctx context.Context) {
 	client, err := signalr.NewClient(ctx,
 		signalr.Logger(&SignalrLogger{}, viper.GetBool("debug")),
+		signalr.MaximumReceiveMessageSize(maxMessageSize),
 		signalr.WithConnector(func() (signalr.Connection, error) {
 			creationCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 			defer cancel()
