@@ -162,7 +162,6 @@ func (e *TezosEventsEmitter) Run(ctx context.Context) {
 		if err := e.PushEvent(ctx, eventType, fromAddress, t.To.Address,
 			t.Token.Contract.Address, utils.TezosBlockchain, t.Token.TokenID, strconv.FormatUint(t.TransactionID, 10), 0, t.Timestamp); err != nil {
 			log.Error("gRPC request failed", zap.Error(err), log.SourceGRPC)
-			return
 		}
 	}
 }
