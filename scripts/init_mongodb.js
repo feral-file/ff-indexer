@@ -130,6 +130,8 @@ db.account_tokens.createIndexes([{
   "lastActivityTime": -1
 }, {
   "lastRefreshedTime": -1
+}, {
+  "pendingTxs": 1
 }])
 
 
