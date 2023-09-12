@@ -41,6 +41,7 @@ func NewTezosEventsEmitter(
 	parameterStore *ssm.ParameterStore,
 	grpcClient processor.EventProcessorClient,
 	tzktWebsocketURL string,
+	tzktClient *tzkt.TZKT,
 ) *TezosEventsEmitter {
 	return &TezosEventsEmitter{
 		lastBlockKeyName: lastBlockKeyName,
@@ -48,6 +49,7 @@ func NewTezosEventsEmitter(
 		grpcClient:       grpcClient,
 		EventsEmitter:    emitter.New(grpcClient),
 		tzktWebsocketURL: tzktWebsocketURL,
+		tzkt:             tzktClient,
 
 		transferChan: make(chan tzkt.TokenTransfer, 100),
 	}
@@ -69,9 +71,11 @@ func (e *TezosEventsEmitter) Transfers(data json.RawMessage) {
 		return
 	}
 
-	if isFirstTransferEventOnConnected && lastStoppedBlock > 0 {
+	if isFirstTransferEventOnConnected {
 		isFirstTransferEventOnConnected = false
-		e.fetchTransfersFromLastStoppedLevel(lastStoppedBlock)
+		if lastStoppedBlock > 0 {
+			e.fetchTransfersFromLastStoppedLevel(lastStoppedBlock)
+		}
 	}
 
 	for _, t := range res.Data {
