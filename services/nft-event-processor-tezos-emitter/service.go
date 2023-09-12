@@ -21,8 +21,8 @@ import (
 
 const maxMessageSize = 1 << 20 // 1MiB
 
-var currentLastStoppedBlock = uint64(0)
-var lastFetchedBlock = uint64(0)
+var lastStoppedBlock = uint64(0)
+var isFirstTransferEventOnConnected = true
 
 type TezosEventsEmitter struct {
 	lastBlockKeyName string
@@ -69,9 +69,9 @@ func (e *TezosEventsEmitter) Transfers(data json.RawMessage) {
 		return
 	}
 
-	if lastFetchedBlock > 0 {
-		lastFetchedBlock = 0
-		_ = e.fetchTransfersFromLastStoppedLevel(currentLastStoppedBlock)
+	if isFirstTransferEventOnConnected && lastStoppedBlock > 0 {
+		isFirstTransferEventOnConnected = false
+		e.fetchTransfersFromLastStoppedLevel(lastStoppedBlock)
 	}
 
 	for _, t := range res.Data {
@@ -137,7 +137,8 @@ func (e *TezosEventsEmitter) Run(ctx context.Context) {
 		for state := range stateChan {
 			switch state {
 			case signalr.ClientConnected:
-				lastFetchedBlock = e.processTransfersSinceLastStoppedLevel(ctx)
+				e.processTransfersSinceLastStoppedLevel(ctx)
+				isFirstTransferEventOnConnected = true
 
 				result := <-client.Invoke("SubscribeToTokenTransfers", struct{}{})
 				if result.Error != nil {
@@ -154,23 +155,23 @@ func (e *TezosEventsEmitter) Run(ctx context.Context) {
 	}
 }
 
-func (e *TezosEventsEmitter) processTransfersSinceLastStoppedLevel(ctx context.Context) uint64 {
+func (e *TezosEventsEmitter) processTransfersSinceLastStoppedLevel(ctx context.Context) {
 	lastStopLevel, err := e.parameterStore.GetString(ctx, e.lastBlockKeyName)
 	if err != nil {
-		log.Error("failed to read last stop bloc from parameter store: ", zap.Error(err), log.SourceTZKT)
-		return 0
+		log.Error("failed to read last stop block from parameter store: ", zap.Error(err), log.SourceTZKT)
+		return
 	}
 
 	fromLevel, err := strconv.ParseUint(lastStopLevel, 10, 64)
 	if err != nil {
 		log.Error("failed to parse last stop block: ", zap.Error(err), log.SourceETHClient)
-		return 0
+		return
 	}
 
-	return e.fetchTransfersFromLastStoppedLevel(fromLevel)
+	e.fetchTransfersFromLastStoppedLevel(fromLevel)
 }
 
-func (e *TezosEventsEmitter) fetchTransfersFromLastStoppedLevel(lastStoppedLevel uint64) uint64 {
+func (e *TezosEventsEmitter) fetchTransfersFromLastStoppedLevel(lastStoppedLevel uint64) {
 	lastLevel := lastStoppedLevel
 	pageSize := 100
 
@@ -179,23 +180,19 @@ func (e *TezosEventsEmitter) fetchTransfersFromLastStoppedLevel(lastStoppedLevel
 		if err != nil {
 			log.Error("failed to fetch token transfer from last level: ",
 				zap.Error(err), zap.Uint64("lastLevel", lastLevel), log.SourceTZKT)
-			return 0
+			return
 		}
 
 		for _, transfer := range transfers {
 			e.transferChan <- transfer
 		}
 
-		if len(transfers) > 0 {
-			lastLevel = transfers[len(transfers)-1].Level
-		}
-
 		if len(transfers) < pageSize {
 			break
 		}
-	}
 
-	return lastLevel
+		lastLevel = transfers[len(transfers)-1].Level
+	}
 }
 
 func (e *TezosEventsEmitter) processTranferEvent(ctx context.Context, transfer tzkt.TokenTransfer) {
@@ -224,9 +221,9 @@ func (e *TezosEventsEmitter) processTranferEvent(ctx context.Context, transfer t
 		return
 	}
 
-	if transfer.Level > currentLastStoppedBlock {
-		currentLastStoppedBlock = transfer.Level
-		if err := e.parameterStore.Put(ctx, e.lastBlockKeyName, strconv.FormatUint(currentLastStoppedBlock, 10)); err != nil {
+	if transfer.Level > lastStoppedBlock {
+		lastStoppedBlock = transfer.Level
+		if err := e.parameterStore.Put(ctx, e.lastBlockKeyName, strconv.FormatUint(lastStoppedBlock, 10)); err != nil {
 			log.Error("error put parameterStore", zap.Error(err), log.SourceGRPC)
 			return
 		}
