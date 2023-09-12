@@ -71,12 +71,11 @@ func (e *TezosEventsEmitter) Transfers(data json.RawMessage) {
 		return
 	}
 
-	if isFirstTransferEventOnConnected && lastStoppedBlock > 0 {
-		e.fetchTransfersFromLastStoppedLevel(lastStoppedBlock)
-	}
-
 	if isFirstTransferEventOnConnected {
 		isFirstTransferEventOnConnected = false
+		if lastStoppedBlock > 0 {
+			e.fetchTransfersFromLastStoppedLevel(lastStoppedBlock)
+		}
 	}
 
 	for _, t := range res.Data {
