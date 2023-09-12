@@ -39,7 +39,7 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 		return
 	}
 
-	checksumDecimalIDs := indexer.PreprocessTokens(reqParams.IDs, true)
+	checksumDecimalIDs := indexer.NormalizeIndexIDs(reqParams.IDs, true)
 	tokenInfo, err := s.indexerStore.GetDetailedTokens(c, indexer.FilterParameter{
 		IDs: checksumDecimalIDs,
 	}, reqParams.Offset, reqParams.Size)
@@ -84,7 +84,7 @@ func (s *NFTIndexerServer) QueryNFTsV1(c *gin.Context) {
 		return
 	}
 
-	checksumIDs := indexer.PreprocessTokens(reqParams.IDs, false)
+	checksumIDs := indexer.NormalizeIndexIDs(reqParams.IDs, false)
 	tokenInfo, err := s.indexerStore.GetDetailedTokens(c, indexer.FilterParameter{
 		IDs: checksumIDs,
 	}, reqParams.Offset, reqParams.Size)
@@ -636,7 +636,7 @@ func (s *NFTIndexerServer) QueryNFTsV2(c *gin.Context) {
 		return
 	}
 
-	checksumIDs := indexer.PreprocessTokens(reqParams.IDs, false)
+	checksumIDs := indexer.NormalizeIndexIDs(reqParams.IDs, false)
 	tokenInfo, err := s.indexerStore.GetDetailedTokensV2(c, indexer.FilterParameter{
 		IDs: checksumIDs,
 	}, reqParams.Offset, reqParams.Size)

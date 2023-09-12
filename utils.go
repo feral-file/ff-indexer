@@ -227,10 +227,10 @@ func GetCIDFromIPFSLink(link string) (string, error) {
 	return "", fmt.Errorf("cid not found")
 }
 
-// PreprocessTokens takes an array of token ids and return an array formatted token ids
+// NormalizeIndexIDs takes an array of token ids and return an array formatted token ids
 // which includes formatting ethereum address and converting token id from hex to decimal if
 // isConvertToDecimal is set to true. NOTE: There is no error return in this call.
-func PreprocessTokens(indexIDs []string, isConvertToDecimal bool) []string {
+func NormalizeIndexIDs(indexIDs []string, isConvertToDecimal bool) []string {
 	var processedAddresses = []string{}
 	for _, indexID := range indexIDs {
 		blockchain, contractAddress, tokenID, err := ParseTokenIndexID(indexID)
