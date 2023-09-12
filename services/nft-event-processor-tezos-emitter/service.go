@@ -41,6 +41,7 @@ func NewTezosEventsEmitter(
 	parameterStore *ssm.ParameterStore,
 	grpcClient processor.EventProcessorClient,
 	tzktWebsocketURL string,
+	tzktObj *tzkt.TZKT,
 ) *TezosEventsEmitter {
 	return &TezosEventsEmitter{
 		lastBlockKeyName: lastBlockKeyName,
@@ -48,6 +49,7 @@ func NewTezosEventsEmitter(
 		grpcClient:       grpcClient,
 		EventsEmitter:    emitter.New(grpcClient),
 		tzktWebsocketURL: tzktWebsocketURL,
+		tzkt:             tzktObj,
 
 		transferChan: make(chan tzkt.TokenTransfer, 100),
 	}
