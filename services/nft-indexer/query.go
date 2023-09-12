@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"net/http"
 	"strconv"
 	"strings"
@@ -40,7 +39,7 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 		return
 	}
 
-	checksumDecimalIDs := PreprocessTokens(reqParams.IDs, true)
+	checksumDecimalIDs := indexer.PreprocessTokens(reqParams.IDs, true)
 	tokenInfo, err := s.indexerStore.GetDetailedTokens(c, indexer.FilterParameter{
 		IDs: checksumDecimalIDs,
 	}, reqParams.Offset, reqParams.Size)
@@ -85,7 +84,7 @@ func (s *NFTIndexerServer) QueryNFTsV1(c *gin.Context) {
 		return
 	}
 
-	checksumIDs := PreprocessTokens(reqParams.IDs, false)
+	checksumIDs := indexer.PreprocessTokens(reqParams.IDs, false)
 	tokenInfo, err := s.indexerStore.GetDetailedTokens(c, indexer.FilterParameter{
 		IDs: checksumIDs,
 	}, reqParams.Offset, reqParams.Size)
@@ -110,33 +109,6 @@ func (s *NFTIndexerServer) QueryNFTsV1(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, tokenInfo)
-}
-
-// PreprocessTokens takes an array of token ids and return an array formatted token ids
-// which includes formatting ethereum address and converting token id from hex to decimal if
-// isConvertToDecimal is set to true. NOTE: There is no error return in this call.
-func PreprocessTokens(indexIDs []string, isConvertToDecimal bool) []string {
-	var processedAddresses = []string{}
-	for _, indexID := range indexIDs {
-		blockchain, contractAddress, tokenID, err := indexer.ParseTokenIndexID(indexID)
-		if err != nil {
-			continue
-		}
-
-		if blockchain == indexer.BlockchainAlias[utils.EthereumBlockchain] {
-			if isConvertToDecimal {
-				decimalTokenID, ok := big.NewInt(0).SetString(tokenID, 16)
-				if !ok {
-					continue
-				}
-				tokenID = decimalTokenID.String()
-			}
-			indexID = fmt.Sprintf("%s-%s-%s", blockchain, contractAddress, tokenID)
-		}
-
-		processedAddresses = append(processedAddresses, indexID)
-	}
-	return processedAddresses
 }
 
 // IndexMissingTokens indexes tokens that have not been indexed yet.
@@ -664,7 +636,7 @@ func (s *NFTIndexerServer) QueryNFTsV2(c *gin.Context) {
 		return
 	}
 
-	checksumIDs := PreprocessTokens(reqParams.IDs, false)
+	checksumIDs := indexer.PreprocessTokens(reqParams.IDs, false)
 	tokenInfo, err := s.indexerStore.GetDetailedTokensV2(c, indexer.FilterParameter{
 		IDs: checksumIDs,
 	}, reqParams.Offset, reqParams.Size)

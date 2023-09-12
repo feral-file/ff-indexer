@@ -63,9 +63,10 @@ func (r *queryResolver) Tokens(ctx context.Context, owners []string, ids []strin
 			size,
 		)
 	} else if len((owners)) == 0 && len(ids) > 0 {
+		checksumIDs := indexer.PreprocessTokens(ids, false)
 		tokensInfo, err = r.indexerStore.GetDetailedTokensV2(
 			ctx, indexer.FilterParameter{
-				IDs: ids,
+				IDs: checksumIDs,
 			},
 			offset,
 			size)
