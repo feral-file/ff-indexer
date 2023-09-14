@@ -103,6 +103,8 @@ func main() {
 	// activities
 	activity.Register(worker.GetTxTimestamp)
 	activity.Register(worker.GetPendingAccountTokens)
+	activity.Register(worker.GetTokenBalanceOfOwner)
+	activity.Register(worker.IndexAccountTokens)
 	activity.Register(worker.UpdatePendingTxsToAccountToken)
 	activity.Register(worker.CalculateMIMETypeFromTokenFeedback)
 	activity.Register(worker.UpdatePresignedThumbnailAssets)

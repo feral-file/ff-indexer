@@ -1306,7 +1306,7 @@ func (s *MongodbIndexerStore) IndexAccount(ctx context.Context, account Account)
 func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error {
 	margin := 15 * time.Second
 	for _, accountToken := range accountTokens {
-		log.Debug("account token is in a future state", zap.String("indexID", accountToken.IndexID), zap.Any("accountToken", accountToken))
+		log.Debug("update account token", zap.String("indexID", accountToken.IndexID), zap.Any("accountToken", accountToken))
 		r, err := s.accountTokenCollection.UpdateOne(ctx,
 			bson.M{"indexID": accountToken.IndexID, "ownerAccount": owner, "lastActivityTime": bson.M{"$lt": accountToken.LastActivityTime.Add(-margin)}},
 			bson.M{"$set": accountToken},
@@ -1325,7 +1325,8 @@ func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner stri
 		}
 		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
 			// TODO: not sure when will this happen. Figure this our later
-			log.Warn("account token is not added or updated", zap.String("token_id", accountToken.ID))
+			log.Warn("account token is not added or updated",
+				zap.String("ownerAccount", owner), zap.String("indexID", accountToken.IndexID))
 		}
 	}
 

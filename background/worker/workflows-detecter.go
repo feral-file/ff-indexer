@@ -41,28 +41,30 @@ func (w *NFTIndexerWorker) PendingTxFollowUpWorkflow(ctx workflow.Context, delay
 		remainingPendingTxTimes := make([]time.Time, 0, pendindTxCount)
 
 		// The loop checks all new confirmed txs.
+	PendingTxChecking:
 		for i := 0; i < pendindTxCount; i++ {
 			pendingTime := a.LastPendingTime[i]
 			pendingTx := a.PendingTxs[i]
 
 			var txComfirmedTime time.Time
 			if err := workflow.ExecuteActivity(ctx, w.GetTxTimestamp, a.Blockchain, pendingTx).Get(ctx, &txComfirmedTime); err != nil {
-				log.Error("fail to get tx status for the account token", zap.Error(err), zap.String("indexID", a.IndexID))
+				log.Error("fail to get tx status for the account token", zap.Error(err),
+					zap.String("txID", pendingTx), zap.String("indexID", a.IndexID), zap.String("ownerAccount", a.OwnerAccount))
 				switch err.Error() {
 				case indexer.ErrTXNotFound.Error():
-					// omit not found tx which exceed an hour
+					// drop not found tx which exceed an hour
 					if time.Since(pendingTime) > time.Hour {
 						// TODO: should be check if the tx is remaining in the mempool of the blockchain network
-						break
+						continue PendingTxChecking
 					}
 				case indexer.ErrUnsupportedBlockchain.Error():
-					// omit unsupported pending tx
-					break
+					// drop unsupported pending tx
+					continue PendingTxChecking
 				default:
-					// leave the error pending txs remain
+					// leave non-handled error in the remaining pending txs for next processing
+					remainingPendingTxs = append(remainingPendingTxs, pendingTx)
+					remainingPendingTxTimes = append(remainingPendingTxTimes, pendingTime)
 				}
-				remainingPendingTxs = append(remainingPendingTxs, pendingTx)
-				remainingPendingTxTimes = append(remainingPendingTxTimes, pendingTime)
 			} else {
 				log.Debug("found a confirme pending tx", zap.String("pendingTx", pendingTx))
 				if txComfirmedTime.Sub(a.LastActivityTime) > 0 {
@@ -70,28 +72,53 @@ func (w *NFTIndexerWorker) PendingTxFollowUpWorkflow(ctx workflow.Context, delay
 				}
 			}
 		}
-
 		log.Debug("finish checking txs for pending token", zap.String("indexID", a.IndexID), zap.Any("hasNewTx", hasNewTx))
-		// refresh once only if there is a new updates detected
-		if hasNewTx {
-			var err error
 
+		// update the balance of "this" token immediately
+		var balance int64
+		if err := workflow.ExecuteActivity(ContextFastActivity(ctx, AccountTokenTaskListName), w.GetTokenBalanceOfOwner, a.ContractAddress, a.ID, a.OwnerAccount).
+			Get(ctx, &balance); err != nil {
+			log.Error("fail to get the latest balance for the account token", zap.Error(err),
+				zap.String("indexID", a.IndexID), zap.String("ownerAccount", a.OwnerAccount))
+			continue
+		}
+
+		accountTokens := []indexer.AccountToken{{
+			IndexID:           a.IndexID,
+			OwnerAccount:      a.OwnerAccount,
+			Balance:           balance,
+			LastActivityTime:  a.LastActivityTime,
+			LastRefreshedTime: time.Now(),
+		}}
+
+		if err := workflow.ExecuteActivity(ContextFastActivity(ctx, AccountTokenTaskListName), w.IndexAccountTokens, a.OwnerAccount, accountTokens).Get(ctx, nil); err != nil {
+			log.Error("fail to update the latest balance for the account token", zap.Error(err),
+				zap.String("indexID", a.IndexID), zap.String("ownerAccount", a.OwnerAccount))
+			continue
+		}
+
+		// trigger async token ownership / provenance refreshing for the updated token
+		if hasNewTx {
+			var childFuture workflow.ChildWorkflowFuture
 			if a.Fungible {
-				err = workflow.ExecuteChildWorkflow(ContextRegularChildWorkflow(ctx, ProvenanceTaskListName), w.RefreshTokenOwnershipWorkflow, []string{a.IndexID}, delay).Get(ctx, nil)
+				childFuture = workflow.ExecuteChildWorkflow(
+					ContextDetachedChildWorkflow(ctx, WorkflowIDIndexTokenOwnershipByIndexID(
+						"pending-tx-follower", a.IndexID), ProvenanceTaskListName),
+					w.RefreshTokenOwnershipWorkflow, []string{a.IndexID}, delay)
 			} else {
-				err = workflow.ExecuteChildWorkflow(ContextRegularChildWorkflow(ctx, ProvenanceTaskListName), w.RefreshTokenProvenanceWorkflow, []string{a.IndexID}, delay).Get(ctx, nil)
+				childFuture = workflow.ExecuteChildWorkflow(
+					ContextDetachedChildWorkflow(ctx, WorkflowIDIndexTokenProvenanceByIndexID(
+						"pending-tx-follower", a.IndexID), ProvenanceTaskListName),
+					w.RefreshTokenProvenanceWorkflow, []string{a.IndexID}, delay)
 			}
 
-			if err != nil {
-				log.Error("fail to update ownership / provenance for indexID", zap.Error(err),
+			if err := childFuture.GetChildWorkflowExecution().Get(ctx, nil); err != nil {
+				log.Error("fail to spawn ownership / provenance updating workflow for indexID", zap.Error(err),
 					zap.Bool("fungible", a.Fungible), zap.String("indexID", a.IndexID))
-				// DON'T update the pending list if the refresh failed
-				continue
 			}
 		}
 
 		log.Debug("remaining pending txs", zap.Any("remainingPendingTx", remainingPendingTxs), zap.Any("remainingPendingTxTime", remainingPendingTxs))
-
 		if err := workflow.ExecuteActivity(ctx, w.UpdatePendingTxsToAccountToken,
 			a.OwnerAccount, a.IndexID, remainingPendingTxs, remainingPendingTxTimes).Get(ctx, nil); err != nil {
 			// log the error only so the loop will continuously check the next pending token
