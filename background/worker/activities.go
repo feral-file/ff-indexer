@@ -447,6 +447,12 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 
 // RefreshTokenOwnership refreshes ownership for each tokens
 func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs []string, delay time.Duration) error {
+	accountTokenLatestActivityTimes, err := w.indexerStore.GetLatestActivityTimeByIndexIDs(ctx, indexIDs)
+	if err != nil {
+		log.Error("fail to get tokens last activities", zap.Any("indexIDs", indexIDs), zap.Error(err))
+		return err
+	}
+
 	tokens, err := w.indexerStore.GetTokensByIndexIDs(ctx, indexIDs)
 	if err != nil {
 		log.Error("fail to get tokens", zap.Any("indexIDs", indexIDs), zap.Error(err))
@@ -454,6 +460,13 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 	}
 
 	for _, token := range tokens {
+		tokenLastActivityTime := token.LastActivityTime
+		// replace the tokenLastActivityTime by the latest value in `account_tokens` collection.
+		// this prevents the out sync of `account_tokens`
+		if t, ok := accountTokenLatestActivityTimes[token.IndexID]; ok {
+			tokenLastActivityTime = t
+		}
+
 		if token.LastRefreshedTime.Unix() > time.Now().Add(-delay).Unix() {
 			log.Debug("ownership refresh too frequently",
 				zap.Int64("lastRefresh", token.LastRefreshedTime.Unix()),
@@ -469,12 +482,13 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 
 		log.Debug("start refresh token ownership updating flow", zap.String("indexID", token.IndexID))
 		var (
-			ownerBalances    []indexer.OwnerBalance
-			lastActivityTime time.Time
-			err              error
+			ownerBalances           []indexer.OwnerBalance
+			onChainLastActivityTime time.Time
+			err                     error
 		)
 		switch token.Blockchain {
 		case utils.EthereumBlockchain:
+			// update ethereum last activity time by daily manner for now since this is a costy action
 			if time.Since(token.LastActivityTime) >= 86400*time.Second && len(token.OwnersArray) != 0 {
 				log.Debug("no new updates since last check", zap.String("indexID", token.IndexID))
 				continue
@@ -487,13 +501,13 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 				return err
 			}
 		case utils.TezosBlockchain:
-			lastActivityTime, err = w.indexerEngine.IndexTezosTokenLastActivityTime(token.ContractAddress, token.ID)
+			onChainLastActivityTime, err = w.indexerEngine.IndexTezosTokenLastActivityTime(token.ContractAddress, token.ID)
 			if err != nil {
 				log.Error("fail to get lastActivityTime", zap.String("indexID", token.IndexID), zap.Error(err))
 				return err
 			}
 
-			if lastActivityTime.Sub(token.LastActivityTime) <= 0 {
+			if onChainLastActivityTime.Sub(tokenLastActivityTime) <= 0 {
 				log.Debug("no new updates since last check", zap.String("indexID", token.IndexID))
 				continue
 			}
@@ -506,7 +520,7 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 			}
 		}
 
-		if err := w.indexerStore.UpdateTokenOwners(ctx, token.IndexID, lastActivityTime, ownerBalances); err != nil {
+		if err := w.indexerStore.UpdateTokenOwners(ctx, token.IndexID, onChainLastActivityTime, ownerBalances); err != nil {
 			log.Error("fail to update token owners", zap.String("indexID", token.IndexID), zap.Any("owners", ownerBalances), zap.Error(err))
 			return err
 		}

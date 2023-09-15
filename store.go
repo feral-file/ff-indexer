@@ -71,13 +71,14 @@ type Store interface {
 	IndexAccount(ctx context.Context, account Account) error
 	IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error
 	GetAccount(ctx context.Context, owner string) (Account, error)
-	GetAccountTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]AccountToken, error)
 	UpdateAccountTokenOwners(ctx context.Context, indexID string, tokenBalances []OwnerBalance) error
 	GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
 	IndexDemoTokens(ctx context.Context, owner string, indexIDs []string) error
 	DeleteDemoTokens(ctx context.Context, owner string) error
 
 	UpdateOwnerForFungibleToken(ctx context.Context, indexID string, lockedTime time.Time, to string, total int64) error
+
+	GetLatestActivityTimeByIndexIDs(ctx context.Context, indexIDs []string) (map[string]time.Time, error)
 
 	GetAbsentMimeTypeTokens(ctx context.Context, limit int) ([]AbsentMIMETypeToken, error)
 	UpdateTokenFeedback(ctx context.Context, tokenFeedbacks []TokenFeedbackUpdate, userDID string) error
@@ -1354,20 +1355,20 @@ func (s *MongodbIndexerStore) GetAccount(ctx context.Context, owner string) (Acc
 	return account, nil
 }
 
-// GetAccountTokensByIndexIDs returns a list of account tokens by a given list of index id
-func (s *MongodbIndexerStore) GetAccountTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]AccountToken, error) {
-	tokens := make([]AccountToken, 0)
+// GetLatestActivityTimeByIndexIDs returns a list of latest value of lastActivityTime for account tokens groups by indexID
+func (s *MongodbIndexerStore) GetLatestActivityTimeByIndexIDs(ctx context.Context, indexIDs []string) (map[string]time.Time, error) {
+	accountTokenLatestActivityTimes := map[string]time.Time{}
 
 	c, err := s.accountTokenCollection.Aggregate(ctx, []bson.M{
 		{"$match": bson.M{"indexID": bson.M{"$in": indexIDs}}},
 		{"$sort": bson.D{{Key: "lastActivityTime", Value: 1}}},
 		{
 			"$group": bson.M{
-				"_id":    "$indexID",
-				"detail": bson.M{"$first": "$$ROOT"},
+				"_id":              "$indexID",
+				"indexID":          bson.M{"$last": "$indexID"},
+				"lastActivityTime": bson.M{"$last": "$lastActivityTime"},
 			},
 		},
-		{"$replaceRoot": bson.M{"newRoot": "$detail"}},
 	})
 
 	if err != nil {
@@ -1380,10 +1381,10 @@ func (s *MongodbIndexerStore) GetAccountTokensByIndexIDs(ctx context.Context, in
 			return nil, err
 		}
 
-		tokens = append(tokens, token)
+		accountTokenLatestActivityTimes[token.IndexID] = token.LastActivityTime
 	}
 
-	return tokens, nil
+	return accountTokenLatestActivityTimes, nil
 }
 
 // UpdateAccountTokenOwners updates all account owners for a specific token
