@@ -135,9 +135,9 @@ type ProjectMetadata struct {
 }
 
 type Artist struct {
-	ID   string `json:"id" bson:"id"`     // Artist blockchain address
-	Name string `json:"name" bson:"name"` // <creator.user.username>,
-	URL  string `json:"url" bson:"url"`   // <OpenseaAPI/creator.address>,
+	ID   string `json:"id" structs:"id" bson:"id"`       // Artist blockchain address
+	Name string `json:"name" structs:"name" bson:"name"` // <creator.user.username>,
+	URL  string `json:"url" structs:"url" bson:"url"`    // <OpenseaAPI/creator.address>,
 }
 
 // AssetUpdates is the inputs payload of IndexAsset. It includes project metadata, blockchain metadata and

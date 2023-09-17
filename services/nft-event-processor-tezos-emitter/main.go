@@ -13,6 +13,7 @@ import (
 	"github.com/bitmark-inc/config-loader"
 	"github.com/bitmark-inc/config-loader/external/aws/ssm"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
+	"github.com/bitmark-inc/tzkt-go"
 )
 
 func main() {
@@ -36,7 +37,7 @@ func main() {
 	defer conn.Close()
 
 	c := processor.NewEventProcessorClient(conn)
-	tezosEventsEmitter := NewTezosEventsEmitter(viper.GetString("tzkt.lastBlockKeyName"), parameterStore, c, viper.GetString("tzkt.ws_url"))
+	tezosEventsEmitter := NewTezosEventsEmitter(viper.GetString("tzkt.lastBlockKeyName"), parameterStore, c, viper.GetString("tzkt.ws_url"), tzkt.New(viper.GetString("tzkt.network")))
 	tezosEventsEmitter.Run(ctx)
 
 	log.Info("Tezos Emitter terminated")

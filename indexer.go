@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -35,6 +36,11 @@ var artblocksContracts = map[string]struct{}{
 }
 
 var (
+	sourceArtBlocks   = "Art Blocks"
+	sourceCrayonCodes = "Crayon Codes"
+)
+
+var (
 	ErrTXNotFound            = fmt.Errorf("transaction is not found")
 	ErrUnsupportedBlockchain = fmt.Errorf("unsupported blockchain")
 )
@@ -44,10 +50,10 @@ func getTokenSourceByContract(contractAddress string) string {
 	switch utils.GetBlockchainByAddress(contractAddress) {
 	case utils.EthereumBlockchain:
 		if _, ok := artblocksContracts[contractAddress]; ok {
-			return "Art Blocks"
+			return sourceArtBlocks
 
 		} else if contractAddress == "0x70e6b3f9d99432fCF35274d6b24D83Ef5Ba3dE2D" {
-			return "Crayon Codes"
+			return sourceCrayonCodes
 		}
 
 		return SourceOpensea
@@ -57,6 +63,15 @@ func getTokenSourceByContract(contractAddress string) string {
 	default:
 		return ""
 	}
+}
+
+// getTokenSourceByPreviewURL returns the token source name by inspecting the preview url
+func getTokenSourceByPreviewURL(url string) string {
+	if artblocksMatched, _ := regexp.MatchString(`generator.artblocks.io`, url); artblocksMatched {
+		return sourceArtBlocks
+	}
+
+	return ""
 }
 
 // mediumByPreviewFileExtension returns token medium by detecting file extension

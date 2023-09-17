@@ -121,8 +121,8 @@ func CheckCDNURLIsExist(url string) bool {
 	return false
 }
 
-// GetMIMEType returns mimeType of a file based on the extension of the url
-func GetMIMEType(urlString string) string {
+// GetMIMETypeByURL returns mimeType of a file based on the extension of the url
+func GetMIMETypeByURL(urlString string) string {
 	u, err := url.Parse(urlString)
 	if err != nil {
 		return ""
@@ -225,4 +225,31 @@ func GetCIDFromIPFSLink(link string) (string, error) {
 	}
 
 	return "", fmt.Errorf("cid not found")
+}
+
+// NormalizeIndexIDs takes an array of token ids and return an array formatted token ids
+// which includes formatting ethereum address and converting token id from hex to decimal if
+// isConvertToDecimal is set to true. NOTE: There is no error return in this call.
+func NormalizeIndexIDs(indexIDs []string, isConvertToDecimal bool) []string {
+	var processedAddresses = []string{}
+	for _, indexID := range indexIDs {
+		blockchain, contractAddress, tokenID, err := ParseTokenIndexID(indexID)
+		if err != nil {
+			continue
+		}
+
+		if blockchain == BlockchainAlias[utils.EthereumBlockchain] {
+			if isConvertToDecimal {
+				decimalTokenID, ok := big.NewInt(0).SetString(tokenID, 16)
+				if !ok {
+					continue
+				}
+				tokenID = decimalTokenID.String()
+			}
+			indexID = fmt.Sprintf("%s-%s-%s", blockchain, contractAddress, tokenID)
+		}
+
+		processedAddresses = append(processedAddresses, indexID)
+	}
+	return processedAddresses
 }

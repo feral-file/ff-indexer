@@ -30,6 +30,10 @@ type TransactionDetails struct {
 
 // IndexETHTokenByOwner indexes all tokens owned by a specific ethereum address
 func (e *IndexEngine) IndexETHTokenByOwner(owner string, offset int) ([]AssetUpdates, error) {
+	if _, excluded := EthereumIndexExcludedOwners[owner]; excluded {
+		return nil, nil
+	}
+
 	assets, err := e.opensea.RetrieveAssets(owner, offset)
 	if err != nil {
 		return nil, err
@@ -60,6 +64,10 @@ func (e *IndexEngine) IndexETHTokenByOwner(owner string, offset int) ([]AssetUpd
 
 // getEthereumTokenBalanceOfOwner returns current balance of a token that the owner owns
 func (e *IndexEngine) getEthereumTokenBalanceOfOwner(_ context.Context, contract, tokenID, owner string) (int64, error) {
+	if _, excluded := EthereumIndexExcludedOwners[owner]; excluded {
+		return 0, nil
+	}
+
 	id, ok := big.NewInt(0).SetString(tokenID, 10)
 	if !ok {
 		return 0, fmt.Errorf("fail to convert token id to hex")
@@ -113,13 +121,16 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 		return nil, nil
 	}
 
-	source := getTokenSourceByContract(contractAddress)
+	source := getTokenSourceByPreviewURL(a.AnimationOriginURL)
+	if source == "" {
+		source = getTokenSourceByContract(contractAddress)
+	}
 
 	switch source {
-	case "Art Blocks":
+	case sourceArtBlocks:
 		sourceURL = "https://www.artblocks.io/"
 		artistURL = fmt.Sprintf("%s/%s", sourceURL, a.Creator.Address)
-	case "Crayon Codes":
+	case sourceCrayonCodes:
 		sourceURL = "https://openprocessing.org/crayon/"
 		artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator.Address)
 	default:
@@ -148,6 +159,21 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 		},
 	}
 
+	imageURL := a.ImageURL
+	if imageURL == "" {
+		imageURL = a.ImageOriginURL
+	}
+
+	imagePreviewURL := a.ImagePreviewURL
+	if imagePreviewURL == "" {
+		imagePreviewURL = a.ImageOriginURL
+	}
+
+	animationURL := a.AnimationURL
+	if animationURL == "" {
+		animationURL = a.AnimationOriginURL
+	}
+
 	metadata := ProjectMetadata{
 		ArtistID:            artistID,
 		ArtistName:          artistName,
@@ -155,30 +181,30 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 		AssetID:             contractAddress,
 		Title:               a.Name,
 		Description:         a.Description,
-		MIMEType:            GetMIMEType(a.ImageURL),
+		MIMEType:            GetMIMETypeByURL(imageURL),
 		Medium:              MediumUnknown,
 		Source:              source,
 		SourceURL:           sourceURL,
-		PreviewURL:          a.ImageURL,
-		ThumbnailURL:        a.ImageURL,
-		GalleryThumbnailURL: a.ImagePreviewURL,
+		PreviewURL:          imageURL,
+		ThumbnailURL:        imageURL,
+		GalleryThumbnailURL: imagePreviewURL,
 		AssetURL:            a.Permalink,
 		LastUpdatedAt:       time.Now(),
 		Artists:             artists,
 	}
 
-	if a.AnimationURL != "" {
-		metadata.PreviewURL = a.AnimationURL
-		metadata.MIMEType = GetMIMEType(a.AnimationURL)
+	if animationURL != "" {
+		metadata.PreviewURL = animationURL
+		metadata.MIMEType = GetMIMETypeByURL(animationURL)
 
-		if source == "Art Blocks" {
+		if source == sourceArtBlocks {
 			metadata.Medium = MediumSoftware
 		} else {
 			medium := mediumByPreviewFileExtension(metadata.PreviewURL)
 			log.Debug("fallback medium check", zap.String("previewURL", metadata.PreviewURL), zap.Any("medium", medium))
 			metadata.Medium = medium
 		}
-	} else if a.ImageURL != "" {
+	} else if imageURL != "" {
 		metadata.Medium = MediumImage
 	}
 

@@ -7,8 +7,19 @@ const (
 	TestnetZeroAddress = "dw9MQXcC5rJZb3QE1nz86PiQAheMP1dx9M3dr52tT8NNs14m33"
 )
 
-const EthereumZeroAddress = "0x0000000000000000000000000000000000000000"
+// Ethereum contract addresses
+// ignored contracts
 const ENSContractAddress = "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85"
+
+// index excluded addresses
+const EthereumZeroAddress = "0x0000000000000000000000000000000000000000"
+const EthereumDeadAddress = "0x000000000000000000000000000000000000dEaD"
+
+var EthereumIndexExcludedOwners = map[string]struct{}{
+	EthereumZeroAddress: {},
+	EthereumDeadAddress: {},
+}
+
 const TransferEventSignature = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
 const TransferSingleEventSignature = "0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62"
 
@@ -17,6 +28,23 @@ const TransferSingleEventSignature = "0xc3d58168c5ae7397731d063d5bbf3d6578544273
 const TezDaoContractAddress = "KT1C9X9s5rpVJGxwVuHEVBLYEdAQ1Qw8QDjH"
 const TezosDNSContractAddress = "KT1GBZmSxmnKJXGMdMLbugPfLyUPmuLSMwKS"
 const KALAMContractAddress = "KT1A5P4ejnLix13jtadsfV9GCnXLMNnab8UT"
+
+// index excluded addresses
+const (
+	TezosNullAddress                 = "tz1Ke2h7sDdakHJQh8WX4Z372du1KChsksyU"
+	TezosBurnAddress                 = "tz1burnburnburnburnburnburnburjAYjjX"
+	TezosHicEtNuncMarketplaceAddress = "KT1HbQepzV1nVGg8QVznG7z4RcHseD5kwqBn"
+	TezosTeiaMarketplaceAddress      = "KT1PHubm9HtyQEJ4BBpMTVomq6mhbfNZ9z5w"
+	TezosOBJKTMarketplaceAddress     = "KT1FvqJwEDWb1Gwc55Jd1jjTHRVWbYKUUpyq"
+)
+
+var TezosIndexExcludedOwners = map[string]struct{}{
+	TezosNullAddress:                 {},
+	TezosBurnAddress:                 {},
+	TezosHicEtNuncMarketplaceAddress: {},
+	TezosTeiaMarketplaceAddress:      {},
+	TezosOBJKTMarketplaceAddress:     {},
+}
 
 // supported contract
 const FXHASHContractAddressFX0_0 = "KT1U6EHmNxJTkvaWJ4ThczG4FSDaHC21ssvi"
