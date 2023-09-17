@@ -24,12 +24,40 @@ func ContextRetryActivity(ctx workflow.Context, taskList string) workflow.Contex
 	return workflow.WithActivityOptions(ctx, ao)
 }
 
+func ContextFastActivity(ctx workflow.Context, taskList string) workflow.Context {
+	ao := workflow.ActivityOptions{
+		TaskList:               taskList,
+		ScheduleToStartTimeout: 10 * time.Second,
+		StartToCloseTimeout:    1 * time.Minute,
+		RetryPolicy: &cadence.RetryPolicy{
+			InitialInterval:    1 * time.Second,
+			BackoffCoefficient: 1.0,
+			MaximumAttempts:    6,
+		},
+	}
+
+	if taskList != "" {
+		ao.TaskList = taskList
+	}
+
+	return workflow.WithActivityOptions(ctx, ao)
+}
+
 // ContextRegularActivity returns a regular activity context
 func ContextRegularActivity(ctx workflow.Context, taskList string) workflow.Context {
 	ao := workflow.ActivityOptions{
 		TaskList:               taskList,
 		ScheduleToStartTimeout: time.Minute,
 		StartToCloseTimeout:    5 * time.Minute,
+		RetryPolicy: &cadence.RetryPolicy{
+			InitialInterval:    5 * time.Second,
+			BackoffCoefficient: 1.0,
+			MaximumAttempts:    10,
+		},
+	}
+
+	if taskList != "" {
+		ao.TaskList = taskList
 	}
 
 	return workflow.WithActivityOptions(ctx, ao)

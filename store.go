@@ -71,13 +71,14 @@ type Store interface {
 	IndexAccount(ctx context.Context, account Account) error
 	IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error
 	GetAccount(ctx context.Context, owner string) (Account, error)
-	GetAccountTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]AccountToken, error)
 	UpdateAccountTokenOwners(ctx context.Context, indexID string, tokenBalances []OwnerBalance) error
 	GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
 	IndexDemoTokens(ctx context.Context, owner string, indexIDs []string) error
 	DeleteDemoTokens(ctx context.Context, owner string) error
 
 	UpdateOwnerForFungibleToken(ctx context.Context, indexID string, lockedTime time.Time, to string, total int64) error
+
+	GetLatestActivityTimeByIndexIDs(ctx context.Context, indexIDs []string) (map[string]time.Time, error)
 
 	GetAbsentMimeTypeTokens(ctx context.Context, limit int) ([]AbsentMIMETypeToken, error)
 	UpdateTokenFeedback(ctx context.Context, tokenFeedbacks []TokenFeedbackUpdate, userDID string) error
@@ -1306,7 +1307,7 @@ func (s *MongodbIndexerStore) IndexAccount(ctx context.Context, account Account)
 func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error {
 	margin := 15 * time.Second
 	for _, accountToken := range accountTokens {
-		log.Debug("account token is in a future state", zap.String("indexID", accountToken.IndexID), zap.Any("accountToken", accountToken))
+		log.Debug("update account token", zap.String("indexID", accountToken.IndexID), zap.Any("accountToken", accountToken))
 		r, err := s.accountTokenCollection.UpdateOne(ctx,
 			bson.M{"indexID": accountToken.IndexID, "ownerAccount": owner, "lastActivityTime": bson.M{"$lt": accountToken.LastActivityTime.Add(-margin)}},
 			bson.M{"$set": accountToken},
@@ -1325,7 +1326,8 @@ func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner stri
 		}
 		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
 			// TODO: not sure when will this happen. Figure this our later
-			log.Warn("account token is not added or updated", zap.String("token_id", accountToken.ID))
+			log.Warn("account token is not added or updated",
+				zap.String("ownerAccount", owner), zap.String("indexID", accountToken.IndexID))
 		}
 	}
 
@@ -1353,20 +1355,20 @@ func (s *MongodbIndexerStore) GetAccount(ctx context.Context, owner string) (Acc
 	return account, nil
 }
 
-// GetAccountTokensByIndexIDs returns a list of account tokens by a given list of index id
-func (s *MongodbIndexerStore) GetAccountTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]AccountToken, error) {
-	tokens := make([]AccountToken, 0)
+// GetLatestActivityTimeByIndexIDs returns a list of latest value of lastActivityTime for account tokens groups by indexID
+func (s *MongodbIndexerStore) GetLatestActivityTimeByIndexIDs(ctx context.Context, indexIDs []string) (map[string]time.Time, error) {
+	accountTokenLatestActivityTimes := map[string]time.Time{}
 
 	c, err := s.accountTokenCollection.Aggregate(ctx, []bson.M{
 		{"$match": bson.M{"indexID": bson.M{"$in": indexIDs}}},
 		{"$sort": bson.D{{Key: "lastActivityTime", Value: 1}}},
 		{
 			"$group": bson.M{
-				"_id":    "$indexID",
-				"detail": bson.M{"$first": "$$ROOT"},
+				"_id":              "$indexID",
+				"indexID":          bson.M{"$last": "$indexID"},
+				"lastActivityTime": bson.M{"$last": "$lastActivityTime"},
 			},
 		},
-		{"$replaceRoot": bson.M{"newRoot": "$detail"}},
 	})
 
 	if err != nil {
@@ -1379,10 +1381,10 @@ func (s *MongodbIndexerStore) GetAccountTokensByIndexIDs(ctx context.Context, in
 			return nil, err
 		}
 
-		tokens = append(tokens, token)
+		accountTokenLatestActivityTimes[token.IndexID] = token.LastActivityTime
 	}
 
-	return tokens, nil
+	return accountTokenLatestActivityTimes, nil
 }
 
 // UpdateAccountTokenOwners updates all account owners for a specific token
