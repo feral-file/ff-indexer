@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/bitmark-inc/autonomy-logger"
+	log "github.com/bitmark-inc/autonomy-logger"
 	imageStore "github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/store"
 	"github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/utils"
 )
@@ -34,14 +34,18 @@ func TestIsSupportedImageType(t *testing.T) {
 }
 
 func TestConvertSVGToPNG(t *testing.T) {
-	url := "https://openseauserdata.com/files/dccefc262d24e3c43c1421efbc0e56f1.svg"
-	buf, err := utils.ConvertSVGToPNG(url)
-
-	assert.NotNil(t, buf)
+	url1 := "https://openseauserdata.com/files/dccefc262d24e3c43c1421efbc0e56f1.svg"
+	buf1, err := utils.ConvertSVGToPNG(url1)
+	assert.NotNil(t, buf1)
 	assert.NoError(t, err)
 
-	url = "https://assets.objkt.media/file/assets-003/QmfYFFvQ5cY7Y7H4mxmeZWmHxum8EhibDfea2ggi2PuEY8/artifact?objkt=1243&creator=tz1exNcVPJdNSqiKDxYkiZRAaxB74jq1m4CQ&viewer=tz1SidNQb9XcwP7L3MzCZD9JHmWw2ebDzgyX&danger=ignored"
-	buf, err = utils.ConvertSVGToPNG(url)
-	assert.Nil(t, buf)
+	url2 := "https://openseauserdata.com/files/6e3209d74c6471690348418330f76545.svg"
+	buf2, err := utils.ConvertSVGToPNG(url2)
+	assert.NotNil(t, buf2)
+	assert.NoError(t, err)
+
+	url3 := "https://assets.objkt.media/file/assets-003/QmfYFFvQ5cY7Y7H4mxmeZWmHxum8EhibDfea2ggi2PuEY8/artifact?objkt=1243&creator=tz1exNcVPJdNSqiKDxYkiZRAaxB74jq1m4CQ&viewer=tz1SidNQb9XcwP7L3MzCZD9JHmWw2ebDzgyX&danger=ignored"
+	buf3, err := utils.ConvertSVGToPNG(url3)
+	assert.NotNil(t, buf3)
 	assert.NoError(t, err)
 }
