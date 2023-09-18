@@ -176,14 +176,14 @@ func (e *TezosEventsEmitter) processTransfersSinceLastStoppedLevel(ctx context.C
 }
 
 func (e *TezosEventsEmitter) fetchTransfersFromLastStoppedLevel(lastStoppedLevel uint64) {
-	lastLevel := lastStoppedLevel
+	offset := 0
 	pageSize := 100
 
 	for {
-		transfers, err := e.tzkt.GetTokenTransfersByLevel(fmt.Sprintf("%d", lastLevel), pageSize)
+		transfers, err := e.tzkt.GetTokenTransfersByLevel(fmt.Sprintf("%d", lastStoppedLevel), offset, pageSize)
 		if err != nil {
 			log.Error("failed to fetch token transfer from last level: ",
-				zap.Error(err), zap.Uint64("lastLevel", lastLevel), log.SourceTZKT)
+				zap.Error(err), zap.Uint64("lastLevel", lastStoppedLevel), zap.Int("offset", offset), log.SourceTZKT)
 			return
 		}
 
@@ -195,7 +195,7 @@ func (e *TezosEventsEmitter) fetchTransfersFromLastStoppedLevel(lastStoppedLevel
 			break
 		}
 
-		lastLevel = transfers[len(transfers)-1].Level
+		offset += pageSize
 	}
 }
 

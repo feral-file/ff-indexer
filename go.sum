@@ -131,6 +131,8 @@ github.com/bitmark-inc/tzkt-go v0.0.7-0.20230911032923-b8dac9ad4bae h1:g3a2pZPfC
 github.com/bitmark-inc/tzkt-go v0.0.7-0.20230911032923-b8dac9ad4bae/go.mod h1:e/kgHH4i6YzCveZ79cDiviEAA5FU6YO48nWLQBRAdGE=
 github.com/bitmark-inc/tzkt-go v0.0.7 h1:AcAPZ5gHBfx3gr71C8yL48oAhFGuYG3F0PC9nd6JWOo=
 github.com/bitmark-inc/tzkt-go v0.0.7/go.mod h1:e/kgHH4i6YzCveZ79cDiviEAA5FU6YO48nWLQBRAdGE=
+github.com/bitmark-inc/tzkt-go v0.0.8 h1:yCweiQra6M49Kvatq5mEBVctkTVpHx/7Q6nhBw585E8=
+github.com/bitmark-inc/tzkt-go v0.0.8/go.mod h1:e/kgHH4i6YzCveZ79cDiviEAA5FU6YO48nWLQBRAdGE=
 github.com/bmizerany/perks v0.0.0-20141205001514-d9a9656a3a4b h1:AP/Y7sqYicnjGDfD5VcY4CIfh1hRXBUavxrvELjTiOE=
 github.com/bmizerany/perks v0.0.0-20141205001514-d9a9656a3a4b/go.mod h1:ac9efd0D1fsDb3EJvhqgXRbFx7bs2wqZ10HQPeU8U/Q=
 github.com/btcsuite/btcd/btcec/v2 v2.2.0 h1:fzn1qaOt32TuLjFlkzYSsBC35Q3KUjT1SwPxiMSCF5k=
