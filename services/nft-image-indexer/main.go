@@ -14,7 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 
-	"github.com/bitmark-inc/autonomy-logger"
+	log "github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/config-loader"
 	imageStore "github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/store"
 )
@@ -51,6 +51,7 @@ func main() {
 	// nft indexer store
 	db := mongoClient.Database(viper.GetString("store.db_name"))
 	assetCollection := db.Collection("assets")
+	tokenCollection := db.Collection("tokens")
 	accountTokenCollection := db.Collection("account_tokens")
 
 	pinataIPFS := NewPinataIPFSPinService()
@@ -69,8 +70,8 @@ func main() {
 		thumbnailCacheRetryInterval = 24 * time.Hour
 	}
 
-	imageIndexer := NewNFTContentIndexer(store, assetCollection, accountTokenCollection, pinataIPFS,
-		thumbnailCachePeriod, thumbnailCacheRetryInterval)
+	imageIndexer := NewNFTContentIndexer(store, assetCollection, tokenCollection, accountTokenCollection,
+		pinataIPFS, thumbnailCachePeriod, thumbnailCacheRetryInterval)
 	imageIndexer.Start(ctx)
 
 	log.Info("Content indexer terminated")

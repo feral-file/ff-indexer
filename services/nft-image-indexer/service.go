@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -12,12 +14,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 
-	"github.com/bitmark-inc/autonomy-logger"
+	log "github.com/bitmark-inc/autonomy-logger"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	imageStore "github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/store"
 )
 
 type NFTAsset struct {
+	ID              string                           `bson:"id"`
 	IndexID         string                           `bson:"indexID"`
 	ProjectMetadata indexer.VersionedProjectMetadata `bson:"projectMetadata"`
 }
@@ -31,10 +34,11 @@ type NFTContentIndexer struct {
 	db               *imageStore.ImageStore
 	ipfs             IPFSPinService
 	nftAssets        *mongo.Collection
+	nftTokens        *mongo.Collection
 	nftAccountTokens *mongo.Collection
 }
 
-func NewNFTContentIndexer(db *imageStore.ImageStore, nftAssets *mongo.Collection, nftAccountTokens *mongo.Collection, ipfs IPFSPinService,
+func NewNFTContentIndexer(db *imageStore.ImageStore, nftAssets, nftTokens, nftAccountTokens *mongo.Collection, ipfs IPFSPinService,
 	thumbnailCachePeriod, thumbnailCacheRetryInterval time.Duration) *NFTContentIndexer {
 	return &NFTContentIndexer{
 		thumbnailCachePeriod:        thumbnailCachePeriod,
@@ -43,6 +47,7 @@ func NewNFTContentIndexer(db *imageStore.ImageStore, nftAssets *mongo.Collection
 		db:               db,
 		ipfs:             ipfs,
 		nftAssets:        nftAssets,
+		nftTokens:        nftTokens,
 		nftAccountTokens: nftAccountTokens,
 	}
 }
@@ -143,7 +148,7 @@ func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) 
 		bson.M{"$set": bson.M{"thumbnailLastCheck": time.Now()}},
 		options.FindOneAndUpdate().
 			// SetSort(bson.D{{Key: "projectMetadata.latest.lastUpdatedAt", Value: -1}}).
-			SetProjection(bson.M{"indexID": 1, "projectMetadata.latest.thumbnailURL": 1}),
+			SetProjection(bson.M{"id": 1, "indexID": 1, "projectMetadata.latest.thumbnailURL": 1}),
 	)
 
 	if err := r.Err(); err != nil {
@@ -168,9 +173,35 @@ func (s *NFTContentIndexer) updateAssetThumbnail(ctx context.Context, indexID, t
 		log.Info("update asset thumbnail failed", zap.String("indexID", indexID), zap.Error(err))
 		return err
 	}
+
+	idSegments := strings.Split(indexID, "-")
+	if len(idSegments) != 2 {
+		return fmt.Errorf("invalid asset index id")
+	}
+	assetID := idSegments[1]
+
+	cursor, err := s.nftTokens.Find(ctx,
+		bson.M{"assetID": assetID},
+		options.Find().SetProjection(bson.M{"indexID": 1}))
+	if err != nil {
+		return err
+	}
+
+	indexIDs := bson.A{}
+	for cursor.Next(ctx) {
+		var token struct {
+			IndexID string `bson:"indexID"`
+		}
+		if err := cursor.Decode(&token); err != nil {
+			return err
+		}
+
+		indexIDs = append(indexIDs, token.IndexID)
+	}
+
 	_, err = s.nftAccountTokens.UpdateMany(
 		ctx,
-		bson.M{"indexID": indexID},
+		bson.M{"indexID": bson.M{"$in": indexIDs}},
 		bson.D{{Key: "$set", Value: bson.D{
 			{Key: "lastRefreshedTime", Value: time.Now()},
 		}}},
