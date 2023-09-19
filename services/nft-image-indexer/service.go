@@ -67,7 +67,7 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 				}
 
 				uploadImageStartTime := time.Now()
-				img, err := s.db.UploadImage(ctx, asset.IndexID, NewURLImageDownloader(asset.ProjectMetadata.Latest.ThumbnailURL),
+				img, err := s.db.UploadImage(ctx, asset.IndexID, NewURLImageReader(asset.ProjectMetadata.Latest.ThumbnailURL),
 					map[string]interface{}{
 						"source":   asset.ProjectMetadata.Latest.Source,
 						"file_url": asset.ProjectMetadata.Latest.ThumbnailURL,

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bitmark-inc/autonomy-logger"
+	log "github.com/bitmark-inc/autonomy-logger"
 	"github.com/cloudflare/cloudflare-go"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -26,8 +26,8 @@ const CloudflareImageDeilverURL = "https://imagedelivery.net/%s/%s/public"
 
 type Metadata map[string]interface{}
 
-type ImageDownloader interface {
-	Download() (io.Reader, string, int, error)
+type ImageReader interface {
+	Read() (io.Reader, string, int, error)
 }
 
 const ImageSizeThreshold = 10 * 1024 * 1024 // 10MB
@@ -123,7 +123,7 @@ func (s *ImageStore) CreateOrGetImage(ctx context.Context, assetID string) (Imag
 // After an image is successfully uploaded to cloudflare, it updates the returned image id into image store.
 // It locks an image record for updating which prevents from duplicated download precess
 // The additional metadata will be attached to the image file when we upload it to cloudflare.
-func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownloader ImageDownloader, metadata map[string]interface{}) (ImageMetadata, error) {
+func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageReader ImageReader, metadata map[string]interface{}) (ImageMetadata, error) {
 	var image ImageMetadata
 	var cloudflareImageID string
 
@@ -155,7 +155,7 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 		}
 
 		downloadStartTime := time.Now()
-		file, mimeType, imageSize, err := imageDownloader.Download()
+		file, mimeType, imageSize, err := imageReader.Read()
 		if err != nil {
 			return NewImageCachingError(ReasonDownloadFileFailed)
 		}
