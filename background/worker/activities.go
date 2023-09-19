@@ -204,6 +204,10 @@ func (w *NFTIndexerWorker) IndexAccountTokens(ctx context.Context, owner string,
 	return w.indexerStore.IndexAccountTokens(ctx, owner, accountTokens)
 }
 
+func (w *NFTIndexerWorker) MarkAccountTokenChanged(ctx context.Context, indexIDs []string) error {
+	return w.indexerStore.MarkAccountTokenChanged(ctx, indexIDs)
+}
+
 type Provenance struct {
 	TxID      string    `json:"tx_id"`
 	Owner     string    `json:"owner"`
