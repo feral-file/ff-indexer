@@ -163,6 +163,7 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 		}
 	}
 
+	log.Debug("refresh timestamp for account tokens", zap.String("indexID", indexID))
 	if err := workflow.ExecuteActivity(ctx, w.MarkAccountTokenChanged, []string{indexID}).Get(ctx, nil); err != nil {
 		log.Error("fail to mark account tokens changed", zap.String("indexID", indexID), zap.Error(err))
 		return err
