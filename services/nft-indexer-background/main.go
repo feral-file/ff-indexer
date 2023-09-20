@@ -117,6 +117,7 @@ func main() {
 
 	// index account tokens
 	activity.Register(worker.IndexAccountTokens)
+	activity.Register(worker.MarkAccountTokenChanged)
 
 	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)
 	cadence.StartWorker(log.DefaultLogger(), workerServiceClient, viper.GetString("cadence.domain"), indexerWorker.TaskListName)
