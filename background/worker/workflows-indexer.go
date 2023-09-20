@@ -45,6 +45,13 @@ func (w *NFTIndexerWorker) IndexETHTokenWorkflow(ctx workflow.Context, tokenOwne
 		offset += updateCounts
 	}
 
+	log.Info("mark account tokens changed for the owner", zap.String("owner", tokenOwner))
+	if err := workflow.ExecuteActivity(ContextRetryActivity(ctx, ""),
+		w.MarkAccountTokenChangedByOwner, ethTokenOwner).Get(ctx, nil); err != nil {
+		sentry.CaptureException(err)
+		return err
+	}
+
 	log.Info("ETH tokens indexed", zap.String("owner", ethTokenOwner))
 	return nil
 }
@@ -73,6 +80,14 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 
 		isFirstPage = false
 	}
+
+	log.Info("mark account tokens changed for the owner", zap.String("owner", tokenOwner))
+	if err := workflow.ExecuteActivity(ContextRetryActivity(ctx, ""),
+		w.MarkAccountTokenChangedByOwner, tokenOwner).Get(ctx, nil); err != nil {
+		sentry.CaptureException(err)
+		return err
+	}
+
 	log.Info("TEZOS tokens indexed", zap.String("owner", tokenOwner))
 	return nil
 }
@@ -163,7 +178,7 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 		}
 	}
 
-	log.Debug("refresh timestamp for account tokens", zap.String("indexID", indexID))
+	log.Debug("mark account tokens changed for the indexID", zap.String("indexID", indexID))
 	if err := workflow.ExecuteActivity(ctx, w.MarkAccountTokenChanged, []string{indexID}).Get(ctx, nil); err != nil {
 		log.Error("fail to mark account tokens changed", zap.String("indexID", indexID), zap.Error(err))
 		return err

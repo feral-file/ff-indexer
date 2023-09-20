@@ -87,6 +87,7 @@ type Store interface {
 	GetPresignedThumbnailTokens(ctx context.Context) ([]Token, error)
 
 	MarkAccountTokenChanged(ctx context.Context, indexIDs []string) error
+	MarkAccountTokenChangedByOwner(ctx context.Context, owner string) error
 
 	GetDetailedTokensV2(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error)
 	GetDetailedAccountTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, lastUpdatedAt time.Time, sortBy string, offset, size int64) ([]DetailedTokenV2, error)
@@ -1820,6 +1821,21 @@ func (s *MongodbIndexerStore) MarkAccountTokenChanged(ctx context.Context, index
 
 	if err != nil {
 		log.Error("cannot update account tokens", zap.Error(err), zap.Any("indexIDs", indexIDs))
+	}
+
+	return err
+}
+
+// MarkAccountTokenChangedByOwner sets the lastRefreshedTime to now for all account tokens belong to an owner
+func (s *MongodbIndexerStore) MarkAccountTokenChangedByOwner(ctx context.Context, owner string) error {
+	_, err := s.accountTokenCollection.UpdateMany(ctx, bson.M{
+		"ownerAccount": owner,
+	}, bson.M{
+		"$set": bson.M{"lastRefreshedTime": time.Now()},
+	})
+
+	if err != nil {
+		log.Error("cannot update account tokens", zap.Error(err), zap.String("owner", owner))
 	}
 
 	return err
