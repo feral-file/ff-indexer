@@ -138,29 +138,35 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 		}
 	}
 
+	indexID := update.Tokens[0].IndexID
 	if indexProvenance {
-		tokenID := update.Tokens[0].IndexID
 		if update.Tokens[0].Fungible {
-			log.Debug("Start child workflow to update token ownership", zap.String("owner", owner), zap.String("indexID: ", tokenID))
+			log.Debug("Start child workflow to update token ownership", zap.String("owner", owner), zap.String("indexID", indexID))
 
 			if err := workflow.ExecuteChildWorkflow(
-				ContextNamedRegularChildWorkflow(ctx, WorkflowIDIndexTokenOwnershipByIndexID("background-IndexTokenWorkflow", tokenID), ProvenanceTaskListName),
-				w.RefreshTokenOwnershipWorkflow, []string{tokenID}, 0,
+				ContextNamedRegularChildWorkflow(ctx, WorkflowIDIndexTokenOwnershipByIndexID("background-IndexTokenWorkflow", indexID), ProvenanceTaskListName),
+				w.RefreshTokenOwnershipWorkflow, []string{indexID}, 0,
 			).Get(ctx, nil); err != nil {
 				sentry.CaptureException(err)
 				return err
 			}
 		} else {
-			log.Debug("Start child workflow to update token provenance", zap.String("owner", owner), zap.String("indexID: ", tokenID))
+			log.Debug("Start child workflow to update token provenance", zap.String("owner", owner), zap.String("indexID", indexID))
 
 			if err := workflow.ExecuteChildWorkflow(
-				ContextNamedRegularChildWorkflow(ctx, WorkflowIDIndexTokenProvenanceByIndexID("background-IndexTokenWorkflow", tokenID), ProvenanceTaskListName),
-				w.RefreshTokenProvenanceWorkflow, []string{tokenID}, 0,
+				ContextNamedRegularChildWorkflow(ctx, WorkflowIDIndexTokenProvenanceByIndexID("background-IndexTokenWorkflow", indexID), ProvenanceTaskListName),
+				w.RefreshTokenProvenanceWorkflow, []string{indexID}, 0,
 			).Get(ctx, nil); err != nil {
 				sentry.CaptureException(err)
 				return err
 			}
 		}
+	}
+
+	log.Debug("refresh timestamp for account tokens", zap.String("indexID", indexID))
+	if err := workflow.ExecuteActivity(ctx, w.MarkAccountTokenChanged, []string{indexID}).Get(ctx, nil); err != nil {
+		log.Error("fail to mark account tokens changed", zap.String("indexID", indexID), zap.Error(err))
+		return err
 	}
 
 	log.Info("token indexed", zap.String("owner", owner),

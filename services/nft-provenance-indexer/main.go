@@ -105,6 +105,7 @@ func main() {
 	activity.Register(worker.FilterTokenIDsWithInconsistentProvenanceForOwner)
 	activity.Register(worker.RefreshTokenProvenance)
 	activity.Register(worker.RefreshTokenOwnership)
+	activity.Register(worker.MarkAccountTokenChanged)
 
 	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)
 	cadence.StartWorker(log.DefaultLogger(), workerServiceClient, viper.GetString("cadence.domain"), indexerWorker.ProvenanceTaskListName)
