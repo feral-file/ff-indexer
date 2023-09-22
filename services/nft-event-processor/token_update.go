@@ -16,6 +16,6 @@ func (e *EventProcessor) RefreshTokenData(ctx context.Context) {
 	e.StartWorker(ctx,
 		1, 0,
 		[]EventType{EventTypeTokenUpdated},
-		10, e.refreshTokenData,
+		0, e.refreshTokenData,
 	)
 }
