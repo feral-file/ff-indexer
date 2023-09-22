@@ -113,6 +113,7 @@ func (tx *EventTx) ArchiveNFTEvent() error {
 		To:         tx.Event.To,
 		TXID:       tx.Event.TXID,
 		TXTime:     tx.Event.TXTime,
+		CreatedAt:  tx.Event.CreatedAt,
 		Status:     EventStatusProcessed,
 	}
 
