@@ -80,7 +80,8 @@ func New(dsn string, cloudflareAccountHash, cloudflareAccountID, cloudflareAPITo
 	// SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
 	sqldb.SetConnMaxLifetime(time.Hour)
 
-	cloudflareAPI, err := cloudflare.NewWithAPIToken(cloudflareAPIToken)
+	cloudflareAPI, err := cloudflare.NewWithAPIToken(cloudflareAPIToken,
+		cloudflare.Debug(viper.GetBool("debug")), cloudflare.UsingLogger(log.CloudflareLogger()))
 	if err != nil {
 		panic(err)
 	}

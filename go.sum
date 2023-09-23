@@ -109,8 +109,8 @@ github.com/bitmark-inc/autonomy-account v0.0.5-1 h1:lqkSw85/tdjUuaIzVuIpylF1qGk7
 github.com/bitmark-inc/autonomy-account v0.0.5-1/go.mod h1:JCEuruKJOmd4ud0T9iMxuKv8lCacCn0Q69OW/CIP7h0=
 github.com/bitmark-inc/autonomy-asset-server v0.0.3 h1:DCOLgB3jX2qO31qqv4cF5UJ4Fkj5hchDHEzado1CL7I=
 github.com/bitmark-inc/autonomy-asset-server v0.0.3/go.mod h1:badxL4HGY9goHdyJtjDBwW6lOscJlEy78rAOKK+ICZk=
-github.com/bitmark-inc/autonomy-logger v0.0.2 h1:yPkKGXatjao5V3GJw2BPeHyII0YqobYuIXlD/4jzflY=
-github.com/bitmark-inc/autonomy-logger v0.0.2/go.mod h1:9D00aodNfb8ABviNvDZG0Dti4Q90aFe7AGnQRtYP7k4=
+github.com/bitmark-inc/autonomy-logger v0.0.3 h1:se5/rKmZUzT5E/U7eIzNtM/nytSKNxqZ8+AS4TAvIMQ=
+github.com/bitmark-inc/autonomy-logger v0.0.3/go.mod h1:9D00aodNfb8ABviNvDZG0Dti4Q90aFe7AGnQRtYP7k4=
 github.com/bitmark-inc/autonomy-notification v0.0.3 h1:eVq9JvO/8M5k1VsNHmsrEJ1i2uPwkQQGy+Ow/UiB5qU=
 github.com/bitmark-inc/autonomy-notification v0.0.3/go.mod h1:6KUN7m6jdmgeppdweJXEKQpC19xcrUShxE1j5zgVEEA=
 github.com/bitmark-inc/autonomy-utils v0.0.3 h1:nc7ZGC60Wz+69ENRVRNh/N/e5RKQSOg/BdvL8ANZPsE=
