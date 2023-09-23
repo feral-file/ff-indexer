@@ -9,7 +9,8 @@ const (
 
 // Ethereum contract addresses
 // ignored contracts
-const ENSContractAddress = "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85"
+const ENSContractAddress1 = "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85"
+const ENSContractAddress2 = "0xD4416b13d2b3a9aBae7AcD5D6C2BbDBE25686401"
 
 // index excluded addresses
 const EthereumZeroAddress = "0x0000000000000000000000000000000000000000"

@@ -117,7 +117,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 	artistName := a.Creator.User.Username
 	contractAddress := EthereumChecksumAddress(a.AssetContract.Address)
 	switch contractAddress {
-	case ENSContractAddress:
+	case ENSContractAddress1, ENSContractAddress2:
 		return nil, nil
 	}
 
