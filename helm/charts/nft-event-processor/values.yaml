@@ -29,6 +29,9 @@ serviceConfig:
   tezos:
     tzktWsUrl: https://api.ghostnet.tzkt.io/v1/ws
     lastBlockKeyName: /autonomy/development/event-processor-tezos-emitter/last-stop-block
+  events:
+    process_delay_seconds:
+      token_updated: 10
 
 imagePullSecrets: []
 nameOverride: ""

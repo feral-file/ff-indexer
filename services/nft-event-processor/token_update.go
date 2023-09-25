@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 
+	"github.com/spf13/viper"
+
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 )
 
@@ -16,6 +18,7 @@ func (e *EventProcessor) RefreshTokenData(ctx context.Context) {
 	e.StartWorker(ctx,
 		1, 0,
 		[]EventType{EventTypeTokenUpdated},
-		0, e.refreshTokenData,
+		viper.GetInt64("events.process_delay_seconds.token_updated"),
+		e.refreshTokenData,
 	)
 }
