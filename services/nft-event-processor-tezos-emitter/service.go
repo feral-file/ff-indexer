@@ -28,10 +28,8 @@ var isFirstTransferEventOnConnected = true
 var isFirstBigmapEventOnConnected = true
 
 type TezosEventsEmitter struct {
-	transfersLastBlockKeyName     string
-	bigmapUpdateslastBlockKeyName string
-
-	parameterStore *ssm.ParameterStore
+	lastBlockKeyName string
+	parameterStore   *ssm.ParameterStore
 
 	grpcClient processor.EventProcessorClient
 	emitter.EventsEmitter
@@ -42,18 +40,14 @@ type TezosEventsEmitter struct {
 }
 
 func NewTezosEventsEmitter(
-	transfersLastBlockKeyName string,
-	bigmapUpdateslastBlockKeyName string,
-
+	lastBlockKeyName string,
 	parameterStore *ssm.ParameterStore,
 	grpcClient processor.EventProcessorClient,
 	tzktWebsocketURL string,
 	tzktClient *tzkt.TZKT,
 ) *TezosEventsEmitter {
 	return &TezosEventsEmitter{
-		transfersLastBlockKeyName:     transfersLastBlockKeyName,
-		bigmapUpdateslastBlockKeyName: bigmapUpdateslastBlockKeyName,
-
+		lastBlockKeyName: lastBlockKeyName,
 		parameterStore:   parameterStore,
 		grpcClient:       grpcClient,
 		EventsEmitter:    emitter.New(grpcClient),
@@ -178,16 +172,15 @@ func (e *TezosEventsEmitter) Run(ctx context.Context) {
 		for state := range stateChan {
 			switch state {
 			case signalr.ClientConnected:
-				e.processTransfersSinceLastStoppedLevel(ctx)
+				e.procesSinceLastStoppedLevel(ctx)
 				isFirstTransferEventOnConnected = true
+				isFirstBigmapEventOnConnected = true
 
 				result := <-client.Invoke("SubscribeToTokenTransfers", struct{}{})
 				if result.Error != nil {
 					log.Panic("fail to SubscribeToTokenTransfers", zap.Error(err))
 				}
 
-				e.processBigmapUpdatesSinceLastStoppedLevel(ctx)
-				isFirstBigmapEventOnConnected = true
 				result = <-client.Invoke("SubscribeToBigMaps", struct {
 					Tags []string
 				}{
@@ -207,20 +200,21 @@ func (e *TezosEventsEmitter) Run(ctx context.Context) {
 	}
 }
 
-func (e *TezosEventsEmitter) processTransfersSinceLastStoppedLevel(ctx context.Context) {
-	lastStopLevel, err := e.parameterStore.GetString(ctx, e.transfersLastBlockKeyName)
+func (e *TezosEventsEmitter) procesSinceLastStoppedLevel(ctx context.Context) {
+	lastStopLevel, err := e.parameterStore.GetString(ctx, e.lastBlockKeyName)
 	if err != nil {
-		log.Error("failed to read transfer last stop block from parameter store: ", zap.Error(err), log.SourceTZKT)
+		log.Error("failed to read last stop block from parameter store: ", zap.Error(err), log.SourceTZKT)
 		return
 	}
 
 	fromLevel, err := strconv.ParseUint(lastStopLevel, 10, 64)
 	if err != nil {
-		log.Error("failed to parse transfer last stop block: ", zap.Error(err), log.SourceETHClient)
+		log.Error("failed to parse last stop block: ", zap.Error(err), log.SourceETHClient)
 		return
 	}
 
 	e.fetchTransfersFromLastStoppedLevel(fromLevel)
+	e.fetchTokenBigmapUpdateFromLastStoppedLevel(fromLevel)
 }
 
 func (e *TezosEventsEmitter) fetchTransfersFromLastStoppedLevel(lastStoppedLevel uint64) {
@@ -245,22 +239,6 @@ func (e *TezosEventsEmitter) fetchTransfersFromLastStoppedLevel(lastStoppedLevel
 
 		offset += pageSize
 	}
-}
-
-func (e *TezosEventsEmitter) processBigmapUpdatesSinceLastStoppedLevel(ctx context.Context) {
-	lastStopLevel, err := e.parameterStore.GetString(ctx, e.bigmapUpdateslastBlockKeyName)
-	if err != nil {
-		log.Error("failed to read bigmap last stop block from parameter store: ", zap.Error(err), log.SourceTZKT)
-		return
-	}
-
-	fromLevel, err := strconv.ParseUint(lastStopLevel, 10, 64)
-	if err != nil {
-		log.Error("failed to parse bigmap last stop block: ", zap.Error(err), log.SourceETHClient)
-		return
-	}
-
-	e.fetchTokenBigmapUpdateFromLastStoppedLevel(fromLevel)
 }
 
 func (e *TezosEventsEmitter) fetchTokenBigmapUpdateFromLastStoppedLevel(lastStoppedLevel uint64) {
@@ -308,17 +286,21 @@ func (e *TezosEventsEmitter) processTranferEvent(ctx context.Context, event Toke
 	if event.EventType == EventTypeTokenUpdated {
 		if event.Level > bigmapUpdatesLastStoppedBlock {
 			bigmapUpdatesLastStoppedBlock = event.Level
-			if err := e.parameterStore.Put(ctx, e.bigmapUpdateslastBlockKeyName, strconv.FormatUint(bigmapUpdatesLastStoppedBlock, 10)); err != nil {
-				log.Error("error put parameterStore for transferLastBlock", zap.Error(err), log.SourceGRPC)
-				return
+			if bigmapUpdatesLastStoppedBlock <= transferLastStoppedBlock {
+				if err := e.parameterStore.Put(ctx, e.lastBlockKeyName, strconv.FormatUint(bigmapUpdatesLastStoppedBlock, 10)); err != nil {
+					log.Error("error put parameterStore", zap.Error(err), log.SourceGRPC)
+					return
+				}
 			}
 		}
 	} else {
 		if event.Level > transferLastStoppedBlock {
 			transferLastStoppedBlock = event.Level
-			if err := e.parameterStore.Put(ctx, e.transfersLastBlockKeyName, strconv.FormatUint(transferLastStoppedBlock, 10)); err != nil {
-				log.Error("error put parameterStore bigmapLastBlock", zap.Error(err), log.SourceGRPC)
-				return
+			if transferLastStoppedBlock <= bigmapUpdatesLastStoppedBlock {
+				if err := e.parameterStore.Put(ctx, e.lastBlockKeyName, strconv.FormatUint(transferLastStoppedBlock, 10)); err != nil {
+					log.Error("error put parameterStore", zap.Error(err), log.SourceGRPC)
+					return
+				}
 			}
 		}
 	}

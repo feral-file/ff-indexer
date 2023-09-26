@@ -1,7 +1,6 @@
 tzkt:
   ws_url: https://api.tzkt.io/v1/ws
-  transferLastBlockKeyName: /autonomy/development/tezos-last-stop-block
-  bigmapLastBlockKeyName: /autonomy/development/tezos-bigmap-last-stop-block
+  lastBlockKeyName: /autonomy/development/tezos-last-stop-block
   network: testnet
   
 event_processor_server:
