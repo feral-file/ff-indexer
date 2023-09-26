@@ -52,26 +52,27 @@ func (e *EventProcessor) updateLatestOwner(ctx context.Context, event NFTEvent) 
 						return err
 					}
 				}
-			} else {
-				err := e.indexerGRPC.UpdateOwnerForFungibleToken(ctx, indexID, token.LastRefreshedTime, event.To, 1)
-				if err != nil {
-					log.Error("fail to update owner for fungible token", zap.Error(err))
+
+				accountToken := indexer.AccountToken{
+					BaseTokenInfo:     token.BaseTokenInfo,
+					IndexID:           indexID,
+					OwnerAccount:      to,
+					Balance:           int64(1),
+					LastActivityTime:  event.CreatedAt,
+					LastRefreshedTime: time.Now(),
+				}
+
+				if err := e.indexerGRPC.IndexAccountTokens(ctx, to, []indexer.AccountToken{accountToken}); err != nil {
+					log.Error("fail to index account token", zap.Error(err))
 					return err
 				}
-			}
-
-			accountToken := indexer.AccountToken{
-				BaseTokenInfo:     token.BaseTokenInfo,
-				IndexID:           indexID,
-				OwnerAccount:      to,
-				Balance:           int64(1),
-				LastActivityTime:  event.CreatedAt,
-				LastRefreshedTime: time.Now(),
-			}
-
-			if err := e.indexerGRPC.IndexAccountTokens(ctx, to, []indexer.AccountToken{accountToken}); err != nil {
-				log.Error("fail to index account token", zap.Error(err))
-				return err
+			} else {
+				// err := e.indexerGRPC.UpdateOwnerForFungibleToken(ctx, indexID, token.LastRefreshedTime, event.To, 1)
+				// if err != nil {
+				// 	log.Error("fail to update owner for fungible token", zap.Error(err))
+				// 	return err
+				// }
+				log.Debug("ignore instant updates for fungible tokens", zap.String("indexID", indexID))
 			}
 		} else {
 			log.Debug("token not found", zap.String("indexID", indexID))
