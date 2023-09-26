@@ -37,7 +37,8 @@ func main() {
 	defer conn.Close()
 
 	c := processor.NewEventProcessorClient(conn)
-	tezosEventsEmitter := NewTezosEventsEmitter(viper.GetString("tzkt.lastBlockKeyName"), parameterStore, c, viper.GetString("tzkt.ws_url"), tzkt.New(viper.GetString("tzkt.network")))
+	tezosEventsEmitter := NewTezosEventsEmitter(viper.GetString("tzkt.transferLastBlockKeyName"), viper.GetString("tzkt.bigmapLastBlockKeyName"),
+		parameterStore, c, viper.GetString("tzkt.ws_url"), tzkt.New(viper.GetString("tzkt.network")))
 	tezosEventsEmitter.Run(ctx)
 
 	log.Info("Tezos Emitter terminated")
