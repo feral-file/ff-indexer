@@ -172,7 +172,7 @@ func (e *TezosEventsEmitter) Run(ctx context.Context) {
 		for state := range stateChan {
 			switch state {
 			case signalr.ClientConnected:
-				e.procesSinceLastStoppedLevel(ctx)
+				e.processSinceLastStoppedLevel(ctx)
 				isFirstTransferEventOnConnected = true
 				isFirstBigmapEventOnConnected = true
 
@@ -196,11 +196,11 @@ func (e *TezosEventsEmitter) Run(ctx context.Context) {
 	}()
 
 	for t := range e.eventChan {
-		e.processTranferEvent(ctx, t)
+		e.processTokenEvent(ctx, t)
 	}
 }
 
-func (e *TezosEventsEmitter) procesSinceLastStoppedLevel(ctx context.Context) {
+func (e *TezosEventsEmitter) processSinceLastStoppedLevel(ctx context.Context) {
 	lastStopLevel, err := e.parameterStore.GetString(ctx, e.lastBlockKeyName)
 	if err != nil {
 		log.Error("failed to read last stop block from parameter store: ", zap.Error(err), log.SourceTZKT)
@@ -265,7 +265,7 @@ func (e *TezosEventsEmitter) fetchTokenBigmapUpdateFromLastStoppedLevel(lastStop
 	}
 }
 
-func (e *TezosEventsEmitter) processTranferEvent(ctx context.Context, event TokenEvent) {
+func (e *TezosEventsEmitter) processTokenEvent(ctx context.Context, event TokenEvent) {
 	log.Debug("received event on tezos",
 		zap.String("eventType", string(event.EventType)),
 		zap.String("from", event.From),
