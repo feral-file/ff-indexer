@@ -3,6 +3,10 @@ server:
   network: tcp
   address: localhost:8765
 
+events:
+  process_delay_seconds:
+    token_updated: 10
+
 store:
   dsn:
   cache_expiry: 24h
