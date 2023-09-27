@@ -160,13 +160,25 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 	}
 
 	imageURL := a.ImageURL
+
+	openseaFilename, err := getOpenseaCachedImageFileName(imageURL)
+	if err != nil {
+		log.Warn("invalid opensea image url", zap.String("imageURL", imageURL))
+	}
+
+	// abstract opensea stored original image url
+	if openseaFilename != "" {
+		imageURL = "https://openseauserdata.com/files/" + openseaFilename
+	}
+
+	// fallback to project origin image url
 	if imageURL == "" {
 		imageURL = a.ImageOriginURL
 	}
 
-	imagePreviewURL := a.ImagePreviewURL
-	if imagePreviewURL == "" {
-		imagePreviewURL = a.ImageOriginURL
+	galleryThumbnailURL := a.ImagePreviewURL
+	if galleryThumbnailURL == "" {
+		galleryThumbnailURL = a.ImageOriginURL
 	}
 
 	animationURL := a.AnimationURL
@@ -187,7 +199,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 		SourceURL:           sourceURL,
 		PreviewURL:          imageURL,
 		ThumbnailURL:        imageURL,
-		GalleryThumbnailURL: imagePreviewURL,
+		GalleryThumbnailURL: galleryThumbnailURL,
 		AssetURL:            a.Permalink,
 		LastUpdatedAt:       time.Now(),
 		Artists:             artists,
