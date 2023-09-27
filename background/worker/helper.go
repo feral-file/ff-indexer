@@ -10,7 +10,7 @@ import (
 	cadenceClient "go.uber.org/cadence/client"
 	"go.uber.org/zap"
 
-	"github.com/bitmark-inc/autonomy-logger"
+	log "github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/nft-indexer/cadence"
 )
 
@@ -20,7 +20,7 @@ func StartIndexTokenWorkflow(c context.Context, client *cadence.WorkerClient, ow
 		ID:                           fmt.Sprintf("index-single-nft-%s-%s", contract, tokenID),
 		TaskList:                     TaskListName,
 		ExecutionStartToCloseTimeout: 2 * time.Hour,
-		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyTerminateIfRunning,
 	}
 
 	var w NFTIndexerWorker
@@ -31,7 +31,6 @@ func StartIndexTokenWorkflow(c context.Context, client *cadence.WorkerClient, ow
 		log.Error("fail to start indexing workflow",
 			zap.Error(err),
 			zap.String("owner", owner), zap.String("contract", contract), zap.String("token_id", tokenID))
-
 	} else {
 		log.Debug("start workflow to index a token",
 			zap.String("owner", owner),
