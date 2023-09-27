@@ -41,6 +41,7 @@ func (e *EventProcessor) RefreshTokenData(ctx context.Context) {
 	e.StartWorker(ctx,
 		1, 0,
 		[]EventType{EventTypeTokenUpdated},
+		viper.GetInt64("events.check_interval_seconds.token_updated"),
 		viper.GetInt64("events.process_delay_seconds.token_updated"),
 		e.refreshTokenData,
 	)

@@ -89,7 +89,7 @@ func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 	e.StartWorker(ctx,
 		1, 2,
 		[]EventType{EventTypeTransfer, EventTypeMint, EventTypeBurned},
-		0, e.updateLatestOwner,
+		0, 0, e.updateLatestOwner,
 	)
 }
 
@@ -170,7 +170,7 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 	e.StartWorker(ctx,
 		2, 3,
 		[]EventType{EventTypeTransfer, EventTypeMint},
-		0, e.updateOwnerAndProvenance,
+		0, 0, e.updateOwnerAndProvenance,
 	)
 }
 
@@ -179,7 +179,7 @@ func (e *EventProcessor) UpdateOwnerAndProvenanceForBurnedToken(ctx context.Cont
 	e.StartWorker(ctx,
 		2, 4,
 		[]EventType{EventTypeBurned},
-		0, e.updateOwnerAndProvenance,
+		0, 0, e.updateOwnerAndProvenance,
 	)
 }
 
@@ -213,7 +213,7 @@ func (e *EventProcessor) NotifyChangeTokenOwner(ctx context.Context) {
 	e.StartWorker(ctx,
 		3, 4,
 		[]EventType{EventTypeTransfer, EventTypeMint},
-		0, e.notifyChangeTokenOwner,
+		0, 0, e.notifyChangeTokenOwner,
 	)
 }
 
@@ -234,6 +234,6 @@ func (e *EventProcessor) SendEventToFeedServer(ctx context.Context) {
 	e.StartWorker(ctx,
 		4, 0,
 		[]EventType{EventTypeTransfer, EventTypeMint, EventTypeBurned},
-		0, e.sendEventToFeedServer,
+		0, 0, e.sendEventToFeedServer,
 	)
 }
