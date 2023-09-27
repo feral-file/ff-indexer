@@ -66,6 +66,7 @@ data:
     tzkt:
       ws_url: {{ .Values.serviceConfig.tezos.tzktWsUrl }}
       lastBlockKeyName: {{ .Values.serviceConfig.tezos.lastBlockKeyName }}
+      network: {{ .Values.serviceConfig.network.tezos }}
 
     log:
       level: debug
