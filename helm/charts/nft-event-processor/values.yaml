@@ -33,7 +33,7 @@ serviceConfig:
     check_interval_seconds:
       token_updated: 1
     process_delay_seconds:
-      token_updated: 10
+      token_updated: 0
 
 imagePullSecrets: []
 nameOverride: ""
