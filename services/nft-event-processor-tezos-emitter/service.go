@@ -110,7 +110,10 @@ func (e *TezosEventsEmitter) Bigmaps(data json.RawMessage) {
 	}
 
 	for _, t := range res.Data {
-		e.eventChan <- e.tokenMetadataUpdateToEvent(t)
+		// ignore for mint/contract creation events
+		if t.Action != "add_key" && t.Action != "allocate" {
+			e.eventChan <- e.tokenMetadataUpdateToEvent(t)
+		}
 	}
 }
 
