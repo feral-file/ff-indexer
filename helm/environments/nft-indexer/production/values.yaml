@@ -32,7 +32,11 @@ serviceConfig:
   minter_gateways:
     tz1Td5qwQxz5mDZiwk7TsRGhDU2HBvXgULip: ipfs.bitmark.com
     tz1d6EdHCR6YSpW1dNcbF9BqG1SaY1nCxrLx: ipfs.bitmark.com
-
+  preferred_gateways:
+  - ipfs.bitmark.com
+  - nftstorage.link
+  - ipfs.nftstorage.link
+  - ipfs.io
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""

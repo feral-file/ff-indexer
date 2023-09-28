@@ -72,7 +72,7 @@ func main() {
 
 	feedServer := NewFeedClient(viper.GetString("feed.endpoint"), viper.GetString("feed.api_token"), viper.GetBool("feed.debug"))
 
-	checkInterval, err := time.ParseDuration(viper.GetString("check_interval"))
+	checkInterval, err := time.ParseDuration(viper.GetString("default_check_interval"))
 	if err != nil {
 		log.Warn("invalid check interval. set to default 10s",
 			zap.String("check_interval", viper.GetString("check_interval")), zap.Error(err))

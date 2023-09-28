@@ -52,26 +52,27 @@ func (e *EventProcessor) updateLatestOwner(ctx context.Context, event NFTEvent) 
 						return err
 					}
 				}
-			} else {
-				err := e.indexerGRPC.UpdateOwnerForFungibleToken(ctx, indexID, token.LastRefreshedTime, event.To, 1)
-				if err != nil {
-					log.Error("fail to update owner for fungible token", zap.Error(err))
+
+				accountToken := indexer.AccountToken{
+					BaseTokenInfo:     token.BaseTokenInfo,
+					IndexID:           indexID,
+					OwnerAccount:      to,
+					Balance:           int64(1),
+					LastActivityTime:  event.CreatedAt,
+					LastRefreshedTime: time.Now(),
+				}
+
+				if err := e.indexerGRPC.IndexAccountTokens(ctx, to, []indexer.AccountToken{accountToken}); err != nil {
+					log.Error("fail to index account token", zap.Error(err))
 					return err
 				}
-			}
-
-			accountToken := indexer.AccountToken{
-				BaseTokenInfo:     token.BaseTokenInfo,
-				IndexID:           indexID,
-				OwnerAccount:      to,
-				Balance:           int64(1),
-				LastActivityTime:  event.CreatedAt,
-				LastRefreshedTime: time.Now(),
-			}
-
-			if err := e.indexerGRPC.IndexAccountTokens(ctx, to, []indexer.AccountToken{accountToken}); err != nil {
-				log.Error("fail to index account token", zap.Error(err))
-				return err
+			} else {
+				// err := e.indexerGRPC.UpdateOwnerForFungibleToken(ctx, indexID, token.LastRefreshedTime, event.To, 1)
+				// if err != nil {
+				// 	log.Error("fail to update owner for fungible token", zap.Error(err))
+				// 	return err
+				// }
+				log.Debug("ignore instant updates for fungible tokens", zap.String("indexID", indexID))
 			}
 		} else {
 			log.Debug("token not found", zap.String("indexID", indexID))
@@ -88,7 +89,7 @@ func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 	e.StartWorker(ctx,
 		1, 2,
 		[]EventType{EventTypeTransfer, EventTypeMint, EventTypeBurned},
-		0, e.updateLatestOwner,
+		0, 0, e.updateLatestOwner,
 	)
 }
 
@@ -124,31 +125,30 @@ func (e *EventProcessor) updateOwnerAndProvenance(ctx context.Context, event NFT
 		// ignore the indexing process since an indexed token found
 		log.Debug("an indexed token found for a corresponded event", zap.String("indexID", indexID))
 
-		// if the new owner is not existent in our system, index a new account_token
-		if len(accounts) == 0 {
-			accountToken := indexer.AccountToken{
-				BaseTokenInfo:     token.BaseTokenInfo,
-				IndexID:           indexID,
-				OwnerAccount:      to,
-				Balance:           int64(1),
-				LastActivityTime:  event.CreatedAt,
-				LastRefreshedTime: time.Now(),
-			}
-
-			if err := e.indexerGRPC.IndexAccountTokens(ctx, to, []indexer.AccountToken{accountToken}); err != nil {
-				log.Error("cannot index a new account_token", zap.Error(err), zap.String("indexID", indexID), zap.String("owner", to))
-				return err
-			}
-		}
-
 		if token.Fungible {
 			indexerWorker.StartRefreshTokenOwnershipWorkflow(ctx, e.worker, "processor", indexID, 0)
 		} else {
+			// if the new owner is not existent in our system, index a new account_token
+			if len(accounts) == 0 {
+				accountToken := indexer.AccountToken{
+					BaseTokenInfo:     token.BaseTokenInfo,
+					IndexID:           indexID,
+					OwnerAccount:      to,
+					Balance:           int64(1),
+					LastActivityTime:  event.CreatedAt,
+					LastRefreshedTime: time.Now(),
+				}
+
+				if err := e.indexerGRPC.IndexAccountTokens(ctx, to, []indexer.AccountToken{accountToken}); err != nil {
+					log.Error("cannot index a new account_token", zap.Error(err), zap.String("indexID", indexID), zap.String("owner", to))
+					return err
+				}
+			}
+
 			if err := e.indexerGRPC.UpdateOwner(ctx, indexID, to, event.CreatedAt); err != nil {
 				log.Error("fail to update the token ownership",
 					zap.String("indexID", indexID), zap.Error(err),
 					zap.String("from", from), zap.String("to", to))
-
 			}
 			indexerWorker.StartRefreshTokenProvenanceWorkflow(ctx, e.worker, "processor", indexID, 0)
 		}
@@ -170,7 +170,7 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 	e.StartWorker(ctx,
 		2, 3,
 		[]EventType{EventTypeTransfer, EventTypeMint},
-		0, e.updateOwnerAndProvenance,
+		0, 0, e.updateOwnerAndProvenance,
 	)
 }
 
@@ -179,7 +179,7 @@ func (e *EventProcessor) UpdateOwnerAndProvenanceForBurnedToken(ctx context.Cont
 	e.StartWorker(ctx,
 		2, 4,
 		[]EventType{EventTypeBurned},
-		0, e.updateOwnerAndProvenance,
+		0, 0, e.updateOwnerAndProvenance,
 	)
 }
 
@@ -213,7 +213,7 @@ func (e *EventProcessor) NotifyChangeTokenOwner(ctx context.Context) {
 	e.StartWorker(ctx,
 		3, 4,
 		[]EventType{EventTypeTransfer, EventTypeMint},
-		0, e.notifyChangeTokenOwner,
+		0, 0, e.notifyChangeTokenOwner,
 	)
 }
 
@@ -234,6 +234,6 @@ func (e *EventProcessor) SendEventToFeedServer(ctx context.Context) {
 	e.StartWorker(ctx,
 		4, 0,
 		[]EventType{EventTypeTransfer, EventTypeMint, EventTypeBurned},
-		0, e.sendEventToFeedServer,
+		0, 0, e.sendEventToFeedServer,
 	)
 }
