@@ -11,8 +11,7 @@ require (
 	github.com/bitmark-inc/autonomy-notification v0.0.3
 	github.com/bitmark-inc/autonomy-utils v0.0.3
 	github.com/bitmark-inc/config-loader v0.0.7
-	github.com/bitmark-inc/traceutils v0.1.0
-	github.com/bitmark-inc/tzkt-go v0.0.11-0.20230929032711-fe931e9382e4
+	github.com/bitmark-inc/tzkt-go v0.0.11
 	github.com/chromedp/chromedp v0.9.1
 	github.com/cloudflare/cloudflare-go v0.62.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -67,6 +66,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bitmark-inc/go-utils v0.0.0-20220509034903-59f3369237d3 // indirect
 	github.com/bitmark-inc/httpsign v0.0.2-2 // indirect
+	github.com/bitmark-inc/traceutils v0.1.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
 	github.com/bytedance/sonic v1.8.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.1.2 // indirect
