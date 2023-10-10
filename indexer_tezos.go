@@ -335,7 +335,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 
 		// always use objkt for the fallback asset url
 		objktHost := "objkt.com"
-		if e.environment != DevelopmentEnvironment {
+		if e.environment == DevelopmentEnvironment {
 			objktHost = "ghostnet.objkt.com"
 		}
 		assetURL := fmt.Sprintf("https://%s/asset/%s/%s", objktHost, tzktToken.Contract.Address, tzktToken.ID.String())
