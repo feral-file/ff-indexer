@@ -278,6 +278,35 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			}
 		}
 	} else { // development indexing process
+		tokenMetadataURL, err := e.getTokenMetadataURL(tzktToken.Contract.Address, tzktToken.ID.String())
+		if err != nil {
+			log.Error("fail to get token metadata url from blockchain", zap.Error(err), log.SourceTZKT)
+		} else {
+			var metadata *tzkt.TokenMetadata
+			if gateway != DefaultIPFSGateway {
+				var err error
+				tokenMetadataURL = ipfsURLToGatewayURL(gateway, tokenMetadataURL)
+				metadata, err = e.fetchMetadataByLink(tokenMetadataURL)
+				if err != nil {
+					log.Error("fail to read token metadata from ipfs",
+						zap.Error(err), zap.String("gateway", gateway), log.SourceTZKT)
+				}
+			} else {
+				var err error
+				metadata, err = e.searchMetadataFromIPFS(tokenMetadataURL)
+				if err != nil {
+					log.Error("fail to search token metadata from ipfs",
+						zap.String("tokenMetadataURL", tokenMetadataURL), zap.Error(err), log.SourceTZKT)
+				}
+			}
+
+			if metadata != nil {
+				metadataDetail.FromTZIP21TokenMetadata(*metadata)
+			}
+		}
+
+		tokenDetail.Fungible = metadataDetail.MaxEdition > 1 || !metadataDetail.IsBooleanAmount
+
 		switch tzktToken.Contract.Address {
 		case FXHASHContractAddressDev0_0, FXHASHContractAddressDev0_1:
 			gateway = FxhashDevIPFSGateway
@@ -289,37 +318,30 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 				},
 			)
 			metadataDetail.SetMedium(MediumSoftware)
-		}
-
-		tokenMetadataURL, err := e.getTokenMetadataURL(tzktToken.Contract.Address, tzktToken.ID.String())
-		if err != nil {
-			log.Error("fail to get token metadata url from blockchain", zap.Error(err), log.SourceTZKT)
-			return nil, err
-		}
-
-		var metadata *tzkt.TokenMetadata
-		if gateway != DefaultIPFSGateway {
-			var err error
-			tokenMetadataURL = ipfsURLToGatewayURL(gateway, tokenMetadataURL)
-			metadata, err = e.fetchMetadataByLink(tokenMetadataURL)
+		default:
+			// fallback to objkt marketplace
+			objktToken, err := e.GetObjktToken(tzktToken.Contract.Address, tzktToken.ID.String())
 			if err != nil {
-				log.Error("fail to read token metadata from ipfs",
-					zap.Error(err), zap.String("gateway", gateway), log.SourceTZKT)
+				log.Error("fail to get token detail from objkt", zap.Error(err), log.SourceObjkt)
+			} else {
+				metadataDetail.FromObjkt(objktToken)
 			}
-		} else {
-			var err error
-			metadata, err = e.searchMetadataFromIPFS(tokenMetadataURL)
-			if err != nil {
-				log.Error("fail to search token metadata from ipfs",
-					zap.String("tokenMetadataURL", tokenMetadataURL), zap.Error(err), log.SourceTZKT)
+
+			source := "unknown"
+			if metadataDetail.Source != "" {
+				source = metadataDetail.Source
 			}
+			if tzktToken.Metadata != nil {
+				switch tzktToken.Metadata.Symbol {
+				case "OBJKTCOM":
+					source = "objkt"
+				case "OBJKT":
+					source = "hic et nunc"
+				}
+			}
+			assetURL := fmt.Sprintf("https://ghostnet.objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())
+			metadataDetail.SetMarketplace(MarketplaceProfile{source, "https://ghostnet.objkt.com", assetURL})
 		}
-
-		if metadata != nil {
-			metadataDetail.FromTZIP21TokenMetadata(*metadata)
-		}
-
-		tokenDetail.Fungible = metadataDetail.MaxEdition > 1 || !metadataDetail.IsBooleanAmount
 	}
 
 	if g, ok := e.minterGateways[metadataDetail.Minter]; ok {
@@ -484,16 +506,7 @@ func (e *IndexEngine) IndexTezosTokenOwners(contract, tokenID string) ([]OwnerBa
 }
 
 func (e *IndexEngine) GetObjktToken(contract, tokenID string) (objkt.Token, error) {
-	if e.environment == DevelopmentEnvironment {
-		return objkt.Token{}, nil
-	}
-
-	objktToken, err := e.objkt.GetObjectToken(contract, tokenID)
-	if err != nil {
-		return objkt.Token{}, err
-	}
-
-	return objktToken, nil
+	return e.objkt.GetObjectToken(contract, tokenID)
 }
 
 // GetTezosTxTimestamp returns the timestamp of an transaction if it exists

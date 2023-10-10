@@ -26,9 +26,6 @@ opensea:
 fxhash:
   api_endpoint: https://api.fxhash.xyz/graphql
 
-objkt:
-  api_endpoint: https://data.objkt.com/v3/graphql
-
 cache:
   bucket_name:
 

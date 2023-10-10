@@ -14,16 +14,21 @@ type Client struct {
 	Endpoint string
 }
 
-func New(graphQLEndpoint string) *Client {
+func New(network string) *Client {
+	endpoint := "https://data.objkt.com/v3/graphql"
+	if network == "testnet" {
+		endpoint = "https://data.ghostnet.objkt.com/v3/graphql"
+	}
+
 	var c = &http.Client{
 		Timeout: 10 * time.Second,
 	}
 
-	client := graphql.NewClient(graphQLEndpoint, c)
+	client := graphql.NewClient(endpoint, c)
 
 	return &Client{
 		Client:   client,
-		Endpoint: graphQLEndpoint,
+		Endpoint: endpoint,
 	}
 }
 
