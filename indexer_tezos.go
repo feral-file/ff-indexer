@@ -208,6 +208,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		MintedAt: tzktToken.Timestamp,
 	}
 
+	var nonCustomizedMarketplace bool
 	if e.environment != DevelopmentEnvironment { // production indexing process
 		if tzktToken.Metadata == nil || time.Since(lastActivityTime) < 14*24*time.Hour {
 			tokenMetadataURL, err := e.getTokenMetadataURL(tzktToken.Contract.Address, tzktToken.ID.String())
@@ -252,30 +253,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			}
 
 		default:
-			if _, ok := inhouseMinter[metadataDetail.Minter]; !ok {
-				// fallback to objkt marketplace if the minter is not autonomy inhouse minter
-				source := "unknown"
-				objktToken, err := e.GetObjktToken(tzktToken.Contract.Address, tzktToken.ID.String())
-				if err != nil {
-					log.Error("fail to get token detail from objkt", zap.Error(err), log.SourceObjkt)
-				} else {
-					metadataDetail.FromObjkt(objktToken)
-				}
-
-				if metadataDetail.Source != "" {
-					source = metadataDetail.Source
-				}
-				if tzktToken.Metadata != nil {
-					switch tzktToken.Metadata.Symbol {
-					case "OBJKTCOM":
-						source = "objkt"
-					case "OBJKT":
-						source = "hic et nunc"
-					}
-				}
-				assetURL := fmt.Sprintf("https://objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())
-				metadataDetail.SetMarketplace(MarketplaceProfile{source, "https://objkt.com", assetURL})
-			}
+			nonCustomizedMarketplace = true
 		}
 	} else { // development indexing process
 		tokenMetadataURL, err := e.getTokenMetadataURL(tzktToken.Contract.Address, tzktToken.ID.String())
@@ -319,29 +297,50 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			)
 			metadataDetail.SetMedium(MediumSoftware)
 		default:
-			// fallback to objkt marketplace
-			objktToken, err := e.GetObjktToken(tzktToken.Contract.Address, tzktToken.ID.String())
-			if err != nil {
-				log.Error("fail to get token detail from objkt", zap.Error(err), log.SourceObjkt)
-			} else {
-				metadataDetail.FromObjkt(objktToken)
-			}
+			nonCustomizedMarketplace = true
+		}
+	}
 
-			source := "unknown"
-			if metadataDetail.Source != "" {
-				source = metadataDetail.Source
-			}
+	// for non-customized marketplace, we detect the source and urls by metadata and objkt.com
+	if nonCustomizedMarketplace {
+		var source, sourceURL string
+
+		if metadataDetail.Source != "" {
+			source = metadataDetail.Source
+		} else {
 			if tzktToken.Metadata != nil {
 				switch tzktToken.Metadata.Symbol {
 				case "OBJKTCOM":
 					source = "objkt"
 				case "OBJKT":
 					source = "hic et nunc"
+				default:
+					source = "unknown"
 				}
 			}
-			assetURL := fmt.Sprintf("https://ghostnet.objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())
-			metadataDetail.SetMarketplace(MarketplaceProfile{source, "https://ghostnet.objkt.com", assetURL})
 		}
+
+		if _, ok := inhouseMinter[metadataDetail.Minter]; !ok {
+			// fallback to objkt marketplace if the minter is not autonomy inhouse minter
+			objktToken, err := e.GetObjktToken(tzktToken.Contract.Address, tzktToken.ID.String())
+			if err != nil {
+				log.Error("fail to get token detail from objkt", zap.Error(err), log.SourceObjkt)
+			} else {
+				metadataDetail.FromObjkt(objktToken)
+			}
+			sourceURL = "https://objkt.com"
+		} else {
+			sourceURL = "https://autonomy.io"
+		}
+
+		// always use objkt for the fallback asset url
+		objktHost := "objkt.com"
+		if e.environment != DevelopmentEnvironment {
+			objktHost = "ghostnet.objkt.com"
+		}
+		assetURL := fmt.Sprintf("https://%s/asset/%s/%s", objktHost, tzktToken.Contract.Address, tzktToken.ID.String())
+
+		metadataDetail.SetMarketplace(MarketplaceProfile{source, sourceURL, assetURL})
 	}
 
 	if g, ok := e.minterGateways[metadataDetail.Minter]; ok {

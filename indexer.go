@@ -28,6 +28,7 @@ const (
 
 var inhouseMinter = map[string]struct{}{
 	"tz1d6EdHCR6YSpW1dNcbF9BqG1SaY1nCxrLx": {},
+	"tz1hQbuRax3op9knY3YDxqNnqxzcmoxmv1qa": {},
 }
 
 // artblocksContracts indexes the addresses which are ERC721 contracts of Artblocks
