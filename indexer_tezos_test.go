@@ -63,7 +63,7 @@ func TestIndexTezosTokenOwnersWithNFTOwnByManyAddress(t *testing.T) {
 
 func TestIndexTezosToken(t *testing.T) {
 
-	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), fxhash.New("https://api.fxhash.xyz/graphql"), objkt.New("https://data.objkt.com/v3/graphql"), nil, nil, nil)
+	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), fxhash.New("https://api.fxhash.xyz/graphql"), objkt.New(""), nil, nil, nil)
 	assetUpdates, err := engine.IndexTezosToken(context.Background(), "KT1EfsNuqwLAWDd3o4pvfUx1CAh5GMdTrRvr", "17446")
 	assert.NoError(t, err)
 	assert.NotEqual(t, assetUpdates.ProjectMetadata.Artists, nil)
@@ -133,7 +133,7 @@ func TestIndexTezosToken(t *testing.T) {
 
 func TestIndexTezosTokenWithCorrectFungibleStatus(t *testing.T) {
 	ctx := context.Background()
-	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), fxhash.New("https://api.fxhash.xyz/graphql"), objkt.New("https://data.objkt.com/v3/graphql"), nil, nil, nil)
+	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), fxhash.New("https://api.fxhash.xyz/graphql"), objkt.New(""), nil, nil, nil)
 	assetUpdates, err := engine.IndexTezosToken(ctx, "KT195VeAcEJ1wioXjDhqjmQ6CrgfZYKtqhro", "2")
 	assert.NoError(t, err)
 	assert.Equal(t, assetUpdates.Tokens[0].Fungible, true)
@@ -153,7 +153,7 @@ func TestIndexTezosTokenWithCorrectFungibleStatus(t *testing.T) {
 
 func TestIndexTezosTokenByOwner(t *testing.T) {
 
-	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), nil, objkt.New("https://data.objkt.com/v3/graphql"), nil, nil, nil)
+	engine := New("", []string{}, map[string]string{}, nil, tzkt.New(""), nil, objkt.New(""), nil, nil, nil)
 	_, _, err := engine.IndexTezosTokenByOwner(context.Background(), "tz1eZUHkQDC1bBEbvrrUxkbWEagdZJXQyszc", time.Now().Add(-100*24*time.Hour), 0)
 	assert.NoError(t, err)
 }
