@@ -188,8 +188,9 @@ type AssetMetadataDetail struct {
 	ArtistURL  string
 	MaxEdition int64
 
-	DisplayURI string
-	PreviewURI string
+	ThumbnailURI string
+	DisplayURI   string
+	PreviewURI   string
 
 	IsBooleanAmount bool
 
@@ -251,7 +252,7 @@ func (detail *AssetMetadataDetail) FromTZIP21TokenMetadata(md tzkt.TokenMetadata
 		}
 	}
 
-	var displayURI, previewURI string
+	var thumbnailURI, displayURI, previewURI string
 
 	if optimizedDisplayURI != "" {
 		displayURI = optimizedDisplayURI
@@ -261,6 +262,11 @@ func (detail *AssetMetadataDetail) FromTZIP21TokenMetadata(md tzkt.TokenMetadata
 		displayURI = md.ThumbnailURI
 	} else {
 		displayURI = DefaultDisplayURI
+	}
+
+	// set default thumbnailURI to md.ThumbnailURI and fallback to displayURI if thumbnailURI is empty
+	if thumbnailURI = md.ThumbnailURI; thumbnailURI == "" {
+		thumbnailURI = displayURI
 	}
 
 	if md.ArtifactURI != "" {
@@ -287,6 +293,7 @@ func (detail *AssetMetadataDetail) FromTZIP21TokenMetadata(md tzkt.TokenMetadata
 		detail.Source = md.Publishers[0]
 	}
 
+	detail.ThumbnailURI = thumbnailURI
 	detail.DisplayURI = displayURI
 	detail.PreviewURI = previewURI
 
@@ -322,6 +329,7 @@ func (detail *AssetMetadataDetail) FromFxhashObject(o fxhash.ObjectDetail) {
 	detail.Name = o.Name
 	detail.Description = o.Metadata.Description
 	detail.MaxEdition = o.Issuer.Supply
+	detail.ThumbnailURI = ipfsURLToGatewayURL(FxhashGateway, o.Metadata.ThumbnailURI)
 	detail.DisplayURI = ipfsURLToGatewayURL(FxhashGateway, o.Metadata.DisplayURI)
 	detail.PreviewURI = ipfsURLToGatewayURL(FxhashGateway, o.Metadata.ArtifactURI)
 	detail.Artists = artists
@@ -417,6 +425,8 @@ func (detail *AssetMetadataDetail) UpdateMetadataFromObjkt(token objkt.Token) {
 	if detail.DisplayURI == "" || detail.DisplayURI == hicetnuncDefaultThumbnailURL {
 		detail.DisplayURI = ipfsURLToGatewayURL(DefaultIPFSGateway, DefaultDisplayURI)
 	}
+
+	detail.ThumbnailURI = detail.DisplayURI
 
 	if token.ArtifactURI != "" {
 		detail.PreviewURI = detail.ReplaceIPFSURIByObjktCDNURI(ObjktCDNArtifactType, token.ArtifactURI, token.FaContract, token.TokenID)

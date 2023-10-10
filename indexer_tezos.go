@@ -349,6 +349,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 	}
 
 	// ensure ipfs urls are converted to http links
+	metadataDetail.ThumbnailURI = ipfsURLToGatewayURL(gateway, metadataDetail.ThumbnailURI)
 	metadataDetail.DisplayURI = ipfsURLToGatewayURL(gateway, metadataDetail.DisplayURI)
 	metadataDetail.PreviewURI = ipfsURLToGatewayURL(gateway, metadataDetail.PreviewURI)
 
@@ -369,8 +370,10 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		Artists:    metadataDetail.Artists,
 		MaxEdition: metadataDetail.MaxEdition,
 
-		PreviewURL:          metadataDetail.PreviewURI,
-		ThumbnailURL:        metadataDetail.DisplayURI,
+		PreviewURL: metadataDetail.PreviewURI,
+		// use the thumbnail in metadata for ThumbnailURL
+		ThumbnailURL: metadataDetail.ThumbnailURI,
+		// use the high quality image for GalleryThumbnailURL
 		GalleryThumbnailURL: metadataDetail.DisplayURI,
 
 		ArtworkMetadata: metadataDetail.ArtworkMetadata,
