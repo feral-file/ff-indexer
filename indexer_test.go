@@ -52,7 +52,7 @@ func TestGetTokenBalanceOfOwner(t *testing.T) {
 		opensea.New("livenet", "", 1),
 		tzkt.New(""),
 		fxhash.New("https://api.fxhash.xyz/graphql"),
-		objkt.New("https://data.objkt.com/v3/graphql"),
+		objkt.New(""),
 		nil,
 		nil,
 		blockchainQueryClient,

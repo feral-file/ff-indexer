@@ -208,6 +208,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		MintedAt: tzktToken.Timestamp,
 	}
 
+	var nonCustomizedMarketplace bool
 	if e.environment != DevelopmentEnvironment { // production indexing process
 		if tzktToken.Metadata == nil || time.Since(lastActivityTime) < 14*24*time.Hour {
 			tokenMetadataURL, err := e.getTokenMetadataURL(tzktToken.Contract.Address, tzktToken.ID.String())
@@ -252,32 +253,38 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			}
 
 		default:
-			if _, ok := inhouseMinter[metadataDetail.Minter]; !ok {
-				// fallback to objkt marketplace if the minter is not autonomy inhouse minter
-				source := "unknown"
-				objktToken, err := e.GetObjktToken(tzktToken.Contract.Address, tzktToken.ID.String())
-				if err != nil {
-					log.Error("fail to get token detail from objkt", zap.Error(err), log.SourceObjkt)
-				} else {
-					metadataDetail.FromObjkt(objktToken)
-				}
-
-				if metadataDetail.Source != "" {
-					source = metadataDetail.Source
-				}
-				if tzktToken.Metadata != nil {
-					switch tzktToken.Metadata.Symbol {
-					case "OBJKTCOM":
-						source = "objkt"
-					case "OBJKT":
-						source = "hic et nunc"
-					}
-				}
-				assetURL := fmt.Sprintf("https://objkt.com/asset/%s/%s", tzktToken.Contract.Address, tzktToken.ID.String())
-				metadataDetail.SetMarketplace(MarketplaceProfile{source, "https://objkt.com", assetURL})
-			}
+			nonCustomizedMarketplace = true
 		}
 	} else { // development indexing process
+		tokenMetadataURL, err := e.getTokenMetadataURL(tzktToken.Contract.Address, tzktToken.ID.String())
+		if err != nil {
+			log.Error("fail to get token metadata url from blockchain", zap.Error(err), log.SourceTZKT)
+		} else {
+			var metadata *tzkt.TokenMetadata
+			if gateway != DefaultIPFSGateway {
+				var err error
+				tokenMetadataURL = ipfsURLToGatewayURL(gateway, tokenMetadataURL)
+				metadata, err = e.fetchMetadataByLink(tokenMetadataURL)
+				if err != nil {
+					log.Error("fail to read token metadata from ipfs",
+						zap.Error(err), zap.String("gateway", gateway), log.SourceTZKT)
+				}
+			} else {
+				var err error
+				metadata, err = e.searchMetadataFromIPFS(tokenMetadataURL)
+				if err != nil {
+					log.Error("fail to search token metadata from ipfs",
+						zap.String("tokenMetadataURL", tokenMetadataURL), zap.Error(err), log.SourceTZKT)
+				}
+			}
+
+			if metadata != nil {
+				metadataDetail.FromTZIP21TokenMetadata(*metadata)
+			}
+		}
+
+		tokenDetail.Fungible = metadataDetail.MaxEdition > 1 || !metadataDetail.IsBooleanAmount
+
 		switch tzktToken.Contract.Address {
 		case FXHASHContractAddressDev0_0, FXHASHContractAddressDev0_1:
 			gateway = FxhashDevIPFSGateway
@@ -289,37 +296,51 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 				},
 			)
 			metadataDetail.SetMedium(MediumSoftware)
+		default:
+			nonCustomizedMarketplace = true
 		}
+	}
 
-		tokenMetadataURL, err := e.getTokenMetadataURL(tzktToken.Contract.Address, tzktToken.ID.String())
-		if err != nil {
-			log.Error("fail to get token metadata url from blockchain", zap.Error(err), log.SourceTZKT)
-			return nil, err
-		}
+	// for non-customized marketplace, we detect the source and urls by metadata and objkt.com
+	if nonCustomizedMarketplace {
+		var source, sourceURL string
 
-		var metadata *tzkt.TokenMetadata
-		if gateway != DefaultIPFSGateway {
-			var err error
-			tokenMetadataURL = ipfsURLToGatewayURL(gateway, tokenMetadataURL)
-			metadata, err = e.fetchMetadataByLink(tokenMetadataURL)
-			if err != nil {
-				log.Error("fail to read token metadata from ipfs",
-					zap.Error(err), zap.String("gateway", gateway), log.SourceTZKT)
-			}
+		if metadataDetail.Source != "" {
+			source = metadataDetail.Source
 		} else {
-			var err error
-			metadata, err = e.searchMetadataFromIPFS(tokenMetadataURL)
-			if err != nil {
-				log.Error("fail to search token metadata from ipfs",
-					zap.String("tokenMetadataURL", tokenMetadataURL), zap.Error(err), log.SourceTZKT)
+			if tzktToken.Metadata != nil {
+				switch tzktToken.Metadata.Symbol {
+				case "OBJKTCOM":
+					source = "objkt"
+				case "OBJKT":
+					source = "hic et nunc"
+				default:
+					source = "unknown"
+				}
 			}
 		}
 
-		if metadata != nil {
-			metadataDetail.FromTZIP21TokenMetadata(*metadata)
+		if _, ok := inhouseMinter[metadataDetail.Minter]; !ok {
+			// fallback to objkt marketplace if the minter is not autonomy inhouse minter
+			objktToken, err := e.GetObjktToken(tzktToken.Contract.Address, tzktToken.ID.String())
+			if err != nil {
+				log.Error("fail to get token detail from objkt", zap.Error(err), log.SourceObjkt)
+			} else {
+				metadataDetail.FromObjkt(objktToken)
+			}
+			sourceURL = "https://objkt.com"
+		} else {
+			sourceURL = "https://autonomy.io"
 		}
 
-		tokenDetail.Fungible = metadataDetail.MaxEdition > 1 || !metadataDetail.IsBooleanAmount
+		// always use objkt for the fallback asset url
+		objktHost := "objkt.com"
+		if e.environment == DevelopmentEnvironment {
+			objktHost = "ghostnet.objkt.com"
+		}
+		assetURL := fmt.Sprintf("https://%s/asset/%s/%s", objktHost, tzktToken.Contract.Address, tzktToken.ID.String())
+
+		metadataDetail.SetMarketplace(MarketplaceProfile{source, sourceURL, assetURL})
 	}
 
 	if g, ok := e.minterGateways[metadataDetail.Minter]; ok {
@@ -328,6 +349,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 	}
 
 	// ensure ipfs urls are converted to http links
+	metadataDetail.ThumbnailURI = ipfsURLToGatewayURL(gateway, metadataDetail.ThumbnailURI)
 	metadataDetail.DisplayURI = ipfsURLToGatewayURL(gateway, metadataDetail.DisplayURI)
 	metadataDetail.PreviewURI = ipfsURLToGatewayURL(gateway, metadataDetail.PreviewURI)
 
@@ -348,8 +370,10 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		Artists:    metadataDetail.Artists,
 		MaxEdition: metadataDetail.MaxEdition,
 
-		PreviewURL:          metadataDetail.PreviewURI,
-		ThumbnailURL:        metadataDetail.DisplayURI,
+		PreviewURL: metadataDetail.PreviewURI,
+		// use the thumbnail in metadata for ThumbnailURL
+		ThumbnailURL: metadataDetail.ThumbnailURI,
+		// use the high quality image for GalleryThumbnailURL
 		GalleryThumbnailURL: metadataDetail.DisplayURI,
 
 		ArtworkMetadata: metadataDetail.ArtworkMetadata,
@@ -484,16 +508,7 @@ func (e *IndexEngine) IndexTezosTokenOwners(contract, tokenID string) ([]OwnerBa
 }
 
 func (e *IndexEngine) GetObjktToken(contract, tokenID string) (objkt.Token, error) {
-	if e.environment == DevelopmentEnvironment {
-		return objkt.Token{}, nil
-	}
-
-	objktToken, err := e.objkt.GetObjectToken(contract, tokenID)
-	if err != nil {
-		return objkt.Token{}, err
-	}
-
-	return objktToken, nil
+	return e.objkt.GetObjectToken(contract, tokenID)
 }
 
 // GetTezosTxTimestamp returns the timestamp of an transaction if it exists
