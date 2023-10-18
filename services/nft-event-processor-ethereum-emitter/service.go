@@ -136,11 +136,23 @@ func (e *EthereumEventsEmitter) processETHLog(ctx context.Context, eLog types.Lo
 		zap.Time("time", paringStartTime))
 
 	if topicLen := len(eLog.Topics); topicLen == 4 {
-
-		fromAddress := indexer.EthereumChecksumAddress(eLog.Topics[1].Hex())
-		toAddress := indexer.EthereumChecksumAddress(eLog.Topics[2].Hex())
 		contractAddress := indexer.EthereumChecksumAddress(eLog.Address.String())
-		tokenIDHash := eLog.Topics[3]
+		var fromAddress, toAddress string
+		var tokenIDHash common.Hash
+
+		switch eLog.Topics[0].Hex() {
+		case indexer.TransferEventSignature:
+			fromAddress = indexer.EthereumChecksumAddress(eLog.Topics[1].Hex())
+			toAddress = indexer.EthereumChecksumAddress(eLog.Topics[2].Hex())
+			tokenIDHash = eLog.Topics[3]
+		case indexer.TransferSingleEventSignature:
+			fromAddress = indexer.EthereumChecksumAddress(eLog.Topics[2].Hex())
+			toAddress = indexer.EthereumChecksumAddress(eLog.Topics[3].Hex())
+			tokenIDHash = common.BytesToHash(eLog.Data[0:32])
+		default:
+			log.Error("unsupported event")
+			return
+		}
 
 		txTime, err := indexer.GetETHBlockTime(ctx, e.cacheStore, e.wsClient, eLog.BlockHash)
 		if err != nil {
