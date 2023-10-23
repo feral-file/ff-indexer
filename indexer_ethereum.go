@@ -159,16 +159,9 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 		},
 	}
 
-	imageURL := a.ImageURL
-
-	openseaFilename, err := getOpenseaCachedImageFileName(imageURL)
+	imageURL, err := OptimizedOpenseaImageURL(a.ImageURL)
 	if err != nil {
-		log.Warn("invalid opensea image url", zap.String("imageURL", imageURL))
-	}
-
-	// abstract opensea stored original image url
-	if openseaFilename != "" {
-		imageURL = "https://openseauserdata.com/files/" + openseaFilename
+		log.Warn("invalid opensea image url", zap.String("imageURL", a.ImageURL))
 	}
 
 	// fallback to project origin image url
