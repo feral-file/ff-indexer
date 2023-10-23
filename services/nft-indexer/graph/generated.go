@@ -89,6 +89,11 @@ type ComplexityRoot struct {
 		IndexHistory func(childComplexity int, indexID string) int
 	}
 
+	Owner struct {
+		Address func(childComplexity int) int
+		Balance func(childComplexity int) int
+	}
+
 	ProjectMetadata struct {
 		ArtistID            func(childComplexity int) int
 		ArtistName          func(childComplexity int) int
@@ -146,6 +151,7 @@ type ComplexityRoot struct {
 		MintedAt          func(childComplexity int) int
 		OriginTokenInfo   func(childComplexity int) int
 		Owner             func(childComplexity int) int
+		Owners            func(childComplexity int) int
 		Provenance        func(childComplexity int) int
 		Source            func(childComplexity int) int
 		Swapped           func(childComplexity int) int
@@ -325,6 +331,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.IndexHistory(childComplexity, args["indexID"].(string)), true
+
+	case "Owner.address":
+		if e.complexity.Owner.Address == nil {
+			break
+		}
+
+		return e.complexity.Owner.Address(childComplexity), true
+
+	case "Owner.balance":
+		if e.complexity.Owner.Balance == nil {
+			break
+		}
+
+		return e.complexity.Owner.Balance(childComplexity), true
 
 	case "ProjectMetadata.artistID":
 		if e.complexity.ProjectMetadata.ArtistID == nil {
@@ -669,6 +689,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Token.Owner(childComplexity), true
+
+	case "Token.owners":
+		if e.complexity.Token.Owners == nil {
+			break
+		}
+
+		return e.complexity.Token.Owners(childComplexity), true
 
 	case "Token.provenance":
 		if e.complexity.Token.Provenance == nil {
@@ -1852,6 +1879,94 @@ func (ec *executionContext) fieldContext_Mutation_indexHistory(ctx context.Conte
 	if fc.Args, err = ec.field_Mutation_indexHistory_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Owner_address(ctx context.Context, field graphql.CollectedField, obj *model.Owner) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Owner_address(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Address, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Owner_address(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Owner",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Owner_balance(ctx context.Context, field graphql.CollectedField, obj *model.Owner) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Owner_balance(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Balance, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int64)
+	fc.Result = res
+	return ec.marshalNInt642int64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Owner_balance(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Owner",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int64 does not have child fields")
+		},
 	}
 	return fc, nil
 }
@@ -3103,6 +3218,8 @@ func (ec *executionContext) fieldContext_Query_tokens(ctx context.Context, field
 				return ec.fieldContext_Token_balance(ctx, field)
 			case "owner":
 				return ec.fieldContext_Token_owner(ctx, field)
+			case "owners":
+				return ec.fieldContext_Token_owners(ctx, field)
 			case "originTokenInfo":
 				return ec.fieldContext_Token_originTokenInfo(ctx, field)
 			case "indexID":
@@ -3853,6 +3970,53 @@ func (ec *executionContext) fieldContext_Token_owner(ctx context.Context, field 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Token_owners(ctx context.Context, field graphql.CollectedField, obj *model.Token) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Token_owners(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Owners, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Owner)
+	fc.Result = res
+	return ec.marshalOOwner2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐOwnerᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Token_owners(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Token",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "address":
+				return ec.fieldContext_Owner_address(ctx, field)
+			case "balance":
+				return ec.fieldContext_Owner_balance(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Owner", field.Name)
 		},
 	}
 	return fc, nil
@@ -6544,6 +6708,41 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 	return out
 }
 
+var ownerImplementors = []string{"Owner"}
+
+func (ec *executionContext) _Owner(ctx context.Context, sel ast.SelectionSet, obj *model.Owner) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, ownerImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Owner")
+		case "address":
+
+			out.Values[i] = ec._Owner_address(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "balance":
+
+			out.Values[i] = ec._Owner_balance(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var projectMetadataImplementors = []string{"ProjectMetadata"}
 
 func (ec *executionContext) _ProjectMetadata(ctx context.Context, sel ast.SelectionSet, obj *model.ProjectMetadata) graphql.Marshaler {
@@ -6945,6 +7144,10 @@ func (ec *executionContext) _Token(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "owners":
+
+			out.Values[i] = ec._Token_owners(ctx, field, obj)
+
 		case "originTokenInfo":
 
 			out.Values[i] = ec._Token_originTokenInfo(ctx, field, obj)
@@ -7490,6 +7693,16 @@ func (ec *executionContext) marshalNInt642int64(ctx context.Context, sel ast.Sel
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNOwner2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐOwner(ctx context.Context, sel ast.SelectionSet, v *model.Owner) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Owner(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNProjectMetadata2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐProjectMetadata(ctx context.Context, sel ast.SelectionSet, v *model.ProjectMetadata) graphql.Marshaler {
@@ -8059,6 +8272,53 @@ func (ec *executionContext) marshalOJSON2githubᚗcomᚋbitmarkᚑincᚋnftᚑin
 	}
 	res := model.MarshalJSON(v)
 	return res
+}
+
+func (ec *executionContext) marshalOOwner2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐOwnerᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Owner) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNOwner2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐOwner(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
