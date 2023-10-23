@@ -7,6 +7,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -521,6 +522,25 @@ func MakeCDNURIFromIPFSURI(assetURI, assetType, contract, tokenID string) (strin
 	}
 
 	return ipfsURLToGatewayURL(DefaultIPFSGateway, assetURI), nil
+}
+
+// GetEditionNumberByName inferences the edition number by the format #{numbers}
+func (e *IndexEngine) GetEditionNumberByName(name string) int64 {
+
+	r := regexp.MustCompile(`.*#(\d+)$`)
+
+	matchArray := r.FindStringSubmatch(name)
+
+	if len(matchArray) < 2 {
+		return 0
+	}
+	// matchArray[0] is the whole string.
+	n, err := strconv.ParseInt(matchArray[1], 10, 0)
+	if err != nil {
+		return 0
+	}
+
+	return n
 }
 
 // GetTxTimestamp returns transaction timestamp of a blockchain

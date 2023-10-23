@@ -70,3 +70,11 @@ func TestGetTokenBalanceOfOwner(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(4), balance3)
 }
+
+func TestGetEditionNumberByName(t *testing.T) {
+	engine := &IndexEngine{}
+	n1 := engine.GetEditionNumberByName("test 123")
+	assert.Equal(t, int64(0), n1)
+	n2 := engine.GetEditionNumberByName("test #123")
+	assert.Equal(t, int64(123), n2)
+}
