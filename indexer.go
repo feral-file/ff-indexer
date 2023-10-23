@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -76,16 +75,22 @@ func getTokenSourceByPreviewURL(url string) string {
 	return ""
 }
 
-// getOpenseaCachedImageFileName get the filename by inspect opensea's cdn link.
-func getOpenseaCachedImageFileName(imageURL string) (string, error) {
+// OptimizedOpenseaImageURL get the filename by inspect opensea's cdn link.
+func OptimizedOpenseaImageURL(imageURL string) (string, error) {
 	u, err := url.Parse(imageURL)
 	if err != nil {
-		return "", err
+		return imageURL, err
 	}
-	if u.Host == "i.seadn.io" && strings.Contains(u.Path, "files/") {
-		return path.Base(u.Path), nil
+
+	if u.Host == "i.seadn.io" {
+		u.RawQuery = url.Values{
+			"auto": []string{"format"},
+			"dpr":  []string{"1"},
+			"w":    []string{"3840"},
+		}.Encode()
 	}
-	return "", nil
+
+	return u.String(), nil
 }
 
 // mediumByPreviewFileExtension returns token medium by detecting file extension

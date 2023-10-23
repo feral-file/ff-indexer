@@ -70,3 +70,18 @@ func TestGetTokenBalanceOfOwner(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(4), balance3)
 }
+
+func TestOptimizedOpenseaImageURL(t *testing.T) {
+	newURL1, err := OptimizedOpenseaImageURL("https://i.seadn.io/s/raw/files/aed53e1bcd90ca93b6fd3b0e012fadc5.jpg?w=500&auto=format")
+	assert.NoError(t, err)
+	assert.Equal(t, "https://i.seadn.io/s/raw/files/aed53e1bcd90ca93b6fd3b0e012fadc5.jpg?auto=format&dpr=1&w=3840", newURL1)
+
+	newURL2, err := OptimizedOpenseaImageURL("https://i.seadn.io/gcs/files/0d06a393468f2e227ed14a6a88f951bc.jpg?w=500&auto=format")
+	assert.NoError(t, err)
+	assert.Equal(t, "https://i.seadn.io/gcs/files/0d06a393468f2e227ed14a6a88f951bc.jpg?auto=format&dpr=1&w=3840", newURL2)
+
+	newURL3, err := OptimizedOpenseaImageURL("https://i.seadn.io/gae/zxrPTPWKa-uc-oLImHUN_bst5e6v7zeL5AIDXn1LWTpVe_43oCG2i-sZ5IsFHxHt4pkIuoDeaZF1HnApLqdy9wrzSeKSepRyYOr_9Q?w=500&auto=format")
+	assert.NoError(t, err)
+	assert.Equal(t, "https://i.seadn.io/gae/zxrPTPWKa-uc-oLImHUN_bst5e6v7zeL5AIDXn1LWTpVe_43oCG2i-sZ5IsFHxHt4pkIuoDeaZF1HnApLqdy9wrzSeKSepRyYOr_9Q?auto=format&dpr=1&w=3840", newURL3)
+
+}
