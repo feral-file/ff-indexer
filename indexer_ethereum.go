@@ -231,7 +231,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 			ContractAddress: contractAddress,
 		},
 		IndexID:           TokenIndexID(utils.EthereumBlockchain, contractAddress, a.TokenID),
-		Edition:           0,
+		Edition:           e.GetEditionNumberByName(a.Name),
 		Balance:           balance,
 		Owner:             owner,
 		MintedAt:          a.AssetContract.CreatedDate.Time, // set minted_at to the contract creation time

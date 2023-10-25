@@ -40,6 +40,14 @@ func (r *Resolver) mapGraphQLToken(t indexer.DetailedTokenV2) *model.Token {
 		attributes = model.AssetAttributes{Scrollable: t.Asset.Attributes.Scrollable}
 	}
 
+	var owners []*model.Owner
+	for address, balance := range t.Owners {
+		owners = append(owners, &model.Owner{
+			Address: address,
+			Balance: balance,
+		})
+	}
+
 	return &model.Token{
 		ID:                t.ID,
 		Blockchain:        t.Blockchain,
@@ -47,6 +55,7 @@ func (r *Resolver) mapGraphQLToken(t indexer.DetailedTokenV2) *model.Token {
 		ContractAddress:   t.ContractAddress,
 		IndexID:           t.IndexID,
 		Owner:             t.Owner,
+		Owners:            owners,
 		OriginTokenInfo:   originalTokenInfo,
 		Balance:           t.Balance,
 		Fungible:          t.Fungible,

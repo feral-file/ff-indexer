@@ -83,5 +83,12 @@ func TestOptimizedOpenseaImageURL(t *testing.T) {
 	newURL3, err := OptimizedOpenseaImageURL("https://i.seadn.io/gae/zxrPTPWKa-uc-oLImHUN_bst5e6v7zeL5AIDXn1LWTpVe_43oCG2i-sZ5IsFHxHt4pkIuoDeaZF1HnApLqdy9wrzSeKSepRyYOr_9Q?w=500&auto=format")
 	assert.NoError(t, err)
 	assert.Equal(t, "https://i.seadn.io/gae/zxrPTPWKa-uc-oLImHUN_bst5e6v7zeL5AIDXn1LWTpVe_43oCG2i-sZ5IsFHxHt4pkIuoDeaZF1HnApLqdy9wrzSeKSepRyYOr_9Q?auto=format&dpr=1&w=3840", newURL3)
+}
 
+func TestGetEditionNumberByName(t *testing.T) {
+	engine := &IndexEngine{}
+	n1 := engine.GetEditionNumberByName("test 123")
+	assert.Equal(t, int64(0), n1)
+	n2 := engine.GetEditionNumberByName("test #123")
+	assert.Equal(t, int64(123), n2)
 }

@@ -164,7 +164,6 @@ db.createView("token_assets", "tokens", [{
     "$project": {
       "asset._id": 0,
       "asset.projectMetadata": 0,
-      "owners": 0,
       "ownersArray": 0,
       "_id": 0
     }
