@@ -87,7 +87,7 @@ func (e *EventProcessor) updateLatestOwner(ctx context.Context, event NFTEvent) 
 // UpdateLatestOwner is a stage 1 worker.
 func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
 	e.StartWorker(ctx,
-		1, 2,
+		StageInit, StageFullSync,
 		[]EventType{EventTypeTransfer, EventTypeMint, EventTypeBurned},
 		0, 0, e.updateLatestOwner,
 	)
@@ -168,7 +168,7 @@ func (e *EventProcessor) updateOwnerAndProvenance(ctx context.Context, event NFT
 // UpdateOwnerAndProvenance is a stage 2 worker.
 func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 	e.StartWorker(ctx,
-		2, 3,
+		StageFullSync, StageNotification,
 		[]EventType{EventTypeTransfer, EventTypeMint},
 		0, 0, e.updateOwnerAndProvenance,
 	)
@@ -177,7 +177,7 @@ func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
 // UpdateOwnerAndProvenanceForBurnedToken is a variant stage 2 worker. It ignores sending notification
 func (e *EventProcessor) UpdateOwnerAndProvenanceForBurnedToken(ctx context.Context) {
 	e.StartWorker(ctx,
-		2, 4,
+		StageFullSync, StageDone,
 		[]EventType{EventTypeBurned},
 		0, 0, e.updateOwnerAndProvenance,
 	)
@@ -211,7 +211,7 @@ func (e *EventProcessor) notifyChangeTokenOwner(_ context.Context, event NFTEven
 // NotifyChangeTokenOwner is a stage 3 worker.
 func (e *EventProcessor) NotifyChangeTokenOwner(ctx context.Context) {
 	e.StartWorker(ctx,
-		3, 4,
+		StageNotification, StageDone,
 		[]EventType{EventTypeTransfer, EventTypeMint},
 		0, 0, e.notifyChangeTokenOwner,
 	)
@@ -232,7 +232,7 @@ func (e *EventProcessor) sendEventToFeedServer(ctx context.Context, event NFTEve
 // SendEventToFeedServer is a stage 4 worker.
 func (e *EventProcessor) SendEventToFeedServer(ctx context.Context) {
 	e.StartWorker(ctx,
-		4, 0,
+		StageFeed, StageDone,
 		[]EventType{EventTypeTransfer, EventTypeMint, EventTypeBurned},
 		0, 0, e.sendEventToFeedServer,
 	)
