@@ -83,7 +83,7 @@ func (e *EventProcessor) Run(ctx context.Context) {
 
 type processorFunc func(ctx context.Context, event NFTEvent) error
 
-func (e *EventProcessor) StartWorker(ctx context.Context, currentStage, nextStage int8,
+func (e *EventProcessor) StartWorker(ctx context.Context, currentStage, nextStage Stage,
 	types []EventType, checkIntervalSecond, deferSecond int64, processor processorFunc) {
 
 	checkInterval := e.defaultCheckInterval
@@ -156,6 +156,7 @@ func (e *EventProcessor) ProcessEvents(ctx context.Context) {
 
 	// token update
 	e.RefreshTokenData(ctx)
+	e.DoubleSyncTokenData(ctx)
 
 	//stage 1: update the latest owner into mongodb
 	e.UpdateLatestOwner(ctx)
@@ -170,8 +171,7 @@ func (e *EventProcessor) ProcessEvents(ctx context.Context) {
 	e.NotifyChangeTokenOwner(ctx)
 
 	//stage 4: send to feed server
-	e.SendEventToFeedServer(ctx)
-
+	// e.SendEventToFeedServer(ctx)
 }
 
 // GetAccountIDByAddress get account IDS by address
