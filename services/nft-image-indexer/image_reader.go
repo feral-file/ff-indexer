@@ -13,17 +13,17 @@ import (
 	log "github.com/bitmark-inc/autonomy-logger"
 )
 
-var screenshotSupportedTags = []string{
+var screenshotSupportedSVGTags = []string{
 	"rect",
 	"svg",
 }
 
 var ErrTakeScreenshot = fmt.Errorf("fail to take screenshot")
 
-// ScreenshotTags takes screenshots by supported tags and fall back to
+// screenshotSVGTags takes screenshots for a url using supported SVG tags and falls back to
 // take a full screenshot if nothing is targeted.
-func ScreenshotTags(url string) (*bytes.Buffer, error) {
-	for _, tag := range screenshotSupportedTags {
+func screenshotSVGTags(url string) (*bytes.Buffer, error) {
+	for _, tag := range screenshotSupportedSVGTags {
 		buf, err := ScreenShoot(url, tag)
 
 		if err != nil {
@@ -50,7 +50,7 @@ func ScreenshotTags(url string) (*bytes.Buffer, error) {
 }
 
 func ScreenshotLink(url string) (io.Reader, string, int, error) {
-	f, err := ScreenshotTags(url)
+	f, err := screenshotSVGTags(url)
 	if err != nil {
 		return nil, "", 0, err
 	}
