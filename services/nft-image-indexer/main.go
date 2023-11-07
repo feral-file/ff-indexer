@@ -54,8 +54,6 @@ func main() {
 	tokenCollection := db.Collection("tokens")
 	accountTokenCollection := db.Collection("account_tokens")
 
-	pinataIPFS := NewPinataIPFSPinService()
-
 	ctx, stop := signal.NotifyContext(mainCtx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -71,7 +69,7 @@ func main() {
 	}
 
 	imageIndexer := NewNFTContentIndexer(store, assetCollection, tokenCollection, accountTokenCollection,
-		pinataIPFS, thumbnailCachePeriod, thumbnailCacheRetryInterval)
+		thumbnailCachePeriod, thumbnailCacheRetryInterval)
 	imageIndexer.Start(ctx)
 
 	log.Info("Content indexer terminated")

@@ -32,20 +32,18 @@ type NFTContentIndexer struct {
 	thumbnailCacheRetryInterval time.Duration
 
 	db               *imageStore.ImageStore
-	ipfs             IPFSPinService
 	nftAssets        *mongo.Collection
 	nftTokens        *mongo.Collection
 	nftAccountTokens *mongo.Collection
 }
 
-func NewNFTContentIndexer(db *imageStore.ImageStore, nftAssets, nftTokens, nftAccountTokens *mongo.Collection, ipfs IPFSPinService,
+func NewNFTContentIndexer(db *imageStore.ImageStore, nftAssets, nftTokens, nftAccountTokens *mongo.Collection,
 	thumbnailCachePeriod, thumbnailCacheRetryInterval time.Duration) *NFTContentIndexer {
 	return &NFTContentIndexer{
 		thumbnailCachePeriod:        thumbnailCachePeriod,
 		thumbnailCacheRetryInterval: thumbnailCacheRetryInterval,
 
 		db:               db,
-		ipfs:             ipfs,
 		nftAssets:        nftAssets,
 		nftTokens:        nftTokens,
 		nftAccountTokens: nftAccountTokens,
