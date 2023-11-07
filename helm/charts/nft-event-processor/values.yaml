@@ -14,7 +14,7 @@ image:
     bitmarkEmitter: "bitmark-emitter-0.1.0-1"
 
 serviceConfig:
-  check_interval: 5s
+  default_check_interval: 5s
   debug: false
   environment: development
   feedEndpoint: http://autonomy-event-feed.autonomy.svc.cluster.local:80
@@ -29,6 +29,11 @@ serviceConfig:
   tezos:
     tzktWsUrl: https://api.ghostnet.tzkt.io/v1/ws
     lastBlockKeyName: /autonomy/development/event-processor-tezos-emitter/last-stop-block
+  events:
+    check_interval_seconds:
+      token_updated: 1
+    process_delay_seconds:
+      token_updated: 0
 
 imagePullSecrets: []
 nameOverride: ""

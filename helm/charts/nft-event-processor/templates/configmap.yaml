@@ -9,13 +9,17 @@ data:
     server:
       network: tcp
       address: 0.0.0.0:8765
-
+    events:
+      check_interval_seconds:
+        token_updated: {{ .Values.serviceConfig.events.check_interval_seconds.token_updated }}
+      process_delay_seconds:
+        token_updated: {{ .Values.serviceConfig.events.process_delay_seconds.token_updated }}
     store:
       dsn:
       cache_expiry: 24h
       log_level: 1
 
-    check_interval: {{ .Values.serviceConfig.check_interval }}
+    default_check_interval: {{ .Values.serviceConfig.default_check_interval }}
 
     log:
       level: debug
@@ -64,6 +68,7 @@ data:
     tzkt:
       ws_url: {{ .Values.serviceConfig.tezos.tzktWsUrl }}
       lastBlockKeyName: {{ .Values.serviceConfig.tezos.lastBlockKeyName }}
+      network: {{ .Values.serviceConfig.network.tezos }}
 
     log:
       level: debug

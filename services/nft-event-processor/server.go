@@ -18,8 +18,8 @@ import (
 )
 
 type EventProcessor struct {
-	environment   string
-	checkInterval time.Duration
+	environment          string
+	defaultCheckInterval time.Duration
 
 	grpcServer   *GRPCServer
 	eventQueue   *EventQueue
@@ -32,7 +32,7 @@ type EventProcessor struct {
 
 func NewEventProcessor(
 	environment string,
-	checkInterval time.Duration,
+	defaultCheckInterval time.Duration,
 	network string,
 	address string,
 	store EventStore,
@@ -46,8 +46,8 @@ func NewEventProcessor(
 	grpcServer := NewGRPCServer(network, address, queue)
 
 	return &EventProcessor{
-		environment:   environment,
-		checkInterval: checkInterval,
+		environment:          environment,
+		defaultCheckInterval: defaultCheckInterval,
 
 		grpcServer:   grpcServer,
 		eventQueue:   queue,
@@ -83,8 +83,14 @@ func (e *EventProcessor) Run(ctx context.Context) {
 
 type processorFunc func(ctx context.Context, event NFTEvent) error
 
-func (e *EventProcessor) StartWorker(ctx context.Context, currentStage, nextStage int8,
-	types []EventType, deferSecond int64, processor processorFunc) {
+func (e *EventProcessor) StartWorker(ctx context.Context, currentStage, nextStage Stage,
+	types []EventType, checkIntervalSecond, deferSecond int64, processor processorFunc) {
+
+	checkInterval := e.defaultCheckInterval
+	if checkIntervalSecond != 0 {
+		checkInterval = time.Second * time.Duration(checkIntervalSecond)
+	}
+
 	go func() {
 		for {
 			select {
@@ -111,7 +117,7 @@ func (e *EventProcessor) StartWorker(ctx context.Context, currentStage, nextStag
 					} else {
 						log.Error("Fail to get a event db transaction", zap.Error(err))
 					}
-					time.Sleep(e.checkInterval)
+					time.Sleep(checkInterval)
 					continue
 				}
 				e.logStartStage(eventTx.Event, currentStage)
@@ -150,6 +156,7 @@ func (e *EventProcessor) ProcessEvents(ctx context.Context) {
 
 	// token update
 	e.RefreshTokenData(ctx)
+	e.DoubleSyncTokenData(ctx)
 
 	//stage 1: update the latest owner into mongodb
 	e.UpdateLatestOwner(ctx)
@@ -164,8 +171,7 @@ func (e *EventProcessor) ProcessEvents(ctx context.Context) {
 	e.NotifyChangeTokenOwner(ctx)
 
 	//stage 4: send to feed server
-	e.SendEventToFeedServer(ctx)
-
+	// e.SendEventToFeedServer(ctx)
 }
 
 // GetAccountIDByAddress get account IDS by address

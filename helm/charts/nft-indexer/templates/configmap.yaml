@@ -31,9 +31,6 @@ data:
     fxhash:
       api_endpoint: https://api.fxhash.xyz/graphql
 
-    objkt:
-      api_endpoint: https://data.objkt.com/v3/graphql
-
     opensea:
       ratelimit: {{ .Values.serviceConfig.opensea_ratelimit }}
 
@@ -71,9 +68,6 @@ data:
     fxhash:
       api_endpoint: https://api.fxhash.xyz/graphql
 
-    objkt:
-      api_endpoint: https://data.objkt.com/v3/graphql
-
     opensea:
       ratelimit: {{ .Values.serviceConfig.opensea_ratelimit }}
 
@@ -85,10 +79,6 @@ data:
 
     ipfs:
       preferred_gateways:
-      - nftstorage.link
-      - ipfs.nftstorage.link
-      - ipfs.bitmark.com
-      - ipfs.test.bitmark.com
-      - ipfs.io
+      {{- .Values.serviceConfig.preferred_gateways | toYaml | nindent 6 }}
       minter_gateways: |
       {{- .Values.serviceConfig.minter_gateways | toYaml | nindent 8 }}

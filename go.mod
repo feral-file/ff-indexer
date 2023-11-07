@@ -3,6 +3,7 @@ module github.com/bitmark-inc/nft-indexer
 go 1.20
 
 require (
+	blockwatch.cc/tzgo v1.16.6
 	github.com/99designs/gqlgen v0.17.24
 	github.com/aws/aws-sdk-go v1.44.327
 	github.com/bitmark-inc/autonomy-account v0.0.5-1
@@ -11,7 +12,7 @@ require (
 	github.com/bitmark-inc/autonomy-notification v0.0.3
 	github.com/bitmark-inc/autonomy-utils v0.0.3
 	github.com/bitmark-inc/config-loader v0.0.7
-	github.com/bitmark-inc/tzkt-go v0.0.8
+	github.com/bitmark-inc/tzkt-go v0.0.11
 	github.com/chromedp/chromedp v0.9.1
 	github.com/cloudflare/cloudflare-go v0.62.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -44,7 +45,6 @@ require (
 )
 
 require (
-	blockwatch.cc/tzgo v1.16.6 // indirect
 	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
@@ -81,7 +81,10 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1 v1.0.3 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v2 v2.0.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
+	github.com/echa/bson v0.0.0-20220430141917-c0fbdf7f8b79 // indirect
+	github.com/echa/log v1.2.2 // indirect
 	github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a // indirect
+	github.com/fatih/color v1.13.0 // indirect
 	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
@@ -127,6 +130,7 @@ require (
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect

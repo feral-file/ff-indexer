@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"path"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -27,6 +29,7 @@ const (
 
 var inhouseMinter = map[string]struct{}{
 	"tz1d6EdHCR6YSpW1dNcbF9BqG1SaY1nCxrLx": {},
+	"tz1hQbuRax3op9knY3YDxqNnqxzcmoxmv1qa": {},
 }
 
 // artblocksContracts indexes the addresses which are ERC721 contracts of Artblocks
@@ -72,6 +75,18 @@ func getTokenSourceByPreviewURL(url string) string {
 	}
 
 	return ""
+}
+
+// getOpenseaCachedImageFileName get the filename by inspect opensea's cdn link.
+func getOpenseaCachedImageFileName(imageURL string) (string, error) {
+	u, err := url.Parse(imageURL)
+	if err != nil {
+		return "", err
+	}
+	if u.Host == "i.seadn.io" && strings.Contains(u.Path, "files/") {
+		return path.Base(u.Path), nil
+	}
+	return "", nil
 }
 
 // mediumByPreviewFileExtension returns token medium by detecting file extension
@@ -174,8 +189,9 @@ type AssetMetadataDetail struct {
 	ArtistURL  string
 	MaxEdition int64
 
-	DisplayURI string
-	PreviewURI string
+	ThumbnailURI string
+	DisplayURI   string
+	PreviewURI   string
 
 	IsBooleanAmount bool
 
@@ -237,7 +253,7 @@ func (detail *AssetMetadataDetail) FromTZIP21TokenMetadata(md tzkt.TokenMetadata
 		}
 	}
 
-	var displayURI, previewURI string
+	var thumbnailURI, displayURI, previewURI string
 
 	if optimizedDisplayURI != "" {
 		displayURI = optimizedDisplayURI
@@ -247,6 +263,11 @@ func (detail *AssetMetadataDetail) FromTZIP21TokenMetadata(md tzkt.TokenMetadata
 		displayURI = md.ThumbnailURI
 	} else {
 		displayURI = DefaultDisplayURI
+	}
+
+	// set default thumbnailURI to md.ThumbnailURI and fallback to displayURI if thumbnailURI is empty
+	if thumbnailURI = md.ThumbnailURI; thumbnailURI == "" {
+		thumbnailURI = displayURI
 	}
 
 	if md.ArtifactURI != "" {
@@ -273,6 +294,7 @@ func (detail *AssetMetadataDetail) FromTZIP21TokenMetadata(md tzkt.TokenMetadata
 		detail.Source = md.Publishers[0]
 	}
 
+	detail.ThumbnailURI = thumbnailURI
 	detail.DisplayURI = displayURI
 	detail.PreviewURI = previewURI
 
@@ -308,6 +330,7 @@ func (detail *AssetMetadataDetail) FromFxhashObject(o fxhash.ObjectDetail) {
 	detail.Name = o.Name
 	detail.Description = o.Metadata.Description
 	detail.MaxEdition = o.Issuer.Supply
+	detail.ThumbnailURI = ipfsURLToGatewayURL(FxhashGateway, o.Metadata.ThumbnailURI)
 	detail.DisplayURI = ipfsURLToGatewayURL(FxhashGateway, o.Metadata.DisplayURI)
 	detail.PreviewURI = ipfsURLToGatewayURL(FxhashGateway, o.Metadata.ArtifactURI)
 	detail.Artists = artists
@@ -404,6 +427,8 @@ func (detail *AssetMetadataDetail) UpdateMetadataFromObjkt(token objkt.Token) {
 		detail.DisplayURI = ipfsURLToGatewayURL(DefaultIPFSGateway, DefaultDisplayURI)
 	}
 
+	detail.ThumbnailURI = detail.DisplayURI
+
 	if token.ArtifactURI != "" {
 		detail.PreviewURI = detail.ReplaceIPFSURIByObjktCDNURI(ObjktCDNArtifactType, token.ArtifactURI, token.FaContract, token.TokenID)
 	} else {
@@ -497,6 +522,25 @@ func MakeCDNURIFromIPFSURI(assetURI, assetType, contract, tokenID string) (strin
 	}
 
 	return ipfsURLToGatewayURL(DefaultIPFSGateway, assetURI), nil
+}
+
+// GetEditionNumberByName inferences the edition number by the format #{numbers}
+func (e *IndexEngine) GetEditionNumberByName(name string) int64 {
+
+	r := regexp.MustCompile(`.*#(\d+)$`)
+
+	matchArray := r.FindStringSubmatch(name)
+
+	if len(matchArray) < 2 {
+		return 0
+	}
+	// matchArray[0] is the whole string.
+	n, err := strconv.ParseInt(matchArray[1], 10, 0)
+	if err != nil {
+		return 0
+	}
+
+	return n
 }
 
 // GetTxTimestamp returns transaction timestamp of a blockchain

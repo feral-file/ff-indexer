@@ -52,7 +52,7 @@ func TestGetTokenBalanceOfOwner(t *testing.T) {
 		opensea.New("livenet", "", 1),
 		tzkt.New(""),
 		fxhash.New("https://api.fxhash.xyz/graphql"),
-		objkt.New("https://data.objkt.com/v3/graphql"),
+		objkt.New(""),
 		nil,
 		nil,
 		blockchainQueryClient,
@@ -69,4 +69,12 @@ func TestGetTokenBalanceOfOwner(t *testing.T) {
 	balance3, err := engine.GetTokenBalanceOfOwner(context.Background(), "0xe70659b717112ac4e14284d0db2f5d5703df8e43", "125", "0x0F0eAE91990140C560D4156DB4f00c854Dc8F09E")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(4), balance3)
+}
+
+func TestGetEditionNumberByName(t *testing.T) {
+	engine := &IndexEngine{}
+	n1 := engine.GetEditionNumberByName("test 123")
+	assert.Equal(t, int64(0), n1)
+	n2 := engine.GetEditionNumberByName("test #123")
+	assert.Equal(t, int64(123), n2)
 }

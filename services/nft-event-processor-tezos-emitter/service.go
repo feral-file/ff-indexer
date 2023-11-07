@@ -22,7 +22,9 @@ import (
 const maxMessageSize = 1 << 20 // 1MiB
 
 var lastStoppedBlock = uint64(0)
+
 var isFirstTransferEventOnConnected = true
+var isFirstBigmapEventOnConnected = true
 
 type TezosEventsEmitter struct {
 	lastBlockKeyName string
@@ -33,7 +35,7 @@ type TezosEventsEmitter struct {
 	tzktWebsocketURL string
 	tzkt             *tzkt.TZKT
 
-	transferChan chan tzkt.TokenTransfer
+	eventChan chan TokenEvent
 }
 
 func NewTezosEventsEmitter(
@@ -51,7 +53,7 @@ func NewTezosEventsEmitter(
 		tzktWebsocketURL: tzktWebsocketURL,
 		tzkt:             tzktClient,
 
-		transferChan: make(chan tzkt.TokenTransfer, 100),
+		eventChan: make(chan TokenEvent, 100),
 	}
 }
 
@@ -74,12 +76,43 @@ func (e *TezosEventsEmitter) Transfers(data json.RawMessage) {
 	if isFirstTransferEventOnConnected {
 		isFirstTransferEventOnConnected = false
 		if lastStoppedBlock > 0 {
-			e.fetchTransfersFromLastStoppedLevel(lastStoppedBlock)
+			e.fetchFromByLastStoppedLevel(lastStoppedBlock)
 		}
 	}
 
 	for _, t := range res.Data {
-		e.transferChan <- t
+		e.eventChan <- e.tokenTransferToEvent(t)
+	}
+}
+
+// Bigmaps is a callback function for handling events from `bigmaps` channel
+// According to https://github.com/philippseith/signalr#client-side-go, we need to create a same name
+// function according to the server response channel. See https://api.tzkt.io/#section/SubscribeToBigMaps
+func (e *TezosEventsEmitter) Bigmaps(data json.RawMessage) {
+	var res BigmapUpdateResponse
+
+	err := json.Unmarshal(data, &res)
+	if err != nil {
+		log.Error("fail to unmarshal bigmaps data", zap.Error(err))
+		return
+	}
+
+	if len(res.Data) == 0 {
+		return
+	}
+
+	if isFirstBigmapEventOnConnected {
+		isFirstBigmapEventOnConnected = false
+		if lastStoppedBlock > 0 {
+			e.fetchFromByLastStoppedLevel(lastStoppedBlock)
+		}
+	}
+
+	for _, t := range res.Data {
+		// ignore for mint/contract creation events
+		if t.Action != "add_key" && t.Action != "allocate" {
+			e.eventChan <- e.tokenMetadataUpdateToEvent(t)
+		}
 	}
 }
 
@@ -141,12 +174,22 @@ func (e *TezosEventsEmitter) Run(ctx context.Context) {
 		for state := range stateChan {
 			switch state {
 			case signalr.ClientConnected:
-				e.processTransfersSinceLastStoppedLevel(ctx)
+				e.processSinceLastStoppedLevel(ctx)
 				isFirstTransferEventOnConnected = true
+				isFirstBigmapEventOnConnected = true
 
 				result := <-client.Invoke("SubscribeToTokenTransfers", struct{}{})
 				if result.Error != nil {
 					log.Panic("fail to SubscribeToTokenTransfers", zap.Error(err))
+				}
+
+				result = <-client.Invoke("SubscribeToBigMaps", struct {
+					Tags []string
+				}{
+					Tags: []string{"token_metadata"},
+				})
+				if result.Error != nil {
+					log.Panic("fail to SubscribeToBigMaps", zap.Error(err))
 				}
 			case signalr.ClientClosed:
 				log.Panic("client closed", zap.Error(err))
@@ -154,12 +197,12 @@ func (e *TezosEventsEmitter) Run(ctx context.Context) {
 		}
 	}()
 
-	for t := range e.transferChan {
-		e.processTranferEvent(ctx, t)
+	for t := range e.eventChan {
+		e.processTokenEvent(ctx, t)
 	}
 }
 
-func (e *TezosEventsEmitter) processTransfersSinceLastStoppedLevel(ctx context.Context) {
+func (e *TezosEventsEmitter) processSinceLastStoppedLevel(ctx context.Context) {
 	lastStopLevel, err := e.parameterStore.GetString(ctx, e.lastBlockKeyName)
 	if err != nil {
 		log.Error("failed to read last stop block from parameter store: ", zap.Error(err), log.SourceTZKT)
@@ -168,27 +211,40 @@ func (e *TezosEventsEmitter) processTransfersSinceLastStoppedLevel(ctx context.C
 
 	fromLevel, err := strconv.ParseUint(lastStopLevel, 10, 64)
 	if err != nil {
-		log.Error("failed to parse last stop block: ", zap.Error(err), log.SourceETHClient)
+		log.Error("failed to parse last stop block: ", zap.Error(err), log.SourceTZKT)
 		return
 	}
 
-	e.fetchTransfersFromLastStoppedLevel(fromLevel)
+	e.fetchFromByLastStoppedLevel(fromLevel)
 }
 
-func (e *TezosEventsEmitter) fetchTransfersFromLastStoppedLevel(lastStoppedLevel uint64) {
+func (e *TezosEventsEmitter) fetchFromByLastStoppedLevel(fromLevel uint64) {
+	latestLevel, err := e.tzkt.GetLevelByTime(time.Now())
+	if err != nil {
+		log.Error("failed to get lastest block level: ", zap.Error(err), log.SourceTZKT)
+		return
+	}
+
+	for i := fromLevel; i <= latestLevel; i++ {
+		e.fetchTokenTransfersByLevel(i)
+		e.fetchTokenBigmapUpdateByLevel(i)
+	}
+}
+
+func (e *TezosEventsEmitter) fetchTokenTransfersByLevel(level uint64) {
 	offset := 0
 	pageSize := 100
 
 	for {
-		transfers, err := e.tzkt.GetTokenTransfersByLevel(fmt.Sprintf("%d", lastStoppedLevel), offset, pageSize)
+		transfers, err := e.tzkt.GetTokenTransfersByLevel(fmt.Sprintf("%d", level), offset, pageSize)
 		if err != nil {
-			log.Error("failed to fetch token transfer from last level: ",
-				zap.Error(err), zap.Uint64("lastLevel", lastStoppedLevel), zap.Int("offset", offset), log.SourceTZKT)
+			log.Error("failed to fetch token transfer from level: ",
+				zap.Error(err), zap.Uint64("level", level), zap.Int("offset", offset), log.SourceTZKT)
 			return
 		}
 
 		for _, transfer := range transfers {
-			e.transferChan <- transfer
+			e.eventChan <- e.tokenTransferToEvent(transfer)
 		}
 
 		if len(transfers) < pageSize {
@@ -199,37 +255,89 @@ func (e *TezosEventsEmitter) fetchTransfersFromLastStoppedLevel(lastStoppedLevel
 	}
 }
 
-func (e *TezosEventsEmitter) processTranferEvent(ctx context.Context, transfer tzkt.TokenTransfer) {
-	var fromAddress string
-	eventType := "mint"
+func (e *TezosEventsEmitter) fetchTokenBigmapUpdateByLevel(level uint64) {
+	offset := 0
+	pageSize := 100
 
-	if transfer.From != nil {
-		fromAddress = transfer.From.Address
-		eventType = "transfer"
+	for {
+		updates, err := e.tzkt.GetTokenMetadataBigmapUpdatesByLevel(fmt.Sprintf("%d", level), offset, pageSize)
+		if err != nil {
+			log.Error("failed to fetch token metadata bigmap updates from level: ",
+				zap.Error(err), zap.Uint64("level", level), zap.Int("offset", offset), log.SourceTZKT)
+			return
+		}
+
+		for _, update := range updates {
+			e.eventChan <- e.tokenMetadataUpdateToEvent(update)
+		}
+
+		if len(updates) < pageSize {
+			break
+		}
+
+		offset += pageSize
 	}
+}
 
-	log.Debug("received transfer event on tezos",
-		zap.String("eventType", eventType),
-		zap.String("from", fromAddress),
-		zap.String("to", transfer.To.Address),
-		zap.String("contractAddress", transfer.Token.Contract.Address),
-		zap.String("tokenID", transfer.Token.ID.String()),
-		zap.String("txID", strconv.FormatUint(transfer.TransactionID, 10)),
-		zap.String("txTime", transfer.Timestamp.String()),
+func (e *TezosEventsEmitter) processTokenEvent(ctx context.Context, event TokenEvent) {
+	log.Debug("received event on tezos",
+		zap.String("eventType", string(event.EventType)),
+		zap.String("from", event.From),
+		zap.String("to", event.To),
+		zap.String("contractAddress", event.ContractAddress),
+		zap.String("tokenID", event.TokenID),
+		zap.String("txID", event.TxID),
+		zap.String("txTime", event.TxTime.String()),
 	)
 
-	if err := e.PushEvent(ctx, eventType, fromAddress, transfer.To.Address,
-		transfer.Token.Contract.Address, utils.TezosBlockchain, transfer.Token.ID.String(),
-		strconv.FormatUint(transfer.TransactionID, 10), 0, transfer.Timestamp); err != nil {
+	if err := e.PushEvent(ctx, string(event.EventType), event.From, event.To,
+		event.ContractAddress, event.Blockchain, event.TokenID,
+		event.TxID, 0, event.TxTime); err != nil {
 		log.Error("gRPC request failed", zap.Error(err), log.SourceGRPC)
 		return
 	}
 
-	if transfer.Level > lastStoppedBlock {
-		lastStoppedBlock = transfer.Level
+	if event.Level > lastStoppedBlock {
+		lastStoppedBlock = event.Level
 		if err := e.parameterStore.Put(ctx, e.lastBlockKeyName, strconv.FormatUint(lastStoppedBlock, 10)); err != nil {
 			log.Error("error put parameterStore", zap.Error(err), log.SourceGRPC)
 			return
 		}
+	}
+}
+
+func (e *TezosEventsEmitter) tokenTransferToEvent(transfer tzkt.TokenTransfer) TokenEvent {
+	var fromAddress string
+	eventType := EventTypeMint
+
+	if transfer.From != nil {
+		fromAddress = transfer.From.Address
+		eventType = EventTypeTransfer
+	}
+
+	return TokenEvent{
+		EventType:       eventType,
+		From:            fromAddress,
+		To:              transfer.To.Address,
+		ContractAddress: transfer.Token.Contract.Address,
+		Blockchain:      utils.TezosBlockchain,
+		TokenID:         transfer.Token.ID.String(),
+		TxID:            strconv.FormatUint(transfer.TransactionID, 10),
+		TxTime:          transfer.Timestamp,
+		Level:           transfer.Level,
+	}
+}
+
+func (e *TezosEventsEmitter) tokenMetadataUpdateToEvent(bigmap tzkt.BigmapUpdate) TokenEvent {
+	return TokenEvent{
+		EventType:       EventTypeTokenUpdated,
+		From:            "",
+		To:              "",
+		ContractAddress: bigmap.Contract.Address,
+		Blockchain:      utils.TezosBlockchain,
+		TokenID:         bigmap.Content.Value.TokenID,
+		TxID:            strconv.FormatUint(bigmap.ID, 10),
+		TxTime:          bigmap.Timestamp,
+		Level:           bigmap.Level,
 	}
 }

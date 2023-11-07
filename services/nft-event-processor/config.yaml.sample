@@ -3,13 +3,21 @@ server:
   network: tcp
   address: localhost:8765
 
+events:
+  check_interval_seconds:
+    token_updated: 1
+    exanple_event_name: 10
+  process_delay_seconds:
+    token_updated: 10
+    exanple_event_name: 10
+
 store:
   dsn:
   cache_expiry: 24h
   log_level: 1
 
 environment: development
-check_interval: 5s
+default_check_interval: 5s
 
 log:
   level: debug

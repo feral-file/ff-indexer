@@ -2,11 +2,26 @@ package main
 
 import "time"
 
-var EventStages = map[int8]string{
-	1: "stage_1_update_the_latest_owner",
-	2: "stage_2_full_sync",
-	3: "stage_3_send_notification",
-	4: "stage_4_send_to_feed",
+type Stage int8
+
+const (
+	StageDone         = 0
+	StageInit         = 1
+	StageFullSync     = 2
+	StageNotification = 3
+
+	// deprecated
+	StageFeed = 4
+
+	StageDoubleSync = 11
+)
+
+var EventStages = map[Stage]string{
+	StageInit:         "stage_1_init",
+	StageFullSync:     "stage_2_full_sync",
+	StageNotification: "stage_3_send_notification",
+	StageFeed:         "stage_4_send_to_feed",
+	StageDoubleSync:   "stage_11_double_sync_token",
 }
 
 const DefaultCheckInterval = 10 * time.Second

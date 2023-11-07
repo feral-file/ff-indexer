@@ -26,6 +26,12 @@ serviceConfig:
     tezos: testnet
     ethereum: testnet
     bitmark: testnet
+  preferred_gateways:
+  - ipfs.test.bitmark.com
+  - ipfs.bitmark.com
+  - nftstorage.link
+  - ipfs.nftstorage.link
+  - ipfs.io
   minter_gateways:
     tz1hQbuRax3op9knY3YDxqNnqxzcmoxmv1qa: ipfs.test.bitmark.com
   asset_server:

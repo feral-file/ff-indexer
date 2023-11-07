@@ -10,7 +10,7 @@ import (
 	cadenceClient "go.uber.org/cadence/client"
 	"go.uber.org/zap"
 
-	"github.com/bitmark-inc/autonomy-logger"
+	log "github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/nft-indexer/cadence"
 )
 
@@ -20,7 +20,7 @@ func StartIndexTokenWorkflow(c context.Context, client *cadence.WorkerClient, ow
 		ID:                           fmt.Sprintf("index-single-nft-%s-%s", contract, tokenID),
 		TaskList:                     TaskListName,
 		ExecutionStartToCloseTimeout: 2 * time.Hour,
-		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyTerminateIfRunning,
 	}
 
 	var w NFTIndexerWorker
@@ -31,7 +31,6 @@ func StartIndexTokenWorkflow(c context.Context, client *cadence.WorkerClient, ow
 		log.Error("fail to start indexing workflow",
 			zap.Error(err),
 			zap.String("owner", owner), zap.String("contract", contract), zap.String("token_id", tokenID))
-
 	} else {
 		log.Debug("start workflow to index a token",
 			zap.String("owner", owner),
@@ -161,54 +160,6 @@ func StartPendingTxFollowUpWorkflow(c context.Context, client *cadence.WorkerCli
 		}
 	} else {
 		log.Debug("start workflow for updating pending account tokens", zap.String("workflow_id", workflow.ID))
-	}
-
-	return nil
-}
-
-func StartUpdateSuggestedMIMETypeCronWorkflow(c context.Context, client *cadence.WorkerClient, delay time.Duration) error {
-	workflowContext := cadenceClient.StartWorkflowOptions{
-		ID:                           "update-token-suggested-mime-type",
-		TaskList:                     AccountTokenTaskListName,
-		ExecutionStartToCloseTimeout: time.Hour,
-		CronSchedule:                 "0 * * * *", //every hour
-	}
-
-	var w NFTIndexerWorker
-
-	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.UpdateSuggestedMIMETypeWorkflow, delay)
-	if err != nil {
-		log.Error("fail to start updating suggested mime type workflow", zap.Error(err))
-		_, isAlreadyStartedError := err.(*shared.WorkflowExecutionAlreadyStartedError)
-		if !isAlreadyStartedError {
-			return err
-		}
-	} else {
-		log.Debug("start workflow for updating suggested mime type", zap.String("workflow_id", workflow.ID))
-	}
-
-	return nil
-}
-
-func StartDetectAssetChangeWorkflow(c context.Context, client *cadence.WorkerClient) error {
-	workflowContext := cadenceClient.StartWorkflowOptions{
-		ID:                           "detect-asset-change-helper",
-		TaskList:                     AccountTokenTaskListName,
-		ExecutionStartToCloseTimeout: time.Hour,
-		CronSchedule:                 "*/5 * * * *", //every hour
-	}
-
-	var w NFTIndexerWorker
-
-	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.DetectAssetChangeWorkflow)
-	if err != nil {
-		log.Error("fail to start detect asset change workflow", zap.Error(err))
-		_, isAlreadyStartedError := err.(*shared.WorkflowExecutionAlreadyStartedError)
-		if !isAlreadyStartedError {
-			return err
-		}
-	} else {
-		log.Debug("start workflow for detecting asset change", zap.String("workflow_id", workflow.ID))
 	}
 
 	return nil

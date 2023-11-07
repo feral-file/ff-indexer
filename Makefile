@@ -110,6 +110,10 @@ run-nft-bitmark-emitter: nft-bitmark-emitter
 renew-event-processor-grpc:
 	protoc --proto_path=protos --go-grpc_out=services/nft-event-processor/ --go_out=services/nft-event-processor/ event-processor.proto
 
+.PHONY: generate-nft-indexer-graphql
+generate-nft-indexer-graphql:
+	cd services/nft-indexer/graph && go run github.com/99designs/gqlgen generate
+
 .PHONY: build
 build: nft-indexer nft-indexer-background nft-event-processor nft-provenance-indexer nft-account-token-indexer nft-ethereum-emitter nft-tezos-emitter nft-bitmark-emitter
 
