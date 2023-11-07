@@ -199,7 +199,8 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageReade
 				log.Debug("caught cloudflare ratelimit error", zap.String("type", string(cerr.Type())))
 				return err
 			case *cloudflare.RequestError:
-				log.Debug("caught cloudflare request error", zap.Any("codes", cerr.ErrorCodes()))
+				log.Debug("caught cloudflare request error", zap.String("type", string(cerr.Type())),
+					zap.Any("codes", cerr.ErrorCodes()), zap.Any("msg", cerr.ErrorMessages()))
 				for _, code := range cerr.ErrorCodes() {
 					if code == 9422 {
 						return NewImageCachingError(ReasonBrokenImage)
@@ -207,7 +208,7 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageReade
 				}
 				return err
 			case *cloudflare.ServiceError:
-				log.Debug("caught cloudflare serivce error", zap.Any("codes", cerr.ErrorCodes()))
+				log.Debug("caught cloudflare serivce error", zap.Any("codes", cerr.ErrorCodes()), zap.Any("msg", cerr.ErrorMessages()))
 				return err
 			}
 
