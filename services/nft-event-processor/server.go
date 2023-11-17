@@ -171,7 +171,7 @@ func (e *EventProcessor) ProcessEvents(ctx context.Context) {
 	e.NotifyChangeTokenOwner(ctx)
 
 	//stage 4: send to feed server
-	// e.SendEventToFeedServer(ctx)
+	e.SendEventToFeedServer(ctx)
 }
 
 // GetAccountIDByAddress get account IDS by address
