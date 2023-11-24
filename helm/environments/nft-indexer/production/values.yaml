@@ -62,12 +62,6 @@ ingress:
   enabled: true
   external_dns: true
   hosts:
-    - host: nft-indexer.bitmark.com
-      issuerRef:
-        name: letsencrypt-dns
-        kind: ClusterIssuer
-      paths:
-        - "/"
     - host: indexer.autonomy.io
       issuerRef:
         name: letsencrypt-aws-dns
