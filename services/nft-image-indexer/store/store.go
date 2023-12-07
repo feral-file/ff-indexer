@@ -6,13 +6,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"os/exec"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/bitmark-inc/autonomy-logger"
+	log "github.com/bitmark-inc/autonomy-logger"
 	"github.com/cloudflare/cloudflare-go"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -26,8 +25,8 @@ const CloudflareImageDeilverURL = "https://imagedelivery.net/%s/%s/public"
 
 type Metadata map[string]interface{}
 
-type ImageDownloader interface {
-	Download() (io.Reader, string, int, error)
+type ImageReader interface {
+	Read() (io.Reader, string, int, error)
 }
 
 const ImageSizeThreshold = 10 * 1024 * 1024 // 10MB
@@ -80,7 +79,8 @@ func New(dsn string, cloudflareAccountHash, cloudflareAccountID, cloudflareAPITo
 	// SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
 	sqldb.SetConnMaxLifetime(time.Hour)
 
-	cloudflareAPI, err := cloudflare.NewWithAPIToken(cloudflareAPIToken)
+	cloudflareAPI, err := cloudflare.NewWithAPIToken(cloudflareAPIToken,
+		cloudflare.Debug(viper.GetBool("debug")), cloudflare.UsingLogger(log.CloudflareLogger()))
 	if err != nil {
 		panic(err)
 	}
@@ -123,7 +123,7 @@ func (s *ImageStore) CreateOrGetImage(ctx context.Context, assetID string) (Imag
 // After an image is successfully uploaded to cloudflare, it updates the returned image id into image store.
 // It locks an image record for updating which prevents from duplicated download precess
 // The additional metadata will be attached to the image file when we upload it to cloudflare.
-func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownloader ImageDownloader, metadata map[string]interface{}) (ImageMetadata, error) {
+func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageReader ImageReader, metadata map[string]interface{}) (ImageMetadata, error) {
 	var image ImageMetadata
 	var cloudflareImageID string
 
@@ -155,7 +155,7 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 		}
 
 		downloadStartTime := time.Now()
-		file, mimeType, imageSize, err := imageDownloader.Download()
+		file, mimeType, imageSize, err := imageReader.Read()
 		if err != nil {
 			return NewImageCachingError(ReasonDownloadFileFailed)
 		}
@@ -194,6 +194,24 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageDownl
 
 		i, err := s.cloudflareAPI.UploadImage(ctx, s.cloudflareAccountID, uploadRequest)
 		if err != nil {
+			switch cerr := err.(type) {
+			case *cloudflare.RatelimitError:
+				log.Debug("caught cloudflare ratelimit error", zap.String("type", string(cerr.Type())))
+				return err
+			case *cloudflare.RequestError:
+				log.Debug("caught cloudflare request error", zap.String("type", string(cerr.Type())),
+					zap.Any("codes", cerr.ErrorCodes()), zap.Any("msg", cerr.ErrorMessages()))
+				for _, code := range cerr.ErrorCodes() {
+					if code == 9422 {
+						return NewImageCachingError(ReasonBrokenImage)
+					}
+				}
+				return err
+			case *cloudflare.ServiceError:
+				log.Debug("caught cloudflare serivce error", zap.Any("codes", cerr.ErrorCodes()), zap.Any("msg", cerr.ErrorMessages()))
+				return err
+			}
+
 			isErrSizeTooLarge, _ := regexp.MatchString("entity.*too large", err.Error())
 			if isErrSizeTooLarge {
 				return NewImageCachingError(ReasonFileSizeTooLarge)
@@ -249,7 +267,8 @@ func compressImage(file io.Reader) (io.Reader, error) {
 		"-update", "1",
 		"-f", "image2", "pipe:1")
 
-	cmd.Stderr = os.Stderr
+	var execErr bytes.Buffer
+	cmd.Stderr = &execErr
 	cmd.Stdout = resultBuffer
 
 	stdin, _ := cmd.StdinPipe()
@@ -273,5 +292,5 @@ func compressImage(file io.Reader) (io.Reader, error) {
 		return compressImage(resultBuffer)
 	}
 
-	return file, nil
+	return resultBuffer, nil
 }

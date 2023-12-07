@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -483,96 +482,6 @@ func (s *NFTIndexerServer) CreateDemoTokens(c *gin.Context) {
 		"ok":      1,
 		"message": "tokens in the system are added",
 	})
-}
-
-func (s *NFTIndexerServer) GetAbsentMimeTypeTokens(c *gin.Context) {
-	traceutils.SetHandlerTag(c, "GetAbsentMimeTypeTokens")
-
-	userDID := c.GetString("requester")
-
-	absentMIMETypeToken, err := s.indexerStore.GetAbsentMimeTypeTokens(c, 5)
-	if err != nil {
-		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
-		return
-	}
-
-	tokenIDs := map[string]bool{}
-	for _, t := range absentMIMETypeToken {
-		tokenIDs[t.IndexID] = true
-	}
-
-	rq := RequestedTokenFeedback{
-		DID:       userDID,
-		Timestamp: time.Now().Unix(),
-		Tokens:    tokenIDs,
-	}
-
-	data, err := json.Marshal(rq)
-	if err != nil {
-		abortWithError(c, http.StatusInternalServerError, "fail to encode tokens", err)
-		return
-	}
-
-	sealedRequest, err := indexer.AESSeal(data, s.secretSymmetricKey)
-
-	if err != nil {
-		abortWithError(c, http.StatusInternalServerError, "fail to generate signature", err)
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"tokens":    absentMIMETypeToken,
-		"requestID": sealedRequest,
-	})
-}
-
-func (s *NFTIndexerServer) FeedbackMimeTypeTokens(c *gin.Context) {
-	traceutils.SetHandlerTag(c, "FeedbackMimeTypeTokens")
-
-	userDID := c.GetString("requester")
-
-	var tokenFeedbacks TokenFeedbackParams
-
-	if err := c.Bind(&tokenFeedbacks); err != nil {
-		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
-		return
-	}
-
-	data, err := indexer.AESOpen(tokenFeedbacks.RequestID, s.secretSymmetricKey)
-	if err != nil {
-		abortWithError(c, http.StatusBadRequest, "fail to decrypt signature", err)
-		return
-	}
-
-	var rq RequestedTokenFeedback
-	if err := json.Unmarshal(data, &rq); err != nil {
-		abortWithError(c, http.StatusBadRequest, "fail to decode signature", err)
-		return
-	}
-
-	if rq.DID != userDID {
-		abortWithError(c, http.StatusBadRequest, "user DID mismatch", err)
-		return
-	}
-
-	if rq.Timestamp < time.Now().Add(-30*time.Minute).Unix() {
-		abortWithError(c, http.StatusBadRequest, "error request time too skewed", err)
-		return
-	}
-
-	for _, tokenFeedback := range tokenFeedbacks.Tokens {
-		if _, contains := rq.Tokens[tokenFeedback.IndexID]; !contains {
-			abortWithError(c, http.StatusBadRequest, "indexIDs mismatch", err)
-			return
-		}
-	}
-
-	if s.indexerStore.UpdateTokenFeedback(c, tokenFeedbacks.Tokens, userDID) != nil {
-		abortWithError(c, http.StatusInternalServerError, "fail to update token feedback to indexer store", err)
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"ok": 1})
 }
 
 // GetAccountNFTsV2 queries NFTsV2 based on by owners & lastUpdatedAt

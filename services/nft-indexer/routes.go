@@ -47,11 +47,6 @@ func (s *NFTIndexerServer) SetupRoute() {
 	v1NFT.POST("/pending", s.SetTokenPendingV1)
 	v1NFT.GET("/owned", s.OwnedNFTIDs)
 
-	v1NFTHelp := v1NFT.Group("/help")
-	v1NFTHelp.Use(s.authenticate)
-	v1NFTHelp.GET("", s.GetAbsentMimeTypeTokens)
-	v1NFTHelp.POST("/feedback", s.FeedbackMimeTypeTokens)
-
 	v1.POST("/admin/demo-tokens/", TokenAuthenticate("API-TOKEN", s.adminAPIToken), s.CreateDemoTokens)
 	v1.POST("/admin/force-reindex-nft/", TokenAuthenticate("API-TOKEN", s.adminAPIToken), s.ForceReindexNFT)
 

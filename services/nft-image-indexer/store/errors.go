@@ -7,6 +7,7 @@ import (
 
 // Reason keys for unsupported errors
 const (
+	ReasonBrokenImage                 = "ErrBrokenImage"
 	ReasonUnsupportedImageType        = "ErrUnsupportedImageType"
 	ReasonUnsupportedSVGFile          = "ErrUnsupportedSVGFile"
 	ReasonDownloadFileFailed          = "ErrDownloadFileFailed"
@@ -15,6 +16,7 @@ const (
 )
 
 var ImageCachingErrorReasons = map[string]string{ // string string
+	ReasonBrokenImage:                 "broken image",
 	ReasonUnsupportedImageType:        "unsupported image type",
 	ReasonUnsupportedSVGFile:          "unsupported SVG File",
 	ReasonDownloadFileFailed:          "download file error",
@@ -36,7 +38,7 @@ func (e *ImageCachingError) Reason() string {
 }
 
 func (e *ImageCachingError) Error() string {
-	return ImageCachingErrorReasons[e.Reason()]
+	return fmt.Sprintf("known image caching error: %s", ImageCachingErrorReasons[e.Reason()])
 }
 
 // NewImageCachingError retuns ImageCachingError if a reson is given.

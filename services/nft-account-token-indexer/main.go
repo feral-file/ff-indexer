@@ -97,8 +97,6 @@ func main() {
 
 	// workflows
 	workflow.Register(worker.PendingTxFollowUpWorkflow)
-	workflow.Register(worker.UpdateSuggestedMIMETypeWorkflow)
-	workflow.Register(worker.DetectAssetChangeWorkflow)
 
 	// activities
 	activity.Register(worker.GetTxTimestamp)
@@ -106,8 +104,6 @@ func main() {
 	activity.Register(worker.GetTokenBalanceOfOwner)
 	activity.Register(worker.IndexAccountTokens)
 	activity.Register(worker.UpdatePendingTxsToAccountToken)
-	activity.Register(worker.CalculateMIMETypeFromTokenFeedback)
-	activity.Register(worker.UpdatePresignedThumbnailAssets)
 
 	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)
 
@@ -115,14 +111,6 @@ func main() {
 	cadenceClient.AddService(indexerWorker.ClientName)
 
 	if err := indexerWorker.StartPendingTxFollowUpWorkflow(ctx, cadenceClient, 0); err != nil {
-		panic(err)
-	}
-
-	if err := indexerWorker.StartUpdateSuggestedMIMETypeCronWorkflow(ctx, cadenceClient, 0); err != nil {
-		panic(err)
-	}
-
-	if err := indexerWorker.StartDetectAssetChangeWorkflow(ctx, cadenceClient); err != nil {
 		panic(err)
 	}
 
