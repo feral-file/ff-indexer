@@ -17,7 +17,7 @@ environment: development
 
 network:
   tezos: testnet
-  ethereum: testnet
+  ethereum: sepolia
   bitmark: testnet
 
 opensea:

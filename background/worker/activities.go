@@ -63,22 +63,22 @@ func (w *NFTIndexerWorker) GetOwnedERC721TokenIDByContract(_ context.Context, co
 }
 
 // IndexETHTokenByOwner indexes ETH token data for an owner into the format of AssetUpdates
-func (w *NFTIndexerWorker) IndexETHTokenByOwner(ctx context.Context, owner string, offset int) (int, error) {
+func (w *NFTIndexerWorker) IndexETHTokenByOwner(ctx context.Context, owner string, next string) (string, error) {
 	log.Debug("IndexETHTokenByOwner", zap.String("owner", owner))
-	updates, err := w.indexerEngine.IndexETHTokenByOwner(owner, offset)
+	updates, next, err := w.indexerEngine.IndexETHTokenByOwner(owner, next)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 
 	if len(updates) == 0 {
-		return 0, nil
+		return "", nil
 	}
 
 	accountTokens := []indexer.AccountToken{}
 
 	for _, update := range updates {
 		if err := w.indexerStore.IndexAsset(ctx, update.ID, update); err != nil {
-			return 0, err
+			return "", err
 		}
 
 		accountTokens = append(accountTokens, indexer.AccountToken{
@@ -92,10 +92,10 @@ func (w *NFTIndexerWorker) IndexETHTokenByOwner(ctx context.Context, owner strin
 	}
 
 	if err := w.IndexAccountTokens(ctx, owner, accountTokens); err != nil {
-		return 0, err
+		return "", err
 	}
 
-	return len(updates), nil
+	return next, nil
 }
 
 // IndexTezosTokenByOwner indexes Tezos token data for an owner into the format of AssetUpdates

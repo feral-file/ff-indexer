@@ -28,21 +28,21 @@ func (w *NFTIndexerWorker) IndexETHTokenWorkflow(ctx workflow.Context, tokenOwne
 		return err
 	}
 
-	var offset = 0
+	var next = ""
 	for {
-		var updateCounts int
+		var nextPointer string
 
-		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx, ""), w.IndexETHTokenByOwner, ethTokenOwner, offset).Get(ctx, &updateCounts); err != nil {
+		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx, ""), w.IndexETHTokenByOwner, ethTokenOwner, next).Get(ctx, &nextPointer); err != nil {
 			sentry.CaptureException(err)
 			return err
 		}
 
-		if updateCounts == 0 {
-			log.Debug("[loop] no token found from ethereum", zap.String("owner", ethTokenOwner), zap.Int("offset", offset))
+		if nextPointer == "" {
+			log.Debug("[loop] no next tokens found from ethereum", zap.String("owner", ethTokenOwner))
 			break
 		}
 
-		offset += updateCounts
+		next = nextPointer
 	}
 
 	log.Info("ETH tokens indexed", zap.String("owner", ethTokenOwner))

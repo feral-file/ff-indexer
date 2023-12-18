@@ -29,27 +29,28 @@ type TransactionDetails struct {
 }
 
 // IndexETHTokenByOwner indexes all tokens owned by a specific ethereum address
-func (e *IndexEngine) IndexETHTokenByOwner(owner string, offset int) ([]AssetUpdates, error) {
+func (e *IndexEngine) IndexETHTokenByOwner(owner string, next string) ([]AssetUpdates, string, error) {
 	if _, excluded := EthereumIndexExcludedOwners[owner]; excluded {
-		return nil, nil
+		return nil, "", nil
 	}
 
-	assets, err := e.opensea.RetrieveAssets(owner, offset)
+	assets, err := e.opensea.RetrieveAssets(owner, next)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	tokenUpdates := make([]AssetUpdates, 0, len(assets))
+	tokenUpdates := make([]AssetUpdates, 0, len(assets.NFTs))
 
-	for _, a := range assets {
+	for _, a := range assets.NFTs {
 		balance := int64(1) // set default balance to 1 to reduce extra call to opensea
 		log.Debug("get token balance",
-			zap.String("contract", a.AssetContract.Address),
-			zap.String("tokenID", a.TokenID),
+			zap.String("contract", a.Contract),
+			zap.String("tokenID", a.Identifier),
 			zap.String("owner", owner),
 			zap.Int64("balance", balance))
 
-		update, err := e.indexETHToken(&a, owner, balance)
+		detailedAsset, err := e.opensea.RetrieveAsset(a.Contract, a.Identifier)
+		update, err := e.indexETHToken(detailedAsset, owner, balance)
 		if err != nil {
 			log.Error("fail to index token data", zap.Error(err))
 		}
@@ -59,7 +60,7 @@ func (e *IndexEngine) IndexETHTokenByOwner(owner string, offset int) ([]AssetUpd
 		}
 	}
 
-	return tokenUpdates, nil
+	return tokenUpdates, assets.Next, nil
 }
 
 // getEthereumTokenBalanceOfOwner returns current balance of a token that the owner owns
@@ -108,20 +109,19 @@ func (e *IndexEngine) IndexETHToken(_ context.Context, contract, tokenID string)
 
 // indexETHToken prepares indexing data for a specific asset read from opensea
 // The reason to use owner as a parameter is that opensea sometimes returns zero address for it owners. Why?
-func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int64) (*AssetUpdates, error) {
+func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, balance int64) (*AssetUpdates, error) {
 	dataSource := SourceOpensea
 
 	var sourceURL string
 	var artistURL string
-	artistID := EthereumChecksumAddress(a.Creator.Address)
-	artistName := a.Creator.User.Username
-	contractAddress := EthereumChecksumAddress(a.AssetContract.Address)
+	artistID := EthereumChecksumAddress(a.Creator)
+	contractAddress := EthereumChecksumAddress(a.Contract)
 	switch contractAddress {
 	case ENSContractAddress1, ENSContractAddress2:
 		return nil, nil
 	}
 
-	source := getTokenSourceByPreviewURL(a.AnimationOriginURL)
+	source := getTokenSourceByPreviewURL(a.AnimationURL)
 	if source == "" {
 		source = getTokenSourceByContract(contractAddress)
 	}
@@ -129,32 +129,26 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 	switch source {
 	case sourceArtBlocks:
 		sourceURL = "https://www.artblocks.io/"
-		artistURL = fmt.Sprintf("%s/%s", sourceURL, a.Creator.Address)
+		artistURL = fmt.Sprintf("%s/%s", sourceURL, a.Creator)
 	case sourceCrayonCodes:
 		sourceURL = "https://openprocessing.org/crayon/"
-		artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator.Address)
+		artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator)
 	default:
 		if viper.GetString("network") == "testnet" {
 			sourceURL = "https://testnets.opensea.io"
 		} else {
 			sourceURL = "https://opensea.io"
 		}
-		artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator.Address)
+		artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator)
 	}
 
-	log.Debug("source debug", zap.String("source", source), zap.Int64("assetID", a.ID))
-
-	if a.Creator.Address != "" {
-		if artistName == "" {
-			artistName = artistID
-		}
-	}
+	log.Debug("source debug", zap.String("source", source), zap.String("contract", a.Contract), zap.String("id", a.Identifier))
 
 	// Opensea GET assets API just provide a creator, not multiple creator
 	artists := []Artist{
 		{
 			ID:   artistID,
-			Name: artistName,
+			Name: artistID,
 			URL:  artistURL,
 		},
 	}
@@ -166,22 +160,14 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 
 	// fallback to project origin image url
 	if imageURL == "" {
-		imageURL = a.ImageOriginURL
-	}
-
-	galleryThumbnailURL := a.ImagePreviewURL
-	if galleryThumbnailURL == "" {
-		galleryThumbnailURL = a.ImageOriginURL
+		imageURL = a.ImageURL
 	}
 
 	animationURL := a.AnimationURL
-	if animationURL == "" {
-		animationURL = a.AnimationOriginURL
-	}
 
 	metadata := ProjectMetadata{
 		ArtistID:            artistID,
-		ArtistName:          artistName,
+		ArtistName:          artistID,
 		ArtistURL:           artistURL,
 		AssetID:             contractAddress,
 		Title:               a.Name,
@@ -190,10 +176,10 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 		Medium:              MediumUnknown,
 		Source:              source,
 		SourceURL:           sourceURL,
-		PreviewURL:          imageURL,
-		ThumbnailURL:        imageURL,
-		GalleryThumbnailURL: galleryThumbnailURL,
-		AssetURL:            a.Permalink,
+		PreviewURL:          a.ImageURL,
+		ThumbnailURL:        a.ImageURL,
+		GalleryThumbnailURL: a.ImageURL,
+		AssetURL:            a.OpenseaURL,
 		LastUpdatedAt:       time.Now(),
 		Artists:             artists,
 	}
@@ -213,30 +199,24 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 		metadata.Medium = MediumImage
 	}
 
-	contractType := strings.ToLower(a.AssetContract.SchemaName)
+	contractType := strings.ToLower(a.TokenStandard)
 	fungible := contractType != "erc721"
-
-	// FIXME: this would increase the overhead of opensea API, need to be address later.
-	lastActivityTime, err := e.opensea.GetTokenLastActivityTime(contractAddress, a.TokenID)
-	if err != nil {
-		log.Info("fail to get token lastActivityTime")
-	}
 
 	token := Token{
 		BaseTokenInfo: BaseTokenInfo{
-			ID:              a.TokenID,
+			ID:              a.Identifier,
 			Blockchain:      utils.EthereumBlockchain,
 			Fungible:        fungible,
 			ContractType:    contractType,
 			ContractAddress: contractAddress,
 		},
-		IndexID:           TokenIndexID(utils.EthereumBlockchain, contractAddress, a.TokenID),
+		IndexID:           TokenIndexID(utils.EthereumBlockchain, contractAddress, a.Identifier),
 		Edition:           e.GetEditionNumberByName(a.Name),
 		Balance:           balance,
 		Owner:             owner,
-		MintedAt:          a.AssetContract.CreatedDate.Time, // set minted_at to the contract creation time
+		MintedAt:          a.CreatedAt.Time, // set minted_at to the contract creation time
 		LastRefreshedTime: time.Now(),
-		LastActivityTime:  lastActivityTime,
+		LastActivityTime:  a.UpdatedAt.Time,
 	}
 
 	if owner != "" {
@@ -244,7 +224,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 	}
 
 	tokenUpdate := &AssetUpdates{
-		ID:              fmt.Sprintf("%d", a.ID),
+		ID:              fmt.Sprintf("%s-%s", a.Contract, a.Identifier),
 		Source:          dataSource,
 		ProjectMetadata: metadata,
 		Tokens:          []Token{token},
@@ -252,15 +232,10 @@ func (e *IndexEngine) indexETHToken(a *opensea.Asset, owner string, balance int6
 
 	log.Debug("asset updating data prepared",
 		zap.String("blockchain", utils.EthereumBlockchain),
-		zap.String("id", TokenIndexID(utils.EthereumBlockchain, contractAddress, a.TokenID)),
+		zap.String("id", TokenIndexID(utils.EthereumBlockchain, contractAddress, a.Identifier)),
 		zap.Any("tokenUpdate", tokenUpdate))
 
 	return tokenUpdate, nil
-}
-
-// IndexETHTokenLastActivityTime indexes the last activity timestamp of a given token
-func (e *IndexEngine) IndexETHTokenLastActivityTime(contract, tokenID string) (time.Time, error) {
-	return e.opensea.GetTokenLastActivityTime(contract, tokenID)
 }
 
 // IndexETHTokenOwners indexes owners of a given token
