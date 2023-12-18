@@ -50,6 +50,11 @@ func (e *IndexEngine) IndexETHTokenByOwner(owner string, next string) ([]AssetUp
 			zap.Int64("balance", balance))
 
 		detailedAsset, err := e.opensea.RetrieveAsset(a.Contract, a.Identifier)
+		if err != nil {
+			log.Error("fail to fetch detailed index token data", zap.Error(err))
+			continue
+		}
+
 		update, err := e.indexETHToken(detailedAsset, owner, balance)
 		if err != nil {
 			log.Error("fail to index token data", zap.Error(err))
