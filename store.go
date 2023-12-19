@@ -1157,7 +1157,7 @@ func (s *MongodbIndexerStore) IndexIdentity(ctx context.Context, identity Accoun
 
 // AddPendingTxToAccountToken add pendingTx to a specific account token if this pendingTx does not exist
 func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx, blockchain, ID string) error {
-	r, err := s.accountTokenCollection.UpdateOne(ctx,
+	_, err := s.accountTokenCollection.UpdateOne(ctx,
 		bson.M{
 			"indexID":      indexID,
 			"ownerAccount": ownerAccount,
@@ -1184,29 +1184,29 @@ func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ow
 		return err
 	}
 
-	if r.MatchedCount == 0 || r.ModifiedCount == 0 {
-		// 1. We don't have this account token OR
-		// 2. This account token already has the pendingTx.
-		// We try to insert this account token. If an error happen, it has a
-		// high chance to be 2. We log down it with error for tracking.
-		_, err := s.accountTokenCollection.InsertOne(ctx,
-			bson.M{
-				"indexID":         indexID,
-				"ownerAccount":    ownerAccount,
-				"blockchain":      blockchain,
-				"id":              ID,
-				"lastPendingTime": bson.A{time.Now()},
-				"pendingTxs":      bson.A{pendingTx},
-			},
-		)
-		if err != nil {
-			log.Warn("cannot insert a new account token",
-				zap.Error(err),
-				zap.String("ownerAccount", ownerAccount),
-				zap.String("indexID", indexID),
-				zap.String("pendingTx", pendingTx))
-		}
-	}
+	// if r.MatchedCount == 0 || r.ModifiedCount == 0 {
+	// 	// 1. We don't have this account token OR
+	// 	// 2. This account token already has the pendingTx.
+	// 	// We try to insert this account token. If an error happen, it has a
+	// 	// high chance to be 2. We log down it with error for tracking.
+	// 	_, err := s.accountTokenCollection.InsertOne(ctx,
+	// 		bson.M{
+	// 			"indexID":         indexID,
+	// 			"ownerAccount":    ownerAccount,
+	// 			"blockchain":      blockchain,
+	// 			"id":              ID,
+	// 			"lastPendingTime": bson.A{time.Now()},
+	// 			"pendingTxs":      bson.A{pendingTx},
+	// 		},
+	// 	)
+	// 	if err != nil {
+	// 		log.Warn("cannot insert a new account token",
+	// 			zap.Error(err),
+	// 			zap.String("ownerAccount", ownerAccount),
+	// 			zap.String("indexID", indexID),
+	// 			zap.String("pendingTx", pendingTx))
+	// 	}
+	// }
 
 	return nil
 }

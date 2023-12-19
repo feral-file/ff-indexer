@@ -24,7 +24,7 @@ serviceConfig:
   logLevel: debug
   network:
     tezos: testnet
-    ethereum: testnet
+    ethereum: sepolia
     bitmark: testnet
   preferred_gateways:
   - ipfs.test.bitmark.com
