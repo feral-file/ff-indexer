@@ -164,7 +164,7 @@ func (c *Client) makeRequest(method, url string, body io.Reader) (*http.Response
 		return nil, err
 	}
 
-	if c.chain != "ethereum" {
+	if c.chain == "ethereum" {
 		req.Header.Add("X-API-KEY", c.apiKey)
 	}
 
