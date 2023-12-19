@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bitmark-inc/autonomy-logger"
+	log "github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 	"go.uber.org/zap"
 )
@@ -22,6 +22,10 @@ type Time struct {
 
 func (t *Time) UnmarshalJSON(b []byte) (err error) {
 	s := strings.Trim(string(b), "\"")
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil
+	}
 	s = strings.Split(s, "+")[0]
 	tt, err := time.Parse("2006-01-02T15:04:05.999999", s)
 	if err != nil {
@@ -36,65 +40,74 @@ func (t *Time) MarshalJSON() ([]byte, error) {
 	return t.Time.MarshalJSON()
 }
 
-type AssetContract struct {
-	Address     string `json:"address"`
-	SchemaName  string `json:"schema_name"`
-	CreatedDate Time   `json:"created_date"`
+type AssetV2 struct {
+	Identifier    string `json:"identifier"`
+	Collection    string `json:"collection"`
+	Contract      string `json:"contract"`
+	TokenStandard string `json:"token_standard"`
+	Name          string `json:"name"`
+	Description   string `json:"description"`
+	ImageURL      string `json:"image_url"`
+	MetadataURL   string `json:"metadata_url"`
+	OpenseaURL    string `json:"opensea_url"`
+	CreatedAt     Time   `json:"created_at"`
+	UpdatedAt     Time   `json:"updated_at"`
+	IsDisabled    bool   `json:"is_disabled"`
+	IsNsfw        bool   `json:"is_nsfw"`
 }
 
-type User struct {
-	Address string `json:"address"`
-	User    struct {
-		Username string `json:"username"`
-	} `json:"user"`
+type AssetsResponse struct {
+	NFTs []AssetV2 `json:"nfts"`
+	Next string    `json:"next"`
 }
 
-type Ownership struct {
-	Owner    User  `json:"owner"`
-	Quantity int64 `json:"quantity,string"`
+type DetailedAssetV2 struct {
+	Identifier    string  `json:"identifier"`
+	Collection    string  `json:"collection"`
+	Contract      string  `json:"contract"`
+	TokenStandard string  `json:"token_standard"`
+	Name          string  `json:"name"`
+	Description   string  `json:"description"`
+	ImageURL      string  `json:"image_url"`
+	MetadataURL   string  `json:"metadata_url"`
+	AnimationURL  string  `json:"animation_url"`
+	OpenseaURL    string  `json:"opensea_url"`
+	CreatedAt     Time    `json:"created_at"`
+	UpdatedAt     Time    `json:"updated_at"`
+	Owners        []Owner `json:"owners"`
+	Creator       string  `json:"creator"`
+	IsDisabled    bool    `json:"is_disabled"`
+	IsNsfw        bool    `json:"is_nsfw"`
 }
 
-type Asset struct {
-	ID                 int64  `json:"id"`
-	TokenID            string `json:"token_id"`
-	Name               string `json:"name"`
-	Description        string `json:"description"`
-	ExternalLink       string `json:"external_link"`
-	ImageURL           string `json:"image_url"`
-	ImagePreviewURL    string `json:"image_preview_url"`
-	ImageThumbnailURL  string `json:"image_thumbnail_url"`
-	ImageOriginURL     string `json:"image_original_url"`
-	AnimationURL       string `json:"animation_url"`
-	AnimationOriginURL string `json:"animation_original_url"`
-	Permalink          string `json:"permalink"`
-	TokenMetadata      string `json:"token_metadata"`
-
-	Owner         User          `json:"owner"`
-	Creator       User          `json:"creator"`
-	AssetContract AssetContract `json:"asset_contract"`
-	Ownership     *Ownership    `json:"ownership"`
+type Owner struct {
+	Address  string `json:"address"`
+	Quantity int64  `json:"quantity"`
 }
 
 type Client struct {
 	debug       bool
 	apiKey      string
 	apiEndpoint string
-	network     string
+	chain       string //chain = ethereum, goerli, sepolia
 	client      *http.Client
 
 	limiter RateLimiter
 }
 
-func New(network, apiKey string, rps int) *Client {
+func New(chain, apiKey string, rps int) *Client {
+	if chain == "" {
+		chain = "ethereum"
+	}
 	apiEndpoint := "api.opensea.io"
-	if network == "testnet" {
+	if chain != "ethereum" {
 		apiEndpoint = "testnets-api.opensea.io"
 	}
 
 	return &Client{
 		apiKey:      apiKey,
 		apiEndpoint: apiEndpoint,
-		network:     network,
+		chain:       chain,
 		client: &http.Client{
 			Timeout: 15 * time.Second,
 		},
@@ -151,7 +164,7 @@ func (c *Client) makeRequest(method, url string, body io.Reader) (*http.Response
 		return nil, err
 	}
 
-	if c.network != "testnet" {
+	if c.chain != "ethereum" {
 		req.Header.Add("X-API-KEY", c.apiKey)
 	}
 
@@ -191,17 +204,11 @@ func (c *Client) makeRequest(method, url string, body io.Reader) (*http.Response
 }
 
 // RetrieveAsset returns the token information for a contract and a token id
-func (c *Client) RetrieveAsset(contract, tokenID string) (*Asset, error) {
-	v := url.Values{
-		"asset_contract_addresses": []string{contract},
-		"token_ids":                []string{tokenID},
-	}
-
+func (c *Client) RetrieveAsset(contract, tokenID string) (*DetailedAssetV2, error) {
 	u := url.URL{
-		Scheme:   "https",
-		Host:     c.apiEndpoint,
-		Path:     "/api/v1/assets",
-		RawQuery: v.Encode(),
+		Scheme: "https",
+		Host:   c.apiEndpoint,
+		Path:   fmt.Sprintf("/api/v2/chain/%s/contract/%s/nfts/%s", c.chain, contract, tokenID),
 	}
 
 	resp, err := c.makeRequest("GET", u.String(), nil)
@@ -211,7 +218,7 @@ func (c *Client) RetrieveAsset(contract, tokenID string) (*Asset, error) {
 	defer resp.Body.Close()
 
 	var assetResp struct {
-		Assets []Asset `json:"assets"`
+		Asset DetailedAssetV2 `json:"nft"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&assetResp); err != nil {
@@ -221,26 +228,20 @@ func (c *Client) RetrieveAsset(contract, tokenID string) (*Asset, error) {
 		return nil, err
 	}
 
-	if len(assetResp.Assets) > 0 {
-		return &assetResp.Assets[0], nil
-	}
-
-	return nil, fmt.Errorf("asset not found")
+	return &assetResp.Asset, fmt.Errorf("asset not found")
 }
 
-func (c *Client) RetrieveAssets(owner string, offset int) ([]Asset, error) {
+func (c *Client) RetrieveAssets(owner string, next string) (*AssetsResponse, error) {
 	// NOTE: query by offset is removed from the document but still support at this moment.
 	v := url.Values{
-		"owner":           []string{owner},
-		"limit":           []string{"50"},
-		"order_direction": []string{"desc"},
-		"offset":          []string{fmt.Sprintf("%d", offset)},
+		"limit": []string{"50"},
+		"next":  []string{next},
 	}
 
 	u := url.URL{
 		Scheme:   "https",
 		Host:     c.apiEndpoint,
-		Path:     "/api/v1/assets",
+		Path:     fmt.Sprintf("/api/v2/chain/%s/account/%s/nfts", c.chain, owner),
 		RawQuery: v.Encode(),
 	}
 
@@ -250,9 +251,8 @@ func (c *Client) RetrieveAssets(owner string, offset int) ([]Asset, error) {
 	}
 	defer resp.Body.Close()
 
-	var assetResp struct {
-		Assets []Asset `json:"assets"`
-	}
+	var assetResp AssetsResponse
+
 	if err := json.NewDecoder(resp.Body).Decode(&assetResp); err != nil {
 		log.Error("fail to read opensea response", zap.Error(err),
 			log.SourceOpensea,
@@ -260,117 +260,5 @@ func (c *Client) RetrieveAssets(owner string, offset int) ([]Asset, error) {
 		return nil, err
 	}
 
-	return assetResp.Assets, nil
-}
-
-type TokenOwner struct {
-	Owner       User  `json:"owner"`
-	Quantity    int64 `json:"quantity,string"`
-	CreatedDate Time  `json:"created_date"`
-}
-
-type AssetOwners struct {
-	Next   *string      `json:"next"`
-	Owners []TokenOwner `json:"owners"`
-}
-
-// DEPRECATED: This function is replaced by AWS blockquery. Leave it here for future usage.
-func (c *Client) GetTokenBalanceForOwner(contract, tokenID, owner string) (int64, error) {
-	v := url.Values{
-		"account_address": []string{owner},
-	}
-
-	u := url.URL{
-		Scheme:   "https",
-		Host:     c.apiEndpoint,
-		Path:     fmt.Sprintf("/api/v1/asset/%s/%s", contract, tokenID),
-		RawQuery: v.Encode(),
-	}
-
-	resp, err := c.makeRequest("GET", u.String(), nil)
-	if err != nil {
-		return 0, err
-	}
-	defer resp.Body.Close()
-
-	var asset Asset
-	if err := json.NewDecoder(resp.Body).Decode(&asset); err != nil {
-		return 0, err
-	}
-
-	ownership := asset.Ownership
-	if ownership == nil {
-		return 0, fmt.Errorf("not the owner of this token")
-	}
-
-	if ownership.Quantity == 0 {
-		return 0, fmt.Errorf("not the owner of this token")
-	}
-
-	return ownership.Quantity, nil
-}
-
-// DEPRECATED: This function is replaced by AWS blockquery. Leave it here for future usage.
-func (c *Client) RetrieveTokenOwners(contract, tokenID string, cursor *string) ([]TokenOwner, *string, error) {
-	v := url.Values{
-		"limit":           []string{"50"},
-		"order_direction": []string{"desc"},
-	}
-
-	if cursor != nil {
-		v["cursor"] = []string{*cursor}
-	}
-
-	u := url.URL{
-		Scheme:   "https",
-		Host:     c.apiEndpoint,
-		Path:     fmt.Sprintf("/api/v1/asset/%s/%s/owners", contract, tokenID),
-		RawQuery: v.Encode(),
-	}
-
-	resp, err := c.makeRequest("GET", u.String(), nil)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer resp.Body.Close()
-
-	var ownersResp AssetOwners
-	if err := json.NewDecoder(resp.Body).Decode(&ownersResp); err != nil {
-		return nil, nil, err
-	}
-
-	return ownersResp.Owners, ownersResp.Next, nil
-}
-
-// GetTokenLastActivityTime returns the timestamp of the last activity for a token
-func (c *Client) GetTokenLastActivityTime(contract, tokenID string) (time.Time, error) {
-	v := url.Values{
-		"limit":           []string{"1"},
-		"order_by":        []string{"created_date"},
-		"order_direction": []string{"desc"},
-	}
-
-	u := url.URL{
-		Scheme:   "https",
-		Host:     c.apiEndpoint,
-		Path:     fmt.Sprintf("/api/v1/asset/%s/%s/owners", contract, tokenID),
-		RawQuery: v.Encode(),
-	}
-
-	resp, err := c.makeRequest("GET", u.String(), nil)
-	if err != nil {
-		return time.Time{}, err
-	}
-	defer resp.Body.Close()
-
-	var ownersResp AssetOwners
-	if err := json.NewDecoder(resp.Body).Decode(&ownersResp); err != nil {
-		return time.Time{}, err
-	}
-
-	if len(ownersResp.Owners) == 0 {
-		return time.Time{}, fmt.Errorf("no activities for this token")
-	}
-
-	return ownersResp.Owners[0].CreatedDate.Time, nil
+	return &assetResp, nil
 }
