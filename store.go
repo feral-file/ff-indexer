@@ -175,14 +175,14 @@ type TokenUpdateSet struct {
 // checkIfTokenNeedToUpdate returns true if the new token data is suppose to be
 // better than existent one.
 func checkIfTokenNeedToUpdate(assetSource string, currentToken Token) bool {
-	// ignore updates for swapped and burned token
-	if currentToken.Swapped || currentToken.Burned {
-		return false
-	}
-
 	// check if we need to update an existent token
 	if assetSource == SourceFeralFile {
 		return true
+	}
+
+	// ignore updates for swapped and burned token
+	if currentToken.Swapped || currentToken.Burned {
+		return false
 	}
 
 	// update only if the token source is not feral file
@@ -395,11 +395,9 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 	}
 
 	if originalToken.Burned && originalToken.SwappedTo != nil {
-		// return burned token if the SwappedTo is identical to newTokenIndexID
-		if *originalToken.SwappedTo == newTokenIndexID {
-			return newTokenIndexID, nil
+		if *originalToken.SwappedTo != newTokenIndexID {
+			return "", fmt.Errorf("token has burned into different id")
 		}
-		return "", fmt.Errorf("token has burned into different id")
 	}
 
 	originalBaseTokenInfo := originalToken.BaseTokenInfo
