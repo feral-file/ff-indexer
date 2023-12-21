@@ -228,7 +228,7 @@ func (c *Client) RetrieveAsset(contract, tokenID string) (*DetailedAssetV2, erro
 		return nil, err
 	}
 
-	return &assetResp.Asset, fmt.Errorf("asset not found")
+	return &assetResp.Asset, nil
 }
 
 func (c *Client) RetrieveAssets(owner string, next string) (*AssetsResponse, error) {
