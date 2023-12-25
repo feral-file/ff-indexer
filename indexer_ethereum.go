@@ -138,6 +138,9 @@ func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, ba
 	case sourceCrayonCodes:
 		sourceURL = "https://openprocessing.org/crayon/"
 		artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator)
+	case sourceFxHash:
+		sourceURL = "https://www.fxhash.xyz/"
+		artistURL = fmt.Sprintf("https://www.fxhash.xyz/u/%s", a.Creator)
 	default:
 		if viper.GetString("network") == "testnet" {
 			sourceURL = "https://testnets.opensea.io"
@@ -166,6 +169,10 @@ func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, ba
 	// fallback to project origin image url
 	if imageURL == "" {
 		imageURL = a.ImageURL
+	}
+
+	if source == sourceFxHash {
+		imageURL = OptimizeFxHashImageURL(imageURL)
 	}
 
 	animationURL := a.AnimationURL

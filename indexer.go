@@ -40,6 +40,7 @@ var artblocksContracts = map[string]struct{}{
 var (
 	sourceArtBlocks   = "Art Blocks"
 	sourceCrayonCodes = "Crayon Codes"
+	sourceFxHash      = "fxhash"
 )
 
 var (
@@ -71,6 +72,10 @@ func getTokenSourceByContract(contractAddress string) string {
 func getTokenSourceByPreviewURL(url string) string {
 	if artblocksMatched, _ := regexp.MatchString(`generator.artblocks.io`, url); artblocksMatched {
 		return sourceArtBlocks
+	}
+
+	if fxhashMatched, _ := regexp.MatchString(`fxhash\d+\.xyz`, url); fxhashMatched {
+		return sourceFxHash
 	}
 
 	return ""
@@ -151,6 +156,14 @@ func ipfsURLToGatewayURL(gateway, ipfsURL string) string {
 	u.Scheme = "https"
 
 	return u.String()
+}
+
+func OptimizeFxHashImageURL(imageURL string) string {
+	if strings.Contains(imageURL, "https://ipfs.io/ipfs/") {
+		return strings.ReplaceAll(imageURL, "ipfs.io", FxhashGateway)
+	}
+
+	return imageURL
 }
 
 func IsIPFSLink(url string) bool {
