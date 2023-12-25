@@ -138,6 +138,9 @@ func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, ba
 	case sourceCrayonCodes:
 		sourceURL = "https://openprocessing.org/crayon/"
 		artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator)
+	case sourceFxHash:
+		sourceURL = "https://www.fxhash.xyz/"
+		artistURL = fmt.Sprintf("https://www.fxhash.xyz/u/%s", a.Creator)
 	default:
 		if viper.GetString("network") == "testnet" {
 			sourceURL = "https://testnets.opensea.io"
@@ -158,6 +161,8 @@ func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, ba
 		},
 	}
 
+	assetURL := a.OpenseaURL
+
 	imageURL, err := OptimizedOpenseaImageURL(a.ImageURL)
 	if err != nil {
 		log.Warn("invalid opensea image url", zap.String("imageURL", a.ImageURL))
@@ -166,6 +171,11 @@ func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, ba
 	// fallback to project origin image url
 	if imageURL == "" {
 		imageURL = a.ImageURL
+	}
+
+	if source == sourceFxHash {
+		assetURL = fmt.Sprintf("https://www.fxhash.xyz/gentk/%s-%s", a.Contract, a.Identifier)
+		imageURL = OptimizeFxHashImageURL(imageURL)
 	}
 
 	animationURL := a.AnimationURL
@@ -181,10 +191,10 @@ func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, ba
 		Medium:              MediumUnknown,
 		Source:              source,
 		SourceURL:           sourceURL,
-		PreviewURL:          a.ImageURL,
-		ThumbnailURL:        a.ImageURL,
-		GalleryThumbnailURL: a.ImageURL,
-		AssetURL:            a.OpenseaURL,
+		PreviewURL:          imageURL,
+		ThumbnailURL:        imageURL,
+		GalleryThumbnailURL: imageURL,
+		AssetURL:            assetURL,
 		LastUpdatedAt:       time.Now(),
 		Artists:             artists,
 	}
