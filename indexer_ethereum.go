@@ -161,6 +161,8 @@ func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, ba
 		},
 	}
 
+	assetURL := a.OpenseaURL
+
 	imageURL, err := OptimizedOpenseaImageURL(a.ImageURL)
 	if err != nil {
 		log.Warn("invalid opensea image url", zap.String("imageURL", a.ImageURL))
@@ -172,6 +174,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, ba
 	}
 
 	if source == sourceFxHash {
+		assetURL = fmt.Sprintf("https://www.fxhash.xyz/gentk/%s-%s", a.Contract, a.Identifier)
 		imageURL = OptimizeFxHashImageURL(imageURL)
 	}
 
@@ -188,10 +191,10 @@ func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, ba
 		Medium:              MediumUnknown,
 		Source:              source,
 		SourceURL:           sourceURL,
-		PreviewURL:          a.ImageURL,
-		ThumbnailURL:        a.ImageURL,
-		GalleryThumbnailURL: a.ImageURL,
-		AssetURL:            a.OpenseaURL,
+		PreviewURL:          imageURL,
+		ThumbnailURL:        imageURL,
+		GalleryThumbnailURL: imageURL,
+		AssetURL:            assetURL,
 		LastUpdatedAt:       time.Now(),
 		Artists:             artists,
 	}
