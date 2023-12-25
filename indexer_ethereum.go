@@ -126,7 +126,12 @@ func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, ba
 		return nil, nil
 	}
 
-	source := getTokenSourceByPreviewURL(a.AnimationURL)
+	source := getTokenSourceByMetadataURL(a.MetadataURL)
+
+	if source == "" {
+		source = getTokenSourceByPreviewURL(a.AnimationURL)
+	}
+
 	if source == "" {
 		source = getTokenSourceByContract(contractAddress)
 	}
@@ -162,6 +167,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, ba
 	}
 
 	assetURL := a.OpenseaURL
+	animationURL := a.AnimationURL
 
 	imageURL, err := OptimizedOpenseaImageURL(a.ImageURL)
 	if err != nil {
@@ -175,10 +181,9 @@ func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, ba
 
 	if source == sourceFxHash {
 		assetURL = fmt.Sprintf("https://www.fxhash.xyz/gentk/%s-%s", a.Contract, a.Identifier)
-		imageURL = OptimizeFxHashImageURL(imageURL)
+		imageURL = OptimizeFxHashIPFSURL(imageURL)
+		animationURL = OptimizeFxHashIPFSURL(animationURL)
 	}
-
-	animationURL := a.AnimationURL
 
 	metadata := ProjectMetadata{
 		ArtistID:            artistID,

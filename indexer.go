@@ -81,6 +81,15 @@ func getTokenSourceByPreviewURL(url string) string {
 	return ""
 }
 
+// getTokenSourceByMetadataURL returns the token source name by inspecting the metadata url
+func getTokenSourceByMetadataURL(url string) string {
+	if fxhashMatched, _ := regexp.MatchString(`media.fxhash.xyz`, url); fxhashMatched {
+		return sourceFxHash
+	}
+
+	return ""
+}
+
 // OptimizedOpenseaImageURL get the filename by inspect opensea's cdn link.
 func OptimizedOpenseaImageURL(imageURL string) (string, error) {
 	u, err := url.Parse(imageURL)
@@ -158,12 +167,12 @@ func ipfsURLToGatewayURL(gateway, ipfsURL string) string {
 	return u.String()
 }
 
-func OptimizeFxHashImageURL(imageURL string) string {
-	if strings.Contains(imageURL, "https://ipfs.io/ipfs/") {
-		return strings.ReplaceAll(imageURL, "ipfs.io", FxhashGateway)
+func OptimizeFxHashIPFSURL(url string) string {
+	if strings.Contains(url, "https://ipfs.io/ipfs/") {
+		return strings.ReplaceAll(url, "ipfs.io", FxhashGateway)
 	}
 
-	return imageURL
+	return url
 }
 
 func IsIPFSLink(url string) bool {
