@@ -71,7 +71,7 @@ spec:
       volumes:
       - name: config
         configMap:
-          name: {{ include "nft-image-indexer-.fullname" . }}
+          name: {{ include "nft-image-indexer.fullname" . }}
           items:
             - key: config.yaml
               path: config.yaml
