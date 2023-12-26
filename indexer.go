@@ -270,7 +270,7 @@ func (detail *AssetMetadataDetail) FromTZIP21TokenMetadata(md tzkt.TokenMetadata
 	detail.Medium = mediumByMIMEType(mimeType)
 	detail.Minter = md.Minter
 
-	var optimizedFileSize = 0
+	var optimizedFileSize = tzkt.FlexInt64(0)
 	var optimizedDisplayURI string
 
 	for _, format := range md.Formats {
