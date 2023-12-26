@@ -15,5 +15,5 @@ log:
   level: info
 
 thumbnail:
-  cache_period: 144h
-  cache_retry_interval: 24h
+  cache_period: "144h"
+  cache_retry_interval: "24h"

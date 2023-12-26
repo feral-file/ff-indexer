@@ -26,3 +26,7 @@ data:
 
     log:
       level: {{ .Values.serviceConfig.logLevel | default "info" }}
+
+    thumbnail:
+      cache_period: {{ .Values.serviceConfig.cachePeriod | default "144h" }}
+      cache_retry_interval: {{ .Values.serviceConfig.cacheRetryInterval | default "24h" }}
