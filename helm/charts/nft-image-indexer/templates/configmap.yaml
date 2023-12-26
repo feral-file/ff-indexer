@@ -13,7 +13,12 @@ data:
 
     image_db:
       dsn:
-      log_level: 2 # error
+
+      # 1 = Silent
+      # 2 = Error
+      # 3 = Warn
+      # 4 = Info
+      log_level: {{ .Values.serviceConfig.dbLogLevel | default 2 }}
 
     store:
       db_uri:
@@ -21,4 +26,3 @@ data:
 
     log:
       level: {{ .Values.serviceConfig.logLevel | default "info" }}
-

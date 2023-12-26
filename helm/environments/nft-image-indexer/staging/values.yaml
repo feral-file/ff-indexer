@@ -2,3 +2,12 @@ replicaCount: 1
 
 image:
   tag: "image-indexer-07930973f2792f4e20370d06bdbbbe7c7726035d"
+
+serviceConfig:
+  logLevel: "info"
+
+  # 1 = Silent
+  # 2 = Error
+  # 3 = Warn
+  # 4 = Info
+  dbLogLevel: 2
