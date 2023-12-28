@@ -27,7 +27,10 @@ func main() {
 
 	pipeline := []bson.M{
 		{"$group": bson.D{
-			{Key: "_id", Value: "$id"},
+			{Key: "_id", Value: bson.M{
+				"id":     "$id",
+				"source": "$source",
+			}},
 			{Key: "count", Value: bson.M{"$sum": 1}},
 			{Key: "docs", Value: bson.M{"$push": "$_id"}},
 		}},
@@ -43,7 +46,6 @@ func main() {
 
 	for cursor.Next(ctx) {
 		var duplicate struct {
-			ID   string        `bson:"_id"`
 			Docs []interface{} `bson:"docs"`
 		}
 		if err := cursor.Decode(&duplicate); err != nil {
@@ -59,6 +61,6 @@ func main() {
 			log.Fatal(err)
 		}
 
-		fmt.Printf("Removed duplicates for indexID: %v\n", duplicate.ID)
+		fmt.Printf("Removed duplicates assets")
 	}
 }
