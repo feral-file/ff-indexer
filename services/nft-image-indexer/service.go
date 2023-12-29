@@ -8,15 +8,14 @@ import (
 	"sync"
 	"time"
 
+	log "github.com/bitmark-inc/autonomy-logger"
+	indexer "github.com/bitmark-inc/nft-indexer"
+	imageStore "github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/store"
 	"github.com/getsentry/sentry-go"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
-
-	log "github.com/bitmark-inc/autonomy-logger"
-	indexer "github.com/bitmark-inc/nft-indexer"
-	imageStore "github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/store"
 )
 
 type NFTAsset struct {
@@ -174,12 +173,15 @@ func (s *NFTContentIndexer) updateAssetThumbnail(ctx context.Context, indexID, t
 		}}},
 	)
 	if err != nil {
-		log.Info("update asset thumbnail failed", zap.String("indexID", indexID), zap.Error(err))
+		log.Error("update asset thumbnail failed", zap.String("indexID", indexID), zap.Error(err))
 		return err
 	}
 
-	idSegments := strings.Split(indexID, "-")
+	idSegments := strings.SplitN(indexID, "-", 2)
 	if len(idSegments) != 2 {
+		log.Error("invalid asset index id",
+			zap.String("indexID", indexID),
+			zap.Int("segments", len(idSegments)))
 		return fmt.Errorf("invalid asset index id")
 	}
 	assetID := idSegments[1]
