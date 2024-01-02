@@ -108,12 +108,23 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 // getAssetWithoutThumbnailCached looks up assets without thumbnail cached
 func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) (NFTAsset, error) {
 	var asset NFTAsset
+	ts := time.Now().Add(-s.thumbnailCacheRetryInterval)
 	r := s.nftAssets.FindOneAndUpdate(ctx,
-		bson.M{
-			// filter assets which have not been processed in the last hour.
-			// NOTE: the $lt query will exclude nil values so we need to ensure `thumbnailLastCheck`
-			// has a default value
-			"thumbnailLastCheck": bson.M{"$lt": time.Now().Add(-s.thumbnailCacheRetryInterval)},
+		bson.M{ // This is effectively "$and"
+
+			// filter recent assets which have not been processed or are not timestamped
+			//"thumbnailLastCheck": bson.M{"$lt": time.Now().Add(-s.thumbnailCacheRetryInterval)},
+			bson.M{
+				"$or": bson.A{
+					bson.M{ // this will be false of any non time values
+						"thumbnailLastCheck": bson.M{"$lt": ts},
+					},
+					bson.M{ // include null and empty string to cover both defaults
+						"thumbnailLastCheck": bson.M{"$in": bson.A{nil, ""}},
+					},
+				},
+			},
+
 			// filter assets which does not have thumbnailID or the thumbnailID is empty
 			"thumbnailID": bson.M{
 				// "$not": bson.M{"$exists": true, "$ne": ""},
