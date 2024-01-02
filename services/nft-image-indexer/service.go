@@ -114,14 +114,12 @@ func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) 
 
 			// filter recent assets which have not been processed or are not timestamped
 			//"thumbnailLastCheck": bson.M{"$lt": time.Now().Add(-s.thumbnailCacheRetryInterval)},
-			bson.M{
-				"$or": bson.A{
-					bson.M{ // this will be false of any non time values
-						"thumbnailLastCheck": bson.M{"$lt": ts},
-					},
-					bson.M{ // include null and empty string to cover both defaults
-						"thumbnailLastCheck": bson.M{"$in": bson.A{nil, ""}},
-					},
+			"$or": bson.A{
+				bson.M{ // this will be false of any non time values
+					"thumbnailLastCheck": bson.M{"$lt": ts},
+				},
+				bson.M{ // include null and empty string to cover both defaults
+					"thumbnailLastCheck": bson.M{"$in": bson.A{nil, ""}},
 				},
 			},
 
