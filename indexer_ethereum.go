@@ -147,7 +147,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, ba
 		sourceURL = "https://www.fxhash.xyz/"
 		artistURL = fmt.Sprintf("https://www.fxhash.xyz/u/%s", a.Creator)
 	default:
-		if viper.GetString("network") == "testnet" {
+		if viper.GetString("network.ethereum") == "sepolia" {
 			sourceURL = "https://testnets.opensea.io"
 		} else {
 			sourceURL = "https://opensea.io"
@@ -266,7 +266,7 @@ func (e *IndexEngine) IndexETHTokenOwners(contract, tokenID string) ([]OwnerBala
 
 	network := managedblockchainquery.QueryNetworkEthereumMainnet
 
-	if viper.GetString("network") == "testnet" {
+	if viper.GetString("network.ethereum") == "sepolia" {
 		network = managedblockchainquery.QueryNetworkEthereumSepoliaTestnet
 	}
 
