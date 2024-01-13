@@ -264,8 +264,11 @@ func (e *IndexEngine) IndexETHTokenOwners(contract, tokenID string) ([]OwnerBala
 		zap.String("blockchain", utils.EthereumBlockchain),
 		zap.String("contract", contract), zap.String("tokenID", tokenID))
 
-	// FIXME: does not support testnet indexing for now
 	network := managedblockchainquery.QueryNetworkEthereumMainnet
+
+	if viper.GetString("network") == "testnet" {
+		network = managedblockchainquery.QueryNetworkEthereumSepoliaTestnet
+	}
 
 	var nextToken *string
 	ownerBalances := []OwnerBalance{}
