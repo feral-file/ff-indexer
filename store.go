@@ -421,7 +421,7 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 	}
 	defer session.EndSession(ctx)
 
-	result, err := session.WithTransaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
+	result, err := session.WithTransaction(ctx, func(_ mongo.SessionContext) (interface{}, error) {
 		if _, err := s.tokenCollection.UpdateOne(ctx, bson.M{"indexID": originalTokenIndexID}, bson.M{
 			"$set": bson.M{
 				"burned":    true,
