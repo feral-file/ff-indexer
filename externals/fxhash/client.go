@@ -8,8 +8,8 @@ import (
 	"github.com/hasura/go-graphql-client"
 )
 
-// GraphQL Explorer: https://api.fxhash.xyz/graphiql
-// Client: https://api.fxhash.xyz/graphql
+// GraphQL Explorer: https://api.v2-temp.fxhash.xyz/graphiql
+// Client: https://api.v2-temp.fxhash.xyz/graphql
 type Client struct {
 	client   *graphql.Client
 	endpoint string

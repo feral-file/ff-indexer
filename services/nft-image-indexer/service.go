@@ -8,15 +8,14 @@ import (
 	"sync"
 	"time"
 
+	log "github.com/bitmark-inc/autonomy-logger"
+	indexer "github.com/bitmark-inc/nft-indexer"
+	imageStore "github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/store"
 	"github.com/getsentry/sentry-go"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
-
-	log "github.com/bitmark-inc/autonomy-logger"
-	indexer "github.com/bitmark-inc/nft-indexer"
-	imageStore "github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/store"
 )
 
 type NFTAsset struct {
@@ -109,12 +108,21 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-c
 // getAssetWithoutThumbnailCached looks up assets without thumbnail cached
 func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) (NFTAsset, error) {
 	var asset NFTAsset
+	ts := time.Now().Add(-s.thumbnailCacheRetryInterval)
 	r := s.nftAssets.FindOneAndUpdate(ctx,
-		bson.M{
-			// filter assets which have not been processed in the last hour.
-			// NOTE: the $lt query will exclude nil values so we need to ensure `thumbnailLastCheck`
-			// has a default value
-			"thumbnailLastCheck": bson.M{"$lt": time.Now().Add(-s.thumbnailCacheRetryInterval)},
+		bson.M{ // This is effectively "$and"
+
+			// filter recent assets which have not been processed or are not timestamped
+			//"thumbnailLastCheck": bson.M{"$lt": time.Now().Add(-s.thumbnailCacheRetryInterval)},
+			"$or": bson.A{
+				bson.M{ // this will be false of any non time values
+					"thumbnailLastCheck": bson.M{"$lt": ts},
+				},
+				bson.M{ // include null and empty string to cover both defaults
+					"thumbnailLastCheck": bson.M{"$in": bson.A{nil, ""}},
+				},
+			},
+
 			// filter assets which does not have thumbnailID or the thumbnailID is empty
 			"thumbnailID": bson.M{
 				// "$not": bson.M{"$exists": true, "$ne": ""},
@@ -174,12 +182,15 @@ func (s *NFTContentIndexer) updateAssetThumbnail(ctx context.Context, indexID, t
 		}}},
 	)
 	if err != nil {
-		log.Info("update asset thumbnail failed", zap.String("indexID", indexID), zap.Error(err))
+		log.Error("update asset thumbnail failed", zap.String("indexID", indexID), zap.Error(err))
 		return err
 	}
 
-	idSegments := strings.Split(indexID, "-")
+	idSegments := strings.SplitN(indexID, "-", 2)
 	if len(idSegments) != 2 {
+		log.Error("invalid asset index id",
+			zap.String("indexID", indexID),
+			zap.Int("segments", len(idSegments)))
 		return fmt.Errorf("invalid asset index id")
 	}
 	assetID := idSegments[1]

@@ -126,7 +126,12 @@ func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, ba
 		return nil, nil
 	}
 
-	source := getTokenSourceByPreviewURL(a.AnimationURL)
+	source := getTokenSourceByMetadataURL(a.MetadataURL)
+
+	if source == "" {
+		source = getTokenSourceByPreviewURL(a.AnimationURL)
+	}
+
 	if source == "" {
 		source = getTokenSourceByContract(contractAddress)
 	}
@@ -138,6 +143,9 @@ func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, ba
 	case sourceCrayonCodes:
 		sourceURL = "https://openprocessing.org/crayon/"
 		artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator)
+	case sourceFxHash:
+		sourceURL = "https://www.fxhash.xyz/"
+		artistURL = fmt.Sprintf("https://www.fxhash.xyz/u/%s", a.Creator)
 	default:
 		if viper.GetString("network") == "testnet" {
 			sourceURL = "https://testnets.opensea.io"
@@ -158,6 +166,9 @@ func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, ba
 		},
 	}
 
+	assetURL := a.OpenseaURL
+	animationURL := a.AnimationURL
+
 	imageURL, err := OptimizedOpenseaImageURL(a.ImageURL)
 	if err != nil {
 		log.Warn("invalid opensea image url", zap.String("imageURL", a.ImageURL))
@@ -168,7 +179,11 @@ func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, ba
 		imageURL = a.ImageURL
 	}
 
-	animationURL := a.AnimationURL
+	if source == sourceFxHash {
+		assetURL = fmt.Sprintf("https://www.fxhash.xyz/gentk/%s-%s", a.Contract, a.Identifier)
+		imageURL = OptimizeFxHashIPFSURL(imageURL)
+		animationURL = OptimizeFxHashIPFSURL(animationURL)
+	}
 
 	metadata := ProjectMetadata{
 		ArtistID:            artistID,
@@ -181,10 +196,10 @@ func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, ba
 		Medium:              MediumUnknown,
 		Source:              source,
 		SourceURL:           sourceURL,
-		PreviewURL:          a.ImageURL,
-		ThumbnailURL:        a.ImageURL,
-		GalleryThumbnailURL: a.ImageURL,
-		AssetURL:            a.OpenseaURL,
+		PreviewURL:          imageURL,
+		ThumbnailURL:        imageURL,
+		GalleryThumbnailURL: imageURL,
+		AssetURL:            assetURL,
 		LastUpdatedAt:       time.Now(),
 		Artists:             artists,
 	}

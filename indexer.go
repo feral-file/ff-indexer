@@ -40,6 +40,7 @@ var artblocksContracts = map[string]struct{}{
 var (
 	sourceArtBlocks   = "Art Blocks"
 	sourceCrayonCodes = "Crayon Codes"
+	sourceFxHash      = "fxhash"
 )
 
 var (
@@ -71,6 +72,19 @@ func getTokenSourceByContract(contractAddress string) string {
 func getTokenSourceByPreviewURL(url string) string {
 	if artblocksMatched, _ := regexp.MatchString(`generator.artblocks.io`, url); artblocksMatched {
 		return sourceArtBlocks
+	}
+
+	if fxhashMatched, _ := regexp.MatchString(`fxhash\d+\.xyz`, url); fxhashMatched {
+		return sourceFxHash
+	}
+
+	return ""
+}
+
+// getTokenSourceByMetadataURL returns the token source name by inspecting the metadata url
+func getTokenSourceByMetadataURL(url string) string {
+	if fxhashMatched, _ := regexp.MatchString(`media.fxhash.xyz`, url); fxhashMatched {
+		return sourceFxHash
 	}
 
 	return ""
@@ -151,6 +165,14 @@ func ipfsURLToGatewayURL(gateway, ipfsURL string) string {
 	u.Scheme = "https"
 
 	return u.String()
+}
+
+func OptimizeFxHashIPFSURL(url string) string {
+	if strings.Contains(url, "https://ipfs.io/ipfs/") {
+		return strings.ReplaceAll(url, "ipfs.io", FxhashGateway)
+	}
+
+	return url
 }
 
 func IsIPFSLink(url string) bool {
@@ -248,7 +270,7 @@ func (detail *AssetMetadataDetail) FromTZIP21TokenMetadata(md tzkt.TokenMetadata
 	detail.Medium = mediumByMIMEType(mimeType)
 	detail.Minter = md.Minter
 
-	var optimizedFileSize = 0
+	var optimizedFileSize = tzkt.FlexInt64(0)
 	var optimizedDisplayURI string
 
 	for _, format := range md.Formats {

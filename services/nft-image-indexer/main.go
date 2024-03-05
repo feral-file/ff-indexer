@@ -8,15 +8,14 @@ import (
 	"syscall"
 	"time"
 
+	log "github.com/bitmark-inc/autonomy-logger"
+	"github.com/bitmark-inc/config-loader"
+	imageStore "github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/store"
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
-
-	log "github.com/bitmark-inc/autonomy-logger"
-	"github.com/bitmark-inc/config-loader"
-	imageStore "github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/store"
 )
 
 func main() {
@@ -67,6 +66,11 @@ func main() {
 		log.Error("invalid duration. use default value 24h", zap.Error(err))
 		thumbnailCacheRetryInterval = 24 * time.Hour
 	}
+
+	log.Debug("cache settings",
+		zap.Duration("period", thumbnailCachePeriod),
+		zap.Duration("retry", thumbnailCacheRetryInterval),
+	)
 
 	imageIndexer := NewNFTContentIndexer(store, assetCollection, tokenCollection, accountTokenCollection,
 		thumbnailCachePeriod, thumbnailCacheRetryInterval)

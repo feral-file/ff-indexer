@@ -2,3 +2,15 @@ replicaCount: 1
 
 image:
   tag: "image-indexer-18f9e757a58fe05f92e929af43a58f56d0519aa0"
+
+serviceConfig:
+  logLevel: "info"
+
+  # 1 = Silent
+  # 2 = Error
+  # 3 = Warn
+  # 4 = Info
+  dbLogLevel: 2
+
+  cachePeriod: "144h"
+  cacheRetryInterval: "24h"

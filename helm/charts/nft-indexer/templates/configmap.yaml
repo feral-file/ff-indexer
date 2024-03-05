@@ -29,7 +29,7 @@ data:
       log_level: 0
 
     fxhash:
-      api_endpoint: https://api.fxhash.xyz/graphql
+      api_endpoint: https://api.v2-temp.fxhash.xyz/graphql
 
     opensea:
       ratelimit: {{ .Values.serviceConfig.opensea_ratelimit }}
@@ -66,7 +66,7 @@ data:
       tezos: {{ .Values.serviceConfig.network.tezos }}
 
     fxhash:
-      api_endpoint: https://api.fxhash.xyz/graphql
+      api_endpoint: https://api.v2-temp.fxhash.xyz/graphql
 
     opensea:
       ratelimit: {{ .Values.serviceConfig.opensea_ratelimit }}
