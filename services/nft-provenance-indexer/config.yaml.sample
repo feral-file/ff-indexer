@@ -25,7 +25,7 @@ opensea:
   ratelimit:
 
 fxhash:
-  api_endpoint: https://api.fxhash.xyz/graphql
+  api_endpoint: https://api.v2-temp.fxhash.xyz/graphql
 
 cache:
   bucket_name:
