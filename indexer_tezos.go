@@ -121,7 +121,11 @@ func (e *IndexEngine) indexTezosTokenFromFXHASH(ctx context.Context, fxhashObjec
 	if detail, err := e.fxhash.GetObjectDetail(ctx, fxhashObjectID); err != nil {
 		log.Error("fail to get token detail from fxhash", zap.Error(err), log.SourceFXHASH)
 	} else {
-		metadataDetail.FromFxhashObject(detail)
+		if !strings.Contains(detail.Metadata.ThumbnailURI, FxhashWaitingToBeSignedCID) {
+			metadataDetail.FromFxhashObject(detail)
+		} else {
+			log.Warn("ignore fxhash waiting to be sign metadata index")
+		}
 		tokenDetail.MintedAt = detail.CreatedAt
 		tokenDetail.Edition = detail.Iteration
 	}
@@ -231,14 +235,9 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		case KALAMContractAddress, TezDaoContractAddress, TezosDNSContractAddress:
 			return nil, nil
 
-		case FXHASHContractAddressFX0_0, FXHASHContractAddressFX0_1, FXHASHContractAddressFX0_2:
+		case FXHASHContractAddressFX0_0, FXHASHContractAddressFX0_1, FXHASHContractAddressFX0_2, FXHASHContractAddressFX1:
 			tokenDetail.Fungible = false
-			fxObjktID := fmt.Sprintf("FX0-%s", tzktToken.ID.String())
-			e.indexTezosTokenFromFXHASH(ctx, fxObjktID, metadataDetail, &tokenDetail)
-
-		case FXHASHContractAddressFX1:
-			tokenDetail.Fungible = false
-			fxObjktID := fmt.Sprintf("FX1-%s", tzktToken.ID.String())
+			fxObjktID := fmt.Sprintf("%s-%s", tzktToken.Contract.Address, tzktToken.ID.String())
 			e.indexTezosTokenFromFXHASH(ctx, fxObjktID, metadataDetail, &tokenDetail)
 
 		case VersumContractAddress:

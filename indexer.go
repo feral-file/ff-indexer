@@ -20,10 +20,11 @@ import (
 
 const (
 	// broken-image.svg
-	DefaultDisplayURI    = "ipfs://QmX5rRzkZQfvEyaYc1Q78YZ83pFj3AgpFVSK8SmxUmZ85M"
-	DefaultIPFSGateway   = "ipfs.nftstorage.link"
-	FxhashGateway        = "gateway.fxhash.xyz"
-	FxhashDevIPFSGateway = "gateway.fxhash-dev2.xyz"
+	DefaultDisplayURI          = "ipfs://QmX5rRzkZQfvEyaYc1Q78YZ83pFj3AgpFVSK8SmxUmZ85M"
+	DefaultIPFSGateway         = "ipfs.nftstorage.link"
+	FxhashGateway              = "gateway.fxhash.xyz"
+	FxhashDevIPFSGateway       = "gateway.fxhash-dev2.xyz"
+	FxhashWaitingToBeSignedCID = "QmbvEAn7FLMeYBDroYwBP8qWc3d3VVWbk19tTB83LCMB5S"
 )
 
 var inhouseMinter = map[string]struct{}{
