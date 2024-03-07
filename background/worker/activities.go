@@ -493,7 +493,7 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 		switch token.Blockchain {
 		case utils.EthereumBlockchain:
 			// update ethereum last activity time by daily manner for now since this is a costy action
-			if time.Since(token.LastActivityTime) >= 86400*time.Second && len(token.OwnersArray) != 0 {
+			if time.Since(token.LastActivityTime) <= 86400*time.Second && len(token.OwnersArray) != 0 {
 				log.Debug("no new updates since last check", zap.String("indexID", token.IndexID))
 				continue
 			}
