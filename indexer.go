@@ -11,10 +11,14 @@ import (
 	"time"
 
 	"github.com/fatih/structs"
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
 
+	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
+	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	"github.com/bitmark-inc/tzkt-go"
 )
 
@@ -330,6 +334,93 @@ func (detail *AssetMetadataDetail) FromTZIP21TokenMetadata(md tzkt.TokenMetadata
 	detail.ArtworkMetadata = md.ArtworkMetadata
 }
 
+func (detail *AssetMetadataDetail) FromOpenseaAsset(a *opensea.DetailedAssetV2, source string) {
+	var sourceURL string
+	var artistURL string
+	artistID := EthereumChecksumAddress(a.Creator)
+
+	switch source {
+	case sourceArtBlocks:
+		sourceURL = "https://www.artblocks.io/"
+		artistURL = fmt.Sprintf("%s/%s", sourceURL, a.Creator)
+	case sourceCrayonCodes:
+		sourceURL = "https://openprocessing.org/crayon/"
+		artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator)
+	case sourceFxHash:
+		sourceURL = "https://www.fxhash.xyz/"
+		artistURL = fmt.Sprintf("https://www.fxhash.xyz/u/%s", a.Creator)
+	default:
+		if viper.GetString("network") == "testnet" {
+			sourceURL = "https://testnets.opensea.io"
+		} else {
+			sourceURL = "https://opensea.io"
+		}
+		artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator)
+	}
+
+	log.Debug("source debug", zap.String("source", source), zap.String("contract", a.Contract), zap.String("id", a.Identifier))
+
+	// Opensea GET assets API just provide a creator, not multiple creator
+	artists := []Artist{
+		{
+			ID:   artistID,
+			Name: artistID,
+			URL:  artistURL,
+		},
+	}
+
+	detail.ArtistID = artists[0].ID
+	detail.ArtistName = artists[0].Name
+	detail.ArtistURL = artists[0].URL
+	detail.Artists = artists
+
+	assetURL := a.OpenseaURL
+	animationURL := a.AnimationURL
+
+	imageURL, err := OptimizedOpenseaImageURL(a.ImageURL)
+	if err != nil {
+		log.Warn("invalid opensea image url", zap.String("imageURL", a.ImageURL))
+	}
+
+	// fallback to project origin image url
+	if imageURL == "" {
+		imageURL = a.ImageURL
+	}
+
+	if source == sourceFxHash {
+		assetURL = fmt.Sprintf("https://www.fxhash.xyz/gentk/%s-%s", a.Contract, a.Identifier)
+		imageURL = OptimizeFxHashIPFSURL(imageURL)
+		animationURL = OptimizeFxHashIPFSURL(animationURL)
+	}
+
+	detail.Name = a.Name
+	detail.Description = a.Description
+	detail.MIMEType = GetMIMETypeByURL(imageURL)
+	detail.Medium = MediumUnknown
+	detail.ThumbnailURI = imageURL
+	detail.DisplayURI = imageURL
+	detail.PreviewURI = imageURL
+
+	detail.AssetURL = assetURL
+	detail.Source = source
+	detail.SourceURL = sourceURL
+
+	if animationURL != "" {
+		detail.PreviewURI = animationURL
+		detail.MIMEType = GetMIMETypeByURL(animationURL)
+
+		if source == sourceArtBlocks {
+			detail.Medium = MediumSoftware
+		} else {
+			medium := mediumByPreviewFileExtension(detail.PreviewURI)
+			log.Debug("fallback medium check", zap.String("previewURL", detail.PreviewURI), zap.Any("medium", medium))
+			detail.Medium = medium
+		}
+	} else if imageURL != "" {
+		detail.Medium = MediumImage
+	}
+}
+
 // FromFxhashObject reads asset detail from an fxhash API object
 func (detail *AssetMetadataDetail) FromFxhashObject(o fxhash.ObjectDetail) {
 	var artists []Artist
@@ -581,4 +672,31 @@ func (e *IndexEngine) GetTxTimestamp(ctx context.Context, blockchain, txHash str
 	}
 
 	return time.Time{}, ErrUnsupportedBlockchain
+}
+
+// indexTokenFromFXHASH indexes token metadata by a given fxhash objkt id.
+// A fxhash objkt id is a new format from fxhash which is unified id but varied by contracts
+func (e *IndexEngine) indexTokenFromFXHASH(ctx context.Context, fxhashObjectID string,
+	metadataDetail *AssetMetadataDetail, tokenDetail *TokenDetail) {
+
+	metadataDetail.SetMarketplace(
+		MarketplaceProfile{
+			"fxhash",
+			"https://www.fxhash.xyz",
+			fmt.Sprintf("https://www.fxhash.xyz/gentk/%s", fxhashObjectID),
+		},
+	)
+	metadataDetail.SetMedium(MediumSoftware)
+
+	if detail, err := e.fxhash.GetObjectDetail(ctx, fxhashObjectID); err != nil {
+		log.Error("fail to get token detail from fxhash", zap.Error(err), log.SourceFXHASH)
+	} else {
+		if !strings.Contains(detail.Metadata.ThumbnailURI, FxhashWaitingToBeSignedCID) {
+			metadataDetail.FromFxhashObject(detail)
+		} else {
+			log.Warn("ignore fxhash waiting to be sign metadata index")
+		}
+		tokenDetail.MintedAt = detail.CreatedAt
+		tokenDetail.Edition = detail.Iteration
+	}
 }
