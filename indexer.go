@@ -29,6 +29,7 @@ const (
 	FxhashGateway              = "gateway.fxhash.xyz"
 	FxhashDevIPFSGateway       = "gateway.fxhash-dev2.xyz"
 	FxhashWaitingToBeSignedCID = "QmbvEAn7FLMeYBDroYwBP8qWc3d3VVWbk19tTB83LCMB5S"
+	FxhashOnchfsGateway        = "onchfs.fxhash2.xyz"
 )
 
 var inhouseMinter = map[string]struct{}{
@@ -158,6 +159,11 @@ func ipfsURLToGatewayURL(gateway, ipfsURL string) string {
 	}
 
 	if u.Scheme != "ipfs" {
+		// if sheme is onchfs fallback to fxhash onchfs gateway
+		if u.Scheme == "onchfs" {
+			return onchfsURLToGatewayURL(FxhashOnchfsGateway, ipfsURL)
+		}
+
 		// not a valid URL
 		return ipfsURL
 	}
@@ -166,6 +172,29 @@ func ipfsURLToGatewayURL(gateway, ipfsURL string) string {
 	p := strings.TrimLeft(u.Path, "/")
 
 	u.Path = fmt.Sprintf("ipfs/%s/%s", u.Host, p)
+	u.Host = gateway
+	u.Scheme = "https"
+
+	return u.String()
+}
+
+// ipfsURLToGatewayURL converts an onchfs link to a HTTP link by a given onchfs gateway.
+// If a link is failed to parse, it returns the original link
+func onchfsURLToGatewayURL(gateway, onchfsURL string) string {
+	u, err := url.Parse(onchfsURL)
+	if err != nil {
+		return onchfsURL
+	}
+
+	if u.Scheme != "onchfs" {
+		// not a valid URL
+		return onchfsURL
+	}
+
+	// remove the leading "/" from the path
+	p := strings.TrimLeft(u.Path, "/")
+
+	u.Path = fmt.Sprintf("%s/%s", u.Host, p)
 	u.Host = gateway
 	u.Scheme = "https"
 
