@@ -104,33 +104,6 @@ func (e *IndexEngine) IndexTezosToken(ctx context.Context, contract, tokenID str
 	return e.indexTezosToken(ctx, tzktToken, "", 0, tzktToken.LastTime)
 }
 
-// indexTezosTokenFromFXHASH indexes token metadata by a given fxhash objkt id.
-// A fxhash objkt id is a new format from fxhash which is unified id but varied by contracts
-func (e *IndexEngine) indexTezosTokenFromFXHASH(ctx context.Context, fxhashObjectID string,
-	metadataDetail *AssetMetadataDetail, tokenDetail *TokenDetail) {
-
-	metadataDetail.SetMarketplace(
-		MarketplaceProfile{
-			"fxhash",
-			"https://www.fxhash.xyz",
-			fmt.Sprintf("https://www.fxhash.xyz/gentk/%s", fxhashObjectID),
-		},
-	)
-	metadataDetail.SetMedium(MediumSoftware)
-
-	if detail, err := e.fxhash.GetObjectDetail(ctx, fxhashObjectID); err != nil {
-		log.Error("fail to get token detail from fxhash", zap.Error(err), log.SourceFXHASH)
-	} else {
-		if !strings.Contains(detail.Metadata.ThumbnailURI, FxhashWaitingToBeSignedCID) {
-			metadataDetail.FromFxhashObject(detail)
-		} else {
-			log.Warn("ignore fxhash waiting to be sign metadata index")
-		}
-		tokenDetail.MintedAt = detail.CreatedAt
-		tokenDetail.Edition = detail.Iteration
-	}
-}
-
 // searchMetadataFromIPFS searches token metadata from a list of preferred ipfs gateway
 func (e *IndexEngine) searchMetadataFromIPFS(ipfsURI string) (*tzkt.TokenMetadata, error) {
 	if !strings.HasPrefix(ipfsURI, "ipfs://") {
@@ -238,7 +211,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		case FXHASHContractAddressFX0_0, FXHASHContractAddressFX0_1, FXHASHContractAddressFX0_2, FXHASHContractAddressFX1:
 			tokenDetail.Fungible = false
 			fxObjktID := fmt.Sprintf("%s-%s", tzktToken.Contract.Address, tzktToken.ID.String())
-			e.indexTezosTokenFromFXHASH(ctx, fxObjktID, metadataDetail, &tokenDetail)
+			e.indexTokenFromFXHASH(ctx, fxObjktID, metadataDetail, &tokenDetail)
 
 		case VersumContractAddress:
 			tokenDetail.Fungible = true
