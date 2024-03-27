@@ -59,6 +59,9 @@ data:
 
     log:
       level: debug
+    
+    sentry:
+      dsn:
 
     event_processor_server:
       network: tcp
@@ -72,6 +75,9 @@ data:
 
     log:
       level: debug
+
+    sentry:
+      dsn:
 
     event_processor_server:
       network: tcp
