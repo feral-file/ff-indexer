@@ -79,7 +79,7 @@ func (r *queryResolver) Tokens(ctx context.Context, owners []string, ids []strin
 			offset,
 			size,
 		)
-	} else if len((owners)) == 0 && len(ids) > 0 {
+	} else if len(owners) == 0 && len(ids) > 0 {
 		checksumIDs := indexer.NormalizeIndexIDs(ids, false)
 		tokensInfo, err = r.indexerStore.GetDetailedTokensV2(
 			ctx, indexer.FilterParameter{

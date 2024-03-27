@@ -41,7 +41,7 @@ type ImageStore struct {
 
 	// cloudflare
 	cloudflareAccountHash string
-	cloudflareAccountID   string
+	cloudflareAccountID   *cloudflare.ResourceContainer
 	cloudflareAPI         *cloudflare.API
 }
 
@@ -85,10 +85,16 @@ func New(dsn string, cloudflareAccountHash, cloudflareAccountID, cloudflareAPITo
 		panic(err)
 	}
 
+	accRes := &cloudflare.ResourceContainer{
+		Level:      cloudflare.AccountRouteLevel,
+		Identifier: cloudflareAccountID,
+		Type:       cloudflare.AccountType,
+	}
+
 	return &ImageStore{
 		db:                    db,
 		cloudflareAccountHash: cloudflareAccountHash,
-		cloudflareAccountID:   cloudflareAccountID,
+		cloudflareAccountID:   accRes,
 		cloudflareAPI:         cloudflareAPI,
 	}
 }
@@ -184,7 +190,7 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageReade
 			}
 		}
 
-		uploadRequest := cloudflare.ImageUploadRequest{
+		uploadRequest := cloudflare.UploadImageParams{
 			File:     io.NopCloser(file),
 			Name:     assetID,
 			Metadata: metadata,

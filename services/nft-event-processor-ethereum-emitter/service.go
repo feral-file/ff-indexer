@@ -6,13 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	goethereum "github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/getsentry/sentry-go"
-	"go.uber.org/zap"
-
 	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
 	"github.com/bitmark-inc/config-loader/external/aws/ssm"
@@ -20,6 +13,12 @@ import (
 	"github.com/bitmark-inc/nft-indexer/cache"
 	"github.com/bitmark-inc/nft-indexer/emitter"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
+	goethereum "github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/getsentry/sentry-go"
+	"go.uber.org/zap"
 )
 
 var currentLastStoppedBlock = uint64(0)
@@ -188,7 +187,7 @@ func (e *EthereumEventsEmitter) processETHLog(ctx context.Context, eLog types.Lo
 
 	if eLog.BlockNumber > currentLastStoppedBlock {
 		currentLastStoppedBlock = eLog.BlockNumber
-		if err := e.parameterStore.Put(ctx, e.lastBlockKeyName, strconv.FormatUint(currentLastStoppedBlock, 10)); err != nil {
+		if err := e.parameterStore.PutString(ctx, e.lastBlockKeyName, strconv.FormatUint(currentLastStoppedBlock, 10)); err != nil {
 			log.Error("error put parameterStore", zap.Error(err), log.SourceGRPC)
 			return
 		}

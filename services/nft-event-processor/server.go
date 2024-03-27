@@ -4,17 +4,15 @@ import (
 	"context"
 	"time"
 
+	"github.com/bitmark-inc/autonomy-account/storage"
+	log "github.com/bitmark-inc/autonomy-logger"
+	notificationSdk "github.com/bitmark-inc/autonomy-notification/sdk"
+	"github.com/bitmark-inc/nft-indexer/cadence"
+	indexerGRPCSDK "github.com/bitmark-inc/nft-indexer/sdk/nft-indexer-grpc"
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-
-	"github.com/bitmark-inc/autonomy-account/storage"
-	log "github.com/bitmark-inc/autonomy-logger"
-	notification "github.com/bitmark-inc/autonomy-notification"
-	notificationSdk "github.com/bitmark-inc/autonomy-notification/sdk"
-	"github.com/bitmark-inc/nft-indexer/cadence"
-	indexerGRPCSDK "github.com/bitmark-inc/nft-indexer/sdk/nft-indexer-grpc"
 )
 
 type EventProcessor struct {
@@ -26,7 +24,7 @@ type EventProcessor struct {
 	indexerGRPC  *indexerGRPCSDK.IndexerGRPCClient
 	worker       *cadence.WorkerClient
 	accountStore *storage.AccountInformationStorage
-	notification *notificationSdk.NotificationClient
+	notification *notificationSdk.Client
 	feedServer   *FeedClient
 }
 
@@ -39,7 +37,7 @@ func NewEventProcessor(
 	indexerGRPC *indexerGRPCSDK.IndexerGRPCClient,
 	worker *cadence.WorkerClient,
 	accountStore *storage.AccountInformationStorage,
-	notification *notificationSdk.NotificationClient,
+	notification *notificationSdk.Client,
 	feedServer *FeedClient,
 ) *EventProcessor {
 	queue := NewEventQueue(store)
@@ -62,8 +60,9 @@ func NewEventProcessor(
 // notifyChangeOwner send change_token_owner notification to notification server
 func (e *EventProcessor) notifyChangeOwner(accountID, toAddress, tokenID string) error {
 	return e.notification.SendNotification("",
-		notification.NEW_NFT_ARRIVED,
+		"new_nft_arrived",
 		accountID,
+		[]any{},
 		gin.H{
 			"notification_type": "change_token_owner",
 			"owner":             toAddress,
