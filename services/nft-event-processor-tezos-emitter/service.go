@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/philippseith/signalr"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -66,6 +67,7 @@ func (e *TezosEventsEmitter) Transfers(data json.RawMessage) {
 	err := json.Unmarshal(data, &res)
 	if err != nil {
 		log.Error("fail to unmarshal transfers data", zap.Error(err))
+		sentry.CaptureException(err)
 		return
 	}
 
@@ -94,6 +96,7 @@ func (e *TezosEventsEmitter) Bigmaps(data json.RawMessage) {
 	err := json.Unmarshal(data, &res)
 	if err != nil {
 		log.Error("fail to unmarshal bigmaps data", zap.Error(err))
+		sentry.CaptureException(err)
 		return
 	}
 
@@ -222,6 +225,7 @@ func (e *TezosEventsEmitter) fetchFromByLastStoppedLevel(fromLevel uint64) {
 	latestLevel, err := e.tzkt.GetLevelByTime(time.Now())
 	if err != nil {
 		log.Error("failed to get lastest block level: ", zap.Error(err), log.SourceTZKT)
+		sentry.CaptureException(err)
 		return
 	}
 
@@ -240,6 +244,7 @@ func (e *TezosEventsEmitter) fetchTokenTransfersByLevel(level uint64) {
 		if err != nil {
 			log.Error("failed to fetch token transfer from level: ",
 				zap.Error(err), zap.Uint64("level", level), zap.Int("offset", offset), log.SourceTZKT)
+			sentry.CaptureException(err)
 			return
 		}
 
@@ -264,6 +269,7 @@ func (e *TezosEventsEmitter) fetchTokenBigmapUpdateByLevel(level uint64) {
 		if err != nil {
 			log.Error("failed to fetch token metadata bigmap updates from level: ",
 				zap.Error(err), zap.Uint64("level", level), zap.Int("offset", offset), log.SourceTZKT)
+			sentry.CaptureException(err)
 			return
 		}
 
@@ -294,6 +300,7 @@ func (e *TezosEventsEmitter) processTokenEvent(ctx context.Context, event TokenE
 		event.ContractAddress, event.Blockchain, event.TokenID,
 		event.TxID, 0, event.TxTime); err != nil {
 		log.Error("gRPC request failed", zap.Error(err), log.SourceGRPC)
+		sentry.CaptureException(err)
 		return
 	}
 
