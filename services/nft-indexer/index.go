@@ -254,6 +254,14 @@ func (s *NFTIndexerServer) IndexHistory(c *gin.Context) {
 }
 
 func (s *NFTIndexerServer) SetTokenPendingV1(c *gin.Context) {
+	s.SetTokenPending(c, false)
+}
+
+func (s *NFTIndexerServer) SetTokenPendingV2(c *gin.Context) {
+	s.SetTokenPending(c, true)
+}
+
+func (s *NFTIndexerServer) SetTokenPending(c *gin.Context, withPrefix bool) {
 	traceutils.SetHandlerTag(c, "TokenPending")
 
 	var reqParams PendingTxParamsV1
@@ -285,7 +293,18 @@ func (s *NFTIndexerServer) SetTokenPendingV1(c *gin.Context) {
 		return
 	}
 
-	isValidAddress, err := s.verifyAddressOwner(reqParams.Blockchain, reqParams.Timestamp, reqParams.Signature, reqParams.OwnerAccount, reqParams.PublicKey)
+	message := reqParams.Timestamp
+	if withPrefix {
+		message = indexer.GetPrefixedSigningMessage(reqParams.Timestamp)
+	}
+
+	isValidAddress, err := s.verifyAddressOwner(
+		reqParams.Blockchain,
+		message,
+		reqParams.Signature,
+		reqParams.OwnerAccount,
+		reqParams.PublicKey,
+	)
 
 	if err != nil {
 		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
