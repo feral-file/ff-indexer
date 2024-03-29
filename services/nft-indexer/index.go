@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -295,7 +296,24 @@ func (s *NFTIndexerServer) SetTokenPending(c *gin.Context, withPrefix bool) {
 
 	message := reqParams.Timestamp
 	if withPrefix {
-		message = indexer.GetPrefixedSigningMessage(reqParams.Timestamp)
+		jsonMessage, err := json.Marshal(struct {
+			Blockchain      string `json:"blockchain"`
+			ID              string `json:"id"`
+			ContractAddress string `json:"contractAddress"`
+			OwnerAccount    string `json:"ownerAccount"`
+			Timestamp       string `json:"timestamp"`
+		}{
+			Blockchain:      reqParams.Blockchain,
+			ID:              reqParams.ID,
+			ContractAddress: reqParams.ContractAddress,
+			OwnerAccount:    reqParams.OwnerAccount,
+			Timestamp:       reqParams.Timestamp,
+		})
+		if err != nil {
+			abortWithError(c, http.StatusInternalServerError, "error marshall json message", err)
+			return
+		}
+		message = indexer.GetPrefixedSigningMessage(string(jsonMessage))
 	}
 
 	isValidAddress, err := s.verifyAddressOwner(
