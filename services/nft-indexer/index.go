@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -254,6 +255,14 @@ func (s *NFTIndexerServer) IndexHistory(c *gin.Context) {
 }
 
 func (s *NFTIndexerServer) SetTokenPendingV1(c *gin.Context) {
+	s.SetTokenPending(c, false)
+}
+
+func (s *NFTIndexerServer) SetTokenPendingV2(c *gin.Context) {
+	s.SetTokenPending(c, true)
+}
+
+func (s *NFTIndexerServer) SetTokenPending(c *gin.Context, withPrefix bool) {
 	traceutils.SetHandlerTag(c, "TokenPending")
 
 	var reqParams PendingTxParamsV1
@@ -285,7 +294,35 @@ func (s *NFTIndexerServer) SetTokenPendingV1(c *gin.Context) {
 		return
 	}
 
-	isValidAddress, err := s.verifyAddressOwner(reqParams.Blockchain, reqParams.Timestamp, reqParams.Signature, reqParams.OwnerAccount, reqParams.PublicKey)
+	message := reqParams.Timestamp
+	if withPrefix {
+		jsonMessage, err := json.Marshal(struct {
+			Blockchain      string `json:"blockchain"`
+			ID              string `json:"id"`
+			ContractAddress string `json:"contractAddress"`
+			OwnerAccount    string `json:"ownerAccount"`
+			Timestamp       string `json:"timestamp"`
+		}{
+			Blockchain:      reqParams.Blockchain,
+			ID:              reqParams.ID,
+			ContractAddress: reqParams.ContractAddress,
+			OwnerAccount:    reqParams.OwnerAccount,
+			Timestamp:       reqParams.Timestamp,
+		})
+		if err != nil {
+			abortWithError(c, http.StatusInternalServerError, "error marshall json message", err)
+			return
+		}
+		message = indexer.GetPrefixedSigningMessage(string(jsonMessage))
+	}
+
+	isValidAddress, err := s.verifyAddressOwner(
+		reqParams.Blockchain,
+		message,
+		reqParams.Signature,
+		reqParams.OwnerAccount,
+		reqParams.PublicKey,
+	)
 
 	if err != nil {
 		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
