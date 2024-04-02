@@ -12,7 +12,8 @@ import (
 func (s *NFTIndexerServer) graphqlHandler(c *gin.Context) {
 	h := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: graph.NewResolver(s.indexerStore, s.cacheStore, s.ethClient, s.cadenceWorker)}))
 
-	h.ServeHTTP(c.Writer, c.Request)
+	filteredHandler := GraphQLMiddleware(h)
+	filteredHandler.ServeHTTP(c.Writer, c.Request)
 }
 
 // Defining the Playground handler
