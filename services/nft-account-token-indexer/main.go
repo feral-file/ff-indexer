@@ -37,15 +37,11 @@ func main() {
 
 	environment := viper.GetString("environment")
 
-	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug")); err != nil {
-		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
-	}
-
-	if err := sentry.Init(sentry.ClientOptions{
+	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug"), &sentry.ClientOptions{
 		Dsn:         viper.GetString("sentry.dsn"),
 		Environment: environment,
 	}); err != nil {
-		log.Panic("Sentry initialization failed", zap.Error(err))
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
 	}
 
 	ctx := context.Background()

@@ -32,20 +32,16 @@ var CadenceService = "cadence-frontend"
 
 func main() {
 	config.LoadConfig("NFT_INDEXER")
-	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug")); err != nil {
+
+	environment := viper.GetString("environment")
+	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug"), &sentry.ClientOptions{
+		Dsn:         viper.GetString("sentry.dsn"),
+		Environment: environment,
+	}); err != nil {
 		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
 	}
 
 	hostPort := viper.GetString("cadence.host_port")
-
-	environment := viper.GetString("environment")
-
-	if err := sentry.Init(sentry.ClientOptions{
-		Dsn:         viper.GetString("sentry.dsn"),
-		Environment: environment,
-	}); err != nil {
-		log.Panic("Sentry initialization failed", zap.Error(err))
-	}
 
 	ctx := context.Background()
 

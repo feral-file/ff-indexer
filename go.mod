@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go v1.45.2
 	github.com/bitmark-inc/autonomy-account v0.0.5-1
 	github.com/bitmark-inc/autonomy-asset-server v0.0.3
-	github.com/bitmark-inc/autonomy-logger v0.0.3
+	github.com/bitmark-inc/autonomy-logger v0.0.4-0.20240404031646-fbcd45c7d32a
 	github.com/bitmark-inc/autonomy-notification v0.0.3
 	github.com/bitmark-inc/autonomy-utils v0.0.3
 	github.com/bitmark-inc/config-loader v0.0.7
@@ -18,7 +18,7 @@ require (
 	github.com/ethereum/go-ethereum v1.13.3
 	github.com/fatih/structs v1.1.0
 	github.com/gabriel-vasile/mimetype v1.4.2
-	github.com/getsentry/sentry-go v0.20.0
+	github.com/getsentry/sentry-go v0.27.0
 	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-gonic/gin v1.9.0
 	github.com/hasura/go-graphql-client v0.9.3
