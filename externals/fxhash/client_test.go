@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/bitmark-inc/autonomy-logger"
+	log "github.com/bitmark-inc/autonomy-logger"
 	"github.com/stretchr/testify/assert"
 )
 
 func init() {
-	if err := log.Initialize("debug", true); err != nil {
+	if err := log.Initialize("debug", true, nil); err != nil {
 		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
 	}
 }
