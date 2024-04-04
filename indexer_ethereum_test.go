@@ -21,7 +21,7 @@ import (
 )
 
 func TestIndexETHToken(t *testing.T) {
-	if err := log.Initialize("", false); err != nil {
+	if err := log.Initialize("", false, nil); err != nil {
 		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
 	}
 
@@ -51,7 +51,7 @@ func TestIndexETHToken(t *testing.T) {
 }
 
 func TestIndexTokenOwner(t *testing.T) {
-	if err := log.Initialize("", false); err != nil {
+	if err := log.Initialize("", false, nil); err != nil {
 		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
 	}
 

@@ -116,6 +116,10 @@ github.com/bitmark-inc/autonomy-asset-server v0.0.3 h1:DCOLgB3jX2qO31qqv4cF5UJ4F
 github.com/bitmark-inc/autonomy-asset-server v0.0.3/go.mod h1:badxL4HGY9goHdyJtjDBwW6lOscJlEy78rAOKK+ICZk=
 github.com/bitmark-inc/autonomy-logger v0.0.3 h1:se5/rKmZUzT5E/U7eIzNtM/nytSKNxqZ8+AS4TAvIMQ=
 github.com/bitmark-inc/autonomy-logger v0.0.3/go.mod h1:9D00aodNfb8ABviNvDZG0Dti4Q90aFe7AGnQRtYP7k4=
+github.com/bitmark-inc/autonomy-logger v0.0.4-0.20240403101837-5b48fb3a0e1c h1:hXBmii0TYZQmFywZhKtaFvPL5uTIWu5/V6TAdlyminM=
+github.com/bitmark-inc/autonomy-logger v0.0.4-0.20240403101837-5b48fb3a0e1c/go.mod h1:gpvW01zFYwm4RduPcrLsMwsNJoBn8JKqKpWmk0lfyBI=
+github.com/bitmark-inc/autonomy-logger v0.0.4-0.20240404031646-fbcd45c7d32a h1:O02ol70JIDJDYH5j9bVli620Kd22uZfT7GkIvsulMtA=
+github.com/bitmark-inc/autonomy-logger v0.0.4-0.20240404031646-fbcd45c7d32a/go.mod h1:gpvW01zFYwm4RduPcrLsMwsNJoBn8JKqKpWmk0lfyBI=
 github.com/bitmark-inc/autonomy-notification v0.0.3 h1:eVq9JvO/8M5k1VsNHmsrEJ1i2uPwkQQGy+Ow/UiB5qU=
 github.com/bitmark-inc/autonomy-notification v0.0.3/go.mod h1:6KUN7m6jdmgeppdweJXEKQpC19xcrUShxE1j5zgVEEA=
 github.com/bitmark-inc/autonomy-utils v0.0.3 h1:nc7ZGC60Wz+69ENRVRNh/N/e5RKQSOg/BdvL8ANZPsE=
@@ -252,6 +256,8 @@ github.com/gabriel-vasile/mimetype v1.4.2/go.mod h1:zApsH/mKG4w07erKIaJPFiX0Tsq9
 github.com/gballet/go-libpcsclite v0.0.0-20190607065134-2772fd86a8ff h1:tY80oXqGNY4FhTFhk+o9oFHGINQ/+vhlm8HFzi6znCI=
 github.com/getsentry/sentry-go v0.20.0 h1:bwXW98iMRIWxn+4FgPW7vMrjmbym6HblXALmhjHmQaQ=
 github.com/getsentry/sentry-go v0.20.0/go.mod h1:lc76E2QywIyW8WuBnwl8Lc4bkmQH4+w1gwTf25trprY=
+github.com/getsentry/sentry-go v0.27.0 h1:Pv98CIbtB3LkMWmXi4Joa5OOcwbmnX88sF5qbK3r3Ps=
+github.com/getsentry/sentry-go v0.27.0/go.mod h1:lc76E2QywIyW8WuBnwl8Lc4bkmQH4+w1gwTf25trprY=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/gin-contrib/cors v1.4.0 h1:oJ6gwtUl3lqV0WEIwM/LxPF1QZ5qe2lGWdY2+bz7y0g=
 github.com/gin-contrib/cors v1.4.0/go.mod h1:bs9pNM0x/UsmHPBWT2xZz9ROh8xYjYkiURUfmBoMlcs=
