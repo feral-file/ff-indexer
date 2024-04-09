@@ -66,6 +66,37 @@ type Holder struct {
 	Twitter   string
 }
 
+type SliceGallery []struct {
+	Gallery
+}
+
+type Gallery struct {
+	Name        string
+	Slug        string
+	Editions    int
+	Description string
+	Items       int
+	Logo        string
+	GalleryID   string `graphql:"gallery_id"`
+	PK          string `graphql:"pk"`
+	Registry    Registry
+	Published   bool
+}
+
+type Registry struct {
+	ID   string
+	Name string
+	Slug string
+}
+
+type SliceGalleryToken []struct {
+	GalleryToken
+}
+
+type GalleryToken struct {
+	Token Token
+}
+
 // GetObjectToken query Objkt Token object from Objkt API
 func (g *Client) GetObjectToken(contract string, tokenID string) (Token, error) {
 	var query struct {
@@ -87,4 +118,44 @@ func (g *Client) GetObjectToken(contract string, tokenID string) (Token, error) 
 	}
 
 	return query.SliceToken[0].Token, nil
+}
+
+// GetGalleries query Objkt galleries from Objkt API
+func (g *Client) GetGalleries(address string, offset, limit int) (SliceGallery, error) {
+	var query struct {
+		SliceGallery `graphql:"gallery(where: {curators: {curator_address: {_eq: $address}}}, offset: $offset, limit: $limit)"`
+	}
+
+	variables := map[string]interface{}{
+		"address": graphql.String(address),
+		"offset":  graphql.Int(offset),
+		"limit":   graphql.Int(limit),
+	}
+
+	err := g.Client.Query(context.Background(), &query, variables)
+	if err != nil {
+		return SliceGallery{}, err
+	}
+
+	return query.SliceGallery, nil
+}
+
+// GetGalleryToken query Objkt gallery tokens from Objkt API
+func (g *Client) GetGalleryTokens(galleryPK string, offset, limit int) (SliceGalleryToken, error) {
+	var query struct {
+		SliceGalleryToken `graphql:"gallery_token(where: {gallery_pk: {_eq: $gallery_pk}}, offset: $offset, limit: $limit)"`
+	}
+
+	variables := map[string]interface{}{
+		"gallery_pk": graphql.String(galleryPK),
+		"offset":     graphql.Int(offset),
+		"limit":      graphql.Int(limit),
+	}
+
+	err := g.Client.Query(context.Background(), &query, variables)
+	if err != nil {
+		return SliceGalleryToken{}, err
+	}
+
+	return query.SliceGalleryToken, nil
 }

@@ -164,3 +164,22 @@ func StartPendingTxFollowUpWorkflow(c context.Context, client *cadence.WorkerCli
 
 	return nil
 }
+
+// StartIndexTezosTokenWorkflow starts a workflow to index tokens for an ethereum address
+func StartIndexTezosCollectionWorkflow(c context.Context, client *cadence.WorkerClient, caller string, owner string) {
+	option := cadenceClient.StartWorkflowOptions{
+		ID:                           WorkflowIDIndexCollectionsByOwner(caller, owner),
+		TaskList:                     TaskListName,
+		ExecutionStartToCloseTimeout: time.Hour,
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+	}
+
+	var w NFTIndexerWorker
+
+	workflow, err := client.StartWorkflow(c, ClientName, option, w.IndexTezosCollectionWorkflow, owner)
+	if err != nil {
+		log.Error("fail to start workflow to index collections for owner", zap.Error(err), zap.String("caller", caller), zap.String("owner", owner))
+	} else {
+		log.Debug("start workflow for index Tezos collections for owner", zap.String("workflow_id", workflow.ID), zap.String("caller", caller), zap.String("owner", owner))
+	}
+}

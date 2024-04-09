@@ -545,31 +545,41 @@ func (s *NFTIndexerServer) QueryNFTsV2(c *gin.Context) {
 		return
 	}
 
-	checksumIDs := indexer.NormalizeIndexIDs(reqParams.IDs, false)
-	tokenInfo, err := s.indexerStore.GetDetailedTokensV2(c, indexer.FilterParameter{
-		IDs: checksumIDs,
-	}, reqParams.Offset, reqParams.Size)
-	if err != nil {
-		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
-		return
-	}
-
-	// check and IndexMissingTokens
-	if len(reqParams.IDs) > len(tokenInfo) {
-		m := make(map[string]bool, len(reqParams.IDs))
-		for _, id := range reqParams.IDs {
-			m[id] = true
+	if len(reqParams.IDs) > 0 {
+		checksumIDs := indexer.NormalizeIndexIDs(reqParams.IDs, false)
+		tokenInfo, err := s.indexerStore.GetDetailedTokensV2(c, indexer.FilterParameter{
+			IDs: checksumIDs,
+		}, reqParams.Offset, reqParams.Size)
+		if err != nil {
+			abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
+			return
 		}
 
-		for _, info := range tokenInfo {
-			if m[info.IndexID] {
-				delete(m, info.IndexID)
+		// check and IndexMissingTokens
+		if len(reqParams.IDs) > len(tokenInfo) {
+			m := make(map[string]bool, len(reqParams.IDs))
+			for _, id := range reqParams.IDs {
+				m[id] = true
 			}
-		}
-		go s.IndexMissingTokens(c, m)
-	}
 
-	c.JSON(http.StatusOK, tokenInfo)
+			for _, info := range tokenInfo {
+				if m[info.IndexID] {
+					delete(m, info.IndexID)
+				}
+			}
+			go s.IndexMissingTokens(c, m)
+		}
+
+		c.JSON(http.StatusOK, tokenInfo)
+	} else {
+		tokenInfo, err := s.indexerStore.GetDetailedTokensByCollectionID(c, reqParams.CollectionID, reqParams.Offset, reqParams.Size)
+		if err != nil {
+			abortWithError(c, http.StatusInternalServerError, "fail to query collection tokens from indexer store", err)
+			return
+		}
+
+		c.JSON(http.StatusOK, tokenInfo)
+	}
 }
 
 func (s *NFTIndexerServer) GetETHBlockTime(c *gin.Context) {
@@ -587,4 +597,40 @@ func (s *NFTIndexerServer) GetETHBlockTime(c *gin.Context) {
 		"blockTime": blockTime,
 	})
 
+}
+
+// GetAccountNFTsV2 queries NFTsV2 based on by owners & lastUpdatedAt
+func (s *NFTIndexerServer) GetCollectionsByOwners(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "GetCollectionsByOwners")
+
+	var reqParams = CollectionQueryParams{
+		Offset: 0,
+		Size:   50,
+	}
+
+	if err := c.BindQuery(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if reqParams.Owners == "" {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("owners is required"))
+		return
+	}
+
+	owners := strings.Split(reqParams.Owners, ",")
+
+	collections, err := s.indexerStore.GetCollectionsForOwners(
+		c,
+		owners,
+		reqParams.Offset,
+		reqParams.Size,
+	)
+
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to query collections from indexer store", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, collections)
 }

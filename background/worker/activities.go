@@ -28,6 +28,7 @@ var (
 	ErrMapKeyNotFound   = errors.New("key is not found")
 	ErrValueNotString   = errors.New("value is not of string type")
 	ErrInvalidEditionID = errors.New("invalid edition id")
+	QueryPageSize       = 50
 )
 
 // GetOwnedERC721TokenIDByContract returns a list of token id belongs to an owner for a specific contract
@@ -614,4 +615,83 @@ func (w *NFTIndexerWorker) GetBalanceDiffFromETHTransaction(transactionDetails [
 	}
 
 	return updatedAccountTokens, nil
+}
+
+// IndexTezosTokenByOwner indexes Tezos token data for an owner into the format of AssetUpdates
+func (w *NFTIndexerWorker) IndexTezosCollectionsByOwner(ctx context.Context, owner string, offset int) (int, error) {
+
+	// account, err := w.indexerStore.GetAccount(ctx, owner)
+
+	// if err != nil {
+	// 	return 0, err
+	// }
+
+	// if offset == 0 {
+	// 	delay := time.Minute
+	// 	if account.LastUpdatedTime.Unix() > time.Now().Add(-delay).Unix() {
+	// 		log.Debug("owner refresh too frequently",
+	// 			zap.Int64("lastUpdatedTime", account.LastUpdatedTime.Unix()),
+	// 			zap.Int64("now", time.Now().Add(-delay).Unix()),
+	// 			zap.String("owner", account.Account))
+	// 		return 0, nil
+	// 	}
+	// }
+
+	collectionUpdates, err := w.indexerEngine.IndexTezosCollectionByOwner(ctx, owner, offset, QueryPageSize)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(collectionUpdates) == 0 {
+		return 0, err
+	}
+
+	for _, collection := range collectionUpdates {
+		if err := w.indexerStore.IndexCollection(ctx, collection); err != nil {
+			return 0, err
+		}
+
+		// Index gallery tokens
+		nextOffset := 0
+		for {
+			assetUpdates, err := w.indexerEngine.GetObjktTokensByGalleryPK(ctx, collection.ExternalID, nextOffset, QueryPageSize)
+
+			if err != nil {
+				return 0, err
+			}
+
+			collectionAssets := []indexer.CollectionAsset{}
+
+			// Index assets of the colections
+			for _, asset := range assetUpdates {
+				if err := w.indexerStore.IndexAsset(ctx, asset.ID, asset); err != nil {
+					return 0, err
+				}
+
+				token := asset.Tokens[0]
+				indexID := indexer.TokenIndexID(token.Blockchain, token.ContractAddress, token.ID)
+
+				collectionAssets = append(collectionAssets, indexer.CollectionAsset{
+					CollectionID: indexID,
+					TokenIndexID: asset.ID,
+				})
+			}
+
+			if err := w.indexerStore.IndexCollectionAsset(ctx, collection.ID, collectionAssets); err != nil {
+				return 0, err
+			}
+
+			if len(assetUpdates) == QueryPageSize {
+				nextOffset += QueryPageSize
+			} else {
+				break
+			}
+		}
+	}
+
+	if len(collectionUpdates) == QueryPageSize {
+		return offset + QueryPageSize, nil
+	} else {
+		return 0, nil
+	}
 }

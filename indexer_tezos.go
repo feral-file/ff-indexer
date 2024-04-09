@@ -45,6 +45,42 @@ type TezosTokenMetadata struct {
 	TokenInfo map[string]HexString `json:"token_info"`
 }
 
+func (e *IndexEngine) GetObjktGalleriesByOwner(owner string, offset, limit int) ([]objkt.Gallery, error) {
+	sliceGallery, err := e.objkt.GetGalleries(owner, offset, limit)
+
+	if err != nil {
+		return nil, err
+	}
+
+	galleries := []objkt.Gallery{}
+	for _, c := range sliceGallery {
+		galleries = append(galleries, c.Gallery)
+	}
+
+	return galleries, nil
+}
+
+func (e *IndexEngine) GetObjktTokensByGalleryPK(ctx context.Context, galleryPK string, offset, limit int) ([]AssetUpdates, error) {
+	sliceGalleryToken, err := e.objkt.GetGalleryTokens(galleryPK, offset, limit)
+
+	if err != nil {
+		return nil, err
+	}
+
+	updates := []AssetUpdates{}
+	for _, c := range sliceGalleryToken {
+		assetUpdate, err := e.IndexTezosToken(ctx, c.Token.FaContract, c.Token.TokenID)
+
+		if err != nil {
+			return nil, err
+		}
+
+		updates = append(updates, *assetUpdate)
+	}
+
+	return updates, nil
+}
+
 func (e *IndexEngine) GetTezosTokenByOwner(owner string, lastTime time.Time, offset int) ([]tzkt.OwnedToken, error) {
 	if _, excluded := TezosIndexExcludedOwners[owner]; excluded {
 		return nil, nil
@@ -495,4 +531,41 @@ func (e *IndexEngine) GetTezosTxTimestamp(_ context.Context, txHashString string
 	}
 
 	return detailedTransactions[0].Timestamp, nil
+}
+
+// IndexTezosCollectionByOwner indexes all collections owned by a specific tezos address
+func (e *IndexEngine) IndexTezosCollectionByOwner(ctx context.Context, owner string, offset, limit int) ([]Collection, error) {
+	galleries, err := e.GetObjktGalleriesByOwner(owner, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("retrieve collections for owner", zap.Any("galleries", galleries), zap.String("owner", owner))
+
+	collectionUpdates := make([]Collection, 0, len(galleries))
+
+	for _, c := range galleries {
+		_, err := e.GetObjktTokensByGalleryPK(ctx, c.PK, offset, limit)
+		if err != nil {
+			log.Error("fail to index a tezos tokens", zap.Error(err))
+			return nil, err
+		}
+
+		update := Collection{
+			ID:          fmt.Sprint("objkt-", c.PK),
+			ExternalID:  c.PK,
+			Blockchain:  utils.TezosBlockchain,
+			Owner:       owner,
+			Name:        c.Name,
+			Description: c.Description,
+			ImageURL:    c.Logo,
+			Source:      "objkt",
+			Published:   c.Published,
+			SourceURL:   fmt.Sprintf("https://objkt.com/collections/%s/projects/%s", c.Registry.Slug, c.Slug),
+		}
+
+		collectionUpdates = append(collectionUpdates, update)
+	}
+
+	return collectionUpdates, nil
 }

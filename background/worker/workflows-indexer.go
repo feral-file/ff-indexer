@@ -193,3 +193,26 @@ func (w *NFTIndexerWorker) CacheIPFSArtifactWorkflow(ctx workflow.Context, fullD
 
 	return nil
 }
+
+// IndexTezosCollectionWorkflow is a workflow to index and summarized Tezos tokens for a owner
+func (w *NFTIndexerWorker) IndexTezosCollectionWorkflow(ctx workflow.Context, tokenOwner string) error {
+	log := workflow.GetLogger(ctx)
+
+	nextOffset := 0
+	for {
+		var next int
+		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx, ""), w.IndexTezosCollectionsByOwner, tokenOwner, nextOffset).Get(ctx, &next); err != nil {
+			sentry.CaptureException(err)
+			return err
+		}
+
+		if next == 0 {
+			log.Debug("[loop] no more collections found from tezos", zap.String("owner", tokenOwner))
+			break
+		}
+
+		nextOffset = next
+	}
+	log.Info("TEZOS collections indexed", zap.String("owner", tokenOwner))
+	return nil
+}
