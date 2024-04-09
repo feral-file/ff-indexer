@@ -15,8 +15,8 @@ type Artist struct {
 type Asset struct {
 	IndexID           string           `json:"indexID"`
 	ThumbnailID       string           `json:"thumbnailID"`
-	LastRefreshedTime *time.Time       `json:"lastRefreshedTime"`
-	Attributes        *AssetAttributes `json:"attributes"`
+	LastRefreshedTime *time.Time       `json:"lastRefreshedTime,omitempty"`
+	Attributes        *AssetAttributes `json:"attributes,omitempty"`
 	Metadata          *AssetMetadata   `json:"metadata"`
 }
 
@@ -53,14 +53,17 @@ type Collection struct {
 	Published        bool       `json:"published"`
 	Source           string     `json:"source"`
 	SourceURL        string     `json:"sourceURL"`
-	LastActivityTime *time.Time `json:"lastActivityTime"`
-	LastUpdatedTime  *time.Time `json:"lastUpdatedTime"`
+	LastActivityTime *time.Time `json:"lastActivityTime,omitempty"`
+	LastUpdatedTime  *time.Time `json:"lastUpdatedTime,omitempty"`
 }
 
 type Identity struct {
 	AccountNumber string `json:"accountNumber"`
 	Blockchain    string `json:"blockchain"`
 	Name          string `json:"name"`
+}
+
+type Mutation struct {
 }
 
 type Owner struct {
@@ -88,17 +91,20 @@ type ProjectMetadata struct {
 	GalleryThumbnailURL string    `json:"galleryThumbnailURL"`
 	AssetData           string    `json:"assetData"`
 	AssetURL            string    `json:"assetURL"`
-	ArtworkMetadata     JSON      `json:"artworkMetadata"`
+	ArtworkMetadata     JSON      `json:"artworkMetadata,omitempty"`
 }
 
 type Provenance struct {
 	Type        string     `json:"type"`
 	Owner       string     `json:"owner"`
 	Blockchain  string     `json:"blockchain"`
-	BlockNumber *int64     `json:"blockNumber"`
-	Timestamp   *time.Time `json:"timestamp"`
+	BlockNumber *int64     `json:"blockNumber,omitempty"`
+	Timestamp   *time.Time `json:"timestamp,omitempty"`
 	TxID        string     `json:"txID"`
 	TxURL       string     `json:"txURL"`
+}
+
+type Query struct {
 }
 
 type Token struct {
@@ -109,19 +115,19 @@ type Token struct {
 	ContractAddress   string           `json:"contractAddress"`
 	Edition           int64            `json:"edition"`
 	EditionName       string           `json:"editionName"`
-	MintAt            *time.Time       `json:"mintAt"`
-	MintedAt          *time.Time       `json:"mintedAt"`
+	MintAt            *time.Time       `json:"mintAt,omitempty"`
+	MintedAt          *time.Time       `json:"mintedAt,omitempty"`
 	Balance           int64            `json:"balance"`
 	Owner             string           `json:"owner"`
-	Owners            []*Owner         `json:"owners"`
-	OriginTokenInfo   []*BaseTokenInfo `json:"originTokenInfo"`
+	Owners            []*Owner         `json:"owners,omitempty"`
+	OriginTokenInfo   []*BaseTokenInfo `json:"originTokenInfo,omitempty"`
 	IndexID           string           `json:"indexID"`
 	Source            string           `json:"source"`
 	Swapped           bool             `json:"swapped"`
 	Burned            bool             `json:"burned"`
 	Provenance        []*Provenance    `json:"provenance"`
-	LastActivityTime  *time.Time       `json:"lastActivityTime"`
-	LastRefreshedTime *time.Time       `json:"lastRefreshedTime"`
+	LastActivityTime  *time.Time       `json:"lastActivityTime,omitempty"`
+	LastRefreshedTime *time.Time       `json:"lastRefreshedTime,omitempty"`
 	Asset             *Asset           `json:"asset"`
 }
 
