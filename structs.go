@@ -270,12 +270,13 @@ type Collection struct {
 	Owner           string `json:"owner" bson:"owner"`
 	Name            string `json:"name" bson:"name"`
 	Description     string `json:"description" bson:"description"`
+	Items           int    `json:"items" bson:"items"`
 	ImageURL        string `json:"imageURL" bson:"imageURL"`
 	Blockchain      string `json:"blockchain" bson:"blockchain"`
 	ContractAddress string `json:"contractAddress" bson:"contractAddress"`
 	Published       bool   `json:"published" bson:"published"`
 	Source          string `json:"source" bson:"source"`
-	SourceURL       string `json:"source_url" bson:"source"`
+	SourceURL       string `json:"source_url" bson:"source_url"`
 
 	LastUpdatedTime  time.Time `json:"lastUpdateTime" bson:"lastUpdateTime"`
 	LastActivityTime time.Time `json:"lastActivityTime" bson:"lastActivityTime"`

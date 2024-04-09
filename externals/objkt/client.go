@@ -78,13 +78,13 @@ type Gallery struct {
 	Items       int
 	Logo        string
 	GalleryID   string `graphql:"gallery_id"`
-	PK          string `graphql:"pk"`
+	PK          int64  `graphql:"pk"`
 	Registry    Registry
 	Published   bool
 }
 
 type Registry struct {
-	ID   string
+	ID   int
 	Name string
 	Slug string
 }
@@ -141,13 +141,13 @@ func (g *Client) GetGalleries(address string, offset, limit int) (SliceGallery, 
 }
 
 // GetGalleryToken query Objkt gallery tokens from Objkt API
-func (g *Client) GetGalleryTokens(galleryPK string, offset, limit int) (SliceGalleryToken, error) {
+func (g *Client) GetGalleryTokens(galleryPK int64, offset, limit int) (SliceGalleryToken, error) {
 	var query struct {
 		SliceGalleryToken `graphql:"gallery_token(where: {gallery_pk: {_eq: $gallery_pk}}, offset: $offset, limit: $limit)"`
 	}
 
 	variables := map[string]interface{}{
-		"gallery_pk": graphql.String(galleryPK),
+		"gallery_pk": graphql.Int(galleryPK),
 		"offset":     graphql.Int(offset),
 		"limit":      graphql.Int(limit),
 	}

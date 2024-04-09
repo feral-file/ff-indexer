@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -60,7 +61,7 @@ func (e *IndexEngine) GetObjktGalleriesByOwner(owner string, offset, limit int) 
 	return galleries, nil
 }
 
-func (e *IndexEngine) GetObjktTokensByGalleryPK(ctx context.Context, galleryPK string, offset, limit int) ([]AssetUpdates, error) {
+func (e *IndexEngine) GetObjktTokensByGalleryPK(ctx context.Context, galleryPK int64, offset, limit int) ([]AssetUpdates, error) {
 	sliceGalleryToken, err := e.objkt.GetGalleryTokens(galleryPK, offset, limit)
 
 	if err != nil {
@@ -545,20 +546,15 @@ func (e *IndexEngine) IndexTezosCollectionByOwner(ctx context.Context, owner str
 	collectionUpdates := make([]Collection, 0, len(galleries))
 
 	for _, c := range galleries {
-		_, err := e.GetObjktTokensByGalleryPK(ctx, c.PK, offset, limit)
-		if err != nil {
-			log.Error("fail to index a tezos tokens", zap.Error(err))
-			return nil, err
-		}
-
 		update := Collection{
 			ID:          fmt.Sprint("objkt-", c.PK),
-			ExternalID:  c.PK,
+			ExternalID:  strconv.FormatInt(c.PK, 10),
 			Blockchain:  utils.TezosBlockchain,
 			Owner:       owner,
 			Name:        c.Name,
 			Description: c.Description,
 			ImageURL:    c.Logo,
+			Items:       c.Items,
 			Source:      "objkt",
 			Published:   c.Published,
 			SourceURL:   fmt.Sprintf("https://objkt.com/collections/%s/projects/%s", c.Registry.Slug, c.Slug),

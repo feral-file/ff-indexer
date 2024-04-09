@@ -654,8 +654,12 @@ func (w *NFTIndexerWorker) IndexTezosCollectionsByOwner(ctx context.Context, own
 		// Index gallery tokens
 		nextOffset := 0
 		for {
-			assetUpdates, err := w.indexerEngine.GetObjktTokensByGalleryPK(ctx, collection.ExternalID, nextOffset, QueryPageSize)
+			galleryPK, err := strconv.ParseInt(collection.ExternalID, 10, 64)
+			if err != nil {
+				return 0, err
+			}
 
+			assetUpdates, err := w.indexerEngine.GetObjktTokensByGalleryPK(ctx, galleryPK, nextOffset, QueryPageSize)
 			if err != nil {
 				return 0, err
 			}
