@@ -276,7 +276,7 @@ type Collection struct {
 	ContractAddress string `json:"contractAddress" bson:"contractAddress"`
 	Published       bool   `json:"published" bson:"published"`
 	Source          string `json:"source" bson:"source"`
-	SourceURL       string `json:"source_url" bson:"source_url"`
+	SourceURL       string `json:"sourceURL" bson:"sourceURL"`
 
 	LastUpdatedTime  time.Time `json:"lastUpdateTime" bson:"lastUpdateTime"`
 	LastActivityTime time.Time `json:"lastActivityTime" bson:"lastActivityTime"`

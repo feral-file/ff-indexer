@@ -4,10 +4,35 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/hasura/go-graphql-client"
 )
+
+type Time struct {
+	time.Time
+}
+
+func (t *Time) UnmarshalJSON(b []byte) (err error) {
+	s := strings.Trim(string(b), "\"")
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil
+	}
+	s = strings.Split(s, "+")[0]
+	tt, err := time.Parse("2006-01-02T15:04:05.999999", s)
+	if err != nil {
+		return err
+	}
+
+	t.Time = tt
+	return nil
+}
+
+func (t *Time) MarshalJSON() ([]byte, error) {
+	return t.Time.MarshalJSON()
+}
 
 type Client struct {
 	Client   *graphql.Client
@@ -81,6 +106,7 @@ type Gallery struct {
 	PK          int64  `graphql:"pk"`
 	Registry    Registry
 	Published   bool
+	UpdatedAt   Time `graphql:"updated_at"`
 }
 
 type Registry struct {
@@ -141,21 +167,24 @@ func (g *Client) GetGalleries(address string, offset, limit int) (SliceGallery, 
 }
 
 // GetGalleryToken query Objkt gallery tokens from Objkt API
-func (g *Client) GetGalleryTokens(galleryPK int64, offset, limit int) (SliceGalleryToken, error) {
-	var query struct {
-		SliceGalleryToken `graphql:"gallery_token(where: {gallery_pk: {_eq: $gallery_pk}}, offset: $offset, limit: $limit)"`
-	}
+func (g *Client) GetGalleryTokens(galleryPK string, offset, limit int) (SliceGalleryToken, error) {
+	// NOTE: use `graphql.Client.Exec` to query since normal query doesn't support bigint varable
+	query := fmt.Sprintf(`query{
+		gallery_token(where: {gallery_pk: {_eq: %s}}, offset: %d, limit: %d) {
+			token {
+				fa_contract
+				token_id
+			}
+		}
+	}`, galleryPK, offset, limit)
+	res := struct {
+		GalleryToken SliceGalleryToken `graphql:"gallery_token"`
+	}{}
 
-	variables := map[string]interface{}{
-		"gallery_pk": graphql.Int(galleryPK),
-		"offset":     graphql.Int(offset),
-		"limit":      graphql.Int(limit),
-	}
-
-	err := g.Client.Query(context.Background(), &query, variables)
+	err := g.Client.Exec(context.Background(), query, &res, map[string]any{})
 	if err != nil {
 		return SliceGalleryToken{}, err
 	}
 
-	return query.SliceGalleryToken, nil
+	return res.GalleryToken, nil
 }

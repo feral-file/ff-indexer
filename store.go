@@ -2065,7 +2065,7 @@ func (s *MongodbIndexerStore) IndexCollectionAsset(ctx context.Context, collecti
 
 	for _, c := range collectionAssets {
 		log.Debug("update collection asset", zap.String("asset", c.TokenIndexID), zap.Any("accountToken", c))
-		r, err := s.accountTokenCollection.UpdateOne(ctx,
+		r, err := s.collectionAssetsCollection.UpdateOne(ctx,
 			bson.M{"collectionID": c.CollectionID},
 			bson.M{"$set": c},
 			options.Update().SetUpsert(true),
@@ -2089,7 +2089,7 @@ func (s *MongodbIndexerStore) IndexCollectionAsset(ctx context.Context, collecti
 		tokenIndexIDs = append(tokenIndexIDs, c.TokenIndexID)
 	}
 
-	_, err := s.accountTokenCollection.DeleteMany(ctx,
+	_, err := s.collectionAssetsCollection.DeleteMany(ctx,
 		bson.M{"collectionID": collectionID, "tokenIndexID": bson.M{"$nin": tokenIndexIDs}},
 	)
 
@@ -2167,6 +2167,10 @@ func (s *MongodbIndexerStore) GetDetailedTokensByCollectionID(ctx context.Contex
 		indexIDs = append(indexIDs, token.TokenIndexID)
 	}
 
-	filterParameter := FilterParameter{IDs: indexIDs}
-	return s.GetDetailedTokensV2(ctx, filterParameter, 0, int64(len(indexIDs)))
+	if len(indexIDs) > 0 {
+		filterParameter := FilterParameter{IDs: indexIDs}
+		return s.GetDetailedTokensV2(ctx, filterParameter, 0, int64(len(indexIDs)))
+	} else {
+		return []DetailedTokenV2{}, nil
+	}
 }

@@ -61,7 +61,7 @@ func (e *IndexEngine) GetObjktGalleriesByOwner(owner string, offset, limit int) 
 	return galleries, nil
 }
 
-func (e *IndexEngine) GetObjktTokensByGalleryPK(ctx context.Context, galleryPK int64, offset, limit int) ([]AssetUpdates, error) {
+func (e *IndexEngine) GetObjktTokensByGalleryPK(ctx context.Context, galleryPK string, offset, limit int) ([]AssetUpdates, error) {
 	sliceGalleryToken, err := e.objkt.GetGalleryTokens(galleryPK, offset, limit)
 
 	if err != nil {
@@ -143,6 +143,18 @@ func (e *IndexEngine) IndexTezosToken(ctx context.Context, contract, tokenID str
 
 // searchMetadataFromIPFS searches token metadata from a list of preferred ipfs gateway
 func (e *IndexEngine) searchMetadataFromIPFS(ipfsURI string) (*tzkt.TokenMetadata, error) {
+	if strings.HasPrefix(ipfsURI, "https://") {
+		metadata, err := e.fetchMetadataByLink(ipfsURI)
+		if err != nil {
+			log.Error("fail to read token metadata from ipfs",
+				zap.Error(err), zap.String("ipfsURI", ipfsURI), log.SourceTZKT)
+		}
+
+		log.Debug("read token metadata from ipfs",
+			zap.String("uri", ipfsURI), log.SourceTZKT)
+		return metadata, nil
+	}
+
 	if !strings.HasPrefix(ipfsURI, "ipfs://") {
 		return nil, fmt.Errorf("invalid ipfs link")
 	}
@@ -546,18 +558,24 @@ func (e *IndexEngine) IndexTezosCollectionByOwner(ctx context.Context, owner str
 	collectionUpdates := make([]Collection, 0, len(galleries))
 
 	for _, c := range galleries {
+		objktHost := "objkt.com"
+		if e.environment == DevelopmentEnvironment {
+			objktHost = "ghostnet.objkt.com"
+		}
+
 		update := Collection{
-			ID:          fmt.Sprint("objkt-", c.PK),
-			ExternalID:  strconv.FormatInt(c.PK, 10),
-			Blockchain:  utils.TezosBlockchain,
-			Owner:       owner,
-			Name:        c.Name,
-			Description: c.Description,
-			ImageURL:    c.Logo,
-			Items:       c.Items,
-			Source:      "objkt",
-			Published:   c.Published,
-			SourceURL:   fmt.Sprintf("https://objkt.com/collections/%s/projects/%s", c.Registry.Slug, c.Slug),
+			ID:               fmt.Sprint("objkt-", c.PK),
+			ExternalID:       strconv.FormatInt(c.PK, 10),
+			Blockchain:       utils.TezosBlockchain,
+			Owner:            owner,
+			Name:             c.Name,
+			Description:      c.Description,
+			ImageURL:         c.Logo,
+			Items:            c.Items,
+			Source:           "objkt",
+			Published:        c.Published,
+			SourceURL:        fmt.Sprintf("https://%s/collections/%s/projects/%s", objktHost, c.Registry.Slug, c.Slug),
+			LastActivityTime: c.UpdatedAt.Time,
 		}
 
 		collectionUpdates = append(collectionUpdates, update)
