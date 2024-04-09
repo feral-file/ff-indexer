@@ -111,10 +111,28 @@ type BlockTime {
 	blockTime: Time!
 }
 
+type Collection {
+	id:            		String!
+	externalID:         String!
+	artistURL:          String!
+	owner:             	String!
+	name:             	String!
+	description:        String!
+	items:          	Int64!
+	imageURL:        	String!
+	blockchain:         String!
+	published:         	Boolean!
+	source:             String!
+	sourceURL:          String!
+	lastActivityTime:  	Time
+	lastUpdatedTime: 	Time
+}
+
 type Query {
-  tokens(owners: [String!]! = [], ids: [String!]! = [], source: String! = "", lastUpdatedAt: Time, sortBy: String, offset: Int64! = 0, size: Int64! = 50): [Token!]!
+  tokens(owners: [String!]! = [], ids: [String!]! = [], collectionID: String! = "", source: String! = "", lastUpdatedAt: Time, sortBy: String, offset: Int64! = 0, size: Int64! = 50): [Token!]!
   identity(account: String!): Identity
   ethBlockTime(blockHash: String!): BlockTime
+  collections(owners: [String!]! = [], offset: Int64! = 0, size: Int64! = 50): [Collection!]!
 }
 
 type Mutation {

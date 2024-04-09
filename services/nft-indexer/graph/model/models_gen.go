@@ -40,6 +40,23 @@ type BlockTime struct {
 	BlockTime time.Time `json:"blockTime"`
 }
 
+type Collection struct {
+	ID               string     `json:"id"`
+	ExternalID       string     `json:"externalID"`
+	ArtistURL        string     `json:"artistURL"`
+	Owner            string     `json:"owner"`
+	Name             string     `json:"name"`
+	Description      string     `json:"description"`
+	Items            int64      `json:"items"`
+	ImageURL         string     `json:"imageURL"`
+	Blockchain       string     `json:"blockchain"`
+	Published        bool       `json:"published"`
+	Source           string     `json:"source"`
+	SourceURL        string     `json:"sourceURL"`
+	LastActivityTime *time.Time `json:"lastActivityTime"`
+	LastUpdatedTime  *time.Time `json:"lastUpdatedTime"`
+}
+
 type Identity struct {
 	AccountNumber string `json:"accountNumber"`
 	Blockchain    string `json:"blockchain"`

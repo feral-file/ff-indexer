@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/services/nft-indexer/graph/model"
 	"github.com/ethereum/go-ethereum/common"
@@ -36,7 +36,7 @@ func (r *mutationResolver) IndexHistory(ctx context.Context, indexID string) (bo
 }
 
 // Tokens is the resolver for the tokens field.
-func (r *queryResolver) Tokens(ctx context.Context, owners []string, ids []string, source string, lastUpdatedAt *time.Time, sortBy *string, offset int64, size int64) ([]*model.Token, error) {
+func (r *queryResolver) Tokens(ctx context.Context, owners []string, ids []string, collectionID string, source string, lastUpdatedAt *time.Time, sortBy *string, offset int64, size int64) ([]*model.Token, error) {
 	var tokensInfo []indexer.DetailedTokenV2
 	var err error
 
@@ -68,6 +68,12 @@ func (r *queryResolver) Tokens(ctx context.Context, owners []string, ids []strin
 			ctx, indexer.FilterParameter{
 				IDs: checksumIDs,
 			},
+			offset,
+			size)
+	} else if collectionID != "" {
+		tokensInfo, err = r.indexerStore.GetDetailedTokensByCollectionID(
+			ctx,
+			collectionID,
 			offset,
 			size)
 	} else {
@@ -105,6 +111,22 @@ func (r *queryResolver) EthBlockTime(ctx context.Context, blockHash string) (*mo
 	}
 
 	return &model.BlockTime{BlockTime: blockTime}, nil
+}
+
+// Collections is the resolver for the collections field.
+func (r *queryResolver) Collections(ctx context.Context, owners []string, offset int64, size int64) ([]*model.Collection, error) {
+	collectionsInfo, err := r.indexerStore.GetCollectionsForOwners(ctx, owners, offset, size)
+
+	if err != nil {
+		return nil, err
+	}
+
+	collections := []*model.Collection{}
+	for _, t := range collectionsInfo {
+		collections = append(collections, r.mapGraphQLCollection(t))
+	}
+
+	return collections, nil
 }
 
 // Mutation returns MutationResolver implementation.
