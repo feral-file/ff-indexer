@@ -147,6 +147,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-event-processor.fullname" . }}
                   key: ethereum_ws_url
+            - name: NFT_INDEXER_SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-processor.fullname" . }}
+                  key: sentry_dsn
             - name: AWS_REGION
               value: ap-northeast-1
             - name: AWS_ACCESS_KEY_ID
@@ -233,6 +238,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-event-processor.fullname" . }}
                   key: aws_secret_access_key
+            - name: NFT_INDEXER_SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-event-processor.fullname" . }}
+                  key: sentry_dsn
           volumeMounts:
           - name: config
             mountPath: "/.config"

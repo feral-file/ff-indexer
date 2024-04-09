@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/getsentry/sentry-go"
 	"go.uber.org/zap"
 
 	log "github.com/bitmark-inc/autonomy-logger"
@@ -157,6 +158,7 @@ func (e *EthereumEventsEmitter) processETHLog(ctx context.Context, eLog types.Lo
 		txTime, err := indexer.GetETHBlockTime(ctx, e.cacheStore, e.wsClient, eLog.BlockHash)
 		if err != nil {
 			log.Error("fail to get the block time", zap.Error(err), log.SourceGRPC)
+			sentry.CaptureException(err)
 			return
 		}
 
@@ -179,6 +181,7 @@ func (e *EthereumEventsEmitter) processETHLog(ctx context.Context, eLog types.Lo
 
 		if err := e.PushEvent(ctx, eventType, fromAddress, toAddress, contractAddress, utils.EthereumBlockchain, tokenIDHash.Big().Text(10), eLog.TxHash.Hex(), eLog.Index, txTime); err != nil {
 			log.Error("gRPC request failed", zap.Error(err), log.SourceGRPC)
+			sentry.CaptureException(err)
 			return
 		}
 	}

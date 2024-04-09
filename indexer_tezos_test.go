@@ -17,7 +17,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	if err := log.Initialize("", false); err != nil {
+	if err := log.Initialize("", false, nil); err != nil {
 		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
 	}
 	os.Exit(m.Run())
