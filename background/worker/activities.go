@@ -671,8 +671,8 @@ func (w *NFTIndexerWorker) IndexTezosCollectionsByOwner(ctx context.Context, own
 				indexID := indexer.TokenIndexID(token.Blockchain, token.ContractAddress, token.ID)
 
 				collectionAssets = append(collectionAssets, indexer.CollectionAsset{
-					CollectionID: indexID,
-					TokenIndexID: asset.ID,
+					CollectionID: collection.ID,
+					TokenIndexID: indexID,
 				})
 			}
 
