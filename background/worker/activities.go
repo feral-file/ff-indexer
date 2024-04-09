@@ -690,7 +690,7 @@ func (w *NFTIndexerWorker) IndexTezosCollectionsByOwner(ctx context.Context, own
 
 	if len(collectionUpdates) == QueryPageSize {
 		return offset + QueryPageSize, nil
-	} else {
-		return 0, nil
 	}
+
+	return 0, nil
 }

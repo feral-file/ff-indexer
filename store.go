@@ -2108,11 +2108,11 @@ func (s *MongodbIndexerStore) GetCollectionsForOwners(ctx context.Context, owner
 	for {
 		isLastPage := false
 
-		queryOffset := int64(page * QueryPageSize)
+		queryOffset := offset + int64(page*QueryPageSize)
 		queryLimit := int64(QueryPageSize)
 
-		if queryOffset+QueryPageSize > size {
-			queryLimit = size - queryOffset
+		if queryOffset+QueryPageSize > offset+size {
+			queryLimit = offset + size - queryOffset
 			isLastPage = true
 		}
 
@@ -2167,10 +2167,10 @@ func (s *MongodbIndexerStore) GetDetailedTokensByCollectionID(ctx context.Contex
 		indexIDs = append(indexIDs, token.TokenIndexID)
 	}
 
-	if len(indexIDs) > 0 {
-		filterParameter := FilterParameter{IDs: indexIDs}
-		return s.GetDetailedTokensV2(ctx, filterParameter, 0, int64(len(indexIDs)))
-	} else {
+	if len(indexIDs) == 0 {
 		return []DetailedTokenV2{}, nil
 	}
+
+	filterParameter := FilterParameter{IDs: indexIDs}
+	return s.GetDetailedTokensV2(ctx, filterParameter, 0, int64(len(indexIDs)))
 }

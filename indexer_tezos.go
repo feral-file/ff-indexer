@@ -547,7 +547,7 @@ func (e *IndexEngine) GetTezosTxTimestamp(_ context.Context, txHashString string
 }
 
 // IndexTezosCollectionByOwner indexes all collections owned by a specific tezos address
-func (e *IndexEngine) IndexTezosCollectionByOwner(ctx context.Context, owner string, offset, limit int) ([]Collection, error) {
+func (e *IndexEngine) IndexTezosCollectionByOwner(_ context.Context, owner string, offset, limit int) ([]Collection, error) {
 	galleries, err := e.GetObjktGalleriesByOwner(owner, offset, limit)
 	if err != nil {
 		return nil, err
