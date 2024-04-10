@@ -638,8 +638,11 @@ func (w *NFTIndexerWorker) IndexTezosCollectionsByOwner(ctx context.Context, own
 		}
 	}
 
+	log.Debug("start indexing tezos collections flow", zap.String("owner", owner), zap.Int("offset", offset))
+
 	collectionUpdates, err := w.indexerEngine.IndexTezosCollectionByOwner(ctx, owner, offset, QueryPageSize)
 	if err != nil {
+		log.Error("failed to fetching tezos collections", zap.String("owner", owner), zap.Int("offset", offset))
 		return 0, err
 	}
 
@@ -649,6 +652,7 @@ func (w *NFTIndexerWorker) IndexTezosCollectionsByOwner(ctx context.Context, own
 
 	for _, collection := range collectionUpdates {
 		if err := w.indexerStore.IndexCollection(ctx, collection); err != nil {
+			log.Error("failed to update tezos collections into store", zap.String("owner", owner))
 			return 0, err
 		}
 
@@ -657,6 +661,7 @@ func (w *NFTIndexerWorker) IndexTezosCollectionsByOwner(ctx context.Context, own
 		for {
 			assetUpdates, err := w.indexerEngine.GetObjktTokensByGalleryPK(ctx, collection.ExternalID, nextOffset, QueryPageSize)
 			if err != nil {
+				log.Error("failed to fetch gallery tokens", zap.String("owner", owner), zap.String("gallery_pk", collection.ExternalID))
 				return 0, err
 			}
 
@@ -665,6 +670,7 @@ func (w *NFTIndexerWorker) IndexTezosCollectionsByOwner(ctx context.Context, own
 			// Index assets of the colections
 			for _, asset := range assetUpdates {
 				if err := w.indexerStore.IndexAsset(ctx, asset.ID, asset); err != nil {
+					log.Error("failed to index asset for collection", zap.String("owner", owner), zap.String("assetID", asset.ID))
 					return 0, err
 				}
 
@@ -678,6 +684,7 @@ func (w *NFTIndexerWorker) IndexTezosCollectionsByOwner(ctx context.Context, own
 			}
 
 			if err := w.indexerStore.IndexCollectionAsset(ctx, collection.ID, collectionAssets); err != nil {
+				log.Error("failed to index collection assets", zap.String("owner", owner), zap.String("collectionID", collection.ID))
 				return 0, err
 			}
 
