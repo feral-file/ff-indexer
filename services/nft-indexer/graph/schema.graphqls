@@ -114,13 +114,13 @@ type BlockTime {
 type Collection {
 	id:            		String!
 	externalID:         String!
-	artistURL:          String!
 	owner:             	String!
 	name:             	String!
 	description:        String!
 	items:          	Int64!
 	imageURL:        	String!
 	blockchain:         String!
+	contracts: 			[String!]!
 	published:         	Boolean!
 	source:             String!
 	sourceURL:          String!
@@ -137,6 +137,7 @@ type Query {
 
 type Mutation {
   indexHistory(indexID: String!): Boolean!
+  indexCollection(owners: [String!]!): Boolean!
 }
 
 scalar Time

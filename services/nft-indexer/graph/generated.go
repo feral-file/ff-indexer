@@ -83,8 +83,8 @@ type ComplexityRoot struct {
 	}
 
 	Collection struct {
-		ArtistURL        func(childComplexity int) int
 		Blockchain       func(childComplexity int) int
+		Contracts        func(childComplexity int) int
 		Description      func(childComplexity int) int
 		ExternalID       func(childComplexity int) int
 		ID               func(childComplexity int) int
@@ -106,7 +106,8 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		IndexHistory func(childComplexity int, indexID string) int
+		IndexCollection func(childComplexity int, owners []string) int
+		IndexHistory    func(childComplexity int, indexID string) int
 	}
 
 	Owner struct {
@@ -186,6 +187,7 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	IndexHistory(ctx context.Context, indexID string) (bool, error)
+	IndexCollection(ctx context.Context, owners []string) (bool, error)
 }
 type QueryResolver interface {
 	Tokens(ctx context.Context, owners []string, ids []string, collectionID string, source string, lastUpdatedAt *time.Time, sortBy *string, offset int64, size int64) ([]*model.Token, error)
@@ -325,19 +327,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.BlockTime.BlockTime(childComplexity), true
 
-	case "Collection.artistURL":
-		if e.complexity.Collection.ArtistURL == nil {
-			break
-		}
-
-		return e.complexity.Collection.ArtistURL(childComplexity), true
-
 	case "Collection.blockchain":
 		if e.complexity.Collection.Blockchain == nil {
 			break
 		}
 
 		return e.complexity.Collection.Blockchain(childComplexity), true
+
+	case "Collection.contracts":
+		if e.complexity.Collection.Contracts == nil {
+			break
+		}
+
+		return e.complexity.Collection.Contracts(childComplexity), true
 
 	case "Collection.description":
 		if e.complexity.Collection.Description == nil {
@@ -443,6 +445,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Identity.Name(childComplexity), true
+
+	case "Mutation.indexCollection":
+		if e.complexity.Mutation.IndexCollection == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_indexCollection_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.IndexCollection(childComplexity, args["owners"].([]string)), true
 
 	case "Mutation.indexHistory":
 		if e.complexity.Mutation.IndexHistory == nil {
@@ -990,6 +1004,21 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_indexCollection_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 []string
+	if tmp, ok := rawArgs["owners"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("owners"))
+		arg0, err = ec.unmarshalNString2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["owners"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_indexHistory_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -2000,50 +2029,6 @@ func (ec *executionContext) fieldContext_Collection_externalID(ctx context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _Collection_artistURL(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Collection_artistURL(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ArtistURL, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Collection_artistURL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Collection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Collection_owner(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Collection_owner(ctx, field)
 	if err != nil {
@@ -2296,6 +2281,50 @@ func (ec *executionContext) _Collection_blockchain(ctx context.Context, field gr
 }
 
 func (ec *executionContext) fieldContext_Collection_blockchain(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Collection_contracts(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Collection_contracts(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Contracts, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Collection_contracts(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Collection",
 		Field:      field,
@@ -2703,6 +2732,61 @@ func (ec *executionContext) fieldContext_Mutation_indexHistory(ctx context.Conte
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_indexHistory_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_indexCollection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_indexCollection(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().IndexCollection(rctx, fc.Args["owners"].([]string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_indexCollection(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_indexCollection_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -4242,8 +4326,6 @@ func (ec *executionContext) fieldContext_Query_collections(ctx context.Context, 
 				return ec.fieldContext_Collection_id(ctx, field)
 			case "externalID":
 				return ec.fieldContext_Collection_externalID(ctx, field)
-			case "artistURL":
-				return ec.fieldContext_Collection_artistURL(ctx, field)
 			case "owner":
 				return ec.fieldContext_Collection_owner(ctx, field)
 			case "name":
@@ -4256,6 +4338,8 @@ func (ec *executionContext) fieldContext_Query_collections(ctx context.Context, 
 				return ec.fieldContext_Collection_imageURL(ctx, field)
 			case "blockchain":
 				return ec.fieldContext_Collection_blockchain(ctx, field)
+			case "contracts":
+				return ec.fieldContext_Collection_contracts(ctx, field)
 			case "published":
 				return ec.fieldContext_Collection_published(ctx, field)
 			case "source":
@@ -7617,11 +7701,6 @@ func (ec *executionContext) _Collection(ctx context.Context, sel ast.SelectionSe
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "artistURL":
-			out.Values[i] = ec._Collection_artistURL(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "owner":
 			out.Values[i] = ec._Collection_owner(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -7649,6 +7728,11 @@ func (ec *executionContext) _Collection(ctx context.Context, sel ast.SelectionSe
 			}
 		case "blockchain":
 			out.Values[i] = ec._Collection_blockchain(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "contracts":
+			out.Values[i] = ec._Collection_contracts(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -7765,6 +7849,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "indexHistory":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_indexHistory(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "indexCollection":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_indexCollection(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++

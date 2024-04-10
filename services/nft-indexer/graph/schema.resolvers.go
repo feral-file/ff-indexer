@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"time"
 
+	log "github.com/bitmark-inc/autonomy-logger"
+	"github.com/bitmark-inc/autonomy-utils"
 	"github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/services/nft-indexer/graph/model"
@@ -30,6 +32,22 @@ func (r *mutationResolver) IndexHistory(ctx context.Context, indexID string) (bo
 		indexerWorker.StartRefreshTokenOwnershipWorkflow(ctx, r.cadenceWorker, "indexer", indexID, 0)
 	} else {
 		indexerWorker.StartRefreshTokenProvenanceWorkflow(ctx, r.cadenceWorker, "indexer", indexID, 0)
+	}
+
+	return true, nil
+}
+
+// IndexCollection is the resolver for the indexCollection field.
+func (r *mutationResolver) IndexCollection(ctx context.Context, owners []string) (bool, error) {
+	for _, owner := range owners {
+		blockchain := utils.GetBlockchainByAddress(owner)
+
+		switch blockchain {
+		case utils.EthereumBlockchain:
+			log.Debug("Not implemented")
+		case utils.TezosBlockchain:
+			indexerWorker.StartIndexTezosCollectionWorkflow(ctx, r.cadenceWorker, "indexer", owner)
+		}
 	}
 
 	return true, nil

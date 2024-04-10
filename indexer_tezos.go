@@ -70,7 +70,7 @@ func (e *IndexEngine) GetObjktTokensByGalleryPK(ctx context.Context, galleryPK s
 
 	updates := []AssetUpdates{}
 	for _, c := range sliceGalleryToken {
-		assetUpdate, err := e.IndexTezosToken(ctx, c.Token.FaContract, c.Token.TokenID)
+		assetUpdate, err := e.IndexTezosToken(ctx, c.FaContract, c.TokenID)
 
 		if err != nil {
 			return nil, err
@@ -563,6 +563,11 @@ func (e *IndexEngine) IndexTezosCollectionByOwner(_ context.Context, owner strin
 			objktHost = "ghostnet.objkt.com"
 		}
 
+		contracts := []string{}
+		for _, c := range c.Tokens {
+			contracts = append(contracts, c.FaContract)
+		}
+
 		update := Collection{
 			ID:               fmt.Sprint("objkt-", c.PK),
 			ExternalID:       strconv.FormatInt(c.PK, 10),
@@ -572,6 +577,7 @@ func (e *IndexEngine) IndexTezosCollectionByOwner(_ context.Context, owner strin
 			Description:      c.Description,
 			ImageURL:         c.Logo,
 			Items:            c.Items,
+			Contracts:        contracts,
 			Source:           "objkt",
 			Published:        c.Published,
 			SourceURL:        fmt.Sprintf("https://%s/collections/%s/projects/%s", objktHost, c.Registry.Slug, c.Slug),

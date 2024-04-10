@@ -106,7 +106,8 @@ type Gallery struct {
 	PK          int64  `graphql:"pk"`
 	Registry    Registry
 	Published   bool
-	UpdatedAt   Time `graphql:"updated_at"`
+	Tokens      SliceGalleryToken `graphql:"tokens(distinct_on: fa_contract)"`
+	UpdatedAt   Time              `graphql:"updated_at"`
 }
 
 type Registry struct {
@@ -120,7 +121,8 @@ type SliceGalleryToken []struct {
 }
 
 type GalleryToken struct {
-	Token Token
+	FaContract string `graphql:"fa_contract"`
+	TokenID    string `graphql:"token_id"`
 }
 
 // GetObjectToken query Objkt Token object from Objkt API
@@ -171,10 +173,8 @@ func (g *Client) GetGalleryTokens(galleryPK string, offset, limit int) (SliceGal
 	// NOTE: use `graphql.Client.Exec` to query since normal query doesn't support bigint varable
 	query := fmt.Sprintf(`query{
 		gallery_token(where: {gallery_pk: {_eq: %s}}, offset: %d, limit: %d) {
-			token {
-				fa_contract
-				token_id
-			}
+			fa_contract
+			token_id
 		}
 	}`, galleryPK, offset, limit)
 	res := struct {

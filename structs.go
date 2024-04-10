@@ -265,18 +265,18 @@ type TotalBalance struct {
 }
 
 type Collection struct {
-	ID              string `json:"id" bson:"id"`
-	ExternalID      string `json:"externalID" bson:"externalID"`
-	Owner           string `json:"owner" bson:"owner"`
-	Name            string `json:"name" bson:"name"`
-	Description     string `json:"description" bson:"description"`
-	Items           int    `json:"items" bson:"items"`
-	ImageURL        string `json:"imageURL" bson:"imageURL"`
-	Blockchain      string `json:"blockchain" bson:"blockchain"`
-	ContractAddress string `json:"contractAddress" bson:"contractAddress"`
-	Published       bool   `json:"published" bson:"published"`
-	Source          string `json:"source" bson:"source"`
-	SourceURL       string `json:"sourceURL" bson:"sourceURL"`
+	ID          string   `json:"id" bson:"id"`
+	ExternalID  string   `json:"externalID" bson:"externalID"`
+	Owner       string   `json:"owner" bson:"owner"`
+	Name        string   `json:"name" bson:"name"`
+	Description string   `json:"description" bson:"description"`
+	Items       int      `json:"items" bson:"items"`
+	ImageURL    string   `json:"imageURL" bson:"imageURL"`
+	Blockchain  string   `json:"blockchain" bson:"blockchain"`
+	Contracts   []string `json:"contracts" bson:"contracts"`
+	Published   bool     `json:"published" bson:"published"`
+	Source      string   `json:"source" bson:"source"`
+	SourceURL   string   `json:"sourceURL" bson:"sourceURL"`
 
 	LastUpdatedTime  time.Time `json:"lastUpdateTime" bson:"lastUpdateTime"`
 	LastActivityTime time.Time `json:"lastActivityTime" bson:"lastActivityTime"`

@@ -43,13 +43,13 @@ type BlockTime struct {
 type Collection struct {
 	ID               string     `json:"id"`
 	ExternalID       string     `json:"externalID"`
-	ArtistURL        string     `json:"artistURL"`
 	Owner            string     `json:"owner"`
 	Name             string     `json:"name"`
 	Description      string     `json:"description"`
 	Items            int64      `json:"items"`
 	ImageURL         string     `json:"imageURL"`
 	Blockchain       string     `json:"blockchain"`
+	Contracts        []string   `json:"contracts"`
 	Published        bool       `json:"published"`
 	Source           string     `json:"source"`
 	SourceURL        string     `json:"sourceURL"`
