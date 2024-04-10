@@ -460,6 +460,11 @@ func (e *IndexEngine) IndexTezosTokenOwners(contract, tokenID string) ([]OwnerBa
 		ownersLen := len(owners)
 
 		for i, o := range owners {
+			//ignore index token owners if total supply > 100.000
+			if o.TotalSupply > 100000 {
+				return []OwnerBalance{}, nil
+			}
+
 			ownerBalances = append(ownerBalances, OwnerBalance{
 				Address:  o.Address,
 				Balance:  o.Balance,

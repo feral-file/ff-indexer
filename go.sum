@@ -132,8 +132,10 @@ github.com/bitmark-inc/httpsign v0.0.2-2 h1:r6PEni5eviDEU+6tRxVgG9z7XfOkS1m9HglF
 github.com/bitmark-inc/httpsign v0.0.2-2/go.mod h1:s5eQnhVQO4l9xAdA1fnBS7jWLZ1tOOg6eDpf3mvUYZo=
 github.com/bitmark-inc/traceutils v0.1.0 h1:9Wav80LREfMQa5/LcqSVSyJfGywHLxQLhFTczheoJdI=
 github.com/bitmark-inc/traceutils v0.1.0/go.mod h1:+9BJoMmAMMDWy54EpZKAwEN3WVyXUmWi4UsPDoMS/Hs=
-github.com/bitmark-inc/tzkt-go v0.0.12 h1:MSaJ588wx3UO/Rv1+N02uvT6mvoKy98JHacOEWpPT4c=
-github.com/bitmark-inc/tzkt-go v0.0.12/go.mod h1:e/kgHH4i6YzCveZ79cDiviEAA5FU6YO48nWLQBRAdGE=
+github.com/bitmark-inc/tzkt-go v0.0.13-0.20240104033756-0b8ec55d6211 h1:LHbhiSLrjgAn6LzwG0P8POMnDodk75BUKZ57arqFBVw=
+github.com/bitmark-inc/tzkt-go v0.0.13-0.20240104033756-0b8ec55d6211/go.mod h1:e/kgHH4i6YzCveZ79cDiviEAA5FU6YO48nWLQBRAdGE=
+github.com/bitmark-inc/tzkt-go v0.0.13 h1:Hkz8qBbPA/Ignws2PcqmKXnj/mGlTlOUirFzttyOTMc=
+github.com/bitmark-inc/tzkt-go v0.0.13/go.mod h1:e/kgHH4i6YzCveZ79cDiviEAA5FU6YO48nWLQBRAdGE=
 github.com/bits-and-blooms/bitset v1.10.0 h1:ePXTeiPEazB5+opbv5fr8umg2R/1NlzgDsyepwsSr88=
 github.com/bits-and-blooms/bitset v1.10.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
 github.com/bmizerany/perks v0.0.0-20141205001514-d9a9656a3a4b h1:AP/Y7sqYicnjGDfD5VcY4CIfh1hRXBUavxrvELjTiOE=
