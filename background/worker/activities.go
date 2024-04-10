@@ -13,6 +13,7 @@ import (
 	goethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/google/uuid"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
@@ -658,6 +659,7 @@ func (w *NFTIndexerWorker) IndexTezosCollectionsByOwner(ctx context.Context, own
 
 		// Index gallery tokens
 		nextOffset := 0
+		runID := uuid.New().String()
 		for {
 			assetUpdates, err := w.indexerEngine.GetObjktTokensByGalleryPK(ctx, collection.ExternalID, nextOffset, QueryPageSize)
 			if err != nil {
@@ -680,6 +682,7 @@ func (w *NFTIndexerWorker) IndexTezosCollectionsByOwner(ctx context.Context, own
 				collectionAssets = append(collectionAssets, indexer.CollectionAsset{
 					CollectionID: collection.ID,
 					TokenIndexID: indexID,
+					RunID:        runID,
 				})
 			}
 
@@ -691,6 +694,10 @@ func (w *NFTIndexerWorker) IndexTezosCollectionsByOwner(ctx context.Context, own
 			if len(assetUpdates) == QueryPageSize {
 				nextOffset += QueryPageSize
 			} else {
+				if err := w.indexerStore.DeleteDeprecatedCollectionAsset(ctx, collection.ID, runID); err != nil {
+					log.Error("failed to delete deprecated collection assets", zap.String("owner", owner), zap.String("collectionID", collection.ID))
+					return 0, err
+				}
 				break
 			}
 		}

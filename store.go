@@ -98,6 +98,8 @@ type Store interface {
 
 	IndexCollection(ctx context.Context, collection Collection) error
 	IndexCollectionAsset(ctx context.Context, collectionID string, collectionAssets []CollectionAsset) error
+	DeleteDeprecatedCollectionAsset(ctx context.Context, collectionID, runID string) error
+
 	GetCollectionLastUpdatedTimeForOwner(ctx context.Context, owner string) (time.Time, error)
 	GetCollectionByID(ctx context.Context, id string) (*Collection, error)
 	GetCollectionsByOwners(ctx context.Context, owner []string, offset, size int64) ([]Collection, error)
@@ -2063,14 +2065,10 @@ func (s *MongodbIndexerStore) IndexCollection(ctx context.Context, collection Co
 
 // IndexCollectionAsset index collection & tokens
 func (s *MongodbIndexerStore) IndexCollectionAsset(ctx context.Context, collectionID string, collectionAssets []CollectionAsset) error {
-	tokenIndexIDs := []string{}
-
 	for _, c := range collectionAssets {
-		tokenIndexIDs = append(tokenIndexIDs, c.TokenIndexID)
-
 		log.Debug("update collection asset", zap.String("asset", c.TokenIndexID), zap.Any("accountToken", c))
 		r, err := s.collectionAssetsCollection.UpdateOne(ctx,
-			bson.M{"collectionID": c.CollectionID},
+			bson.M{"collectionID": c.CollectionID, "tokenIndexID": c.TokenIndexID},
 			bson.M{"$set": c},
 			options.Update().SetUpsert(true),
 		)
@@ -2091,8 +2089,13 @@ func (s *MongodbIndexerStore) IndexCollectionAsset(ctx context.Context, collecti
 		}
 	}
 
+	return nil
+}
+
+// DeleteDeprecatedCollectionAsset removes old tokens not belong the collection anymore
+func (s *MongodbIndexerStore) DeleteDeprecatedCollectionAsset(ctx context.Context, collectionID, runID string) error {
 	_, err := s.collectionAssetsCollection.DeleteMany(ctx,
-		bson.M{"collectionID": collectionID, "tokenIndexID": bson.M{"$nin": tokenIndexIDs}},
+		bson.M{"collectionID": collectionID, "runID": bson.M{"$ne": runID}},
 	)
 
 	return err

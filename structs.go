@@ -285,4 +285,5 @@ type Collection struct {
 type CollectionAsset struct {
 	CollectionID string `json:"collectionID" bson:"collectionID"`
 	TokenIndexID string `json:"tokenIndexID" bson:"tokenIndexID"`
+	RunID        string `json:"-" bson:"runID"`
 }
