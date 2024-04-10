@@ -278,7 +278,7 @@ type Collection struct {
 	Source      string   `json:"source" bson:"source"`
 	SourceURL   string   `json:"sourceURL" bson:"sourceURL"`
 
-	LastUpdatedTime  time.Time `json:"lastUpdateTime" bson:"lastUpdateTime"`
+	LastUpdatedTime  time.Time `json:"lastUpdatedTime" bson:"lastUpdatedTime"`
 	LastActivityTime time.Time `json:"lastActivityTime" bson:"lastActivityTime"`
 }
 

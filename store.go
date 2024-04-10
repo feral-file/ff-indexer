@@ -98,6 +98,7 @@ type Store interface {
 
 	IndexCollection(ctx context.Context, collection Collection) error
 	IndexCollectionAsset(ctx context.Context, collectionID string, collectionAssets []CollectionAsset) error
+	GetCollectionLastUpdatedTimeForOwner(ctx context.Context, owner string) (time.Time, error)
 	GetCollectionsForOwners(ctx context.Context, owner []string, offset, size int64) ([]Collection, error)
 	GetDetailedTokensByCollectionID(ctx context.Context, collectionID string, offset, size int64) ([]DetailedTokenV2, error)
 }
@@ -2094,6 +2095,30 @@ func (s *MongodbIndexerStore) IndexCollectionAsset(ctx context.Context, collecti
 	)
 
 	return err
+}
+
+// GetCollectionLastUpdateTimeeForOwner returns collection last refreshed time for an owner
+func (s *MongodbIndexerStore) GetCollectionLastUpdatedTimeForOwner(ctx context.Context, owner string) (time.Time, error) {
+	findOptions := options.FindOne().SetSort(bson.D{{Key: "lastUpdatedTime", Value: -1}})
+	r := s.collectionsCollection.FindOne(ctx, bson.M{
+		"owner": owner,
+	}, findOptions)
+
+	if err := r.Err(); err != nil {
+		if err == mongo.ErrNoDocuments {
+			// If a token is not found, return zero time
+			return time.Time{}, nil
+		}
+
+		return time.Time{}, err
+	}
+
+	var collection Collection
+	if err := r.Decode(&collection); err != nil {
+		return time.Time{}, err
+	}
+
+	return collection.LastUpdatedTime, nil
 }
 
 // GetCollectionsForOwners returns list of collections for owners

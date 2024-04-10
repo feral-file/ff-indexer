@@ -620,22 +620,23 @@ func (w *NFTIndexerWorker) GetBalanceDiffFromETHTransaction(transactionDetails [
 // IndexTezosTokenByOwner indexes Tezos token data for an owner into the format of AssetUpdates
 func (w *NFTIndexerWorker) IndexTezosCollectionsByOwner(ctx context.Context, owner string, offset int) (int, error) {
 
-	// account, err := w.indexerStore.GetAccount(ctx, owner)
+	if offset == 0 {
+		gapTimeProtection := time.Hour
 
-	// if err != nil {
-	// 	return 0, err
-	// }
+		lastUpdatedTime, err := w.indexerStore.GetCollectionLastUpdatedTimeForOwner(ctx, owner)
 
-	// if offset == 0 {
-	// 	delay := time.Minute
-	// 	if account.LastUpdatedTime.Unix() > time.Now().Add(-delay).Unix() {
-	// 		log.Debug("owner refresh too frequently",
-	// 			zap.Int64("lastUpdatedTime", account.LastUpdatedTime.Unix()),
-	// 			zap.Int64("now", time.Now().Add(-delay).Unix()),
-	// 			zap.String("owner", account.Account))
-	// 		return 0, nil
-	// 	}
-	// }
+		if err != nil {
+			return 0, err
+		}
+
+		if lastUpdatedTime.Unix() > time.Now().Add(-gapTimeProtection).Unix() {
+			log.Debug("owner refresh too frequently",
+				zap.Int64("lastUpdatedTime", lastUpdatedTime.Unix()),
+				zap.Int64("now", time.Now().Unix()),
+				zap.String("owner", owner))
+			return 0, nil
+		}
+	}
 
 	collectionUpdates, err := w.indexerEngine.IndexTezosCollectionByOwner(ctx, owner, offset, QueryPageSize)
 	if err != nil {
