@@ -2174,7 +2174,10 @@ func (s *MongodbIndexerStore) GetCollectionsForOwners(ctx context.Context, owner
 func (s *MongodbIndexerStore) GetDetailedTokensByCollectionID(ctx context.Context, collectionID string, offset, size int64) ([]DetailedTokenV2, error) {
 	var tokens []CollectionAsset
 
-	findOptions := options.Find().SetLimit(size).SetSkip(offset)
+	findOptions := options.Find().
+		SetSort(bson.D{{Key: "_id", Value: -1}}).
+		SetLimit(size).
+		SetSkip(offset)
 	c, err := s.collectionAssetsCollection.Find(ctx, bson.M{
 		"collectionID": collectionID,
 	}, findOptions)
