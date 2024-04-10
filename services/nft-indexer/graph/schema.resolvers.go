@@ -10,8 +10,8 @@ import (
 	"time"
 
 	log "github.com/bitmark-inc/autonomy-logger"
-	"github.com/bitmark-inc/autonomy-utils"
-	"github.com/bitmark-inc/nft-indexer"
+	utils "github.com/bitmark-inc/autonomy-utils"
+	indexer "github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/services/nft-indexer/graph/model"
 	"github.com/ethereum/go-ethereum/common"
@@ -133,7 +133,7 @@ func (r *queryResolver) EthBlockTime(ctx context.Context, blockHash string) (*mo
 
 // Collections is the resolver for the collections field.
 func (r *queryResolver) Collections(ctx context.Context, owners []string, offset int64, size int64) ([]*model.Collection, error) {
-	collectionsInfo, err := r.indexerStore.GetCollectionsForOwners(ctx, owners, offset, size)
+	collectionsInfo, err := r.indexerStore.GetCollectionsByOwners(ctx, owners, offset, size)
 
 	if err != nil {
 		return nil, err
@@ -145,6 +145,21 @@ func (r *queryResolver) Collections(ctx context.Context, owners []string, offset
 	}
 
 	return collections, nil
+}
+
+// Collection is the resolver for the collection field.
+func (r *queryResolver) Collection(ctx context.Context, id string) (*model.Collection, error) {
+	collectionInfo, err := r.indexerStore.GetCollectionByID(ctx, id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if collectionInfo == nil {
+		return nil, fmt.Errorf("collection is not found")
+	}
+
+	return r.mapGraphQLCollection(*collectionInfo), nil
 }
 
 // Mutation returns MutationResolver implementation.

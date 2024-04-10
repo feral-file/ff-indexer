@@ -133,6 +133,7 @@ type Query {
   identity(account: String!): Identity
   ethBlockTime(blockHash: String!): BlockTime
   collections(owners: [String!]! = [], offset: Int64! = 0, size: Int64! = 50): [Collection!]!
+  collection(id: String!): Collection
 }
 
 type Mutation {

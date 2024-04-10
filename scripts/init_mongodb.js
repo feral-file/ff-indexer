@@ -176,6 +176,8 @@ db.collections.createIndexes([{
 }, {
   "owner": 1
 }, {
+  "id": 1
+}, {
   "lastActivityTime": -1
 }, {
   "lastUpdatedTime": -1

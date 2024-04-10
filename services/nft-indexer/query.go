@@ -599,7 +599,7 @@ func (s *NFTIndexerServer) GetETHBlockTime(c *gin.Context) {
 
 }
 
-// GetAccountNFTsV2 queries NFTsV2 based on by owners & lastUpdatedAt
+// GetCollectionsByOwners queries list of collections base on the given addresses
 func (s *NFTIndexerServer) GetCollectionsByOwners(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "GetCollectionsByOwners")
 
@@ -620,7 +620,7 @@ func (s *NFTIndexerServer) GetCollectionsByOwners(c *gin.Context) {
 
 	owners := strings.Split(reqParams.Owners, ",")
 
-	collections, err := s.indexerStore.GetCollectionsForOwners(
+	collections, err := s.indexerStore.GetCollectionsByOwners(
 		c,
 		owners,
 		reqParams.Offset,
@@ -633,4 +633,28 @@ func (s *NFTIndexerServer) GetCollectionsByOwners(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, collections)
+}
+
+// GetCollectionByID queries collection by the collectionID
+func (s *NFTIndexerServer) GetCollectionByID(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "GetCollectionByID")
+
+	collectionID := c.Param("collection_id")
+
+	collection, err := s.indexerStore.GetCollectionByID(
+		c,
+		collectionID,
+	)
+
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to query collections from indexer store", err)
+		return
+	}
+
+	if collection == nil {
+		abortWithError(c, http.StatusInternalServerError, "collection is not found", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, collection)
 }

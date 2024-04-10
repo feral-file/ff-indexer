@@ -99,7 +99,8 @@ type Store interface {
 	IndexCollection(ctx context.Context, collection Collection) error
 	IndexCollectionAsset(ctx context.Context, collectionID string, collectionAssets []CollectionAsset) error
 	GetCollectionLastUpdatedTimeForOwner(ctx context.Context, owner string) (time.Time, error)
-	GetCollectionsForOwners(ctx context.Context, owner []string, offset, size int64) ([]Collection, error)
+	GetCollectionByID(ctx context.Context, id string) (*Collection, error)
+	GetCollectionsByOwners(ctx context.Context, owner []string, offset, size int64) ([]Collection, error)
 	GetDetailedTokensByCollectionID(ctx context.Context, collectionID string, offset, size int64) ([]DetailedTokenV2, error)
 }
 
@@ -2065,6 +2066,8 @@ func (s *MongodbIndexerStore) IndexCollectionAsset(ctx context.Context, collecti
 	tokenIndexIDs := []string{}
 
 	for _, c := range collectionAssets {
+		tokenIndexIDs = append(tokenIndexIDs, c.TokenIndexID)
+
 		log.Debug("update collection asset", zap.String("asset", c.TokenIndexID), zap.Any("accountToken", c))
 		r, err := s.collectionAssetsCollection.UpdateOne(ctx,
 			bson.M{"collectionID": c.CollectionID},
@@ -2086,8 +2089,6 @@ func (s *MongodbIndexerStore) IndexCollectionAsset(ctx context.Context, collecti
 			log.Warn("collection token is not added or updated",
 				zap.String("collectionID", collectionID), zap.String("indexID", c.TokenIndexID))
 		}
-
-		tokenIndexIDs = append(tokenIndexIDs, c.TokenIndexID)
 	}
 
 	_, err := s.collectionAssetsCollection.DeleteMany(ctx,
@@ -2121,8 +2122,30 @@ func (s *MongodbIndexerStore) GetCollectionLastUpdatedTimeForOwner(ctx context.C
 	return collection.LastUpdatedTime, nil
 }
 
-// GetCollectionsForOwners returns list of collections for owners
-func (s *MongodbIndexerStore) GetCollectionsForOwners(ctx context.Context, owners []string, offset, size int64) ([]Collection, error) {
+// GetCollectionByID returns the collection by given id
+func (s *MongodbIndexerStore) GetCollectionByID(ctx context.Context, id string) (*Collection, error) {
+	r := s.collectionsCollection.FindOne(ctx, bson.M{
+		"id": id,
+	})
+
+	if err := r.Err(); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	var collection Collection
+	if err := r.Decode(&collection); err != nil {
+		return nil, err
+	}
+
+	return &collection, nil
+}
+
+// GetCollectionsByOwners returns list of collections for owners
+func (s *MongodbIndexerStore) GetCollectionsByOwners(ctx context.Context, owners []string, offset, size int64) ([]Collection, error) {
 	filter := bson.M{
 		"owner": bson.M{"$in": owners},
 	}
