@@ -190,9 +190,7 @@ func (c *Client) makeRequest(method, url string, body io.Reader) (*http.Response
 		return nil, err
 	}
 
-	if c.chain == "ethereum" {
-		req.Header.Add("X-API-KEY", c.apiKey)
-	}
+	req.Header.Add("X-API-KEY", c.apiKey)
 
 	if c.debug {
 		log.Debug("debug request", zap.String("req_dump", traceutils.DumpRequest(req)))
