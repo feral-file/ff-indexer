@@ -195,7 +195,7 @@ func StartIndexETHCollectionWorkflow(c context.Context, client *cadence.WorkerCl
 
 	var w NFTIndexerWorker
 
-	workflow, err := client.StartWorkflow(c, ClientName, option, w.IndexTezosCollectionWorkflow, creator)
+	workflow, err := client.StartWorkflow(c, ClientName, option, w.IndexETHCollectionWorkflow, creator)
 	if err != nil {
 		log.Error("fail to start workflow to index ETH collections for owner", zap.Error(err), zap.String("caller", caller), zap.String("creator", creator))
 	} else {
