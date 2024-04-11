@@ -98,6 +98,7 @@ func main() {
 	workflow.Register(worker.IndexETHTokenWorkflow)
 	workflow.Register(worker.IndexTezosTokenWorkflow)
 	workflow.Register(worker.IndexTezosCollectionWorkflow)
+	workflow.Register(worker.IndexETHCollectionWorkflow)
 	workflow.RegisterWithOptions(worker.IndexTokenWorkflow, workflow.RegisterOptions{
 		Name: "IndexTokenWorkflow",
 	})
