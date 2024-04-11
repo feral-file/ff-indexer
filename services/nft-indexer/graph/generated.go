@@ -85,6 +85,7 @@ type ComplexityRoot struct {
 	Collection struct {
 		Blockchain       func(childComplexity int) int
 		Contracts        func(childComplexity int) int
+		Creator          func(childComplexity int) int
 		Description      func(childComplexity int) int
 		ExternalID       func(childComplexity int) int
 		ID               func(childComplexity int) int
@@ -93,7 +94,6 @@ type ComplexityRoot struct {
 		LastActivityTime func(childComplexity int) int
 		LastUpdatedTime  func(childComplexity int) int
 		Name             func(childComplexity int) int
-		Owner            func(childComplexity int) int
 		Published        func(childComplexity int) int
 		Source           func(childComplexity int) int
 		SourceURL        func(childComplexity int) int
@@ -106,7 +106,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		IndexCollection func(childComplexity int, owners []string) int
+		IndexCollection func(childComplexity int, creators []string) int
 		IndexHistory    func(childComplexity int, indexID string) int
 	}
 
@@ -150,7 +150,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Collection   func(childComplexity int, id string) int
-		Collections  func(childComplexity int, owners []string, offset int64, size int64) int
+		Collections  func(childComplexity int, creators []string, offset int64, size int64) int
 		EthBlockTime func(childComplexity int, blockHash string) int
 		Identity     func(childComplexity int, account string) int
 		Tokens       func(childComplexity int, owners []string, ids []string, collectionID string, source string, lastUpdatedAt *time.Time, sortBy *string, offset int64, size int64) int
@@ -188,13 +188,13 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	IndexHistory(ctx context.Context, indexID string) (bool, error)
-	IndexCollection(ctx context.Context, owners []string) (bool, error)
+	IndexCollection(ctx context.Context, creators []string) (bool, error)
 }
 type QueryResolver interface {
 	Tokens(ctx context.Context, owners []string, ids []string, collectionID string, source string, lastUpdatedAt *time.Time, sortBy *string, offset int64, size int64) ([]*model.Token, error)
 	Identity(ctx context.Context, account string) (*model.Identity, error)
 	EthBlockTime(ctx context.Context, blockHash string) (*model.BlockTime, error)
-	Collections(ctx context.Context, owners []string, offset int64, size int64) ([]*model.Collection, error)
+	Collections(ctx context.Context, creators []string, offset int64, size int64) ([]*model.Collection, error)
 	Collection(ctx context.Context, id string) (*model.Collection, error)
 }
 
@@ -343,6 +343,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Collection.Contracts(childComplexity), true
 
+	case "Collection.creator":
+		if e.complexity.Collection.Creator == nil {
+			break
+		}
+
+		return e.complexity.Collection.Creator(childComplexity), true
+
 	case "Collection.description":
 		if e.complexity.Collection.Description == nil {
 			break
@@ -399,13 +406,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Collection.Name(childComplexity), true
 
-	case "Collection.owner":
-		if e.complexity.Collection.Owner == nil {
-			break
-		}
-
-		return e.complexity.Collection.Owner(childComplexity), true
-
 	case "Collection.published":
 		if e.complexity.Collection.Published == nil {
 			break
@@ -458,7 +458,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.IndexCollection(childComplexity, args["owners"].([]string)), true
+		return e.complexity.Mutation.IndexCollection(childComplexity, args["creators"].([]string)), true
 
 	case "Mutation.indexHistory":
 		if e.complexity.Mutation.IndexHistory == nil {
@@ -697,7 +697,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Collections(childComplexity, args["owners"].([]string), args["offset"].(int64), args["size"].(int64)), true
+		return e.complexity.Query.Collections(childComplexity, args["creators"].([]string), args["offset"].(int64), args["size"].(int64)), true
 
 	case "Query.ethBlockTime":
 		if e.complexity.Query.EthBlockTime == nil {
@@ -1023,14 +1023,14 @@ func (ec *executionContext) field_Mutation_indexCollection_args(ctx context.Cont
 	var err error
 	args := map[string]interface{}{}
 	var arg0 []string
-	if tmp, ok := rawArgs["owners"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("owners"))
+	if tmp, ok := rawArgs["creators"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("creators"))
 		arg0, err = ec.unmarshalNString2ᚕstringᚄ(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["owners"] = arg0
+	args["creators"] = arg0
 	return args, nil
 }
 
@@ -1083,14 +1083,14 @@ func (ec *executionContext) field_Query_collections_args(ctx context.Context, ra
 	var err error
 	args := map[string]interface{}{}
 	var arg0 []string
-	if tmp, ok := rawArgs["owners"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("owners"))
+	if tmp, ok := rawArgs["creators"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("creators"))
 		arg0, err = ec.unmarshalNString2ᚕstringᚄ(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["owners"] = arg0
+	args["creators"] = arg0
 	var arg1 int64
 	if tmp, ok := rawArgs["offset"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
@@ -2058,8 +2058,8 @@ func (ec *executionContext) fieldContext_Collection_externalID(ctx context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _Collection_owner(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Collection_owner(ctx, field)
+func (ec *executionContext) _Collection_creator(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Collection_creator(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -2072,7 +2072,7 @@ func (ec *executionContext) _Collection_owner(ctx context.Context, field graphql
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Owner, nil
+		return obj.Creator, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2089,7 +2089,7 @@ func (ec *executionContext) _Collection_owner(ctx context.Context, field graphql
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Collection_owner(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Collection_creator(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Collection",
 		Field:      field,
@@ -2781,7 +2781,7 @@ func (ec *executionContext) _Mutation_indexCollection(ctx context.Context, field
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().IndexCollection(rctx, fc.Args["owners"].([]string))
+		return ec.resolvers.Mutation().IndexCollection(rctx, fc.Args["creators"].([]string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4326,7 +4326,7 @@ func (ec *executionContext) _Query_collections(ctx context.Context, field graphq
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Collections(rctx, fc.Args["owners"].([]string), fc.Args["offset"].(int64), fc.Args["size"].(int64))
+		return ec.resolvers.Query().Collections(rctx, fc.Args["creators"].([]string), fc.Args["offset"].(int64), fc.Args["size"].(int64))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4355,8 +4355,8 @@ func (ec *executionContext) fieldContext_Query_collections(ctx context.Context, 
 				return ec.fieldContext_Collection_id(ctx, field)
 			case "externalID":
 				return ec.fieldContext_Collection_externalID(ctx, field)
-			case "owner":
-				return ec.fieldContext_Collection_owner(ctx, field)
+			case "creator":
+				return ec.fieldContext_Collection_creator(ctx, field)
 			case "name":
 				return ec.fieldContext_Collection_name(ctx, field)
 			case "description":
@@ -4437,8 +4437,8 @@ func (ec *executionContext) fieldContext_Query_collection(ctx context.Context, f
 				return ec.fieldContext_Collection_id(ctx, field)
 			case "externalID":
 				return ec.fieldContext_Collection_externalID(ctx, field)
-			case "owner":
-				return ec.fieldContext_Collection_owner(ctx, field)
+			case "creator":
+				return ec.fieldContext_Collection_creator(ctx, field)
 			case "name":
 				return ec.fieldContext_Collection_name(ctx, field)
 			case "description":
@@ -7812,8 +7812,8 @@ func (ec *executionContext) _Collection(ctx context.Context, sel ast.SelectionSe
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "owner":
-			out.Values[i] = ec._Collection_owner(ctx, field, obj)
+		case "creator":
+			out.Values[i] = ec._Collection_creator(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

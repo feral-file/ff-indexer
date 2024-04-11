@@ -56,7 +56,7 @@ type CollectionQueryParams struct {
 	Size   int64 `form:"size"`
 
 	// list by owners
-	Owners string `form:"owners"`
+	Creators string `form:"creators"`
 }
 
 type TokenFeedbackParams struct {
@@ -369,14 +369,14 @@ func (s *NFTIndexerServer) IndexCollections(c *gin.Context) {
 	}
 
 	for _, addr := range req.Addresses {
-		owner := addr.String()
-		blockchain := utils.GetBlockchainByAddress(owner)
+		address := addr.String()
+		blockchain := utils.GetBlockchainByAddress(address)
 
 		switch blockchain {
 		case utils.EthereumBlockchain:
-			log.Debug("Not implemented")
+			indexerWorker.StartIndexETHCollectionWorkflow(c, s.cadenceWorker, "indexer", address)
 		case utils.TezosBlockchain:
-			indexerWorker.StartIndexTezosCollectionWorkflow(c, s.cadenceWorker, "indexer", owner)
+			indexerWorker.StartIndexTezosCollectionWorkflow(c, s.cadenceWorker, "indexer", address)
 		}
 	}
 

@@ -100,9 +100,9 @@ type Store interface {
 	IndexCollectionAsset(ctx context.Context, collectionID string, collectionAssets []CollectionAsset) error
 	DeleteDeprecatedCollectionAsset(ctx context.Context, collectionID, runID string) error
 
-	GetCollectionLastUpdatedTimeForOwner(ctx context.Context, owner string) (time.Time, error)
+	GetCollectionLastUpdatedTimeForCreator(ctx context.Context, creator string) (time.Time, error)
 	GetCollectionByID(ctx context.Context, id string) (*Collection, error)
-	GetCollectionsByOwners(ctx context.Context, owner []string, offset, size int64) ([]Collection, error)
+	GetCollectionsByCreators(ctx context.Context, creators []string, offset, size int64) ([]Collection, error)
 	GetDetailedTokensByCollectionID(ctx context.Context, collectionID string, offset, size int64) ([]DetailedTokenV2, error)
 }
 
@@ -2102,10 +2102,10 @@ func (s *MongodbIndexerStore) DeleteDeprecatedCollectionAsset(ctx context.Contex
 }
 
 // GetCollectionLastUpdateTimeeForOwner returns collection last refreshed time for an owner
-func (s *MongodbIndexerStore) GetCollectionLastUpdatedTimeForOwner(ctx context.Context, owner string) (time.Time, error) {
+func (s *MongodbIndexerStore) GetCollectionLastUpdatedTimeForCreator(ctx context.Context, creator string) (time.Time, error) {
 	findOptions := options.FindOne().SetSort(bson.D{{Key: "lastUpdatedTime", Value: -1}})
 	r := s.collectionsCollection.FindOne(ctx, bson.M{
-		"owner": owner,
+		"creator": creator,
 	}, findOptions)
 
 	if err := r.Err(); err != nil {
@@ -2148,9 +2148,9 @@ func (s *MongodbIndexerStore) GetCollectionByID(ctx context.Context, id string) 
 }
 
 // GetCollectionsByOwners returns list of collections for owners
-func (s *MongodbIndexerStore) GetCollectionsByOwners(ctx context.Context, owners []string, offset, size int64) ([]Collection, error) {
+func (s *MongodbIndexerStore) GetCollectionsByCreators(ctx context.Context, creators []string, offset, size int64) ([]Collection, error) {
 	filter := bson.M{
-		"owner": bson.M{"$in": owners},
+		"creator": bson.M{"$in": creators},
 	}
 	findOptions := options.Find().SetSort(bson.D{{Key: "lastActivityTime", Value: -1}, {Key: "_id", Value: -1}})
 

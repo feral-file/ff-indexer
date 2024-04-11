@@ -46,8 +46,8 @@ type TezosTokenMetadata struct {
 	TokenInfo map[string]HexString `json:"token_info"`
 }
 
-func (e *IndexEngine) GetObjktGalleriesByOwner(owner string, offset, limit int) ([]objkt.Gallery, error) {
-	sliceGallery, err := e.objkt.GetGalleries(owner, offset, limit)
+func (e *IndexEngine) GetObjktGalleriesByCreator(creator string, offset, limit int) ([]objkt.Gallery, error) {
+	sliceGallery, err := e.objkt.GetGalleries(creator, offset, limit)
 
 	if err != nil {
 		return nil, err
@@ -546,14 +546,14 @@ func (e *IndexEngine) GetTezosTxTimestamp(_ context.Context, txHashString string
 	return detailedTransactions[0].Timestamp, nil
 }
 
-// IndexTezosCollectionByOwner indexes all collections owned by a specific tezos address
-func (e *IndexEngine) IndexTezosCollectionByOwner(_ context.Context, owner string, offset, limit int) ([]Collection, error) {
-	galleries, err := e.GetObjktGalleriesByOwner(owner, offset, limit)
+// IndexTezosCollectionByCreator indexes all collections created by a specific tezos address
+func (e *IndexEngine) IndexTezosCollectionByCreator(_ context.Context, creator string, offset, limit int) ([]Collection, error) {
+	galleries, err := e.GetObjktGalleriesByCreator(creator, offset, limit)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debug("retrieve collections for owner", zap.Any("galleries", galleries), zap.String("owner", owner))
+	log.Debug("retrieve collections for creator", zap.Any("galleries", galleries), zap.String("creator", creator))
 
 	collectionUpdates := make([]Collection, 0, len(galleries))
 
@@ -572,7 +572,7 @@ func (e *IndexEngine) IndexTezosCollectionByOwner(_ context.Context, owner strin
 			ID:               fmt.Sprint("objkt-", c.PK),
 			ExternalID:       strconv.FormatInt(c.PK, 10),
 			Blockchain:       utils.TezosBlockchain,
-			Owner:            owner,
+			Creator:          creator,
 			Name:             c.Name,
 			Description:      c.Description,
 			ImageURL:         c.Logo,

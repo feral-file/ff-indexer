@@ -21,6 +21,7 @@ require (
 	github.com/getsentry/sentry-go v0.20.0
 	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-gonic/gin v1.9.0
+	github.com/google/uuid v1.6.0
 	github.com/hasura/go-graphql-client v0.12.1
 	github.com/jackc/pgconn v1.10.1
 	github.com/lib/pq v1.10.2
@@ -106,7 +107,6 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.4 // indirect

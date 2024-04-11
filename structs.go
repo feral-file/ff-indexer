@@ -267,7 +267,7 @@ type TotalBalance struct {
 type Collection struct {
 	ID          string   `json:"id" bson:"id"`
 	ExternalID  string   `json:"externalID" bson:"externalID"`
-	Owner       string   `json:"owner" bson:"owner"`
+	Creator     string   `json:"creator" bson:"creator"`
 	Name        string   `json:"name" bson:"name"`
 	Description string   `json:"description" bson:"description"`
 	Items       int      `json:"items" bson:"items"`

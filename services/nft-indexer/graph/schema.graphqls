@@ -114,7 +114,7 @@ type BlockTime {
 type Collection {
 	id:            		String!
 	externalID:         String!
-	owner:             	String!
+	creator:            String!
 	name:             	String!
 	description:        String!
 	items:          	Int64!
@@ -132,13 +132,13 @@ type Query {
   tokens(owners: [String!]! = [], ids: [String!]! = [], collectionID: String! = "", source: String! = "", lastUpdatedAt: Time, sortBy: String, offset: Int64! = 0, size: Int64! = 50): [Token!]!
   identity(account: String!): Identity
   ethBlockTime(blockHash: String!): BlockTime
-  collections(owners: [String!]! = [], offset: Int64! = 0, size: Int64! = 50): [Collection!]!
+  collections(creators: [String!]! = [], offset: Int64! = 0, size: Int64! = 50): [Collection!]!
   collection(id: String!): Collection
 }
 
 type Mutation {
   indexHistory(indexID: String!): Boolean!
-  indexCollection(owners: [String!]!): Boolean!
+  indexCollection(creators: [String!]!): Boolean!
 }
 
 scalar Time

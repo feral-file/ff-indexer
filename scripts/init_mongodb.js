@@ -171,10 +171,10 @@ db.createView("token_assets", "tokens", [{
 ])
 
 db.collections.createIndexes([{
-  "owner": 1,
+  "creator": 1,
   "lastActivityTime": -1
 }, {
-  "owner": 1
+  "creator": 1
 }, {
   "id": 1
 }, {

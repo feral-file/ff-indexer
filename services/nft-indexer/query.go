@@ -599,9 +599,9 @@ func (s *NFTIndexerServer) GetETHBlockTime(c *gin.Context) {
 
 }
 
-// GetCollectionsByOwners queries list of collections base on the given addresses
-func (s *NFTIndexerServer) GetCollectionsByOwners(c *gin.Context) {
-	traceutils.SetHandlerTag(c, "GetCollectionsByOwners")
+// GetCollectionsByCreators queries list of collections base on the given addresses
+func (s *NFTIndexerServer) GetCollectionsByCreators(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "GetCollectionsByCreators")
 
 	var reqParams = CollectionQueryParams{
 		Offset: 0,
@@ -613,16 +613,16 @@ func (s *NFTIndexerServer) GetCollectionsByOwners(c *gin.Context) {
 		return
 	}
 
-	if reqParams.Owners == "" {
-		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("owners is required"))
+	if reqParams.Creators == "" {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("creators is required"))
 		return
 	}
 
-	owners := strings.Split(reqParams.Owners, ",")
+	creators := strings.Split(reqParams.Creators, ",")
 
-	collections, err := s.indexerStore.GetCollectionsByOwners(
+	collections, err := s.indexerStore.GetCollectionsByCreators(
 		c,
-		owners,
+		creators,
 		reqParams.Offset,
 		reqParams.Size,
 	)

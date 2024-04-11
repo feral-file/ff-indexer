@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"time"
 
-	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
@@ -38,15 +37,15 @@ func (r *mutationResolver) IndexHistory(ctx context.Context, indexID string) (bo
 }
 
 // IndexCollection is the resolver for the indexCollection field.
-func (r *mutationResolver) IndexCollection(ctx context.Context, owners []string) (bool, error) {
-	for _, owner := range owners {
-		blockchain := utils.GetBlockchainByAddress(owner)
+func (r *mutationResolver) IndexCollection(ctx context.Context, creators []string) (bool, error) {
+	for _, creator := range creators {
+		blockchain := utils.GetBlockchainByAddress(creator)
 
 		switch blockchain {
 		case utils.EthereumBlockchain:
-			log.Debug("Not implemented")
+			indexerWorker.StartIndexETHCollectionWorkflow(ctx, r.cadenceWorker, "indexer", creator)
 		case utils.TezosBlockchain:
-			indexerWorker.StartIndexTezosCollectionWorkflow(ctx, r.cadenceWorker, "indexer", owner)
+			indexerWorker.StartIndexTezosCollectionWorkflow(ctx, r.cadenceWorker, "indexer", creator)
 		}
 	}
 
@@ -132,8 +131,8 @@ func (r *queryResolver) EthBlockTime(ctx context.Context, blockHash string) (*mo
 }
 
 // Collections is the resolver for the collections field.
-func (r *queryResolver) Collections(ctx context.Context, owners []string, offset int64, size int64) ([]*model.Collection, error) {
-	collectionsInfo, err := r.indexerStore.GetCollectionsByOwners(ctx, owners, offset, size)
+func (r *queryResolver) Collections(ctx context.Context, creators []string, offset int64, size int64) ([]*model.Collection, error) {
+	collectionsInfo, err := r.indexerStore.GetCollectionsByCreators(ctx, creators, offset, size)
 
 	if err != nil {
 		return nil, err

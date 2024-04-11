@@ -160,7 +160,7 @@ func (r *Resolver) mapGraphQLCollection(c indexer.Collection) *model.Collection 
 		ExternalID:       c.ExternalID,
 		Blockchain:       c.Blockchain,
 		Contracts:        c.Contracts,
-		Owner:            c.Owner,
+		Creator:          c.Creator,
 		Name:             c.Name,
 		Description:      c.Description,
 		ImageURL:         c.ImageURL,

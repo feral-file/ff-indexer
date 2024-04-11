@@ -109,9 +109,10 @@ func main() {
 	activity.Register(worker.IndexToken)
 	// ethereum
 	activity.Register(worker.IndexETHTokenByOwner)
+	activity.Register(worker.IndexETHCollectionsByCreator)
 	// tezos
 	activity.Register(worker.IndexTezosTokenByOwner)
-	activity.Register(worker.IndexTezosCollectionsByOwner)
+	activity.Register(worker.IndexTezosCollectionsByCreator)
 	// index store
 	activity.Register(worker.IndexAsset)
 	activity.Register(worker.GetTokenBalanceOfOwner)

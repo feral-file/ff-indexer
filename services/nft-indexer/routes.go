@@ -66,7 +66,7 @@ func (s *NFTIndexerServer) SetupRoute() {
 
 	v2Collections := v2.Group("/collections")
 	v2Collections.POST("/index", s.IndexCollections)
-	v2Collections.GET("", s.GetCollectionsByOwners)
+	v2Collections.GET("", s.GetCollectionsByCreators)
 	v2Collections.GET("/:collection_id", s.GetCollectionByID)
 
 	v2.POST("/graphql", s.graphqlHandler)
