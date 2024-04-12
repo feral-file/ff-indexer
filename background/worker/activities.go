@@ -755,14 +755,10 @@ func (w *NFTIndexerWorker) IndexETHCollectionsByCreator(ctx context.Context, cre
 	}
 
 	for _, collection := range collectionUpdates {
-		if err := w.indexerStore.IndexCollection(ctx, collection); err != nil {
-			log.Error("failed to update ETH collections into store", zap.String("creator", creator))
-			return "", err
-		}
-
 		// Index collections tokens
 		nextPage := ""
 		runID := uuid.New().String()
+		tokensCount := 0
 		for {
 			assetUpdates, assetNext, err := w.indexerEngine.IndexETHTokenByCollection(ctx, collection.ExternalID, nextPage)
 			if err != nil {
@@ -793,6 +789,8 @@ func (w *NFTIndexerWorker) IndexETHCollectionsByCreator(ctx context.Context, cre
 				return "", err
 			}
 
+			tokensCount += len(collectionAssets)
+
 			if assetNext != "" {
 				nextPage = assetNext
 			} else {
@@ -802,6 +800,13 @@ func (w *NFTIndexerWorker) IndexETHCollectionsByCreator(ctx context.Context, cre
 				}
 				break
 			}
+		}
+
+		// Update total items & index collection
+		collection.Items = tokensCount
+		if err := w.indexerStore.IndexCollection(ctx, collection); err != nil {
+			log.Error("failed to update ETH collections into store", zap.String("creator", creator))
+			return "", err
 		}
 	}
 

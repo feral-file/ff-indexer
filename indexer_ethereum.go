@@ -361,7 +361,7 @@ func (e *IndexEngine) IndexETHCollectionByCreator(_ context.Context, account ope
 			ID:          fmt.Sprint("opensea-", c.ID),
 			ExternalID:  c.ID,
 			Blockchain:  utils.TezosBlockchain,
-			Creator:     account.Address,
+			Creator:     EthereumChecksumAddress(account.Address),
 			Name:        c.Name,
 			Description: c.Description,
 			ImageURL:    c.ImageURL,
