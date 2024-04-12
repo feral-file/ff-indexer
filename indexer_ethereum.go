@@ -360,7 +360,7 @@ func (e *IndexEngine) IndexETHCollectionByCreator(_ context.Context, account ope
 		update := Collection{
 			ID:          fmt.Sprint("opensea-", c.ID),
 			ExternalID:  c.ID,
-			Blockchain:  utils.TezosBlockchain,
+			Blockchain:  utils.EthereumBlockchain,
 			Creator:     EthereumChecksumAddress(account.Address),
 			Name:        c.Name,
 			Description: c.Description,
