@@ -42,11 +42,21 @@ type NFTQueryParams struct {
 	Text string `form:"text"`
 
 	// query tokens
-	IDs []string `json:"ids"`
+	IDs          []string `json:"ids"`
+	CollectionID string   `json:"collectionID"`
 
 	// lastUpdatedAt
 	LastUpdatedAt int64  `form:"lastUpdatedAt"`
 	SortBy        string `form:"sortBy"`
+}
+
+type CollectionQueryParams struct {
+	// global
+	Offset int64 `form:"offset"`
+	Size   int64 `form:"size"`
+
+	// list by owners
+	Creators string `form:"creators"`
 }
 
 type TokenFeedbackParams struct {
@@ -341,6 +351,34 @@ func (s *NFTIndexerServer) SetTokenPending(c *gin.Context, withPrefix bool) {
 		return
 	}
 	log.Info("a pending account token is added", zap.String("owner", reqParams.OwnerAccount), zap.String("pendingTx", reqParams.PendingTx))
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok": 1,
+	})
+}
+
+func (s *NFTIndexerServer) IndexCollections(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "IndexCollections")
+	var req struct {
+		Addresses []indexer.BlockchainAddress `json:"addresses"`
+	}
+
+	if err := c.Bind(&req); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	for _, addr := range req.Addresses {
+		address := addr.String()
+		blockchain := utils.GetBlockchainByAddress(address)
+
+		switch blockchain {
+		case utils.EthereumBlockchain:
+			indexerWorker.StartIndexETHCollectionWorkflow(c, s.cadenceWorker, "indexer", address)
+		case utils.TezosBlockchain:
+			indexerWorker.StartIndexTezosCollectionWorkflow(c, s.cadenceWorker, "indexer", address)
+		}
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"ok": 1,

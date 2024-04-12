@@ -13,6 +13,7 @@ import (
 	goethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/google/uuid"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
@@ -28,6 +29,7 @@ var (
 	ErrMapKeyNotFound   = errors.New("key is not found")
 	ErrValueNotString   = errors.New("value is not of string type")
 	ErrInvalidEditionID = errors.New("invalid edition id")
+	QueryPageSize       = 50
 )
 
 // GetOwnedERC721TokenIDByContract returns a list of token id belongs to an owner for a specific contract
@@ -614,4 +616,194 @@ func (w *NFTIndexerWorker) GetBalanceDiffFromETHTransaction(transactionDetails [
 	}
 
 	return updatedAccountTokens, nil
+}
+
+// IndexTezosCollectionsByCreator indexes Tezos collections by owner and collection assets
+func (w *NFTIndexerWorker) IndexTezosCollectionsByCreator(ctx context.Context, creator string, offset int) (int, error) {
+
+	if offset == 0 {
+		gapTimeProtection := time.Hour
+
+		lastUpdatedTime, err := w.indexerStore.GetCollectionLastUpdatedTimeForCreator(ctx, creator)
+
+		if err != nil {
+			return 0, err
+		}
+
+		if lastUpdatedTime.Unix() > time.Now().Add(-gapTimeProtection).Unix() {
+			log.Debug("owner refresh too frequently",
+				zap.Int64("lastUpdatedTime", lastUpdatedTime.Unix()),
+				zap.Int64("now", time.Now().Unix()),
+				zap.String("creator", creator))
+			return 0, nil
+		}
+	}
+
+	log.Debug("start indexing tezos collections flow", zap.String("creator", creator), zap.Int("offset", offset))
+
+	collectionUpdates, err := w.indexerEngine.IndexTezosCollectionByCreator(ctx, creator, offset, QueryPageSize)
+	if err != nil {
+		log.Error("failed to fetching tezos collections", zap.String("creator", creator), zap.Int("offset", offset))
+		return 0, err
+	}
+
+	if len(collectionUpdates) == 0 {
+		return 0, err
+	}
+
+	for _, collection := range collectionUpdates {
+		if err := w.indexerStore.IndexCollection(ctx, collection); err != nil {
+			log.Error("failed to update tezos collections into store", zap.String("creator", creator))
+			return 0, err
+		}
+
+		// Index gallery tokens
+		nextOffset := 0
+		runID := uuid.New().String()
+		for {
+			assetUpdates, err := w.indexerEngine.GetObjktTokensByGalleryPK(ctx, collection.ExternalID, nextOffset, QueryPageSize)
+			if err != nil {
+				log.Error("failed to fetch gallery tokens", zap.String("creator", creator), zap.String("gallery_pk", collection.ExternalID))
+				return 0, err
+			}
+
+			collectionAssets := []indexer.CollectionAsset{}
+
+			// Index assets of the colections
+			for _, asset := range assetUpdates {
+				if err := w.indexerStore.IndexAsset(ctx, asset.ID, asset); err != nil {
+					log.Error("failed to index asset for collection", zap.String("creator", creator), zap.String("assetID", asset.ID))
+					return 0, err
+				}
+
+				token := asset.Tokens[0]
+				indexID := indexer.TokenIndexID(token.Blockchain, token.ContractAddress, token.ID)
+
+				collectionAssets = append(collectionAssets, indexer.CollectionAsset{
+					CollectionID: collection.ID,
+					TokenIndexID: indexID,
+					RunID:        runID,
+				})
+			}
+
+			if err := w.indexerStore.IndexCollectionAsset(ctx, collection.ID, collectionAssets); err != nil {
+				log.Error("failed to index collection assets", zap.String("creator", creator), zap.String("collectionID", collection.ID))
+				return 0, err
+			}
+
+			if len(assetUpdates) == QueryPageSize {
+				nextOffset += QueryPageSize
+			} else {
+				if err := w.indexerStore.DeleteDeprecatedCollectionAsset(ctx, collection.ID, runID); err != nil {
+					log.Error("failed to delete deprecated collection assets", zap.String("creator", creator), zap.String("collectionID", collection.ID))
+					return 0, err
+				}
+				break
+			}
+		}
+	}
+
+	if len(collectionUpdates) == QueryPageSize {
+		return offset + QueryPageSize, nil
+	}
+
+	return 0, nil
+}
+
+// IndexETHCollectionsByCreator indexes ETH collections by owner and collection assets
+func (w *NFTIndexerWorker) IndexETHCollectionsByCreator(ctx context.Context, creator string, next string) (string, error) {
+	if next == "" {
+		gapTimeProtection := time.Hour
+
+		lastUpdatedTime, err := w.indexerStore.GetCollectionLastUpdatedTimeForCreator(ctx, creator)
+
+		if err != nil {
+			return "", err
+		}
+
+		if lastUpdatedTime.Unix() > time.Now().Add(-gapTimeProtection).Unix() {
+			log.Debug("owner refresh too frequently",
+				zap.Int64("lastUpdatedTime", lastUpdatedTime.Unix()),
+				zap.Int64("now", time.Now().Unix()),
+				zap.String("creator", creator))
+			return "", nil
+		}
+	}
+
+	log.Debug("start indexing eth collection flow", zap.String("creator", creator), zap.String("next", next))
+
+	account, err := w.indexerEngine.GetOpenseaAccountByAddress(creator)
+
+	if err != nil {
+		log.Error("fetch opensea acount error", zap.String("creator", creator))
+		return "", err
+	}
+
+	if account == nil || account.Username == "" {
+		log.Error("opensea acount not found", zap.String("creator", creator))
+		return "", err
+	}
+
+	collectionUpdates, collectionNext, err := w.indexerEngine.IndexETHCollectionByCreator(ctx, *account, next)
+	if err != nil {
+		log.Error("failed to fetching ETH collections", zap.String("creator", creator), zap.String("next", next))
+		return "", err
+	}
+
+	if len(collectionUpdates) == 0 {
+		return "", err
+	}
+
+	for _, collection := range collectionUpdates {
+		if err := w.indexerStore.IndexCollection(ctx, collection); err != nil {
+			log.Error("failed to update ETH collections into store", zap.String("creator", creator))
+			return "", err
+		}
+
+		// Index collections tokens
+		nextPage := ""
+		runID := uuid.New().String()
+		for {
+			assetUpdates, assetNext, err := w.indexerEngine.IndexETHTokenByCollection(ctx, collection.ExternalID, nextPage)
+			if err != nil {
+				log.Error("failed to fetch eth collections tokens", zap.String("creator", creator), zap.String("collection", collection.ExternalID))
+				return "", err
+			}
+
+			collectionAssets := []indexer.CollectionAsset{}
+			// Index assets of the colections
+			for _, asset := range assetUpdates {
+				if err := w.indexerStore.IndexAsset(ctx, asset.ID, asset); err != nil {
+					log.Error("failed to index asset for collection", zap.String("creator", creator), zap.String("assetID", asset.ID))
+					return "", err
+				}
+
+				token := asset.Tokens[0]
+				indexID := indexer.TokenIndexID(token.Blockchain, token.ContractAddress, token.ID)
+
+				collectionAssets = append(collectionAssets, indexer.CollectionAsset{
+					CollectionID: collection.ID,
+					TokenIndexID: indexID,
+					RunID:        runID,
+				})
+			}
+
+			if err := w.indexerStore.IndexCollectionAsset(ctx, collection.ID, collectionAssets); err != nil {
+				log.Error("failed to index collection assets", zap.String("creator", creator), zap.String("collectionID", collection.ID))
+				return "", err
+			}
+
+			if assetNext != "" {
+				nextPage = assetNext
+			} else {
+				if err := w.indexerStore.DeleteDeprecatedCollectionAsset(ctx, collection.ID, runID); err != nil {
+					log.Error("failed to delete deprecated collection assets", zap.String("creator", creator), zap.String("collectionID", collection.ID))
+					return "", err
+				}
+				break
+			}
+		}
+	}
+
+	return collectionNext, nil
 }

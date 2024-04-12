@@ -140,6 +140,22 @@ type Artist struct {
 	URL  string `json:"url" structs:"url" bson:"url"`    // <OpenseaAPI/creator.address>,
 }
 
+// CollectionUpdates is the inputs payload of IndexCollection
+type CollectionUpdates struct {
+	ID          string      `json:"id"`
+	ExternalID  string      `json:"externalID"`
+	Blockchain  string      `json:"blockchain"`
+	Owner       string      `json:"owner"`
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	ImageURL    string      `json:"imageURL"`
+	Contract    string      `json:"contract"`
+	Metadata    interface{} `json:"metadata"`
+	Published   bool        `json:"published"`
+	Source      string      `json:"source"`
+	SourceURL   string      `json:"source_url"`
+}
+
 // AssetUpdates is the inputs payload of IndexAsset. It includes project metadata, blockchain metadata and
 // tokens that is attached to it
 type AssetUpdates struct {
@@ -246,4 +262,28 @@ type AccountToken struct {
 type TotalBalance struct {
 	ID    string `bson:"_id"`
 	Total int    `bson:"total"`
+}
+
+type Collection struct {
+	ID          string   `json:"id" bson:"id"`
+	ExternalID  string   `json:"externalID" bson:"externalID"`
+	Creator     string   `json:"creator" bson:"creator"`
+	Name        string   `json:"name" bson:"name"`
+	Description string   `json:"description" bson:"description"`
+	Items       int      `json:"items" bson:"items"`
+	ImageURL    string   `json:"imageURL" bson:"imageURL"`
+	Blockchain  string   `json:"blockchain" bson:"blockchain"`
+	Contracts   []string `json:"contracts" bson:"contracts"`
+	Published   bool     `json:"published" bson:"published"`
+	Source      string   `json:"source" bson:"source"`
+	SourceURL   string   `json:"sourceURL" bson:"sourceURL"`
+
+	LastUpdatedTime  time.Time `json:"lastUpdatedTime" bson:"lastUpdatedTime"`
+	LastActivityTime time.Time `json:"lastActivityTime" bson:"lastActivityTime"`
+}
+
+type CollectionAsset struct {
+	CollectionID string `json:"collectionID" bson:"collectionID"`
+	TokenIndexID string `json:"tokenIndexID" bson:"tokenIndexID"`
+	RunID        string `json:"-" bson:"runID"`
 }

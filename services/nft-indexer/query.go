@@ -545,31 +545,41 @@ func (s *NFTIndexerServer) QueryNFTsV2(c *gin.Context) {
 		return
 	}
 
-	checksumIDs := indexer.NormalizeIndexIDs(reqParams.IDs, false)
-	tokenInfo, err := s.indexerStore.GetDetailedTokensV2(c, indexer.FilterParameter{
-		IDs: checksumIDs,
-	}, reqParams.Offset, reqParams.Size)
-	if err != nil {
-		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
-		return
-	}
-
-	// check and IndexMissingTokens
-	if len(reqParams.IDs) > len(tokenInfo) {
-		m := make(map[string]bool, len(reqParams.IDs))
-		for _, id := range reqParams.IDs {
-			m[id] = true
+	if len(reqParams.IDs) > 0 {
+		checksumIDs := indexer.NormalizeIndexIDs(reqParams.IDs, false)
+		tokenInfo, err := s.indexerStore.GetDetailedTokensV2(c, indexer.FilterParameter{
+			IDs: checksumIDs,
+		}, reqParams.Offset, reqParams.Size)
+		if err != nil {
+			abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
+			return
 		}
 
-		for _, info := range tokenInfo {
-			if m[info.IndexID] {
-				delete(m, info.IndexID)
+		// check and IndexMissingTokens
+		if len(reqParams.IDs) > len(tokenInfo) {
+			m := make(map[string]bool, len(reqParams.IDs))
+			for _, id := range reqParams.IDs {
+				m[id] = true
 			}
-		}
-		go s.IndexMissingTokens(c, m)
-	}
 
-	c.JSON(http.StatusOK, tokenInfo)
+			for _, info := range tokenInfo {
+				if m[info.IndexID] {
+					delete(m, info.IndexID)
+				}
+			}
+			go s.IndexMissingTokens(c, m)
+		}
+
+		c.JSON(http.StatusOK, tokenInfo)
+	} else {
+		tokenInfo, err := s.indexerStore.GetDetailedTokensByCollectionID(c, reqParams.CollectionID, reqParams.Offset, reqParams.Size)
+		if err != nil {
+			abortWithError(c, http.StatusInternalServerError, "fail to query collection tokens from indexer store", err)
+			return
+		}
+
+		c.JSON(http.StatusOK, tokenInfo)
+	}
 }
 
 func (s *NFTIndexerServer) GetETHBlockTime(c *gin.Context) {
@@ -587,4 +597,64 @@ func (s *NFTIndexerServer) GetETHBlockTime(c *gin.Context) {
 		"blockTime": blockTime,
 	})
 
+}
+
+// GetCollectionsByCreators queries list of collections base on the given addresses
+func (s *NFTIndexerServer) GetCollectionsByCreators(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "GetCollectionsByCreators")
+
+	var reqParams = CollectionQueryParams{
+		Offset: 0,
+		Size:   50,
+	}
+
+	if err := c.BindQuery(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if reqParams.Creators == "" {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("creators is required"))
+		return
+	}
+
+	creators := strings.Split(reqParams.Creators, ",")
+
+	collections, err := s.indexerStore.GetCollectionsByCreators(
+		c,
+		creators,
+		reqParams.Offset,
+		reqParams.Size,
+	)
+
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to query collections from indexer store", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, collections)
+}
+
+// GetCollectionByID queries collection by the collectionID
+func (s *NFTIndexerServer) GetCollectionByID(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "GetCollectionByID")
+
+	collectionID := c.Param("collection_id")
+
+	collection, err := s.indexerStore.GetCollectionByID(
+		c,
+		collectionID,
+	)
+
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to query collections from indexer store", err)
+		return
+	}
+
+	if collection == nil {
+		abortWithError(c, http.StatusInternalServerError, "collection is not found", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, collection)
 }

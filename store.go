@@ -26,13 +26,15 @@ const (
 )
 
 const (
-	assetCollectionName          = "assets"
-	tokenCollectionName          = "tokens"
-	identityCollectionName       = "identities"
-	ffIdentityCollectionName     = "ff_identities"
-	accountCollectionName        = "accounts"
-	accountTokenCollectionName   = "account_tokens"
-	tokenAssetViewCollectionName = "token_assets"
+	assetCollectionName            = "assets"
+	tokenCollectionName            = "tokens"
+	identityCollectionName         = "identities"
+	ffIdentityCollectionName       = "ff_identities"
+	accountCollectionName          = "accounts"
+	accountTokenCollectionName     = "account_tokens"
+	tokenAssetViewCollectionName   = "token_assets"
+	collectionsCollectionName      = "collections"
+	collectionAssetsCollectionName = "colelction_assets"
 )
 
 var ErrNoRecordUpdated = fmt.Errorf("no record updated")
@@ -93,6 +95,15 @@ type Store interface {
 
 	CheckAddressOwnTokenByCriteria(ctx context.Context, address string, criteria Criteria) (bool, error)
 	GetOwnersByBlockchainContracts(context.Context, map[string][]string) ([]string, error)
+
+	IndexCollection(ctx context.Context, collection Collection) error
+	IndexCollectionAsset(ctx context.Context, collectionID string, collectionAssets []CollectionAsset) error
+	DeleteDeprecatedCollectionAsset(ctx context.Context, collectionID, runID string) error
+
+	GetCollectionLastUpdatedTimeForCreator(ctx context.Context, creator string) (time.Time, error)
+	GetCollectionByID(ctx context.Context, id string) (*Collection, error)
+	GetCollectionsByCreators(ctx context.Context, creators []string, offset, size int64) ([]Collection, error)
+	GetDetailedTokensByCollectionID(ctx context.Context, collectionID string, offset, size int64) ([]DetailedTokenV2, error)
 }
 
 type FilterParameter struct {
@@ -125,30 +136,36 @@ func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*Mo
 	accountCollection := db.Collection(accountCollectionName)
 	accountTokenCollection := db.Collection(accountTokenCollectionName)
 	tokenAssetCollection := db.Collection(tokenAssetViewCollectionName)
+	collectionsCollection := db.Collection(collectionsCollectionName)
+	collectionAssetsCollection := db.Collection(collectionAssetsCollectionName)
 
 	return &MongodbIndexerStore{
-		dbName:                 dbName,
-		mongoClient:            mongoClient,
-		tokenCollection:        tokenCollection,
-		assetCollection:        assetCollection,
-		identityCollection:     identityCollection,
-		ffIdentityCollection:   ffIdentityCollection,
-		accountCollection:      accountCollection,
-		accountTokenCollection: accountTokenCollection,
-		tokenAssetCollection:   tokenAssetCollection,
+		dbName:                     dbName,
+		mongoClient:                mongoClient,
+		tokenCollection:            tokenCollection,
+		assetCollection:            assetCollection,
+		identityCollection:         identityCollection,
+		ffIdentityCollection:       ffIdentityCollection,
+		accountCollection:          accountCollection,
+		accountTokenCollection:     accountTokenCollection,
+		tokenAssetCollection:       tokenAssetCollection,
+		collectionsCollection:      collectionsCollection,
+		collectionAssetsCollection: collectionAssetsCollection,
 	}, nil
 }
 
 type MongodbIndexerStore struct {
-	dbName                 string
-	mongoClient            *mongo.Client
-	tokenCollection        *mongo.Collection
-	assetCollection        *mongo.Collection
-	identityCollection     *mongo.Collection
-	ffIdentityCollection   *mongo.Collection
-	accountCollection      *mongo.Collection
-	accountTokenCollection *mongo.Collection
-	tokenAssetCollection   *mongo.Collection
+	dbName                     string
+	mongoClient                *mongo.Client
+	tokenCollection            *mongo.Collection
+	assetCollection            *mongo.Collection
+	identityCollection         *mongo.Collection
+	ffIdentityCollection       *mongo.Collection
+	accountCollection          *mongo.Collection
+	accountTokenCollection     *mongo.Collection
+	tokenAssetCollection       *mongo.Collection
+	collectionsCollection      *mongo.Collection
+	collectionAssetsCollection *mongo.Collection
 }
 
 type AssetUpdateSet struct {
@@ -2022,4 +2039,192 @@ func (s *MongodbIndexerStore) GetOwnersByBlockchainContracts(ctx context.Context
 	}
 
 	return owners, nil
+}
+
+// IndexCollection index collection & tokens
+func (s *MongodbIndexerStore) IndexCollection(ctx context.Context, collection Collection) error {
+	if collection.LastUpdatedTime.IsZero() {
+		collection.LastUpdatedTime = time.Now()
+	}
+
+	r, err := s.collectionsCollection.UpdateOne(ctx,
+		bson.M{"id": collection.ID},
+		bson.M{"$set": collection},
+		options.Update().SetUpsert(true),
+	)
+	if err != nil {
+		return err
+	}
+
+	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
+		log.Warn("collection is not added or updated", zap.String("collection", collection.ID))
+	}
+
+	return nil
+}
+
+// IndexCollectionAsset index collection & tokens
+func (s *MongodbIndexerStore) IndexCollectionAsset(ctx context.Context, collectionID string, collectionAssets []CollectionAsset) error {
+	for _, c := range collectionAssets {
+		log.Debug("update collection asset", zap.String("asset", c.TokenIndexID), zap.Any("accountToken", c))
+		r, err := s.collectionAssetsCollection.UpdateOne(ctx,
+			bson.M{"collectionID": c.CollectionID, "tokenIndexID": c.TokenIndexID},
+			bson.M{"$set": c},
+			options.Update().SetUpsert(true),
+		)
+
+		if err != nil {
+			if mongo.IsDuplicateKeyError(err) {
+				// when a duplicated error happens, it means the account token
+				// is in a state which is better than current event.
+				log.Warn("collection token is in a future state", zap.String("indexID", c.TokenIndexID))
+				continue
+			}
+			log.Error("cannot index collection token", zap.String("indexID", c.TokenIndexID), zap.String("collectionID", collectionID), zap.Error(err))
+			return err
+		}
+		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
+			log.Warn("collection token is not added or updated",
+				zap.String("collectionID", collectionID), zap.String("indexID", c.TokenIndexID))
+		}
+	}
+
+	return nil
+}
+
+// DeleteDeprecatedCollectionAsset removes old tokens not belong the collection anymore
+func (s *MongodbIndexerStore) DeleteDeprecatedCollectionAsset(ctx context.Context, collectionID, runID string) error {
+	_, err := s.collectionAssetsCollection.DeleteMany(ctx,
+		bson.M{"collectionID": collectionID, "runID": bson.M{"$ne": runID}},
+	)
+
+	return err
+}
+
+// GetCollectionLastUpdateTimeeForOwner returns collection last refreshed time for an owner
+func (s *MongodbIndexerStore) GetCollectionLastUpdatedTimeForCreator(ctx context.Context, creator string) (time.Time, error) {
+	findOptions := options.FindOne().SetSort(bson.D{{Key: "lastUpdatedTime", Value: -1}})
+	r := s.collectionsCollection.FindOne(ctx, bson.M{
+		"creator": creator,
+	}, findOptions)
+
+	if err := r.Err(); err != nil {
+		if err == mongo.ErrNoDocuments {
+			// If a token is not found, return zero time
+			return time.Time{}, nil
+		}
+
+		return time.Time{}, err
+	}
+
+	var collection Collection
+	if err := r.Decode(&collection); err != nil {
+		return time.Time{}, err
+	}
+
+	return collection.LastUpdatedTime, nil
+}
+
+// GetCollectionByID returns the collection by given id
+func (s *MongodbIndexerStore) GetCollectionByID(ctx context.Context, id string) (*Collection, error) {
+	r := s.collectionsCollection.FindOne(ctx, bson.M{
+		"id": id,
+	})
+
+	if err := r.Err(); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	var collection Collection
+	if err := r.Decode(&collection); err != nil {
+		return nil, err
+	}
+
+	return &collection, nil
+}
+
+// GetCollectionsByOwners returns list of collections for owners
+func (s *MongodbIndexerStore) GetCollectionsByCreators(ctx context.Context, creators []string, offset, size int64) ([]Collection, error) {
+	filter := bson.M{
+		"creator": bson.M{"$in": creators},
+	}
+	findOptions := options.Find().SetSort(bson.D{{Key: "lastActivityTime", Value: -1}, {Key: "_id", Value: -1}})
+
+	collections := []Collection{}
+	page := 0
+	for {
+		isLastPage := false
+
+		queryOffset := offset + int64(page*QueryPageSize)
+		queryLimit := int64(QueryPageSize)
+
+		if queryOffset+QueryPageSize > offset+size {
+			queryLimit = offset + size - queryOffset
+			isLastPage = true
+		}
+
+		findOptions.SetSkip(queryOffset)
+		findOptions.SetLimit(queryLimit)
+		cursor, err := s.collectionsCollection.Find(ctx, filter, findOptions)
+		if err != nil {
+			return nil, err
+		}
+
+		for cursor.Next(ctx) {
+			var collection Collection
+
+			if err := cursor.Decode(&collection); err != nil {
+				return nil, err
+			}
+
+			collections = append(collections, collection)
+		}
+
+		cursor.Close(ctx)
+
+		if len(collections) < int(queryLimit) || isLastPage {
+			break
+		}
+
+		page++
+	}
+
+	return collections, nil
+}
+
+// GetDetailedTokensByCollectionID returns list of tokens by the collectionID
+func (s *MongodbIndexerStore) GetDetailedTokensByCollectionID(ctx context.Context, collectionID string, offset, size int64) ([]DetailedTokenV2, error) {
+	var tokens []CollectionAsset
+
+	findOptions := options.Find().
+		SetSort(bson.D{{Key: "_id", Value: -1}}).
+		SetLimit(size).
+		SetSkip(offset)
+	c, err := s.collectionAssetsCollection.Find(ctx, bson.M{
+		"collectionID": collectionID,
+	}, findOptions)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := c.All(ctx, &tokens); err != nil {
+		return nil, err
+	}
+
+	indexIDs := []string{}
+	for _, token := range tokens {
+		indexIDs = append(indexIDs, token.TokenIndexID)
+	}
+
+	if len(indexIDs) == 0 {
+		return []DetailedTokenV2{}, nil
+	}
+
+	filterParameter := FilterParameter{IDs: indexIDs}
+	return s.GetDetailedTokensV2(ctx, filterParameter, 0, int64(len(indexIDs)))
 }

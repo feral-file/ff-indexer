@@ -330,3 +330,85 @@ func (e *IndexEngine) GetETHTransactionDetailsByPendingTx(ctx context.Context, c
 
 	return transactionDetails, nil
 }
+
+func (e *IndexEngine) GetOpenseaAccountByAddress(address string) (*opensea.Account, error) {
+	account, err := e.opensea.RetrieveAccount(address)
+	if err != nil {
+		return nil, err
+	}
+
+	return account, nil
+}
+
+// IndexETHCollectionByCreator indexes all collections owned by a specific eth address
+func (e *IndexEngine) IndexETHCollectionByCreator(_ context.Context, account opensea.Account, next string) ([]Collection, string, error) {
+	collectionsResp, err := e.opensea.RetrieveColections(account.Username, next)
+	if err != nil {
+		return nil, "", err
+	}
+
+	log.Debug("retrieve eth collections for creator", zap.Any("collections", collectionsResp), zap.String("username", account.Username))
+
+	collectionUpdates := make([]Collection, 0, len(collectionsResp.Collections))
+
+	for _, c := range collectionsResp.Collections {
+		contracts := []string{}
+		for _, c := range c.Contracts {
+			contracts = append(contracts, c.Address)
+		}
+
+		update := Collection{
+			ID:          fmt.Sprint("opensea-", c.ID),
+			ExternalID:  c.ID,
+			Blockchain:  utils.TezosBlockchain,
+			Creator:     account.Address,
+			Name:        c.Name,
+			Description: c.Description,
+			ImageURL:    c.ImageURL,
+			Contracts:   contracts,
+			Source:      "opensea",
+			Published:   !c.IsDisabled,
+			SourceURL:   c.OpenseaURL,
+		}
+
+		collectionUpdates = append(collectionUpdates, update)
+	}
+
+	return collectionUpdates, collectionsResp.Next, nil
+}
+
+// IndexETHTokenByCollection indexes all tokens from a given collection slug
+func (e *IndexEngine) IndexETHTokenByCollection(ctx context.Context, slug string, next string) ([]AssetUpdates, string, error) {
+	assets, err := e.opensea.RetrieveColectionAssets(slug, next)
+	if err != nil {
+		return nil, "", err
+	}
+
+	tokenUpdates := make([]AssetUpdates, 0, len(assets.NFTs))
+
+	for _, a := range assets.NFTs {
+		balance := int64(1) // set default balance to 1 to reduce extra call to opensea
+		log.Debug("get token balance",
+			zap.String("contract", a.Contract),
+			zap.String("tokenID", a.Identifier),
+			zap.String("collection", slug),
+			zap.Int64("balance", balance))
+
+		detailedAsset, err := e.opensea.RetrieveAsset(a.Contract, a.Identifier)
+		if err != nil {
+			log.Error("fail to fetch detailed index token data", zap.Error(err))
+			continue
+		}
+
+		update, err := e.indexETHToken(ctx, detailedAsset, "", balance)
+		if err != nil {
+			log.Error("fail to index token data", zap.Error(err))
+		}
+
+		if update != nil {
+			tokenUpdates = append(tokenUpdates, *update)
+		}
+	}
+
+	return tokenUpdates, assets.Next, nil
+}
