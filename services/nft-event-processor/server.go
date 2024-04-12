@@ -6,6 +6,7 @@ import (
 
 	"github.com/bitmark-inc/autonomy-account/storage"
 	log "github.com/bitmark-inc/autonomy-logger"
+	notificationConst "github.com/bitmark-inc/autonomy-notification"
 	notificationSdk "github.com/bitmark-inc/autonomy-notification/sdk"
 	"github.com/bitmark-inc/nft-indexer/cadence"
 	indexerGRPCSDK "github.com/bitmark-inc/nft-indexer/sdk/nft-indexer-grpc"
@@ -60,7 +61,7 @@ func NewEventProcessor(
 // notifyChangeOwner send change_token_owner notification to notification server
 func (e *EventProcessor) notifyChangeOwner(accountID, toAddress, tokenID string) error {
 	return e.notification.SendNotification("",
-		"new_nft_arrived",
+		notificationConst.NewNFTArrived,
 		accountID,
 		[]any{},
 		gin.H{

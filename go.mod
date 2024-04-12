@@ -10,7 +10,7 @@ require (
 	github.com/bitmark-inc/autonomy-account v0.0.7
 	github.com/bitmark-inc/autonomy-asset-server v0.0.3
 	github.com/bitmark-inc/autonomy-logger v0.0.5
-	github.com/bitmark-inc/autonomy-notification v0.0.7
+	github.com/bitmark-inc/autonomy-notification v0.0.8
 	github.com/bitmark-inc/autonomy-utils v0.0.5
 	github.com/bitmark-inc/config-loader v0.1.1
 	github.com/bitmark-inc/tzkt-go v0.0.13
