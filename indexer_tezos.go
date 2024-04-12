@@ -46,8 +46,8 @@ type TezosTokenMetadata struct {
 	TokenInfo map[string]HexString `json:"token_info"`
 }
 
-func (e *IndexEngine) GetObjktGalleriesByCreator(creator string, offset, limit int) ([]objkt.Gallery, error) {
-	sliceGallery, err := e.objkt.GetGalleries(creator, offset, limit)
+func (e *IndexEngine) GetObjktGalleriesByCreator(ctx context.Context, creator string, offset, limit int) ([]objkt.Gallery, error) {
+	sliceGallery, err := e.objkt.GetGalleries(ctx, creator, offset, limit)
 
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func (e *IndexEngine) GetObjktGalleriesByCreator(creator string, offset, limit i
 }
 
 func (e *IndexEngine) GetObjktTokensByGalleryPK(ctx context.Context, galleryPK string, offset, limit int) ([]AssetUpdates, error) {
-	sliceGalleryToken, err := e.objkt.GetGalleryTokens(galleryPK, offset, limit)
+	sliceGalleryToken, err := e.objkt.GetGalleryTokens(ctx, galleryPK, offset, limit)
 
 	if err != nil {
 		return nil, err
@@ -343,7 +343,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 
 		if _, ok := inhouseMinter[metadataDetail.Minter]; !ok {
 			// fallback to objkt marketplace if the minter is not autonomy inhouse minter
-			objktToken, err := e.GetObjktToken(tzktToken.Contract.Address, tzktToken.ID.String())
+			objktToken, err := e.GetObjktToken(ctx, tzktToken.Contract.Address, tzktToken.ID.String())
 			if err != nil {
 				log.Error("fail to get token detail from objkt", zap.Error(err), log.SourceObjkt)
 			} else {
@@ -528,8 +528,8 @@ func (e *IndexEngine) IndexTezosTokenOwners(contract, tokenID string) ([]OwnerBa
 	return ownerBalances, nil
 }
 
-func (e *IndexEngine) GetObjktToken(contract, tokenID string) (objkt.Token, error) {
-	return e.objkt.GetObjectToken(contract, tokenID)
+func (e *IndexEngine) GetObjktToken(ctx context.Context, contract, tokenID string) (objkt.Token, error) {
+	return e.objkt.GetObjectToken(ctx, contract, tokenID)
 }
 
 // GetTezosTxTimestamp returns the timestamp of an transaction if it exists
@@ -547,8 +547,8 @@ func (e *IndexEngine) GetTezosTxTimestamp(_ context.Context, txHashString string
 }
 
 // IndexTezosCollectionByCreator indexes all collections created by a specific tezos address
-func (e *IndexEngine) IndexTezosCollectionByCreator(_ context.Context, creator string, offset, limit int) ([]Collection, error) {
-	galleries, err := e.GetObjktGalleriesByCreator(creator, offset, limit)
+func (e *IndexEngine) IndexTezosCollectionByCreator(ctx context.Context, creator string, offset, limit int) ([]Collection, error) {
+	galleries, err := e.GetObjktGalleriesByCreator(ctx, creator, offset, limit)
 	if err != nil {
 		return nil, err
 	}

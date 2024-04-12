@@ -126,7 +126,7 @@ type GalleryToken struct {
 }
 
 // GetObjectToken query Objkt Token object from Objkt API
-func (g *Client) GetObjectToken(contract string, tokenID string) (Token, error) {
+func (g *Client) GetObjectToken(ctx context.Context, contract string, tokenID string) (Token, error) {
 	var query struct {
 		SliceToken `graphql:"token(where: {token_id: {_eq: $tokenID}, fa_contract: {_eq: $fa_contract}})"`
 	}
@@ -136,7 +136,7 @@ func (g *Client) GetObjectToken(contract string, tokenID string) (Token, error) 
 		"fa_contract": graphql.String(contract),
 	}
 
-	err := g.Client.Query(context.Background(), &query, variables)
+	err := g.Client.Query(ctx, &query, variables)
 	if err != nil {
 		return Token{}, err
 	}
@@ -149,7 +149,7 @@ func (g *Client) GetObjectToken(contract string, tokenID string) (Token, error) 
 }
 
 // GetGalleries query Objkt galleries from Objkt API
-func (g *Client) GetGalleries(address string, offset, limit int) (SliceGallery, error) {
+func (g *Client) GetGalleries(ctx context.Context, address string, offset, limit int) (SliceGallery, error) {
 	var query struct {
 		SliceGallery `graphql:"gallery(where: {curators: {curator_address: {_eq: $address}}}, offset: $offset, limit: $limit)"`
 	}
@@ -160,7 +160,7 @@ func (g *Client) GetGalleries(address string, offset, limit int) (SliceGallery, 
 		"limit":   graphql.Int(limit),
 	}
 
-	err := g.Client.Query(context.Background(), &query, variables)
+	err := g.Client.Query(ctx, &query, variables)
 	if err != nil {
 		return SliceGallery{}, err
 	}
@@ -169,7 +169,7 @@ func (g *Client) GetGalleries(address string, offset, limit int) (SliceGallery, 
 }
 
 // GetGalleryToken query Objkt gallery tokens from Objkt API
-func (g *Client) GetGalleryTokens(galleryPK string, offset, limit int) (SliceGalleryToken, error) {
+func (g *Client) GetGalleryTokens(ctx context.Context, galleryPK string, offset, limit int) (SliceGalleryToken, error) {
 	// NOTE: use `graphql.Client.Exec` to query since normal query doesn't support bigint varable
 	query := fmt.Sprintf(`query{
 		gallery_token(where: {gallery_pk: {_eq: %s}}, offset: %d, limit: %d) {
@@ -181,7 +181,7 @@ func (g *Client) GetGalleryTokens(galleryPK string, offset, limit int) (SliceGal
 		GalleryToken SliceGalleryToken `graphql:"gallery_token"`
 	}{}
 
-	err := g.Client.Exec(context.Background(), query, &res, map[string]any{})
+	err := g.Client.Exec(ctx, query, &res, map[string]any{})
 	if err != nil {
 		return SliceGalleryToken{}, err
 	}

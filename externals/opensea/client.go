@@ -16,6 +16,8 @@ import (
 
 var ErrTooManyRequest = fmt.Errorf("too many requests")
 
+const QueryPageSize = "50"
+
 type Time struct {
 	time.Time
 }
@@ -258,7 +260,7 @@ func (c *Client) RetrieveAsset(contract, tokenID string) (*DetailedAssetV2, erro
 func (c *Client) RetrieveAssets(owner string, next string) (*AssetsResponse, error) {
 	// NOTE: query by offset is removed from the document but still support at this moment.
 	v := url.Values{
-		"limit": []string{"50"},
+		"limit": []string{QueryPageSize},
 		"next":  []string{next},
 	}
 
@@ -316,7 +318,7 @@ func (c *Client) RetrieveAccount(address string) (*Account, error) {
 // RetrieveAccount returns the opensea collections from given creator username
 func (c *Client) RetrieveColections(username string, next string) (*CollectionsResponse, error) {
 	v := url.Values{
-		"limit":            []string{"50"},
+		"limit":            []string{QueryPageSize},
 		"next":             []string{next},
 		"chain":            []string{c.chain},
 		"creator_username": []string{username},
@@ -350,7 +352,7 @@ func (c *Client) RetrieveColections(username string, next string) (*CollectionsR
 // RetrieveAccount returns the opensea collections from given creator username
 func (c *Client) RetrieveColectionAssets(collectionSlug string, next string) (*AssetsResponse, error) {
 	v := url.Values{
-		"limit": []string{"50"},
+		"limit": []string{QueryPageSize},
 		"next":  []string{next},
 	}
 
