@@ -369,6 +369,7 @@ func (e *IndexEngine) IndexETHCollectionByCreator(_ context.Context, account ope
 			Source:      "opensea",
 			Published:   !c.IsDisabled,
 			SourceURL:   c.OpenseaURL,
+			ProjectURL:  c.ProjectURL,
 		}
 
 		collectionUpdates = append(collectionUpdates, update)
