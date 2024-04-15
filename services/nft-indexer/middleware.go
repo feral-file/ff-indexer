@@ -31,8 +31,7 @@ func TokenAuthenticate(tokenKey, tokenValue string) gin.HandlerFunc {
 func isIntrospectionQuery(query string) bool {
 	lowerQuery := strings.ToLower(query)
 	return strings.Contains(lowerQuery, "__schema") ||
-		strings.Contains(lowerQuery, "__type") ||
-		strings.Contains(lowerQuery, "__typename")
+		strings.Contains(lowerQuery, "__type")
 }
 
 // validateSingleRequestPerOperation returns an error if any operation in the query
@@ -47,7 +46,15 @@ func validateSingleRequestPerOperation(query string) error {
 	// Iterate through all operations in the parsed query
 	for _, operation := range parsedQuery.Operations {
 		// Count top-level fields in the operation
-		if len(operation.SelectionSet) > 1 {
+		queryCount := 0
+		for _, set := range operation.SelectionSet {
+			// Workaround to ignore __typename query count for graphiql multiple queries
+			if strings.Contains(fmt.Sprint(set), "__typename") {
+				continue
+			}
+			queryCount++
+		}
+		if queryCount > 1 {
 			return fmt.Errorf("multiple requests in a single operation are not allowed")
 		}
 	}
