@@ -53,6 +53,7 @@ type Collection struct {
 	Published        bool       `json:"published"`
 	Source           string     `json:"source"`
 	SourceURL        string     `json:"sourceURL"`
+	ProjectURL       string     `json:"projectURL"`
 	LastActivityTime *time.Time `json:"lastActivityTime,omitempty"`
 	LastUpdatedTime  *time.Time `json:"lastUpdatedTime,omitempty"`
 }

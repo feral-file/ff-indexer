@@ -94,6 +94,7 @@ type ComplexityRoot struct {
 		LastActivityTime func(childComplexity int) int
 		LastUpdatedTime  func(childComplexity int) int
 		Name             func(childComplexity int) int
+		ProjectURL       func(childComplexity int) int
 		Published        func(childComplexity int) int
 		Source           func(childComplexity int) int
 		SourceURL        func(childComplexity int) int
@@ -405,6 +406,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Collection.Name(childComplexity), true
+
+	case "Collection.projectURL":
+		if e.complexity.Collection.ProjectURL == nil {
+			break
+		}
+
+		return e.complexity.Collection.ProjectURL(childComplexity), true
 
 	case "Collection.published":
 		if e.complexity.Collection.Published == nil {
@@ -2498,6 +2506,50 @@ func (ec *executionContext) fieldContext_Collection_sourceURL(ctx context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _Collection_projectURL(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Collection_projectURL(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ProjectURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Collection_projectURL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Collection_lastActivityTime(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Collection_lastActivityTime(ctx, field)
 	if err != nil {
@@ -4375,6 +4427,8 @@ func (ec *executionContext) fieldContext_Query_collections(ctx context.Context, 
 				return ec.fieldContext_Collection_source(ctx, field)
 			case "sourceURL":
 				return ec.fieldContext_Collection_sourceURL(ctx, field)
+			case "projectURL":
+				return ec.fieldContext_Collection_projectURL(ctx, field)
 			case "lastActivityTime":
 				return ec.fieldContext_Collection_lastActivityTime(ctx, field)
 			case "lastUpdatedTime":
@@ -4457,6 +4511,8 @@ func (ec *executionContext) fieldContext_Query_collection(ctx context.Context, f
 				return ec.fieldContext_Collection_source(ctx, field)
 			case "sourceURL":
 				return ec.fieldContext_Collection_sourceURL(ctx, field)
+			case "projectURL":
+				return ec.fieldContext_Collection_projectURL(ctx, field)
 			case "lastActivityTime":
 				return ec.fieldContext_Collection_lastActivityTime(ctx, field)
 			case "lastUpdatedTime":
@@ -7859,6 +7915,11 @@ func (ec *executionContext) _Collection(ctx context.Context, sel ast.SelectionSe
 			}
 		case "sourceURL":
 			out.Values[i] = ec._Collection_sourceURL(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "projectURL":
+			out.Values[i] = ec._Collection_projectURL(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

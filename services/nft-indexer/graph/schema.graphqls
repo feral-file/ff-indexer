@@ -124,6 +124,7 @@ type Collection {
 	published:         	Boolean!
 	source:             String!
 	sourceURL:          String!
+	projectURL:         String!
 	lastActivityTime:  	Time
 	lastUpdatedTime: 	Time
 }
