@@ -17,3 +17,7 @@ func WorkflowIDIndexTokenByOwner(caller, owner string) string {
 func WorkflowIDRefreshTokenProvenanceByOwner(caller, owner string) string {
 	return fmt.Sprintf("refresh-tokens-provenance-by-owner-%s-%s", caller, owner)
 }
+
+func WorkflowIDIndexCollectionsByOwner(caller, owner string) string {
+	return fmt.Sprintf("index-tokens-collections-by-owner-%s-%s", caller, owner)
+}

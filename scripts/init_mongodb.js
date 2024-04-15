@@ -169,3 +169,20 @@ db.createView("token_assets", "tokens", [{
     }
   }
 ])
+
+db.collections.createIndexes([{
+  "creator": 1,
+  "lastActivityTime": -1
+}, {
+  "creator": 1
+}, {
+  "id": 1
+}, {
+  "lastActivityTime": -1
+}, {
+  "lastUpdatedTime": -1
+}])
+
+db.collection_assets.createIndex({
+  collectionID: 1
+}, )

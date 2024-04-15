@@ -62,6 +62,12 @@ func (s *NFTIndexerServer) SetupRoute() {
 	v2NFT.POST("/index_one", s.IndexOneNFT)
 	v2NFT.POST("/index", s.IndexNFTsV2)
 	v2NFT.POST("/index_history", s.IndexHistory)
+	v2NFT.POST("/pending", s.SetTokenPendingV2)
+
+	v2Collections := v2.Group("/collections")
+	v2Collections.POST("/index", s.IndexCollections)
+	v2Collections.GET("", s.GetCollectionsByCreators)
+	v2Collections.GET("/:collection_id", s.GetCollectionByID)
 
 	v2.POST("/graphql", s.graphqlHandler)
 	v2.GET("/graphiql", s.playgroundHandler)

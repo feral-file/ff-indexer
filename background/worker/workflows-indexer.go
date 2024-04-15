@@ -193,3 +193,49 @@ func (w *NFTIndexerWorker) CacheIPFSArtifactWorkflow(ctx workflow.Context, fullD
 
 	return nil
 }
+
+// IndexTezosCollectionWorkflow is a workflow to index and summarized Tezos tokens for a owner
+func (w *NFTIndexerWorker) IndexTezosCollectionWorkflow(ctx workflow.Context, creator string) error {
+	log := workflow.GetLogger(ctx)
+
+	nextOffset := 0
+	for {
+		var next int
+		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx, ""), w.IndexTezosCollectionsByCreator, creator, nextOffset).Get(ctx, &next); err != nil {
+			sentry.CaptureException(err)
+			return err
+		}
+
+		if next == 0 {
+			log.Debug("[loop] no more collections found from tezos", zap.String("creator", creator))
+			break
+		}
+
+		nextOffset = next
+	}
+	log.Info("TEZOS collections indexed", zap.String("creator", creator))
+	return nil
+}
+
+// IndexETHCollectionWorkflow is a workflow to index and summarized ETH tokens for a creator
+func (w *NFTIndexerWorker) IndexETHCollectionWorkflow(ctx workflow.Context, creator string) error {
+	log := workflow.GetLogger(ctx)
+
+	nextPage := ""
+	for {
+		var next string
+		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx, ""), w.IndexETHCollectionsByCreator, creator, nextPage).Get(ctx, &next); err != nil {
+			sentry.CaptureException(err)
+			return err
+		}
+
+		if next == "" {
+			log.Debug("[loop] no more collections found from eth", zap.String("creator", creator))
+			break
+		}
+
+		nextPage = next
+	}
+	log.Info("ETH collections indexed", zap.String("creator", creator))
+	return nil
+}

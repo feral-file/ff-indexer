@@ -253,3 +253,8 @@ func NormalizeIndexIDs(indexIDs []string, isConvertToDecimal bool) []string {
 	}
 	return processedAddresses
 }
+
+// GetPrefixedSigningMessage formats a message with a predefined nft-indexer: prefix and a given timestamp.
+func GetPrefixedSigningMessage(timestamp string) string {
+	return fmt.Sprintf("nft-indexer: %s", timestamp)
+}

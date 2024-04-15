@@ -93,6 +93,8 @@ func main() {
 	// workflows
 	workflow.Register(worker.IndexETHTokenWorkflow)
 	workflow.Register(worker.IndexTezosTokenWorkflow)
+	workflow.Register(worker.IndexTezosCollectionWorkflow)
+	workflow.Register(worker.IndexETHCollectionWorkflow)
 	workflow.RegisterWithOptions(worker.IndexTokenWorkflow, workflow.RegisterOptions{
 		Name: "IndexTokenWorkflow",
 	})
@@ -104,8 +106,10 @@ func main() {
 	activity.Register(worker.IndexToken)
 	// ethereum
 	activity.Register(worker.IndexETHTokenByOwner)
+	activity.Register(worker.IndexETHCollectionsByCreator)
 	// tezos
 	activity.Register(worker.IndexTezosTokenByOwner)
+	activity.Register(worker.IndexTezosCollectionsByCreator)
 	// index store
 	activity.Register(worker.IndexAsset)
 	activity.Register(worker.GetTokenBalanceOfOwner)

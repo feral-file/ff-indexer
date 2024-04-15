@@ -164,3 +164,41 @@ func StartPendingTxFollowUpWorkflow(c context.Context, client *cadence.WorkerCli
 
 	return nil
 }
+
+// StartIndexTezosTokenWorkflow starts a workflow to index tokens for an ethereum address
+func StartIndexTezosCollectionWorkflow(c context.Context, client *cadence.WorkerClient, caller string, creator string) {
+	option := cadenceClient.StartWorkflowOptions{
+		ID:                           WorkflowIDIndexCollectionsByOwner(caller, creator),
+		TaskList:                     TaskListName,
+		ExecutionStartToCloseTimeout: time.Hour,
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+	}
+
+	var w NFTIndexerWorker
+
+	workflow, err := client.StartWorkflow(c, ClientName, option, w.IndexTezosCollectionWorkflow, creator)
+	if err != nil {
+		log.Error("fail to start workflow to index ETH collections for owner", zap.Error(err), zap.String("caller", caller), zap.String("creator", creator))
+	} else {
+		log.Debug("start workflow for index ETH collections for owner", zap.String("workflow_id", workflow.ID), zap.String("caller", caller), zap.String("creator", creator))
+	}
+}
+
+// StartIndexTezosTokenWorkflow starts a workflow to index tokens for an ethereum address
+func StartIndexETHCollectionWorkflow(c context.Context, client *cadence.WorkerClient, caller string, creator string) {
+	option := cadenceClient.StartWorkflowOptions{
+		ID:                           WorkflowIDIndexCollectionsByOwner(caller, creator),
+		TaskList:                     TaskListName,
+		ExecutionStartToCloseTimeout: time.Hour,
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+	}
+
+	var w NFTIndexerWorker
+
+	workflow, err := client.StartWorkflow(c, ClientName, option, w.IndexETHCollectionWorkflow, creator)
+	if err != nil {
+		log.Error("fail to start workflow to index ETH collections for owner", zap.Error(err), zap.String("caller", caller), zap.String("creator", creator))
+	} else {
+		log.Debug("start workflow for index ETH collections for owner", zap.String("workflow_id", workflow.ID), zap.String("caller", caller), zap.String("creator", creator))
+	}
+}
