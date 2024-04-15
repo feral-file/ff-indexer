@@ -31,7 +31,7 @@ func TokenAuthenticate(tokenKey, tokenValue string) gin.HandlerFunc {
 func isIntrospectionQuery(query string) bool {
 	lowerQuery := strings.ToLower(query)
 	return strings.Contains(lowerQuery, "__schema") ||
-		strings.Contains(lowerQuery, "__type")
+		(strings.Contains(lowerQuery, "__type") && !strings.Contains(lowerQuery, "__typename"))
 }
 
 // validateSingleRequestPerOperation returns an error if any operation in the query

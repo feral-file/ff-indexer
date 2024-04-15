@@ -277,6 +277,7 @@ type Collection struct {
 	Published   bool     `json:"published" bson:"published"`
 	Source      string   `json:"source" bson:"source"`
 	SourceURL   string   `json:"sourceURL" bson:"sourceURL"`
+	ProjectURL  string   `json:"projectURL" bson:"projectURL"`
 
 	LastUpdatedTime  time.Time `json:"lastUpdatedTime" bson:"lastUpdatedTime"`
 	LastActivityTime time.Time `json:"lastActivityTime" bson:"lastActivityTime"`
