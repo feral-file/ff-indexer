@@ -189,7 +189,7 @@ func StartIndexETHCollectionWorkflow(c context.Context, client *cadence.WorkerCl
 	option := cadenceClient.StartWorkflowOptions{
 		ID:                           WorkflowIDIndexCollectionsByOwner(caller, creator),
 		TaskList:                     TaskListName,
-		ExecutionStartToCloseTimeout: time.Hour,
+		ExecutionStartToCloseTimeout: 3 * time.Hour,
 		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
 	}
 

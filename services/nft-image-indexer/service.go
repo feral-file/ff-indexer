@@ -70,12 +70,12 @@ func NewNFTContentIndexer(db *imageStore.ImageStore, nftAssets, nftTokens, nftAc
 }
 
 // spawnThumbnailWorker spawn worker for generate thumbnails from source images
-func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, infos <-chan ThumbnailIndexInfo, count int) {
+func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, dataChan <-chan ThumbnailIndexInfo, count int) {
 	for i := 0; i < count; i++ {
 		s.wg.Add(1)
 		go func() {
 			defer s.wg.Done()
-			for info := range infos {
+			for info := range dataChan {
 				log.Debug("start generating thumbnail cache for an asset", zap.String("indexID", info.ID))
 
 				if _, err := s.db.CreateOrGetImage(ctx, info.ID); err != nil {
@@ -201,14 +201,14 @@ func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) 
 	return asset, err
 }
 
-// getAssetWithoutThumbnailCached looks up assets without thumbnail cached
+// getCollectionWithoutThumbnailCached looks up collection without thumbnail cached
 func (s *NFTContentIndexer) getCollectionWithoutThumbnailCached(ctx context.Context) (indexer.Collection, error) {
 	var collection indexer.Collection
 	ts := time.Now().Add(-s.thumbnailCacheRetryInterval)
 	r := s.nftCollections.FindOneAndUpdate(ctx,
 		bson.M{ // This is effectively "$and"
 
-			// filter recent assets which have not been processed or are not timestamped
+			// filter recent collections which have not been processed or are not timestamped
 			//"thumbnailLastCheck": bson.M{"$lt": time.Now().Add(-s.thumbnailCacheRetryInterval)},
 			"$or": bson.A{
 				bson.M{ // this will be false of any non time values
@@ -219,15 +219,13 @@ func (s *NFTContentIndexer) getCollectionWithoutThumbnailCached(ctx context.Cont
 				},
 			},
 
-			// filter assets which does not have thumbnailURL or the thumbnailURL is empty
+			// filter collections which does not have thumbnailURL or the thumbnailURL is empty
 			"thumbnailURL": bson.M{
-				// "$not": bson.M{"$exists": true, "$ne": ""},
 				"$in": bson.A{nil, ""},
 			},
 
-			// filter assets which does not have thumbnailFailure or the thumbnailFailure is empty
+			// filter collections which does not have thumbnailFailure or the thumbnailFailure is empty
 			"thumbnailFailedReason": bson.M{
-				// "$not": bson.M{"$exists": true},
 				"$in": bson.A{nil, ""},
 			},
 		},
@@ -298,7 +296,7 @@ func (s *NFTContentIndexer) updateAssetThumbnail(ctx context.Context, indexID, t
 	return err
 }
 
-// updateAssetThumbnail sets the thumbnail id for a specific token
+// updateCollectionThumbnail sets the thumbnail id for a specific collection
 func (s *NFTContentIndexer) updateCollectionThumbnail(ctx context.Context, id, thumbnailID string) error {
 	thumbnailURL := fmt.Sprintf("%s%s/%s", s.cloudflareURLPrefix, thumbnailID, "thumbnail")
 	_, err := s.nftCollections.UpdateOne(
@@ -342,7 +340,11 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 			zap.Duration("thumbnailCachePeriod", s.thumbnailCachePeriod),
 			zap.Duration("thumbnailCacheRetryInterval", s.thumbnailCacheRetryInterval))
 
+		// Watch collections thumbnail cached
+		s.wg.Add(1)
 		go func() {
+			defer s.wg.Done()
+
 		WATCH_COLLECTION:
 			for {
 				col, err := s.getCollectionWithoutThumbnailCached(ctx)
