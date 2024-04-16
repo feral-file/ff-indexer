@@ -18,10 +18,24 @@ import (
 	"go.uber.org/zap"
 )
 
+type Type string
+
+const (
+	TypeCollection = "collection"
+	TypeAsset      = "asset"
+)
+
 type NFTAsset struct {
 	ID              string                           `bson:"id"`
 	IndexID         string                           `bson:"indexID"`
 	ProjectMetadata indexer.VersionedProjectMetadata `bson:"projectMetadata"`
+}
+
+type ThumbnailIndexInfo struct {
+	ID       string
+	ImageURL string
+	Metadata map[string]interface{}
+	Type     Type
 }
 
 type NFTContentIndexer struct {
@@ -30,75 +44,91 @@ type NFTContentIndexer struct {
 	thumbnailCachePeriod        time.Duration
 	thumbnailCacheRetryInterval time.Duration
 
+	cloudflareURLPrefix string
+
 	db               *imageStore.ImageStore
 	nftAssets        *mongo.Collection
 	nftTokens        *mongo.Collection
 	nftAccountTokens *mongo.Collection
+	nftCollections   *mongo.Collection
 }
 
-func NewNFTContentIndexer(db *imageStore.ImageStore, nftAssets, nftTokens, nftAccountTokens *mongo.Collection,
-	thumbnailCachePeriod, thumbnailCacheRetryInterval time.Duration) *NFTContentIndexer {
+func NewNFTContentIndexer(db *imageStore.ImageStore, nftAssets, nftTokens, nftAccountTokens, nftCollections *mongo.Collection,
+	thumbnailCachePeriod, thumbnailCacheRetryInterval time.Duration, cloudflareURLPrefix string) *NFTContentIndexer {
 	return &NFTContentIndexer{
 		thumbnailCachePeriod:        thumbnailCachePeriod,
 		thumbnailCacheRetryInterval: thumbnailCacheRetryInterval,
+
+		cloudflareURLPrefix: cloudflareURLPrefix,
 
 		db:               db,
 		nftAssets:        nftAssets,
 		nftTokens:        nftTokens,
 		nftAccountTokens: nftAccountTokens,
+		nftCollections:   nftCollections,
 	}
 }
 
 // spawnThumbnailWorker spawn worker for generate thumbnails from source images
-func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, assets <-chan NFTAsset, count int) {
+func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, infos <-chan ThumbnailIndexInfo, count int) {
 	for i := 0; i < count; i++ {
 		s.wg.Add(1)
 		go func() {
 			defer s.wg.Done()
-			for asset := range assets {
-				log.Debug("start generating thumbnail cache for an asset", zap.String("indexID", asset.IndexID))
+			for info := range infos {
+				log.Debug("start generating thumbnail cache for an asset", zap.String("indexID", info.ID))
 
-				if _, err := s.db.CreateOrGetImage(ctx, asset.IndexID); err != nil {
+				if _, err := s.db.CreateOrGetImage(ctx, info.ID); err != nil {
 					log.Error("fail to get or create image record", zap.Error(err))
 					continue
 				}
 
 				uploadImageStartTime := time.Now()
-				img, err := s.db.UploadImage(ctx, asset.IndexID, NewURLImageReader(asset.ProjectMetadata.Latest.ThumbnailURL),
-					map[string]interface{}{
-						"source":   asset.ProjectMetadata.Latest.Source,
-						"file_url": asset.ProjectMetadata.Latest.ThumbnailURL,
-					},
+				img, err := s.db.UploadImage(ctx, info.ID, NewURLImageReader(info.ImageURL),
+					info.Metadata,
 				)
 				if err != nil {
 					if uerr, ok := err.(imageStore.UnsupportedImageCachingError); ok {
 						// add failure to the asset
 						if uerr.Reason() == imageStore.ReasonBrokenImage {
 							log.Error("broken image",
-								zap.String("indexID", asset.IndexID),
-								zap.String("thumbnailURL", asset.ProjectMetadata.Latest.ThumbnailURL))
+								zap.String("id", info.ID),
+								zap.String("type", string(info.Type)),
+								zap.String("thumbnailURL", info.ImageURL))
 						}
 
-						if err := s.markAssetThumbnailFailed(ctx, asset.IndexID, uerr.Reason()); err != nil {
-							log.Error("add thumbnail failure was failed", zap.String("indexID", asset.IndexID), zap.Error(err))
+						if err := s.markAssetThumbnailFailed(ctx, info.ID, uerr.Reason()); err != nil {
+							log.Error("add thumbnail failure was failed", zap.String("id", info.ID), zap.Error(err))
 						}
 					}
 
-					sentry.CaptureMessage("assetId: " + asset.IndexID + " - " + err.Error())
-					log.Error("fail to upload image", zap.String("indexID", asset.IndexID), zap.Error(err))
+					sentry.CaptureMessage("assetId: " + info.ID + " - " + err.Error())
+					log.Error("fail to upload image", zap.String("id", info.ID), zap.Error(err))
 					continue
 				}
 				log.Debug("thumbnail image uploaded",
 					zap.Duration("duration", time.Since(uploadImageStartTime)),
-					zap.String("assetID", asset.IndexID))
+					zap.String("id", info.ID))
 
 				// Update the thumbnail by image ID returned from cloudflare, it the whol process is succeed.
 				// Otherwise, it would update to an empty value
-				if err := s.updateAssetThumbnail(ctx, img.AssetID, img.ImageID); err != nil {
-					log.Error("fail to update token thumbnail back to indexer", zap.Error(err))
+				switch info.Type {
+				case TypeAsset:
+					if err := s.updateAssetThumbnail(ctx, img.AssetID, img.ImageID); err != nil {
+						log.Error("fail to update token thumbnail back to indexer", zap.Error(err))
+						continue
+					}
+				case TypeCollection:
+					if err := s.updateCollectionThumbnail(ctx, img.AssetID, img.ImageID); err != nil {
+						log.Error("fail to update token thumbnail back to indexer", zap.Error(err))
+						continue
+					}
+				default:
+					log.Error("type is not supported", zap.Error(err))
 					continue
 				}
-				log.Info("thumbnail generating process finished", zap.String("indexID", asset.IndexID))
+
+				log.Info("thumbnail generating process finished", zap.String("indexID", info.ID))
 			}
 			log.Debug("ThumbnailWorker stopped")
 		}()
@@ -171,6 +201,49 @@ func (s *NFTContentIndexer) getAssetWithoutThumbnailCached(ctx context.Context) 
 	return asset, err
 }
 
+// getAssetWithoutThumbnailCached looks up assets without thumbnail cached
+func (s *NFTContentIndexer) getCollectionWithoutThumbnailCached(ctx context.Context) (indexer.Collection, error) {
+	var collection indexer.Collection
+	ts := time.Now().Add(-s.thumbnailCacheRetryInterval)
+	r := s.nftCollections.FindOneAndUpdate(ctx,
+		bson.M{ // This is effectively "$and"
+
+			// filter recent assets which have not been processed or are not timestamped
+			//"thumbnailLastCheck": bson.M{"$lt": time.Now().Add(-s.thumbnailCacheRetryInterval)},
+			"$or": bson.A{
+				bson.M{ // this will be false of any non time values
+					"thumbnailLastCheck": bson.M{"$lt": ts},
+				},
+				bson.M{ // include null and empty string to cover both defaults
+					"thumbnailLastCheck": bson.M{"$in": bson.A{nil, ""}},
+				},
+			},
+
+			// filter assets which does not have thumbnailURL or the thumbnailURL is empty
+			"thumbnailURL": bson.M{
+				// "$not": bson.M{"$exists": true, "$ne": ""},
+				"$in": bson.A{nil, ""},
+			},
+
+			// filter assets which does not have thumbnailFailure or the thumbnailFailure is empty
+			"thumbnailFailedReason": bson.M{
+				// "$not": bson.M{"$exists": true},
+				"$in": bson.A{nil, ""},
+			},
+		},
+		bson.M{"$set": bson.M{"thumbnailLastCheck": time.Now()}},
+		options.FindOneAndUpdate().
+			SetProjection(bson.M{"id": 1, "imageURL": 1}),
+	)
+
+	if err := r.Err(); err != nil {
+		return collection, err
+	}
+
+	err := r.Decode(&collection)
+	return collection, err
+}
+
 // updateAssetThumbnail sets the thumbnail id for a specific token
 func (s *NFTContentIndexer) updateAssetThumbnail(ctx context.Context, indexID, thumbnailID string) error {
 	_, err := s.nftAssets.UpdateOne(
@@ -225,6 +298,25 @@ func (s *NFTContentIndexer) updateAssetThumbnail(ctx context.Context, indexID, t
 	return err
 }
 
+// updateAssetThumbnail sets the thumbnail id for a specific token
+func (s *NFTContentIndexer) updateCollectionThumbnail(ctx context.Context, id, thumbnailID string) error {
+	thumbnailURL := fmt.Sprintf("%s%s/%s", s.cloudflareURLPrefix, thumbnailID, "thumbnail")
+	_, err := s.nftCollections.UpdateOne(
+		ctx,
+		bson.M{"id": id},
+		bson.D{{Key: "$set", Value: bson.D{
+			{Key: "thumbnailURL", Value: thumbnailURL},
+			{Key: "lastUpdatedTime", Value: time.Now()},
+		}}},
+	)
+	if err != nil {
+		log.Error("update collection thumbnail failed", zap.String("collectionID", id), zap.Error(err))
+		return err
+	}
+
+	return err
+}
+
 // markAssetThumbnailFailed sets thumbnail failure for a specific token
 func (s *NFTContentIndexer) markAssetThumbnailFailed(ctx context.Context, indexID, thumbnailFailedReason string) error {
 	_, err := s.nftAssets.UpdateOne(
@@ -241,14 +333,43 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 	go func() {
 		defer s.wg.Done()
 
-		assets := make(chan NFTAsset, 20)
-		defer close(assets)
+		dataChan := make(chan ThumbnailIndexInfo, 20)
+		defer close(dataChan)
 
-		s.spawnThumbnailWorker(ctx, assets, 10)
+		s.spawnThumbnailWorker(ctx, dataChan, 10)
 
 		log.Info("start the loop the get assets without thumbnail cached",
 			zap.Duration("thumbnailCachePeriod", s.thumbnailCachePeriod),
 			zap.Duration("thumbnailCacheRetryInterval", s.thumbnailCacheRetryInterval))
+
+		go func() {
+		WATCH_COLLECTION:
+			for {
+				col, err := s.getCollectionWithoutThumbnailCached(ctx)
+				if err != nil {
+					if errors.Is(err, mongo.ErrNoDocuments) {
+						log.Info("No collection need to generate cache a thumbnail")
+					} else {
+						log.Error("fail to get collection", zap.Error(err))
+					}
+
+					if done := indexer.SleepWithContext(ctx, 15*time.Second); done {
+						break WATCH_COLLECTION
+					}
+					continue
+				}
+				log.Debug("send collection to process", zap.String("id", col.ID))
+				dataChan <- ThumbnailIndexInfo{
+					ID:       col.ID,
+					ImageURL: col.ImageURL,
+					Metadata: map[string]interface{}{
+						"source":   col.Source,
+						"file_url": col.ImageURL,
+					},
+					Type: TypeAsset,
+				}
+			}
+		}()
 
 	WATCH_ASSETS:
 		for {
@@ -266,7 +387,15 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 				continue
 			}
 			log.Debug("send asset to process", zap.String("indexID", asset.IndexID))
-			assets <- asset
+			dataChan <- ThumbnailIndexInfo{
+				ID:       asset.IndexID,
+				ImageURL: asset.ProjectMetadata.Latest.ThumbnailURL,
+				Metadata: map[string]interface{}{
+					"source":   asset.ProjectMetadata.Latest.Source,
+					"file_url": asset.ProjectMetadata.Latest.ThumbnailURL,
+				},
+				Type: TypeAsset,
+			}
 		}
 		log.Debug("Thumbnail checker closed")
 	}()

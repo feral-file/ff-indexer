@@ -2,6 +2,7 @@ cloudflare:
     account_hash:
     account_id:
     api_token:
+    url_prefix:
 
 image_db:
   dsn:
