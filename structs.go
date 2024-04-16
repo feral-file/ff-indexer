@@ -265,19 +265,20 @@ type TotalBalance struct {
 }
 
 type Collection struct {
-	ID          string   `json:"id" bson:"id"`
-	ExternalID  string   `json:"externalID" bson:"externalID"`
-	Creator     string   `json:"creator" bson:"creator"`
-	Name        string   `json:"name" bson:"name"`
-	Description string   `json:"description" bson:"description"`
-	Items       int      `json:"items" bson:"items"`
-	ImageURL    string   `json:"imageURL" bson:"imageURL"`
-	Blockchain  string   `json:"blockchain" bson:"blockchain"`
-	Contracts   []string `json:"contracts" bson:"contracts"`
-	Published   bool     `json:"published" bson:"published"`
-	Source      string   `json:"source" bson:"source"`
-	SourceURL   string   `json:"sourceURL" bson:"sourceURL"`
-	ProjectURL  string   `json:"projectURL" bson:"projectURL"`
+	ID           string   `json:"id" bson:"id"`
+	ExternalID   string   `json:"externalID" bson:"externalID"`
+	Creator      string   `json:"creator" bson:"creator"`
+	Name         string   `json:"name" bson:"name"`
+	Description  string   `json:"description" bson:"description"`
+	Items        int      `json:"items" bson:"items"`
+	ImageURL     string   `json:"imageURL" bson:"imageURL"`
+	Blockchain   string   `json:"blockchain" bson:"blockchain"`
+	Contracts    []string `json:"contracts" bson:"contracts"`
+	Published    bool     `json:"published" bson:"published"`
+	Source       string   `json:"source" bson:"source"`
+	SourceURL    string   `json:"sourceURL" bson:"sourceURL"`
+	ProjectURL   string   `json:"projectURL" bson:"projectURL"`
+	ThumbnailURL string   `json:"thumbnailURL" bson:"thumbnailURL"`
 
 	LastUpdatedTime  time.Time `json:"lastUpdatedTime" bson:"lastUpdatedTime"`
 	LastActivityTime time.Time `json:"lastActivityTime" bson:"lastActivityTime"`
