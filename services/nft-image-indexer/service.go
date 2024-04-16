@@ -366,7 +366,7 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 						"source":   col.Source,
 						"file_url": col.ImageURL,
 					},
-					Type: TypeAsset,
+					Type: TypeCollection,
 				}
 			}
 		}()
