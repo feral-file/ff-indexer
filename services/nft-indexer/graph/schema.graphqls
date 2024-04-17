@@ -125,6 +125,7 @@ type Collection {
 	source:             String!
 	sourceURL:          String!
 	projectURL:         String!
+	thumbnailURL: 		String!
 	lastActivityTime:  	Time
 	lastUpdatedTime: 	Time
 }

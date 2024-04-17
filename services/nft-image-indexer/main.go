@@ -48,6 +48,7 @@ func main() {
 	assetCollection := db.Collection("assets")
 	tokenCollection := db.Collection("tokens")
 	accountTokenCollection := db.Collection("account_tokens")
+	collectionsCollection := db.Collection("collections")
 
 	ctx, stop := signal.NotifyContext(mainCtx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -68,8 +69,8 @@ func main() {
 		zap.Duration("retry", thumbnailCacheRetryInterval),
 	)
 
-	imageIndexer := NewNFTContentIndexer(store, assetCollection, tokenCollection, accountTokenCollection,
-		thumbnailCachePeriod, thumbnailCacheRetryInterval)
+	imageIndexer := NewNFTContentIndexer(store, assetCollection, tokenCollection, accountTokenCollection, collectionsCollection,
+		thumbnailCachePeriod, thumbnailCacheRetryInterval, viper.GetString("cloudflare.url_prefix"))
 	imageIndexer.Start(ctx)
 
 	log.Info("Content indexer terminated")

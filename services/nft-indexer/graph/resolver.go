@@ -169,6 +169,7 @@ func (r *Resolver) mapGraphQLCollection(c indexer.Collection) *model.Collection 
 		Published:        c.Published,
 		SourceURL:        c.SourceURL,
 		ProjectURL:       c.ProjectURL,
+		ThumbnailURL:     c.ThumbnailURL,
 		LastActivityTime: &c.LastActivityTime,
 		LastUpdatedTime:  &c.LastUpdatedTime,
 	}

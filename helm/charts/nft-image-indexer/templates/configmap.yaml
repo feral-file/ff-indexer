@@ -10,6 +10,7 @@ data:
       account_hash:
       account_id:
       api_token:
+      url_prefix: {{ .Values.serviceConfig.cloudflareUrlPrefix }}
 
     image_db:
       dsn:
