@@ -23,7 +23,7 @@ serviceConfig:
   cadence_hostport: cadenceau-frontend.cadenceau.svc.cluster.local:7933
   feralfile_api_url: https://feralfile.com
   cache_bucket_name: autonomy-cached-full-artwork
-  opensea_ratelimit: 4
+  opensea_ratelimit: 1
   environment: production
   network:
     tezos: livenet
