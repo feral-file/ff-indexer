@@ -54,6 +54,7 @@ type Collection struct {
 	Source           string     `json:"source"`
 	SourceURL        string     `json:"sourceURL"`
 	ProjectURL       string     `json:"projectURL"`
+	ThumbnailURL     string     `json:"thumbnailURL"`
 	LastActivityTime *time.Time `json:"lastActivityTime,omitempty"`
 	LastUpdatedTime  *time.Time `json:"lastUpdatedTime,omitempty"`
 }
