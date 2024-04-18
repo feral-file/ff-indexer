@@ -265,6 +265,7 @@ test:
 .PHONY: vet
 vet:
 	go mod tidy
+	@-[ X"$$(uname -s)" = X"FreeBSD" ] && set-sockio
 	go vet -v ./... 2>&1 | \
 	  awk '/^#.*$$/{ printf "\033[31m%s\033[0m\n",$$0 } /^[^#]/{ print $$0 }'
 
