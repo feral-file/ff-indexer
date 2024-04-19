@@ -111,12 +111,8 @@ github.com/bitmark-inc/autonomy-account v0.0.5-1 h1:lqkSw85/tdjUuaIzVuIpylF1qGk7
 github.com/bitmark-inc/autonomy-account v0.0.5-1/go.mod h1:JCEuruKJOmd4ud0T9iMxuKv8lCacCn0Q69OW/CIP7h0=
 github.com/bitmark-inc/autonomy-asset-server v0.0.3 h1:DCOLgB3jX2qO31qqv4cF5UJ4Fkj5hchDHEzado1CL7I=
 github.com/bitmark-inc/autonomy-asset-server v0.0.3/go.mod h1:badxL4HGY9goHdyJtjDBwW6lOscJlEy78rAOKK+ICZk=
-github.com/bitmark-inc/autonomy-logger v0.0.3 h1:se5/rKmZUzT5E/U7eIzNtM/nytSKNxqZ8+AS4TAvIMQ=
-github.com/bitmark-inc/autonomy-logger v0.0.3/go.mod h1:9D00aodNfb8ABviNvDZG0Dti4Q90aFe7AGnQRtYP7k4=
-github.com/bitmark-inc/autonomy-logger v0.0.4-0.20240403101837-5b48fb3a0e1c h1:hXBmii0TYZQmFywZhKtaFvPL5uTIWu5/V6TAdlyminM=
-github.com/bitmark-inc/autonomy-logger v0.0.4-0.20240403101837-5b48fb3a0e1c/go.mod h1:gpvW01zFYwm4RduPcrLsMwsNJoBn8JKqKpWmk0lfyBI=
-github.com/bitmark-inc/autonomy-logger v0.0.4-0.20240404031646-fbcd45c7d32a h1:O02ol70JIDJDYH5j9bVli620Kd22uZfT7GkIvsulMtA=
-github.com/bitmark-inc/autonomy-logger v0.0.4-0.20240404031646-fbcd45c7d32a/go.mod h1:gpvW01zFYwm4RduPcrLsMwsNJoBn8JKqKpWmk0lfyBI=
+github.com/bitmark-inc/autonomy-logger v0.0.5 h1:P32xWblSUe2om6RdJ1J1HIaJsHBFyzVXL1V6t2LFm2k=
+github.com/bitmark-inc/autonomy-logger v0.0.5/go.mod h1:gpvW01zFYwm4RduPcrLsMwsNJoBn8JKqKpWmk0lfyBI=
 github.com/bitmark-inc/autonomy-notification v0.0.3 h1:eVq9JvO/8M5k1VsNHmsrEJ1i2uPwkQQGy+Ow/UiB5qU=
 github.com/bitmark-inc/autonomy-notification v0.0.3/go.mod h1:6KUN7m6jdmgeppdweJXEKQpC19xcrUShxE1j5zgVEEA=
 github.com/bitmark-inc/autonomy-utils v0.0.3 h1:nc7ZGC60Wz+69ENRVRNh/N/e5RKQSOg/BdvL8ANZPsE=
@@ -129,8 +125,6 @@ github.com/bitmark-inc/httpsign v0.0.2-2 h1:r6PEni5eviDEU+6tRxVgG9z7XfOkS1m9HglF
 github.com/bitmark-inc/httpsign v0.0.2-2/go.mod h1:s5eQnhVQO4l9xAdA1fnBS7jWLZ1tOOg6eDpf3mvUYZo=
 github.com/bitmark-inc/traceutils v0.1.0 h1:9Wav80LREfMQa5/LcqSVSyJfGywHLxQLhFTczheoJdI=
 github.com/bitmark-inc/traceutils v0.1.0/go.mod h1:+9BJoMmAMMDWy54EpZKAwEN3WVyXUmWi4UsPDoMS/Hs=
-github.com/bitmark-inc/tzkt-go v0.0.13-0.20240104033756-0b8ec55d6211 h1:LHbhiSLrjgAn6LzwG0P8POMnDodk75BUKZ57arqFBVw=
-github.com/bitmark-inc/tzkt-go v0.0.13-0.20240104033756-0b8ec55d6211/go.mod h1:e/kgHH4i6YzCveZ79cDiviEAA5FU6YO48nWLQBRAdGE=
 github.com/bitmark-inc/tzkt-go v0.0.13 h1:Hkz8qBbPA/Ignws2PcqmKXnj/mGlTlOUirFzttyOTMc=
 github.com/bitmark-inc/tzkt-go v0.0.13/go.mod h1:e/kgHH4i6YzCveZ79cDiviEAA5FU6YO48nWLQBRAdGE=
 github.com/bits-and-blooms/bitset v1.10.0 h1:ePXTeiPEazB5+opbv5fr8umg2R/1NlzgDsyepwsSr88=
@@ -248,8 +242,6 @@ github.com/fsnotify/fsnotify v1.6.0/go.mod h1:sl3t1tCWJFWoRz9R8WJCbQihKKwmorjAbS
 github.com/gabriel-vasile/mimetype v1.4.2 h1:w5qFW6JKBz9Y393Y4q372O9A7cUSequkh1Q7OhCmWKU=
 github.com/gabriel-vasile/mimetype v1.4.2/go.mod h1:zApsH/mKG4w07erKIaJPFiX0Tsq9BFQgN3qGY5GnNgA=
 github.com/gballet/go-libpcsclite v0.0.0-20190607065134-2772fd86a8ff h1:tY80oXqGNY4FhTFhk+o9oFHGINQ/+vhlm8HFzi6znCI=
-github.com/getsentry/sentry-go v0.20.0 h1:bwXW98iMRIWxn+4FgPW7vMrjmbym6HblXALmhjHmQaQ=
-github.com/getsentry/sentry-go v0.20.0/go.mod h1:lc76E2QywIyW8WuBnwl8Lc4bkmQH4+w1gwTf25trprY=
 github.com/getsentry/sentry-go v0.27.0 h1:Pv98CIbtB3LkMWmXi4Joa5OOcwbmnX88sF5qbK3r3Ps=
 github.com/getsentry/sentry-go v0.27.0/go.mod h1:lc76E2QywIyW8WuBnwl8Lc4bkmQH4+w1gwTf25trprY=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
