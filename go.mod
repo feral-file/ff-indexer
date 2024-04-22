@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go v1.45.2
 	github.com/bitmark-inc/autonomy-account v0.0.5-1
 	github.com/bitmark-inc/autonomy-asset-server v0.0.3
-	github.com/bitmark-inc/autonomy-logger v0.0.4-0.20240404031646-fbcd45c7d32a
+	github.com/bitmark-inc/autonomy-logger v0.0.5
 	github.com/bitmark-inc/autonomy-notification v0.0.3
 	github.com/bitmark-inc/autonomy-utils v0.0.3
 	github.com/bitmark-inc/config-loader v0.0.7
