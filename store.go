@@ -101,6 +101,7 @@ type Store interface {
 	DeleteDeprecatedCollectionAsset(ctx context.Context, collectionID, runID string) error
 
 	GetCollectionLastUpdatedTimeForCreator(ctx context.Context, creator string) (time.Time, error)
+	GetCollectionLastUpdatedTime(ctx context.Context, collectionID string) (time.Time, error)
 	GetCollectionByID(ctx context.Context, id string) (*Collection, error)
 	GetCollectionsByCreators(ctx context.Context, creators []string, offset, size int64) ([]Collection, error)
 	GetDetailedTokensByCollectionID(ctx context.Context, collectionID string, offset, size int64) ([]DetailedTokenV2, error)
@@ -2107,6 +2108,29 @@ func (s *MongodbIndexerStore) GetCollectionLastUpdatedTimeForCreator(ctx context
 	r := s.collectionsCollection.FindOne(ctx, bson.M{
 		"creator": creator,
 	}, findOptions)
+
+	if err := r.Err(); err != nil {
+		if err == mongo.ErrNoDocuments {
+			// If a token is not found, return zero time
+			return time.Time{}, nil
+		}
+
+		return time.Time{}, err
+	}
+
+	var collection Collection
+	if err := r.Decode(&collection); err != nil {
+		return time.Time{}, err
+	}
+
+	return collection.LastUpdatedTime, nil
+}
+
+// GetCollectionLastUpdatedTime returns collection last refreshed time by collectionID
+func (s *MongodbIndexerStore) GetCollectionLastUpdatedTime(ctx context.Context, collectionID string) (time.Time, error) {
+	r := s.collectionsCollection.FindOne(ctx, bson.M{
+		"id": collectionID,
+	})
 
 	if err := r.Err(); err != nil {
 		if err == mongo.ErrNoDocuments {

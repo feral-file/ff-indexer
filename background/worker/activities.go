@@ -620,25 +620,6 @@ func (w *NFTIndexerWorker) GetBalanceDiffFromETHTransaction(transactionDetails [
 
 // IndexTezosCollectionsByCreator indexes Tezos collections by owner and collection assets
 func (w *NFTIndexerWorker) IndexTezosCollectionsByCreator(ctx context.Context, creator string, offset int) (int, error) {
-
-	if offset == 0 {
-		gapTimeProtection := time.Hour
-
-		lastUpdatedTime, err := w.indexerStore.GetCollectionLastUpdatedTimeForCreator(ctx, creator)
-
-		if err != nil {
-			return 0, err
-		}
-
-		if lastUpdatedTime.Unix() > time.Now().Add(-gapTimeProtection).Unix() {
-			log.Debug("owner refresh too frequently",
-				zap.Int64("lastUpdatedTime", lastUpdatedTime.Unix()),
-				zap.Int64("now", time.Now().Unix()),
-				zap.String("creator", creator))
-			return 0, nil
-		}
-	}
-
 	log.Debug("start indexing tezos collections flow", zap.String("creator", creator), zap.Int("offset", offset))
 
 	collectionUpdates, err := w.indexerEngine.IndexTezosCollectionByCreator(ctx, creator, offset, QueryPageSize)
@@ -652,6 +633,22 @@ func (w *NFTIndexerWorker) IndexTezosCollectionsByCreator(ctx context.Context, c
 	}
 
 	for _, collection := range collectionUpdates {
+		gapTimeProtection := time.Hour
+		lastUpdatedTime, err := w.indexerStore.GetCollectionLastUpdatedTime(ctx, collection.ID)
+
+		if err != nil {
+			log.Error("failed to GetCollectionLastUpdatedTime", zap.Error(err))
+			return 0, err
+		}
+
+		if lastUpdatedTime.Unix() > time.Now().Add(-gapTimeProtection).Unix() {
+			log.Debug("collection refresh too frequently",
+				zap.Int64("lastUpdatedTime", lastUpdatedTime.Unix()),
+				zap.Int64("now", time.Now().Unix()),
+				zap.String("collectionID", collection.ID))
+			continue
+		}
+
 		if err := w.indexerStore.IndexCollection(ctx, collection); err != nil {
 			log.Error("failed to update tezos collections into store", zap.String("creator", creator))
 			return 0, err
@@ -712,24 +709,6 @@ func (w *NFTIndexerWorker) IndexTezosCollectionsByCreator(ctx context.Context, c
 
 // IndexETHCollectionsByCreator indexes ETH collections by owner and collection assets
 func (w *NFTIndexerWorker) IndexETHCollectionsByCreator(ctx context.Context, creator string, next string) (string, error) {
-	if next == "" {
-		gapTimeProtection := time.Hour
-
-		lastUpdatedTime, err := w.indexerStore.GetCollectionLastUpdatedTimeForCreator(ctx, creator)
-
-		if err != nil {
-			return "", err
-		}
-
-		if lastUpdatedTime.Unix() > time.Now().Add(-gapTimeProtection).Unix() {
-			log.Debug("owner refresh too frequently",
-				zap.Int64("lastUpdatedTime", lastUpdatedTime.Unix()),
-				zap.Int64("now", time.Now().Unix()),
-				zap.String("creator", creator))
-			return "", nil
-		}
-	}
-
 	log.Debug("start indexing eth collection flow", zap.String("creator", creator), zap.String("next", next))
 
 	account, err := w.indexerEngine.GetOpenseaAccountByAddress(creator)
@@ -755,6 +734,28 @@ func (w *NFTIndexerWorker) IndexETHCollectionsByCreator(ctx context.Context, cre
 	}
 
 	for _, collection := range collectionUpdates {
+		gapTimeProtection := time.Hour
+		lastUpdatedTime, err := w.indexerStore.GetCollectionLastUpdatedTime(ctx, collection.ID)
+
+		if err != nil {
+			log.Error("failed to GetCollectionLastUpdatedTime", zap.Error(err))
+			return "", err
+		}
+
+		if lastUpdatedTime.Unix() > time.Now().Add(-gapTimeProtection).Unix() {
+			log.Debug("collection refresh too frequently",
+				zap.Int64("lastUpdatedTime", lastUpdatedTime.Unix()),
+				zap.Int64("now", time.Now().Unix()),
+				zap.String("collectionID", collection.ID))
+			continue
+		}
+
+		// Index collection
+		if err := w.indexerStore.IndexCollection(ctx, collection); err != nil {
+			log.Error("failed to update ETH collections into store", zap.String("creator", creator))
+			return "", err
+		}
+
 		// Index collections tokens
 		nextPage := ""
 		runID := uuid.New().String()
@@ -800,13 +801,6 @@ func (w *NFTIndexerWorker) IndexETHCollectionsByCreator(ctx context.Context, cre
 				}
 				break
 			}
-		}
-
-		// Update total items & index collection
-		collection.Items = tokensCount
-		if err := w.indexerStore.IndexCollection(ctx, collection); err != nil {
-			log.Error("failed to update ETH collections into store", zap.String("creator", creator))
-			return "", err
 		}
 	}
 
