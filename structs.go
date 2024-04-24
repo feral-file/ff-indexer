@@ -285,7 +285,10 @@ type Collection struct {
 }
 
 type CollectionAsset struct {
-	CollectionID string `json:"collectionID" bson:"collectionID"`
-	TokenIndexID string `json:"tokenIndexID" bson:"tokenIndexID"`
-	RunID        string `json:"-" bson:"runID"`
+	CollectionID     string    `json:"collectionID" bson:"collectionID"`
+	TokenIndexID     string    `json:"tokenIndexID" bson:"tokenIndexID"`
+	Edition          int64     `json:"edition" bson:"edition"`
+	LastActivityTime time.Time `json:"lastActivityTime" bson:"lastActivityTime"`
+
+	RunID string `json:"-" bson:"runID"`
 }

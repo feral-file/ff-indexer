@@ -572,7 +572,7 @@ func (s *NFTIndexerServer) QueryNFTsV2(c *gin.Context) {
 
 		c.JSON(http.StatusOK, tokenInfo)
 	} else {
-		tokenInfo, err := s.indexerStore.GetDetailedTokensByCollectionID(c, reqParams.CollectionID, reqParams.Offset, reqParams.Size)
+		tokenInfo, err := s.indexerStore.GetDetailedTokensByCollectionID(c, reqParams.CollectionID, reqParams.SortBy, reqParams.Offset, reqParams.Size)
 		if err != nil {
 			abortWithError(c, http.StatusInternalServerError, "fail to query collection tokens from indexer store", err)
 			return

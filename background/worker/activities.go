@@ -677,9 +677,11 @@ func (w *NFTIndexerWorker) IndexTezosCollectionsByCreator(ctx context.Context, c
 				indexID := indexer.TokenIndexID(token.Blockchain, token.ContractAddress, token.ID)
 
 				collectionAssets = append(collectionAssets, indexer.CollectionAsset{
-					CollectionID: collection.ID,
-					TokenIndexID: indexID,
-					RunID:        runID,
+					CollectionID:     collection.ID,
+					TokenIndexID:     indexID,
+					Edition:          asset.Tokens[0].Edition,
+					LastActivityTime: asset.Tokens[0].LastActivityTime,
+					RunID:            runID,
 				})
 			}
 
@@ -779,9 +781,11 @@ func (w *NFTIndexerWorker) IndexETHCollectionsByCreator(ctx context.Context, cre
 				indexID := indexer.TokenIndexID(token.Blockchain, token.ContractAddress, token.ID)
 
 				collectionAssets = append(collectionAssets, indexer.CollectionAsset{
-					CollectionID: collection.ID,
-					TokenIndexID: indexID,
-					RunID:        runID,
+					CollectionID:     collection.ID,
+					TokenIndexID:     indexID,
+					Edition:          asset.Tokens[0].Edition,
+					LastActivityTime: asset.Tokens[0].LastActivityTime,
+					RunID:            runID,
 				})
 			}
 
