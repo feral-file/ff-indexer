@@ -618,6 +618,26 @@ func (w *NFTIndexerWorker) GetBalanceDiffFromETHTransaction(transactionDetails [
 	return updatedAccountTokens, nil
 }
 
+func (w *NFTIndexerWorker) isCollectionQualifiedToIndex(ctx context.Context, collectionID string) (bool, error) {
+	gapTimeProtection := time.Hour
+	lastUpdatedTime, err := w.indexerStore.GetCollectionLastUpdatedTime(ctx, collectionID)
+
+	if err != nil {
+		log.Error("failed to GetCollectionLastUpdatedTime", zap.Error(err))
+		return false, err
+	}
+
+	if lastUpdatedTime.Unix() > time.Now().Add(-gapTimeProtection).Unix() {
+		log.Debug("collection refresh too frequently",
+			zap.Int64("lastUpdatedTime", lastUpdatedTime.Unix()),
+			zap.Int64("now", time.Now().Unix()),
+			zap.String("collectionID", collectionID))
+		return false, nil
+	}
+
+	return true, nil
+}
+
 // IndexTezosCollectionsByCreator indexes Tezos collections by owner and collection assets
 func (w *NFTIndexerWorker) IndexTezosCollectionsByCreator(ctx context.Context, creator string, offset int) (int, error) {
 	log.Debug("start indexing tezos collections flow", zap.String("creator", creator), zap.Int("offset", offset))
@@ -633,19 +653,12 @@ func (w *NFTIndexerWorker) IndexTezosCollectionsByCreator(ctx context.Context, c
 	}
 
 	for _, collection := range collectionUpdates {
-		gapTimeProtection := time.Hour
-		lastUpdatedTime, err := w.indexerStore.GetCollectionLastUpdatedTime(ctx, collection.ID)
-
+		shouldIndex, err := w.isCollectionQualifiedToIndex(ctx, collection.ID)
 		if err != nil {
-			log.Error("failed to GetCollectionLastUpdatedTime", zap.Error(err))
 			return 0, err
 		}
 
-		if lastUpdatedTime.Unix() > time.Now().Add(-gapTimeProtection).Unix() {
-			log.Debug("collection refresh too frequently",
-				zap.Int64("lastUpdatedTime", lastUpdatedTime.Unix()),
-				zap.Int64("now", time.Now().Unix()),
-				zap.String("collectionID", collection.ID))
+		if !shouldIndex {
 			continue
 		}
 
@@ -736,19 +749,12 @@ func (w *NFTIndexerWorker) IndexETHCollectionsByCreator(ctx context.Context, cre
 	}
 
 	for _, collection := range collectionUpdates {
-		gapTimeProtection := time.Hour
-		lastUpdatedTime, err := w.indexerStore.GetCollectionLastUpdatedTime(ctx, collection.ID)
-
+		shouldIndex, err := w.isCollectionQualifiedToIndex(ctx, collection.ID)
 		if err != nil {
-			log.Error("failed to GetCollectionLastUpdatedTime", zap.Error(err))
 			return "", err
 		}
 
-		if lastUpdatedTime.Unix() > time.Now().Add(-gapTimeProtection).Unix() {
-			log.Debug("collection refresh too frequently",
-				zap.Int64("lastUpdatedTime", lastUpdatedTime.Unix()),
-				zap.Int64("now", time.Now().Unix()),
-				zap.String("collectionID", collection.ID))
+		if !shouldIndex {
 			continue
 		}
 
