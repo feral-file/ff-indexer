@@ -111,6 +111,8 @@ type Collection struct {
 		Address string `json:"address"`
 		Chain   string `json:"chain"`
 	} `json:"contracts"`
+	TotalSupply int    `json:"total_supply"`
+	CreatedDate string `json:"created_date"`
 }
 
 type Client struct {
@@ -315,7 +317,7 @@ func (c *Client) RetrieveAccount(address string) (*Account, error) {
 	return &accountResp, nil
 }
 
-// RetrieveAccount returns the opensea collections from given creator username
+// RetrieveColections returns the opensea collections from given creator username
 func (c *Client) RetrieveColections(username string, next string) (*CollectionsResponse, error) {
 	v := url.Values{
 		"limit":            []string{QueryPageSize},
@@ -349,7 +351,33 @@ func (c *Client) RetrieveColections(username string, next string) (*CollectionsR
 	return &collectionResp, nil
 }
 
-// RetrieveAccount returns the opensea collections from given creator username
+// RetrieveColection returns the opensea collection from given collectionID
+func (c *Client) RetrieveColection(username string, collectionID string) (*Collection, error) {
+	u := url.URL{
+		Scheme: "https",
+		Host:   c.apiEndpoint,
+		Path:   fmt.Sprint("/api/v2/collections/", collectionID),
+	}
+
+	resp, err := c.makeRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var collection Collection
+
+	if err := json.NewDecoder(resp.Body).Decode(&collection); err != nil {
+		log.Error("fail to read opensea response", zap.Error(err),
+			log.SourceOpensea,
+			zap.String("resp_dump", traceutils.DumpResponse(resp)))
+		return nil, err
+	}
+
+	return &collection, nil
+}
+
+// RetrieveColectionAssets returns the opensea collections from given creator username
 func (c *Client) RetrieveColectionAssets(collectionSlug string, next string) (*AssetsResponse, error) {
 	v := url.Values{
 		"limit": []string{QueryPageSize},

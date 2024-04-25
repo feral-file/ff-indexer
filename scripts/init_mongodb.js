@@ -183,6 +183,10 @@ db.collections.createIndexes([{
   "lastUpdatedTime": -1
 }])
 
-db.collection_assets.createIndex({
-  collectionID: 1
-}, )
+db.collection_assets.createIndexes([{
+  "collectionID": 1
+}, {
+  "lastActivityTime": -1
+}, {
+  "edition": 1
+}])

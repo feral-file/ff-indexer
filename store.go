@@ -101,9 +101,10 @@ type Store interface {
 	DeleteDeprecatedCollectionAsset(ctx context.Context, collectionID, runID string) error
 
 	GetCollectionLastUpdatedTimeForCreator(ctx context.Context, creator string) (time.Time, error)
+	GetCollectionLastUpdatedTime(ctx context.Context, collectionID string) (time.Time, error)
 	GetCollectionByID(ctx context.Context, id string) (*Collection, error)
 	GetCollectionsByCreators(ctx context.Context, creators []string, offset, size int64) ([]Collection, error)
-	GetDetailedTokensByCollectionID(ctx context.Context, collectionID string, offset, size int64) ([]DetailedTokenV2, error)
+	GetDetailedTokensByCollectionID(ctx context.Context, collectionID string, sortBy string, offset, size int64) ([]DetailedTokenV2, error)
 }
 
 type FilterParameter struct {
@@ -2125,6 +2126,29 @@ func (s *MongodbIndexerStore) GetCollectionLastUpdatedTimeForCreator(ctx context
 	return collection.LastUpdatedTime, nil
 }
 
+// GetCollectionLastUpdatedTime returns collection last refreshed time by collectionID
+func (s *MongodbIndexerStore) GetCollectionLastUpdatedTime(ctx context.Context, collectionID string) (time.Time, error) {
+	r := s.collectionsCollection.FindOne(ctx, bson.M{
+		"id": collectionID,
+	})
+
+	if err := r.Err(); err != nil {
+		if err == mongo.ErrNoDocuments {
+			// If a token is not found, return zero time
+			return time.Time{}, nil
+		}
+
+		return time.Time{}, err
+	}
+
+	var collection Collection
+	if err := r.Decode(&collection); err != nil {
+		return time.Time{}, err
+	}
+
+	return collection.LastUpdatedTime, nil
+}
+
 // GetCollectionByID returns the collection by given id
 func (s *MongodbIndexerStore) GetCollectionByID(ctx context.Context, id string) (*Collection, error) {
 	r := s.collectionsCollection.FindOne(ctx, bson.M{
@@ -2197,11 +2221,18 @@ func (s *MongodbIndexerStore) GetCollectionsByCreators(ctx context.Context, crea
 }
 
 // GetDetailedTokensByCollectionID returns list of tokens by the collectionID
-func (s *MongodbIndexerStore) GetDetailedTokensByCollectionID(ctx context.Context, collectionID string, offset, size int64) ([]DetailedTokenV2, error) {
+func (s *MongodbIndexerStore) GetDetailedTokensByCollectionID(ctx context.Context, collectionID string, sortBy string, offset, size int64) ([]DetailedTokenV2, error) {
+	var sort bson.D
+	if sortBy == "lastActivityTime" {
+		sort = bson.D{{Key: "lastActivityTime", Value: -1}, {Key: "_id", Value: -1}}
+	} else {
+		sort = bson.D{{Key: "edition", Value: 1}, {Key: "_id", Value: -1}}
+	}
+
 	var tokens []CollectionAsset
 
 	findOptions := options.Find().
-		SetSort(bson.D{{Key: "_id", Value: -1}}).
+		SetSort(sort).
 		SetLimit(size).
 		SetSkip(offset)
 	c, err := s.collectionAssetsCollection.Find(ctx, bson.M{
