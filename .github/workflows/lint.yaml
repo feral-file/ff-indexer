@@ -18,10 +18,9 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-      - name: Setup Go
-        uses: actions/setup-go@v3
         with:
-          go-version: '1.21' # The Go version to download (if necessary) and use.
+          fetch-depth: 0
+
       - name: Setup git config for private repo
         id: setup-git-config
         env:
