@@ -4,11 +4,10 @@ import (
 	"context"
 	"time"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-
 	indexer "github.com/bitmark-inc/nft-indexer"
 	pb "github.com/bitmark-inc/nft-indexer/services/nft-indexer-grpc/grpc/indexer"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type IndexerGRPCClient struct {
@@ -180,4 +179,21 @@ func (i *IndexerGRPCClient) GetIdentity(ctx context.Context, address string) (in
 		Name:            identity.Name,
 		LastUpdatedTime: lastUpdatedTime,
 	}, nil
+}
+
+// SendTimeSeriesData send timestamped metadata and values
+func (i *IndexerGRPCClient) SendTimeSeriesData(
+	ctx context.Context,
+	timestamp time.Time,
+	metadata map[string]string,
+	values map[string]string,
+) error {
+
+	req := pb.TimeSeriesRecord{
+		Timestamp: timestamp.UTC().Format(time.RFC3339Nano),
+		Metadata:  metadata,
+		Values:    values,
+	}
+	_, err := i.client.SendTimeSeriesData(ctx, &req)
+	return err
 }

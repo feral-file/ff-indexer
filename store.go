@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/bitmark-inc/autonomy-logger"
+	utils "github.com/bitmark-inc/autonomy-utils"
 	"github.com/fatih/structs"
 	"github.com/meirf/gopart"
 	"go.mongodb.org/mongo-driver/bson"
@@ -14,9 +16,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.uber.org/zap"
-
-	log "github.com/bitmark-inc/autonomy-logger"
-	utils "github.com/bitmark-inc/autonomy-utils"
 )
 
 const (
@@ -35,6 +34,7 @@ const (
 	tokenAssetViewCollectionName   = "token_assets"
 	collectionsCollectionName      = "collections"
 	collectionAssetsCollectionName = "colelction_assets"
+	salesTimeSeriesCollectionName  = "sales_time_series"
 )
 
 var ErrNoRecordUpdated = fmt.Errorf("no record updated")
@@ -105,6 +105,8 @@ type Store interface {
 	GetCollectionByID(ctx context.Context, id string) (*Collection, error)
 	GetCollectionsByCreators(ctx context.Context, creators []string, offset, size int64) ([]Collection, error)
 	GetDetailedTokensByCollectionID(ctx context.Context, collectionID string, sortBy string, offset, size int64) ([]DetailedTokenV2, error)
+
+	WriteTimeSeriesData(ctx context.Context, timestamp time.Time, metadata map[string]string, values map[string]string) error
 }
 
 type FilterParameter struct {
@@ -139,6 +141,7 @@ func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*Mo
 	tokenAssetCollection := db.Collection(tokenAssetViewCollectionName)
 	collectionsCollection := db.Collection(collectionsCollectionName)
 	collectionAssetsCollection := db.Collection(collectionAssetsCollectionName)
+	salesTimeSeriesCollection := db.Collection(salesTimeSeriesCollectionName)
 
 	return &MongodbIndexerStore{
 		dbName:                     dbName,
@@ -152,6 +155,7 @@ func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*Mo
 		tokenAssetCollection:       tokenAssetCollection,
 		collectionsCollection:      collectionsCollection,
 		collectionAssetsCollection: collectionAssetsCollection,
+		salesTimeSeriesCollection:  salesTimeSeriesCollection,
 	}, nil
 }
 
@@ -167,6 +171,7 @@ type MongodbIndexerStore struct {
 	tokenAssetCollection       *mongo.Collection
 	collectionsCollection      *mongo.Collection
 	collectionAssetsCollection *mongo.Collection
+	salesTimeSeriesCollection  *mongo.Collection
 }
 
 type AssetUpdateSet struct {
@@ -553,7 +558,7 @@ func (s *MongodbIndexerStore) getDetailedTokensByAggregation(ctx context.Context
 // getPageCounts return the page counts by item length and page size
 func getPageCounts(itemLength, PageSize int) int {
 	pageCounts := itemLength / PageSize
-	if (itemLength % PageSize) != 0 {
+	if itemLength%PageSize != 0 {
 		pageCounts++
 	}
 	return pageCounts
@@ -2258,4 +2263,76 @@ func (s *MongodbIndexerStore) GetDetailedTokensByCollectionID(ctx context.Contex
 
 	filterParameter := FilterParameter{IDs: indexIDs}
 	return s.GetDetailedTokensV2(ctx, filterParameter, 0, int64(len(indexIDs)))
+}
+
+// fields that may not appear in metadata or values maps
+var reserved = map[string]struct{}{
+	"id":        {},
+	"timestamp": {},
+	"metadata":  {},
+	"values":    {},
+	"_id":       {},
+}
+
+// WriteTimeSeriesData - validate and store a time series record
+func (s *MongodbIndexerStore) WriteTimeSeriesData(
+	ctx context.Context,
+	timestamp time.Time,
+	metadata map[string]string,
+	values map[string]string,
+) error {
+
+	// ensure no reserved fields in metadata
+	for k, v := range metadata {
+		if _, ok := reserved[k]; ok {
+			log.Warn(
+				"reserved metadata field name",
+				zap.String("key", k),
+				zap.String("value", v),
+			)
+			return fmt.Errorf("reserved field name: metadata.%s", k)
+		}
+	}
+
+	// root of the BSON document
+	doc := bson.M{
+		"timestamp": timestamp,
+		"metadata":  metadata,
+	}
+
+	var err error
+	// ensure no reserved fields in metadata
+	for k, v := range values {
+		if _, ok := reserved[k]; ok {
+			log.Warn(
+				"reserved values field name",
+				zap.String("key", k),
+				zap.String("value", v),
+			)
+			return fmt.Errorf("reserved field name: values.%s", k)
+		}
+
+		doc[k], err = primitive.ParseDecimal128(v)
+		if err != nil {
+			log.Warn(
+				"invalid Decimal128 in values field",
+				zap.String("key", k),
+				zap.String("value", v),
+				zap.Error(err),
+			)
+			return fmt.Errorf("Decimal128 error: %s on: values.%s = %q\n", err, k, v)
+		}
+	}
+
+	_, err = s.salesTimeSeriesCollection.InsertOne(ctx, doc)
+	if err != nil {
+		log.Error(
+			"error inserting time series data",
+			zap.Any("document", doc),
+			zap.Error(err),
+		)
+		return err
+	}
+
+	return nil
 }

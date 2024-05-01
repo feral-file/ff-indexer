@@ -21,6 +21,8 @@ service Indexer {
   rpc GetETHBlockTime(GetETHBlockTimeRequest) returns (BlockTime);
 
   rpc GetIdentity(Address) returns (AccountIdentity);
+
+  rpc SendTimeSeriesData(TimeSeriesRecord) returns(Empty);
 }
 
 message CheckAddressOwnTokenByCriteriaResponse {
@@ -216,8 +218,15 @@ message Address {
 }
 
 message AccountIdentity {
-	string AccountNumber = 1;
+  string AccountNumber = 1;
   string Blockchain = 2;
-	string Name = 3;
-	string LastUpdatedTime = 4;
+  string Name = 3;
+  string LastUpdatedTime = 4;
+}
+
+// generic record to support any kind of time series data
+message TimeSeriesRecord {
+  string timestamp = 1;             // ts.UTC().Format(time.RFC3339Nano) for BSON.ISODate()
+  map<string,string> metadata = 2;  // just metat data strings for grouping/sorting
+  map<string,string> values = 3;    // top-level values for BSON.Decimal128()
 }

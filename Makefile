@@ -128,6 +128,10 @@ run: config run-nft-indexer
 renew-event-processor-grpc:
 	protoc --proto_path=protos --go-grpc_out=services/nft-event-processor/ --go_out=services/nft-event-processor/ event-processor.proto
 
+.PHONY: renew-indexer-grpc
+renew-indexer-grpc:
+	protoc --proto_path=protos --go-grpc_out=services/nft-indexer-grpc/ --go_out=services/nft-indexer-grpc/ indexer.proto
+
 .PHONY: generate-nft-indexer-graphql
 generate-nft-indexer-graphql:
 	${MAKE} -C services/nft-indexer/graph/ all
