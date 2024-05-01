@@ -27,8 +27,8 @@ type IndexerAsset struct {
 func main() {
 	var openseaIndexIDs []string
 	var indexerIndexIDs []string
-	var InOpenseaNotInIndexer []string
-	var InIndexerNotInOpensea []string
+	var inOpenseaNotInIndexer []string
+	var inIndexerNotInOpensea []string
 
 	owner := os.Getenv("OWNER")
 	fmt.Println("owner: ", owner)
@@ -38,20 +38,20 @@ func main() {
 
 	for _, item := range openseaIndexIDs {
 		if !contains(indexerIndexIDs, item) {
-			InOpenseaNotInIndexer = append(InOpenseaNotInIndexer, item)
+			inOpenseaNotInIndexer = append(inOpenseaNotInIndexer, item)
 		}
 	}
 
 	for _, item := range indexerIndexIDs {
 		if !contains(openseaIndexIDs, item) {
-			InIndexerNotInOpensea = append(InIndexerNotInOpensea, item)
+			inIndexerNotInOpensea = append(inIndexerNotInOpensea, item)
 		}
 	}
 
 	fmt.Println("the number of token in opensea API: ", len(openseaIndexIDs))
 	fmt.Println("the number of token in indexer API: ", len(indexerIndexIDs))
-	fmt.Println("IndexID In Opensea Not In Indexer: ", InOpenseaNotInIndexer)
-	fmt.Println("IndexID In Indexer Not In Opensea: ", InIndexerNotInOpensea)
+	fmt.Println("IndexID In Opensea Not In Indexer: ", inOpenseaNotInIndexer)
+	fmt.Println("IndexID In Indexer Not In Opensea: ", inIndexerNotInOpensea)
 }
 
 func getIndexerToken(owner string) []string {

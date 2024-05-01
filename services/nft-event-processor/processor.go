@@ -4,12 +4,11 @@ import (
 	"context"
 	"time"
 
-	"go.uber.org/zap"
-	"google.golang.org/grpc/status"
-
 	log "github.com/bitmark-inc/autonomy-logger"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
+	"go.uber.org/zap"
+	"google.golang.org/grpc/status"
 )
 
 // updateLatestOwner updates the latest owner of an existent token
@@ -199,10 +198,28 @@ func (e *EventProcessor) notifyChangeTokenOwner(_ context.Context, event NFTEven
 
 	for _, accountID := range accounts {
 		if err := e.notifyChangeOwner(accountID, to, indexID); err != nil {
-			log.Error("fail to send notification for the new owner update",
+			log.Error(
+				"failed to send change owner notification",
 				zap.Error(err),
-				zap.String("accountID", accountID), zap.String("indexID", indexID))
+				zap.String("chain", blockchain),
+				zap.String("contract", contract),
+				zap.String("token", tokenID),
+				zap.String("to", to),
+				zap.String("account", accountID),
+				zap.String("index", indexID),
+			)
 			return err
+		} else {
+			log.Info(
+				"sent change owner notification",
+				zap.String("chain", blockchain),
+				zap.String("contract", contract),
+				zap.String("token", tokenID),
+				zap.String("to", to),
+				zap.String("account", accountID),
+				zap.String("index", indexID),
+			)
+
 		}
 	}
 	return nil
