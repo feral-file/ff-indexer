@@ -13,11 +13,13 @@ type Client struct {
 	apiEndpoint string
 }
 
+const clientTimeout = 15 * time.Second
+
 // New create an indexer client connection
 func New(apiEndpoint string, client *http.Client) *Client {
 	if client == nil {
 		client = &http.Client{
-			Timeout: 15 * time.Second,
+			Timeout: clientTimeout,
 		}
 	}
 
@@ -31,7 +33,7 @@ func New(apiEndpoint string, client *http.Client) *Client {
 func (c *Client) IndexOne(contract string, tokenID string, dryRun bool, preview bool) error {
 	var body bytes.Buffer
 
-	if err := json.NewEncoder(&body).Encode(map[string]interface{}{
+	if err := json.NewEncoder(&body).Encode(map[string]any{
 		"contract": contract,
 		"tokenID":  tokenID,
 		"dryrun":   dryRun,
@@ -52,7 +54,7 @@ func (c *Client) IndexOne(contract string, tokenID string, dryRun bool, preview 
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("index_one failed with status code %d", resp.StatusCode)
 	}
 
