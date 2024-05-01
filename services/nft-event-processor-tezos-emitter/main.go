@@ -4,17 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/getsentry/sentry-go"
-	"github.com/spf13/viper"
-	"go.uber.org/zap"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-
 	log "github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/config-loader"
 	"github.com/bitmark-inc/config-loader/external/aws/ssm"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 	"github.com/bitmark-inc/tzkt-go"
+	"github.com/getsentry/sentry-go"
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -30,7 +29,7 @@ func main() {
 
 	ctx := context.Background()
 
-	parameterStore, err := ssm.NewParameterStore(ctx)
+	parameterStore, err := ssm.New(ctx)
 	if err != nil {
 		log.Panic("can not create new parameter store", zap.Error(err))
 	}

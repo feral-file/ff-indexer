@@ -7,17 +7,16 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/getsentry/sentry-go"
-	"github.com/philippseith/signalr"
-	"github.com/spf13/viper"
-	"go.uber.org/zap"
-
 	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
 	"github.com/bitmark-inc/config-loader/external/aws/ssm"
 	"github.com/bitmark-inc/nft-indexer/emitter"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 	"github.com/bitmark-inc/tzkt-go"
+	"github.com/getsentry/sentry-go"
+	"github.com/philippseith/signalr"
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 const maxMessageSize = 1 << 20 // 1MiB
@@ -306,7 +305,7 @@ func (e *TezosEventsEmitter) processTokenEvent(ctx context.Context, event TokenE
 
 	if event.Level > lastStoppedBlock {
 		lastStoppedBlock = event.Level
-		if err := e.parameterStore.Put(ctx, e.lastBlockKeyName, strconv.FormatUint(lastStoppedBlock, 10)); err != nil {
+		if err := e.parameterStore.PutString(ctx, e.lastBlockKeyName, strconv.FormatUint(lastStoppedBlock, 10)); err != nil {
 			log.Error("error put parameterStore", zap.Error(err), log.SourceGRPC)
 			return
 		}

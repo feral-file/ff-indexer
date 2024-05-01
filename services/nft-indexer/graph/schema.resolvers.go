@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bitmark-inc/autonomy-utils"
-	"github.com/bitmark-inc/nft-indexer"
+	utils "github.com/bitmark-inc/autonomy-utils"
+	indexer "github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/services/nft-indexer/graph/model"
 	"github.com/ethereum/go-ethereum/common"
@@ -79,7 +79,7 @@ func (r *queryResolver) Tokens(ctx context.Context, owners []string, ids []strin
 			offset,
 			size,
 		)
-	} else if len((owners)) == 0 && len(ids) > 0 {
+	} else if len(owners) == 0 && len(ids) > 0 {
 		checksumIDs := indexer.NormalizeIndexIDs(ids, false)
 		tokensInfo, err = r.indexerStore.GetDetailedTokensV2(
 			ctx, indexer.FilterParameter{
@@ -88,9 +88,15 @@ func (r *queryResolver) Tokens(ctx context.Context, owners []string, ids []strin
 			offset,
 			size)
 	} else if collectionID != "" {
+		querySortBy := ""
+		if sortBy != nil {
+			querySortBy = *sortBy
+		}
+
 		tokensInfo, err = r.indexerStore.GetDetailedTokensByCollectionID(
 			ctx,
 			collectionID,
+			querySortBy,
 			offset,
 			size)
 	} else {

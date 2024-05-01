@@ -18,6 +18,10 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.21' # The Go version to download (if necessary) and use.
       - name: Setup git config for private repo
         id: setup-git-config
         env:
@@ -27,6 +31,8 @@ jobs:
 
       - name: golangci-lint
         uses: reviewdog/action-golangci-lint@v2
+        env:
+          GOPRIVATE: github.com/bitmark-inc/*
         with:
           golangci_lint_flags: "--config=.golangci.yaml"
           cache: false

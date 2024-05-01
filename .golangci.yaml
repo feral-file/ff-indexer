@@ -16,18 +16,6 @@ run:
   # Default: true
   tests: false
 
-  # Which dirs to skip: issues from them won't be reported.
-  # Can use regexp here: `generated.*`, regexp is applied on full path,
-  # including the path prefix if one is set.
-  # Default dirs are skipped independently of this option's value (see skip-dirs-use-default).
-  # "/" will be replaced by current OS file path separator to properly work on Windows.
-  # Default: []
-  skip-dirs:
-    - contracts
-    - scripts
-    - helm-chart
-    - protos
-
   # Enables skipping of directories:
   # - vendor$, third_party$, testdata$, examples$, Godeps$, builtin$
   # Default: true
@@ -68,9 +56,23 @@ run:
   # Default: false
   print-resources-usage: true
 
+output:
   # Show statistics per linter.
   # Default: false
   show-stats: true
+
+issues:
+  # Which dirs to skip: issues from them won't be reported.
+  # Can use regexp here: `generated.*`, regexp is applied on full path,
+  # including the path prefix if one is set.
+  # Default dirs are skipped independently of this option's value (see skip-dirs-use-default).
+  # "/" will be replaced by current OS file path separator to properly work on Windows.
+  # Default: []
+  exclude-dirs:
+    - contracts
+    - scripts
+    - helm-chart
+    - protos
 
 
 linters:

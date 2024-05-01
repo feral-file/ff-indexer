@@ -352,24 +352,38 @@ func (e *IndexEngine) IndexETHCollectionByCreator(_ context.Context, account ope
 	collectionUpdates := make([]Collection, 0, len(collectionsResp.Collections))
 
 	for _, c := range collectionsResp.Collections {
+		collection, err := e.opensea.RetrieveColection(account.Username, c.ID)
+		if err != nil {
+			log.Error("failed to RetrieveColection", zap.Error(err), zap.String("collectionID", c.ID))
+			return nil, "", err
+		}
+
 		contracts := []string{}
 		for _, c := range c.Contracts {
 			contracts = append(contracts, c.Address)
 		}
 
+		createdAt, err := time.Parse("2006-01-02", collection.CreatedDate)
+		if err != nil {
+			log.Warn("error parsing date collection created date", zap.Error(err))
+			createdAt = time.Time{}
+		}
+
 		update := Collection{
-			ID:          fmt.Sprint("opensea-", c.ID),
-			ExternalID:  c.ID,
-			Blockchain:  utils.EthereumBlockchain,
-			Creator:     EthereumChecksumAddress(account.Address),
-			Name:        c.Name,
-			Description: c.Description,
-			ImageURL:    c.ImageURL,
-			Contracts:   contracts,
-			Source:      "opensea",
-			Published:   !c.IsDisabled,
-			SourceURL:   c.OpenseaURL,
-			ProjectURL:  c.ProjectURL,
+			ID:               fmt.Sprint("opensea-", c.ID),
+			ExternalID:       c.ID,
+			Blockchain:       utils.EthereumBlockchain,
+			Creator:          EthereumChecksumAddress(account.Address),
+			Name:             c.Name,
+			Description:      c.Description,
+			ImageURL:         c.ImageURL,
+			Contracts:        contracts,
+			Source:           "opensea",
+			Published:        !c.IsDisabled,
+			SourceURL:        c.OpenseaURL,
+			ProjectURL:       c.ProjectURL,
+			Items:            collection.TotalSupply,
+			LastActivityTime: createdAt,
 		}
 
 		collectionUpdates = append(collectionUpdates, update)
