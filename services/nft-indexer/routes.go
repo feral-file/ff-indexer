@@ -55,6 +55,9 @@ func (s *NFTIndexerServer) SetupRoute() {
 	feralfileAPI.POST("/nft/swap", s.SwapNFT)
 	feralfileAPI.PUT("/asset/:asset_id", s.IndexAsset)
 
+	// temp while gRPC is ported to FF
+	feralfileAPI.POST("/salests", s.SalesTimeSeries)
+
 	v2 := s.route.Group("/v2")
 	v2NFT := v2.Group("/nft")
 	v2NFT.GET("", s.GetAccountNFTsV2)
