@@ -227,6 +227,7 @@ message AccountIdentity {
 // generic record to support any kind of time series data
 message TimeSeriesRecord {
   string timestamp = 1;             // ts.UTC().Format(time.RFC3339Nano) for BSON.ISODate()
-  map<string,string> metadata = 2;  // just metat data strings for grouping/sorting
+  map<string,string> metadata = 2;  // just metata data strings for grouping/sorting
   map<string,string> values = 3;    // top-level values for BSON.Decimal128()
+  map<string,string> shares = 4;    // sub-level values for BSON.Decimal128()
 }

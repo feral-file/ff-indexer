@@ -106,7 +106,13 @@ type Store interface {
 	GetCollectionsByCreators(ctx context.Context, creators []string, offset, size int64) ([]Collection, error)
 	GetDetailedTokensByCollectionID(ctx context.Context, collectionID string, sortBy string, offset, size int64) ([]DetailedTokenV2, error)
 
-	WriteTimeSeriesData(ctx context.Context, timestamp time.Time, metadata map[string]string, values map[string]string) error
+	WriteTimeSeriesData(
+		ctx context.Context,
+		timestamp time.Time,
+		metadata map[string]string,
+		values map[string]string,
+		shares map[string]string,
+	) error
 }
 
 type FilterParameter struct {
@@ -2267,11 +2273,12 @@ func (s *MongodbIndexerStore) GetDetailedTokensByCollectionID(ctx context.Contex
 
 // fields that may not appear in metadata or values maps
 var reserved = map[string]struct{}{
-	"id":        {},
-	"timestamp": {},
-	"metadata":  {},
-	"values":    {},
 	"_id":       {},
+	"id":        {},
+	"metadata":  {},
+	"shares":    {},
+	"timestamp": {},
+	"values":    {},
 }
 
 // WriteTimeSeriesData - validate and store a time series record
@@ -2280,6 +2287,7 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 	timestamp time.Time,
 	metadata map[string]string,
 	values map[string]string,
+	shares map[string]string,
 ) error {
 
 	// ensure no reserved fields in metadata
@@ -2301,7 +2309,7 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 	}
 
 	var err error
-	// ensure no reserved fields in metadata
+	// ensure no reserved fields in values and convert
 	for k, v := range values {
 		if _, ok := reserved[k]; ok {
 			log.Warn(
@@ -2323,6 +2331,31 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 			return fmt.Errorf("Decimal128 error: %s on: values.%s = %q\n", err, k, v)
 		}
 	}
+
+	// ensure no reserved fields in shares and convert
+	sv := bson.M{}
+	for k, v := range shares {
+		if _, ok := reserved[k]; ok {
+			log.Warn(
+				"reserved shares field name",
+				zap.String("key", k),
+				zap.String("value", v),
+			)
+			return fmt.Errorf("reserved field name: shares.%s", k)
+		}
+
+		sv[k], err = primitive.ParseDecimal128(v)
+		if err != nil {
+			log.Warn(
+				"invalid Decimal128 in shares field",
+				zap.String("key", k),
+				zap.String("value", v),
+				zap.Error(err),
+			)
+			return fmt.Errorf("Decimal128 error: %s on: shares.%s = %q\n", err, k, v)
+		}
+	}
+	doc["shares"] = sv
 
 	_, err = s.salesTimeSeriesCollection.InsertOne(ctx, doc)
 	if err != nil {

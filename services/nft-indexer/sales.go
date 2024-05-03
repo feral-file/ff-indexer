@@ -13,6 +13,7 @@ type Sales struct {
 	Timestamp string            `json:"timestamp"`
 	Metadata  map[string]string `json:"metadata"`
 	Values    map[string]string `json:"values"`
+	Shares    map[string]string `json:"shares"`
 }
 
 // SalesTimeSeries - store a time series record
@@ -31,7 +32,7 @@ func (s *NFTIndexerServer) SalesTimeSeries(c *gin.Context) {
 	}
 
 	ctx := context.Background()
-	err = s.indexerStore.WriteTimeSeriesData(ctx, timestamp, request.Metadata, request.Values)
+	err = s.indexerStore.WriteTimeSeriesData(ctx, timestamp, request.Metadata, request.Values, request.Shares)
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "failed to store record", err)
 		return

@@ -249,5 +249,5 @@ func (i *IndexerServer) SendTimeSeriesData(ctx context.Context, request *pb.Time
 		return &pb.Empty{}, fmt.Errorf("invalid timestamp: %w", err)
 	}
 
-	return &pb.Empty{}, i.indexerStore.WriteTimeSeriesData(ctx, ts.UTC(), request.Metadata, request.Values)
+	return &pb.Empty{}, i.indexerStore.WriteTimeSeriesData(ctx, ts.UTC(), request.Metadata, request.Values, request.Shares)
 }
