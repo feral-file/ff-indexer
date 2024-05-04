@@ -113,6 +113,8 @@ type Store interface {
 		values map[string]string,
 		shares map[string]string,
 	) error
+	GetTimeSeriesData(ctx context.Context, address string, offset, size int64) ([]TimeSeries, error)
+	GetSaleRevenues(ctx context.Context, address string) (map[string]primitive.Decimal128, error)
 }
 
 type FilterParameter struct {
@@ -2368,4 +2370,75 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 	}
 
 	return nil
+}
+
+// GetTimeSeriesData - get list of time series belong to an address
+func (s *MongodbIndexerStore) GetTimeSeriesData(ctx context.Context, address string, offset, size int64) ([]TimeSeries, error) {
+	timeSeries := []TimeSeries{}
+
+	pipelines := []bson.M{
+		{"$match": bson.M{"$or": bson.A{
+			bson.M{"metadata.buyer_address": address},
+			bson.M{"metadata.seller_address": address},
+		}}},
+		{"$sort": bson.D{{Key: "timestamp", Value: -1}, {Key: "_id", Value: -1}}},
+	}
+
+	pipelines = append(pipelines,
+		bson.M{"$skip": offset},
+		bson.M{"$limit": size},
+	)
+
+	cursor, err := s.salesTimeSeriesCollection.Aggregate(ctx, pipelines)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer cursor.Close(ctx)
+
+	if err := cursor.All(ctx, &timeSeries); err != nil {
+		return nil, err
+	}
+
+	return timeSeries, nil
+}
+
+// GetSaleRevenues - get sale revenue group by currency belong to an address
+func (s *MongodbIndexerStore) GetSaleRevenues(ctx context.Context, address string) (map[string]primitive.Decimal128, error) {
+	revenues := []struct {
+		Currency string               `bson:"currency"`
+		Total    primitive.Decimal128 `bson:"total"`
+	}{}
+
+	pipelines := []bson.M{
+		{"$match": bson.M{"$or": bson.A{
+			bson.M{"metadata.buyer_address": address},
+			bson.M{"metadata.seller_address": address},
+		}}},
+		{"$group": bson.M{
+			"_id":      "$metadata.revenue_currency",
+			"currency": bson.M{"$last": "$metadata.revenue_currency"},
+			"total":    bson.M{"$sum": "$net_revenue"},
+		}},
+	}
+
+	cursor, err := s.salesTimeSeriesCollection.Aggregate(ctx, pipelines)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer cursor.Close(ctx)
+
+	if err := cursor.All(ctx, &revenues); err != nil {
+		return nil, err
+	}
+
+	resultMap := make(map[string]primitive.Decimal128)
+	for _, r := range revenues {
+		resultMap[r.Currency] = r.Total
+	}
+
+	return resultMap, nil
 }

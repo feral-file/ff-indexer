@@ -9,6 +9,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type SalesQueryParams struct {
+	// global
+	Offset int64 `form:"offset"`
+	Size   int64 `form:"size"`
+
+	// list by owners
+	Address string `form:"address"`
+}
+
 type Sales struct {
 	Timestamp string            `json:"timestamp"`
 	Metadata  map[string]string `json:"metadata"`
@@ -40,5 +49,48 @@ func (s *NFTIndexerServer) SalesTimeSeries(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"ok": 1,
+	})
+}
+
+func (s *NFTIndexerServer) GetSalesTimeSeries(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "GetSalesTimeSeries")
+
+	var reqParams = SalesQueryParams{
+		Offset: 0,
+		Size:   50,
+	}
+
+	if err := c.BindQuery(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	saleTimeSeries, err := s.indexerStore.GetTimeSeriesData(c, reqParams.Address, reqParams.Offset, reqParams.Size)
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to query sale time series from indexer store", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, saleTimeSeries)
+}
+
+func (s *NFTIndexerServer) GetSalesRevenues(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "GetSalesRevenues")
+
+	var reqParams SalesQueryParams
+
+	if err := c.BindQuery(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	saleRevenues, err := s.indexerStore.GetSaleRevenues(c, reqParams.Address)
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to query sale time series from indexer store", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"earning": saleRevenues,
 	})
 }
