@@ -2413,7 +2413,6 @@ func (s *MongodbIndexerStore) GetSaleRevenues(ctx context.Context, address strin
 
 	pipelines := []bson.M{
 		{"$match": bson.M{"$or": bson.A{
-			bson.M{"metadata.buyer_address": address},
 			bson.M{"metadata.seller_address": address},
 		}}},
 		{"$group": bson.M{

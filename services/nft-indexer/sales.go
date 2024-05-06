@@ -15,7 +15,7 @@ type SalesQueryParams struct {
 	Size   int64 `form:"size"`
 
 	// list by owners
-	Address string `form:"address"`
+	Address string `form:"address" binding:"required"`
 }
 
 type Sales struct {
