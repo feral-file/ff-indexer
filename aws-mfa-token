@@ -1,0 +1,64 @@
+#! /bin/sh
+# create an AWS session token
+
+USAGE() {
+  if [ -n "${1}" ]
+  then
+    printf 'error: '
+    printf "${@}"
+    printf '\n'
+  fi
+  cat <<EOF
+usage: ${0##*/} mfa-name mfa-code
+  mfa-name - device name from the aws mfa page
+  mfa-code - current number from authenticator app
+EOF
+  exit 1
+}
+
+ERROR() {
+  printf 'error: '
+  printf "${@}"
+  printf '\n'
+  exit 1
+}
+
+[ -z "${AWS_PROFILE}" ] && AWS_PROFILE=session
+
+# check for required programs
+for p in jq aws
+do
+  if ! [ -x "$(command -v "${p}")" ]
+  then
+    ERROR 'missing package, try: pkg install %s\n' "${p}"
+  fi
+done
+
+# check parameters
+mfa="$(env AWS_PROFILE=default aws configure get default.mfa 2> /dev/null)"
+
+code="${1}"
+[ -z "${mfa}" ] && USAGE 'missing mfa name, use: aws configure set default.mfa arn:aws:iam::ACCOUNT:mfa/DEV'
+[ -z "${code}" ] && USAGE 'missing mfa code'
+
+profile='session'
+
+# get session token
+j="$(env AWS_PROFILE=default aws sts get-session-token --serial-number "${mfa}" --token-code "${code}" --output=json)"
+
+# extract values
+AWS_ACCESS_KEY_ID="$(printf '%s' "${j}" | jq --raw-output .Credentials.AccessKeyId)"
+AWS_SECRET_ACCESS_KEY="$(printf '%s' "${j}" | jq --raw-output .Credentials.SecretAccessKey)"
+AWS_SESSION_TOKEN="$(printf '%s' "${j}" | jq --raw-output .Credentials.SessionToken)"
+
+[ -z "${AWS_ACCESS_KEY_ID}" ] && ERROR 'missing: Access Key'
+[ -z "${AWS_SECRET_ACCESS_KEY}" ] && ERROR 'missing: Secret Access Key'
+[ -z "${AWS_SESSION_TOKEN}" ] && ERROR 'missing: Session Token'
+
+region="$(aws configure get default.region)"
+aws configure set --profile "${profile}" region "${region}"
+aws configure set --profile "${profile}" aws_access_key_id "${AWS_ACCESS_KEY_ID}"
+aws configure set --profile "${profile}" aws_secret_access_key "${AWS_SECRET_ACCESS_KEY}"
+aws configure set --profile "${profile}" aws_session_token "${AWS_SESSION_TOKEN}"
+
+printf 'export AWS_PROFILE=%s\n' "${AWS_PROFILE}"

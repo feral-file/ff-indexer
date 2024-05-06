@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: ISC
-# Copyright (c) 2019-2021 Bitmark Inc.
+# Copyright (c) 2019-2024 Bitmark Inc.
 # Use of this source code is governed by an ISC
 # license that can be found in the LICENSE file.
 
@@ -17,6 +17,14 @@ ifeq ($(ARCH), arm64)
 DOCKER_BUILD_COMMAND = docker buildx build --platform linux/amd64 --load
 endif
 
+# needed to allow go list to work
+GOPRIVATE = github.com/bitmark-inc/*
+export GOPRIVATE
+
+
+.PHONY: all
+all: build
+
 .PHONY: default
 default: build
 
@@ -26,45 +34,54 @@ config:
 		cp config.yaml.sample ./config.yaml; \
 	fi
 
+# build
+
+BUILD_LIST = nft-indexer
 .PHONY: nft-indexer
 nft-indexer:
 	go build -o bin/nft-indexer ./services/nft-indexer
 
+BUILD_LIST += nft-indexer-background
 .PHONY: nft-indexer-background
 nft-indexer-background:
 	go build -o bin/nft-indexer-background ./services/nft-indexer-background
 
+BUILD_LIST += nft-indexer-grpc
 .PHONY: nft-indexer-grpc
 nft-indexer-grpc:
 	go build -o bin/nft-indexer-grpc ./services/nft-indexer-grpc
 
+BUILD_LIST += nft-image-indexer
 .PHONY: nft-image-indexer
 nft-image-indexer:
 	go build -o bin/nft-image-indexer ./services/nft-image-indexer
 
+BUILD_LIST += nft-event-processor
 .PHONY: nft-event-processor
 nft-event-processor:
 	go build -o bin/nft-event-processor ./services/nft-event-processor
 
+BUILD_LIST += nft-provenance-indexer
 .PHONY: nft-provenance-indexer
 nft-provenance-indexer:
 	go build -o bin/nft-provenance-indexer ./services/nft-provenance-indexer
 
+BUILD_LIST += nft-account-token-indexer
 .PHONY: nft-account-token-indexer
 nft-account-token-indexer:
 	go build -o bin/nft-account-token-indexer ./services/nft-account-token-indexer
 
+BUILD_LIST += nft-ethereum-emitter
 .PHONY: nft-ethereum-emitter
 nft-ethereum-emitter:
 	go build -o bin/nft-ethereum-emitter ./services/nft-event-processor-ethereum-emitter
 
+BUILD_LIST += nft-tezos-emitter
 .PHONY: nft-tezos-emitter
 nft-tezos-emitter:
 	go build -o bin/nft-tezos-emitter ./services/nft-event-processor-tezos-emitter
 
-.PHONY: nft-bitmark-emitter
-nft-bitmark-emitter:
-	go build -o bin/nft-bitmark-emitter ./services/nft-event-processor-bitmark-emitter
+# run
 
 .PHONY: run-nft-indexer
 run-nft-indexer: nft-indexer
@@ -102,9 +119,10 @@ run-nft-ethereum-emitter: nft-ethereum-emitter
 run-nft-tezos-emitter: nft-tezos-emitter
 	./bin/nft-tezos-emitter -c config.yaml
 
-.PHONY: run-nft-bitmark-emitter
-run-nft-bitmark-emitter: nft-bitmark-emitter
-	./bin/nft-bitmark-emitter -c config.yaml
+.PHONY: run
+run: config run-nft-indexer
+
+# rebuild items
 
 .PHONY: renew-event-processor-grpc
 renew-event-processor-grpc:
@@ -112,13 +130,14 @@ renew-event-processor-grpc:
 
 .PHONY: generate-nft-indexer-graphql
 generate-nft-indexer-graphql:
-	cd services/nft-indexer/graph && go run github.com/99designs/gqlgen generate
+	${MAKE} -C services/nft-indexer/graph/ all
 
+.PHONY: build-rebuild
+build-rebuild: generate-nft-indexer-graphql renew-event-processor-grpc build
+
+#BL=nft-indexer nft-indexer-background nft-event-processor nft-provenance-indexer nft-account-token-indexer nft-ethereum-emitter nft-tezos-emitter
 .PHONY: build
-build: nft-indexer nft-indexer-background nft-event-processor nft-provenance-indexer nft-account-token-indexer nft-ethereum-emitter nft-tezos-emitter nft-bitmark-emitter
-
-.PHONY: run
-run: config run-nft-indexer
+build: ${BUILD_LIST}
 
 .PHONY: build-nft-indexer
 build-nft-indexer:
@@ -197,17 +216,6 @@ endif
 	-t nft-indexer:tezos-emitter-$(dist) -f Dockerfile-tezos-emitter .
 	docker tag nft-indexer:tezos-emitter-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:tezos-emitter-$(dist)
 
-.PHONY: build-nft-bitmark-emitter
-build-nft-bitmark-emitter:
-ifndef dist
-	$(error dist is undefined)
-endif
-	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
-	--build-arg GITHUB_USER=$(GITHUB_USER) \
-	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
-	-t nft-indexer:bitmark-emitter-$(dist) -f Dockerfile-bitmark-emitter .
-	docker tag nft-indexer:bitmark-emitter-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:bitmark-emitter-$(dist)
-
 .PHONY: build-nft-event-processor
 build-nft-event-processor:
 ifndef dist
@@ -257,9 +265,70 @@ test:
 .PHONY: vet
 vet:
 	go mod tidy
+	@-[ X"$$(uname -s)" = X"FreeBSD" ] && set-sockio
 	go vet -v ./... 2>&1 | \
 	  awk '/^#.*$$/{ printf "\033[31m%s\033[0m\n",$$0 } /^[^#]/{ print $$0 }'
+
+.PHONY: list-updates
+list-updates:
+	@printf 'scanning for direct dependencies...\n'
+	go list -u -f '{{if (and (not (or .Main .Indirect)) .Update)}}{{.Path}}: {{.Version}} -> {{.Update.Version}}{{end}}' -m all
+
+.PHONY: list-updates-include-deps
+list-updates-include-deps:
+	@printf 'scanning all dependencies...\n'
+	go list -u -m all
+
+.PHONY: update-picker
+update-picker:
+	@printf 'searching dependencies...\n'
+	@go list -u -f '{{if (and (not (or .Main .Indirect)) .Update)}}{{.Path}} {{.Version}} {{.Update.Version}}{{end}}' -m all | ( \
+	  while read path version update junk   ; \
+	  do                                      \
+	    printf 'update: %s  from: %s  to: %s' "$${path}" "$${version}" "$${update}"  ; \
+	    read -p '   [yes/NO] ? ' < /dev/tty yorn junk ; \
+	    case "$${yorn}" in           \
+	      ([yY]*)                    \
+	        go get -u "$${path}"   ; \
+	        ;;                       \
+	      (*)                        \
+	        printf '...skipped\n'  ; \
+	        ;;                       \
+	    esac                       ; \
+	  done                         ; \
+	)
+	go mod tidy
+
+.PHONY: update-patch-level
+update-patch-level:
+	-go get -u=patch -t all
+	go mod tidy
+
+.PHONY: update-full
+update-full:
+	-go get -u -t all
+	go mod tidy
 
 .PHONY: clean
 clean:
 	rm -rf bin
+
+.PHONY: complete-clean
+complete-clean: clean
+	go clean -cache -fuzzcache -modcache -testcache
+
+.PHONY: help
+help:
+	@$(foreach m, ${MAKEFILE_LIST},                          \
+	  printf 'toplevel targets from: %s\n' '${m}'          ; \
+	  awk '/^[.]PHONY/{ print "  " $$2 }' '${m}' | sort -u ; \
+	)
+
+
+# Makefile debugging
+
+# use like make print-VARIABLE_NAME
+# note "print-" is always lowercase, VARIABLE_NAME is case sensitive
+.PHONY: print-%
+print-%:
+	@printf '%s: %s\n' "$(patsubst print-%,%,${@})"  "${$(patsubst print-%,%,${@})}"

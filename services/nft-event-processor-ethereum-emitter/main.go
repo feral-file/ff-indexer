@@ -35,7 +35,7 @@ func main() {
 		log.Panic(err.Error(), zap.Error(err))
 	}
 
-	parameterStore, err := ssm.NewParameterStore(ctx)
+	parameterStore, err := ssm.New(ctx)
 	if err != nil {
 		log.Panic("can not create new parameter store", zap.Error(err))
 	}
