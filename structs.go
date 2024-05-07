@@ -294,7 +294,7 @@ type CollectionAsset struct {
 	RunID string `json:"-" bson:"runID"`
 }
 
-type TimeSeries struct {
+type SaleTimeSeries struct {
 	Timestamp     time.Time              `json:"timestamp" bson:"timestamp"`
 	Metadata      map[string]interface{} `json:"metadata" bson:"metadata"`
 	Shares        map[string]interface{} `json:"shares" bson:"shares"`

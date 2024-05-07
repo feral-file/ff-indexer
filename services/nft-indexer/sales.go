@@ -15,7 +15,8 @@ type SalesQueryParams struct {
 	Size   int64 `form:"size"`
 
 	// list by owners
-	Address string `form:"address" binding:"required"`
+	Addresses   []string `form:"addresses" binding:"required"`
+	Marketplace string   `form:"marketplace"`
 }
 
 type Sales struct {
@@ -65,7 +66,7 @@ func (s *NFTIndexerServer) GetSalesTimeSeries(c *gin.Context) {
 		return
 	}
 
-	saleTimeSeries, err := s.indexerStore.GetTimeSeriesData(c, reqParams.Address, reqParams.Offset, reqParams.Size)
+	saleTimeSeries, err := s.indexerStore.GetSaleTimeSeriesData(c, reqParams.Addresses, reqParams.Marketplace, reqParams.Offset, reqParams.Size)
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "fail to query sale time series from indexer store", err)
 		return
@@ -84,7 +85,7 @@ func (s *NFTIndexerServer) GetSalesRevenues(c *gin.Context) {
 		return
 	}
 
-	saleRevenues, err := s.indexerStore.GetSaleRevenues(c, reqParams.Address)
+	saleRevenues, err := s.indexerStore.AggregateSaleRevenues(c, reqParams.Addresses, reqParams.Marketplace)
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "fail to query sale time series from indexer store", err)
 		return
