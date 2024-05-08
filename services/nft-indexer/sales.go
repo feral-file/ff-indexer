@@ -24,7 +24,7 @@ type SalesQueryParams struct {
 func (s *NFTIndexerServer) SalesTimeSeries(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "Sales")
 
-	var request []indexer.Sales
+	var request []indexer.GenericSalesTimeSeries
 	if err := c.Bind(&request); err != nil {
 		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
 		return

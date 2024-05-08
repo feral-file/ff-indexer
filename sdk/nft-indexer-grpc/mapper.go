@@ -453,7 +453,7 @@ func (m *Mapper) MapGrpcArtworkMetadataToIndexerArtworkMetadata(artworkMetadata 
 	return b
 }
 
-func (m *Mapper) MapIndexerSaleTimeSeriesRecords(s []indexer.Sales) *grpcIndexer.SaleTimeSeriesRecords {
+func (m *Mapper) MapGenericSaleTimeSeries(s []indexer.GenericSalesTimeSeries) *grpcIndexer.SaleTimeSeriesRecords {
 	if nil == s {
 		return nil
 	}
@@ -473,14 +473,14 @@ func (m *Mapper) MapIndexerSaleTimeSeriesRecords(s []indexer.Sales) *grpcIndexer
 	}
 }
 
-func (m *Mapper) MapGrpcSaleTimeSeriesRecords(s *grpcIndexer.SaleTimeSeriesRecords) []indexer.Sales {
+func (m *Mapper) MapGrpcSaleTimeSeriesRecords(s *grpcIndexer.SaleTimeSeriesRecords) []indexer.GenericSalesTimeSeries {
 	if nil == s {
 		return nil
 	}
 
-	records := make([]indexer.Sales, len(s.Sales))
+	records := make([]indexer.GenericSalesTimeSeries, len(s.Sales))
 	for i, v := range s.Sales {
-		records[i] = indexer.Sales{
+		records[i] = indexer.GenericSalesTimeSeries{
 			Timestamp: v.Timestamp,
 			Metadata:  v.Metadata,
 			Values:    v.Values,

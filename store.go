@@ -108,7 +108,7 @@ type Store interface {
 
 	WriteTimeSeriesData(
 		ctx context.Context,
-		sales []Sales,
+		records []GenericSalesTimeSeries,
 	) error
 	GetSaleTimeSeriesData(ctx context.Context, addresses, royaltyAddresses []string, marketplace string, offset, size int64) ([]SaleTimeSeries, error)
 	AggregateSaleRevenues(ctx context.Context, addresses []string, marketplace string) (map[string]primitive.Decimal128, error)
@@ -2283,23 +2283,23 @@ var reserved = map[string]struct{}{
 // WriteTimeSeriesData - validate and store a time series record
 func (s *MongodbIndexerStore) WriteTimeSeriesData(
 	ctx context.Context,
-	sales []Sales,
+	records []GenericSalesTimeSeries,
 ) error {
 
 	var docs []interface{}
-	for _, sale := range sales {
-		timestamp, err := time.Parse(time.RFC3339Nano, sale.Timestamp)
+	for _, r := range records {
+		timestamp, err := time.Parse(time.RFC3339Nano, r.Timestamp)
 		if nil != err {
 			log.Error(
 				"error parsing timestamp",
-				zap.String("timestamp", sale.Timestamp),
+				zap.String("timestamp", r.Timestamp),
 				zap.Error(err),
 			)
 			return err
 		}
 
 		// ensure no reserved fields in metadata
-		for k, v := range sale.Metadata {
+		for k, v := range r.Metadata {
 			if _, ok := reserved[k]; ok {
 				log.Warn(
 					"reserved metadata field name",
@@ -2313,11 +2313,11 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 		// root of the BSON document
 		doc := bson.M{
 			"timestamp": timestamp,
-			"metadata":  sale.Metadata,
+			"metadata":  r.Metadata,
 		}
 
 		// ensure no reserved fields in values and convert
-		for k, v := range sale.Values {
+		for k, v := range r.Values {
 			if _, ok := reserved[k]; ok {
 				log.Warn(
 					"reserved values field name",
@@ -2341,7 +2341,7 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 
 		// ensure no reserved fields in shares and convert
 		sv := bson.M{}
-		for k, v := range sale.Shares {
+		for k, v := range r.Shares {
 			if _, ok := reserved[k]; ok {
 				log.Warn(
 					"reserved shares field name",
