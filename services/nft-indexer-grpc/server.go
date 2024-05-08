@@ -242,12 +242,6 @@ func (i *IndexerServer) GetIdentity(ctx context.Context, request *pb.Address) (*
 }
 
 // SendTimeSeriesData send timestamped metadata and values
-func (i *IndexerServer) SendTimeSeriesData(ctx context.Context, request *pb.TimeSeriesRecord) (*pb.Empty, error) {
-
-	ts, err := time.Parse(time.RFC3339Nano, request.Timestamp)
-	if err != nil {
-		return &pb.Empty{}, fmt.Errorf("invalid timestamp: %w", err)
-	}
-
-	return &pb.Empty{}, i.indexerStore.WriteTimeSeriesData(ctx, ts.UTC(), request.Metadata, request.Values, request.Shares)
+func (i *IndexerServer) SendTimeSeriesData(ctx context.Context, req *pb.SaleTimeSeriesRecords) (*pb.Empty, error) {
+	return &pb.Empty{}, i.indexerStore.WriteTimeSeriesData(ctx, i.mapper.MapGrpcSaleTimeSeriesRecords(req))
 }

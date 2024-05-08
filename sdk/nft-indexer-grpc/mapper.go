@@ -452,3 +452,41 @@ func (m *Mapper) MapGrpcArtworkMetadataToIndexerArtworkMetadata(artworkMetadata 
 
 	return b
 }
+
+func (m *Mapper) MapIndexerSaleTimeSeriesRecords(s []indexer.Sales) *grpcIndexer.SaleTimeSeriesRecords {
+	if nil == s {
+		return nil
+	}
+
+	records := make([]*grpcIndexer.SaleTimeSeriesRecord, len(s))
+	for i, v := range s {
+		records[i] = &grpcIndexer.SaleTimeSeriesRecord{
+			Timestamp: v.Timestamp,
+			Metadata:  v.Metadata,
+			Values:    v.Values,
+			Shares:    v.Shares,
+		}
+	}
+
+	return &grpcIndexer.SaleTimeSeriesRecords{
+		Sales: records,
+	}
+}
+
+func (m *Mapper) MapGrpcSaleTimeSeriesRecords(s *grpcIndexer.SaleTimeSeriesRecords) []indexer.Sales {
+	if nil == s {
+		return nil
+	}
+
+	records := make([]indexer.Sales, len(s.Sales))
+	for i, v := range s.Sales {
+		records[i] = indexer.Sales{
+			Timestamp: v.Timestamp,
+			Metadata:  v.Metadata,
+			Values:    v.Values,
+			Shares:    v.Shares,
+		}
+	}
+
+	return records
+}
