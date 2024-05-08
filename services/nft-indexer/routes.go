@@ -73,8 +73,7 @@ func (s *NFTIndexerServer) SetupRoute() {
 	v2Collections.GET("/:collection_id", s.GetCollectionByID)
 
 	v2.GET("/sales", s.GetSalesTimeSeries)
-	v2.GET("/sales/revenues", s.GetSalesRevenues)
-	v2.GET("/sales/revenues/aggregate", s.AggregateSaleRevenues)
+	v2.GET("/sales/revenues", s.AggregateSaleRevenues)
 
 	v2.POST("/graphql", s.graphqlHandler)
 	v2.GET("/graphiql", s.playgroundHandler)

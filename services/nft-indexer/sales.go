@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -15,8 +16,9 @@ type SalesQueryParams struct {
 	Size   int64 `form:"size"`
 
 	// list by owners
-	Addresses   []string `form:"addresses" binding:"required"`
-	Marketplace string   `form:"marketplace"`
+	Addresses        []string `form:"addresses"`
+	RoyaltyAddresses []string `form:"royaltyAddresses"`
+	Marketplace      string   `form:"marketplace"`
 }
 
 type Sales struct {
@@ -66,29 +68,12 @@ func (s *NFTIndexerServer) GetSalesTimeSeries(c *gin.Context) {
 		return
 	}
 
-	saleTimeSeries, err := s.indexerStore.GetSaleTimeSeriesData(c, reqParams.Addresses, reqParams.Marketplace, reqParams.Offset, reqParams.Size)
-	if err != nil {
-		abortWithError(c, http.StatusInternalServerError, "fail to query sale time series from indexer store", err)
+	if len(reqParams.Addresses) == 0 && len(reqParams.RoyaltyAddresses) == 0 {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("addresses or royaltyAddresses is required"))
 		return
 	}
 
-	c.JSON(http.StatusOK, saleTimeSeries)
-}
-
-func (s *NFTIndexerServer) GetSalesRevenues(c *gin.Context) {
-	traceutils.SetHandlerTag(c, "GetSalesTimeSeries")
-
-	var reqParams = SalesQueryParams{
-		Offset: 0,
-		Size:   50,
-	}
-
-	if err := c.BindQuery(&reqParams); err != nil {
-		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
-		return
-	}
-
-	saleTimeSeries, err := s.indexerStore.GetSaleRevenues(c, reqParams.Addresses, reqParams.Marketplace, reqParams.Offset, reqParams.Size)
+	saleTimeSeries, err := s.indexerStore.GetSaleTimeSeriesData(c, reqParams.Addresses, reqParams.RoyaltyAddresses, reqParams.Marketplace, reqParams.Offset, reqParams.Size)
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "fail to query sale time series from indexer store", err)
 		return

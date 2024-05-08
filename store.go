@@ -113,8 +113,7 @@ type Store interface {
 		values map[string]string,
 		shares map[string]string,
 	) error
-	GetSaleTimeSeriesData(ctx context.Context, addresses []string, marketplace string, offset, size int64) ([]SaleTimeSeries, error)
-	GetSaleRevenues(ctx context.Context, addresses []string, marketplace string, offset, size int64) ([]SaleTimeSeries, error)
+	GetSaleTimeSeriesData(ctx context.Context, addresses, royaltyAddresses []string, marketplace string, offset, size int64) ([]SaleTimeSeries, error)
 	AggregateSaleRevenues(ctx context.Context, addresses []string, marketplace string) (map[string]primitive.Decimal128, error)
 }
 
@@ -2374,54 +2373,25 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 }
 
 // GetSaleTimeSeriesData - get list of time series belong to an address
-func (s *MongodbIndexerStore) GetSaleTimeSeriesData(ctx context.Context, addresses []string, marketplace string, offset, size int64) ([]SaleTimeSeries, error) {
+func (s *MongodbIndexerStore) GetSaleTimeSeriesData(ctx context.Context, addresses, royaltyAddresses []string, marketplace string, offset, size int64) ([]SaleTimeSeries, error) {
 	timeSeries := []SaleTimeSeries{}
 
-	addressFilter := bson.A{
-		bson.M{"metadata.buyer_address": bson.M{"$in": addresses}},
-		bson.M{"metadata.seller_address": bson.M{"$in": addresses}},
-	}
-
-	match := bson.M{"$or": addressFilter}
-	if marketplace != "" {
-		match["metadata.marketplace"] = marketplace
-	}
-
-	pipelines := []bson.M{
-		{"$match": match},
-		{"$sort": bson.D{{Key: "timestamp", Value: -1}, {Key: "_id", Value: -1}}},
-	}
-
-	pipelines = append(pipelines,
-		bson.M{"$skip": offset},
-		bson.M{"$limit": size},
-	)
-
-	cursor, err := s.salesTimeSeriesCollection.Aggregate(ctx, pipelines)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer cursor.Close(ctx)
-
-	if err := cursor.All(ctx, &timeSeries); err != nil {
-		return nil, err
-	}
-
-	return timeSeries, nil
-}
-
-// GetSaleRevenues - get sale revenue group by currency belong to an address
-func (s *MongodbIndexerStore) GetSaleRevenues(ctx context.Context, addresses []string, marketplace string, offset, size int64) ([]SaleTimeSeries, error) {
-	timeSeries := []SaleTimeSeries{}
+	match := bson.M{}
 
 	addressFilter := bson.A{}
-	for _, a := range addresses {
-		addressFilter = append(addressFilter, bson.M{fmt.Sprintf("shares.%s", a): bson.M{"$nin": bson.A{nil, ""}}})
+	if len(addresses) > 0 {
+		addressFilter = bson.A{
+			bson.M{"metadata.buyer_address": bson.M{"$in": addresses}},
+			bson.M{"metadata.seller_address": bson.M{"$in": addresses}},
+		}
 	}
+	if len(royaltyAddresses) > 0 {
+		for _, a := range royaltyAddresses {
+			addressFilter = append(addressFilter, bson.M{fmt.Sprintf("shares.%s", a): bson.M{"$nin": bson.A{nil, ""}}})
+		}
+	}
+	match["$or"] = addressFilter
 
-	match := bson.M{"$or": addressFilter}
 	if marketplace != "" {
 		match["metadata.marketplace"] = marketplace
 	}
@@ -2451,7 +2421,7 @@ func (s *MongodbIndexerStore) GetSaleRevenues(ctx context.Context, addresses []s
 	return timeSeries, nil
 }
 
-// GetSaleRevenues - get sale revenue group by currency belong to an address
+// AggregateSaleRevenues - get sale revenue group by currency belong to an address
 func (s *MongodbIndexerStore) AggregateSaleRevenues(ctx context.Context, addresses []string, marketplace string) (map[string]primitive.Decimal128, error) {
 	revenues := []struct {
 		Currency string               `bson:"currency"`
