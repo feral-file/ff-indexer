@@ -114,6 +114,7 @@ type Store interface {
 		shares map[string]string,
 	) error
 	GetSaleTimeSeriesData(ctx context.Context, addresses []string, marketplace string, offset, size int64) ([]SaleTimeSeries, error)
+	GetSaleRevenues(ctx context.Context, addresses []string, marketplace string, offset, size int64) ([]SaleTimeSeries, error)
 	AggregateSaleRevenues(ctx context.Context, addresses []string, marketplace string) (map[string]primitive.Decimal128, error)
 }
 
@@ -2412,6 +2413,45 @@ func (s *MongodbIndexerStore) GetSaleTimeSeriesData(ctx context.Context, address
 }
 
 // GetSaleRevenues - get sale revenue group by currency belong to an address
+func (s *MongodbIndexerStore) GetSaleRevenues(ctx context.Context, addresses []string, marketplace string, offset, size int64) ([]SaleTimeSeries, error) {
+	timeSeries := []SaleTimeSeries{}
+
+	addressFilter := bson.A{}
+	for _, a := range addresses {
+		addressFilter = append(addressFilter, bson.M{fmt.Sprintf("shares.%s", a): bson.M{"$nin": bson.A{nil, ""}}})
+	}
+
+	match := bson.M{"$or": addressFilter}
+	if marketplace != "" {
+		match["metadata.marketplace"] = marketplace
+	}
+
+	pipelines := []bson.M{
+		{"$match": match},
+		{"$sort": bson.D{{Key: "timestamp", Value: -1}, {Key: "_id", Value: -1}}},
+	}
+
+	pipelines = append(pipelines,
+		bson.M{"$skip": offset},
+		bson.M{"$limit": size},
+	)
+
+	cursor, err := s.salesTimeSeriesCollection.Aggregate(ctx, pipelines)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer cursor.Close(ctx)
+
+	if err := cursor.All(ctx, &timeSeries); err != nil {
+		return nil, err
+	}
+
+	return timeSeries, nil
+}
+
+// GetSaleRevenues - get sale revenue group by currency belong to an address
 func (s *MongodbIndexerStore) AggregateSaleRevenues(ctx context.Context, addresses []string, marketplace string) (map[string]primitive.Decimal128, error) {
 	revenues := []struct {
 		Currency string               `bson:"currency"`
@@ -2427,7 +2467,7 @@ func (s *MongodbIndexerStore) AggregateSaleRevenues(ctx context.Context, address
 
 	match := bson.M{"$or": addressFilter}
 	if marketplace != "" {
-		match["marketplace"] = marketplace
+		match["metadata.marketplace"] = marketplace
 	}
 
 	pipelines := []bson.M{

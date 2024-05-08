@@ -76,6 +76,28 @@ func (s *NFTIndexerServer) GetSalesTimeSeries(c *gin.Context) {
 }
 
 func (s *NFTIndexerServer) GetSalesRevenues(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "GetSalesTimeSeries")
+
+	var reqParams = SalesQueryParams{
+		Offset: 0,
+		Size:   50,
+	}
+
+	if err := c.BindQuery(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	saleTimeSeries, err := s.indexerStore.GetSaleRevenues(c, reqParams.Addresses, reqParams.Marketplace, reqParams.Offset, reqParams.Size)
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to query sale time series from indexer store", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, saleTimeSeries)
+}
+
+func (s *NFTIndexerServer) AggregateSaleRevenues(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "GetSalesRevenues")
 
 	var reqParams SalesQueryParams
