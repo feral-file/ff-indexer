@@ -2383,7 +2383,7 @@ func (s *MongodbIndexerStore) GetSaleTimeSeriesData(ctx context.Context, address
 
 	match := bson.M{"$or": addressFilter}
 	if marketplace != "" {
-		match["marketplace"] = marketplace
+		match["metadata.marketplace"] = marketplace
 	}
 
 	pipelines := []bson.M{
