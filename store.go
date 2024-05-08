@@ -108,10 +108,7 @@ type Store interface {
 
 	WriteTimeSeriesData(
 		ctx context.Context,
-		timestamp time.Time,
-		metadata map[string]string,
-		values map[string]string,
-		shares map[string]string,
+		records []GenericSalesTimeSeries,
 	) error
 	GetSaleTimeSeriesData(ctx context.Context, addresses, royaltyAddresses []string, marketplace string, offset, size int64) ([]SaleTimeSeries, error)
 	AggregateSaleRevenues(ctx context.Context, addresses []string, marketplace string) (map[string]primitive.Decimal128, error)
@@ -2286,84 +2283,94 @@ var reserved = map[string]struct{}{
 // WriteTimeSeriesData - validate and store a time series record
 func (s *MongodbIndexerStore) WriteTimeSeriesData(
 	ctx context.Context,
-	timestamp time.Time,
-	metadata map[string]string,
-	values map[string]string,
-	shares map[string]string,
+	records []GenericSalesTimeSeries,
 ) error {
 
-	// ensure no reserved fields in metadata
-	for k, v := range metadata {
-		if _, ok := reserved[k]; ok {
-			log.Warn(
-				"reserved metadata field name",
-				zap.String("key", k),
-				zap.String("value", v),
-			)
-			return fmt.Errorf("reserved field name: metadata.%s", k)
-		}
-	}
-
-	// root of the BSON document
-	doc := bson.M{
-		"timestamp": timestamp,
-		"metadata":  metadata,
-	}
-
-	var err error
-	// ensure no reserved fields in values and convert
-	for k, v := range values {
-		if _, ok := reserved[k]; ok {
-			log.Warn(
-				"reserved values field name",
-				zap.String("key", k),
-				zap.String("value", v),
-			)
-			return fmt.Errorf("reserved field name: values.%s", k)
-		}
-
-		doc[k], err = primitive.ParseDecimal128(v)
-		if err != nil {
-			log.Warn(
-				"invalid Decimal128 in values field",
-				zap.String("key", k),
-				zap.String("value", v),
+	var docs []interface{}
+	for _, r := range records {
+		timestamp, err := time.Parse(time.RFC3339Nano, r.Timestamp)
+		if nil != err {
+			log.Error(
+				"error parsing timestamp",
+				zap.String("timestamp", r.Timestamp),
 				zap.Error(err),
 			)
-			return fmt.Errorf("Decimal128 error: %s on: values.%s = %q\n", err, k, v)
+			return err
 		}
+
+		// ensure no reserved fields in metadata
+		for k, v := range r.Metadata {
+			if _, ok := reserved[k]; ok {
+				log.Warn(
+					"reserved metadata field name",
+					zap.String("key", k),
+					zap.String("value", v),
+				)
+				return fmt.Errorf("reserved field name: metadata.%s", k)
+			}
+		}
+
+		// root of the BSON document
+		doc := bson.M{
+			"timestamp": timestamp,
+			"metadata":  r.Metadata,
+		}
+
+		// ensure no reserved fields in values and convert
+		for k, v := range r.Values {
+			if _, ok := reserved[k]; ok {
+				log.Warn(
+					"reserved values field name",
+					zap.String("key", k),
+					zap.String("value", v),
+				)
+				return fmt.Errorf("reserved field name: values.%s", k)
+			}
+
+			doc[k], err = primitive.ParseDecimal128(v)
+			if err != nil {
+				log.Warn(
+					"invalid Decimal128 in values field",
+					zap.String("key", k),
+					zap.String("value", v),
+					zap.Error(err),
+				)
+				return fmt.Errorf("Decimal128 error: %s on: values.%s = %q\n", err, k, v)
+			}
+		}
+
+		// ensure no reserved fields in shares and convert
+		sv := bson.M{}
+		for k, v := range r.Shares {
+			if _, ok := reserved[k]; ok {
+				log.Warn(
+					"reserved shares field name",
+					zap.String("key", k),
+					zap.String("value", v),
+				)
+				return fmt.Errorf("reserved field name: shares.%s", k)
+			}
+
+			sv[k], err = primitive.ParseDecimal128(v)
+			if err != nil {
+				log.Warn(
+					"invalid Decimal128 in shares field",
+					zap.String("key", k),
+					zap.String("value", v),
+					zap.Error(err),
+				)
+				return fmt.Errorf("Decimal128 error: %s on: shares.%s = %q\n", err, k, v)
+			}
+		}
+		doc["shares"] = sv
+		docs = append(docs, doc)
 	}
 
-	// ensure no reserved fields in shares and convert
-	sv := bson.M{}
-	for k, v := range shares {
-		if _, ok := reserved[k]; ok {
-			log.Warn(
-				"reserved shares field name",
-				zap.String("key", k),
-				zap.String("value", v),
-			)
-			return fmt.Errorf("reserved field name: shares.%s", k)
-		}
-
-		sv[k], err = primitive.ParseDecimal128(v)
-		if err != nil {
-			log.Warn(
-				"invalid Decimal128 in shares field",
-				zap.String("key", k),
-				zap.String("value", v),
-				zap.Error(err),
-			)
-			return fmt.Errorf("Decimal128 error: %s on: shares.%s = %q\n", err, k, v)
-		}
-	}
-	doc["shares"] = sv
-
-	_, err = s.salesTimeSeriesCollection.InsertOne(ctx, doc)
+	_, err := s.salesTimeSeriesCollection.InsertMany(ctx, docs)
 	if err != nil {
 		log.Error(
 			"error inserting time series data",
-			zap.Any("document", doc),
+			zap.Any("documents", docs),
 			zap.Error(err),
 		)
 		return err

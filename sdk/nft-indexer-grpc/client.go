@@ -184,16 +184,10 @@ func (i *IndexerGRPCClient) GetIdentity(ctx context.Context, address string) (in
 // SendTimeSeriesData send timestamped metadata and values
 func (i *IndexerGRPCClient) SendTimeSeriesData(
 	ctx context.Context,
-	timestamp time.Time,
-	metadata map[string]string,
-	values map[string]string,
+	req []indexer.GenericSalesTimeSeries,
 ) error {
-
-	req := pb.TimeSeriesRecord{
-		Timestamp: timestamp.UTC().Format(time.RFC3339Nano),
-		Metadata:  metadata,
-		Values:    values,
-	}
-	_, err := i.client.SendTimeSeriesData(ctx, &req)
+	_, err := i.client.SendTimeSeriesData(
+		ctx,
+		i.mapper.MapGenericSaleTimeSeries(req))
 	return err
 }
