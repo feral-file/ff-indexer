@@ -298,9 +298,9 @@ type SaleTimeSeries struct {
 	Timestamp     time.Time              `json:"timestamp" bson:"timestamp"`
 	Metadata      map[string]interface{} `json:"metadata" bson:"metadata"`
 	Shares        map[string]interface{} `json:"shares" bson:"shares"`
-	NetValue      primitive.Decimal128   `json:"net_value" bson:"net_value"`
+	NetValue      primitive.Decimal128   `json:"net_revenue" bson:"net_revenue"`
 	PaymentAmount primitive.Decimal128   `json:"payment_amount" bson:"payment_amount"`
 	PlatformFee   primitive.Decimal128   `json:"platform_fee" bson:"platform_fee"`
-	USDQuote      primitive.Decimal128   `json:"usd_quote" bson:"usd_quote"`
+	USDQuote      primitive.Decimal128   `json:"exchange_rate" bson:"exchange_rate"`
 	Price         primitive.Decimal128   `json:"price" bson:"price"`
 }
