@@ -1,8 +1,8 @@
 on:
     workflow_dispatch:
       inputs:
-        commit-hash:
-          description: "Commit hash"
+        version:
+          description: "Version"
           required: true
         
   
@@ -33,7 +33,7 @@ jobs:
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: nft-indexer
-        IMAGE_TAG: api-${{ github.event.inputs.commit-hash }}
+        IMAGE_TAG: api-${{ github.event.inputs.version }}
         DOCKERFILE: Dockerfile
         GITHUB_USER: bitmark-bot
         GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
@@ -67,7 +67,7 @@ jobs:
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: nft-indexer
-        IMAGE_TAG: background-${{ github.event.inputs.commit-hash }}
+        IMAGE_TAG: background-${{ github.event.inputs.version }}
         DOCKERFILE: Dockerfile-background
         GITHUB_USER: bitmark-bot
         GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
@@ -104,7 +104,7 @@ jobs:
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: nft-indexer
-        IMAGE_TAG: grpc-${{ github.event.inputs.commit-hash }}
+        IMAGE_TAG: grpc-${{ github.event.inputs.version }}
         DOCKERFILE: Dockerfile-grpc
         GITHUB_USER: bitmark-bot
         GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
@@ -141,7 +141,7 @@ jobs:
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: nft-indexer
-        IMAGE_TAG: provenance-indexer-${{ github.event.inputs.commit-hash }}
+        IMAGE_TAG: provenance-indexer-${{ github.event.inputs.version }}
         DOCKERFILE: Dockerfile-provenance-indexer
         GITHUB_USER: bitmark-bot
         GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
@@ -154,6 +154,7 @@ jobs:
           docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+  
   build-indexer-account-token:
     name: Build Indexer Account Token Image
     runs-on: self-hosted
@@ -177,7 +178,7 @@ jobs:
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: nft-indexer
-        IMAGE_TAG: account-token-indexer-${{ github.event.inputs.commit-hash }}
+        IMAGE_TAG: account-token-indexer-${{ github.event.inputs.version }}
         DOCKERFILE: Dockerfile-account-token-indexer
         GITHUB_USER: bitmark-bot
         GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
@@ -214,7 +215,7 @@ jobs:
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: nft-indexer
-        IMAGE_TAG: image-indexer-${{ github.event.inputs.commit-hash }}
+        IMAGE_TAG: image-indexer-${{ github.event.inputs.version }}
         DOCKERFILE: Dockerfile-image-indexer
         GITHUB_USER: bitmark-bot
         GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
@@ -251,7 +252,7 @@ jobs:
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: nft-indexer
-        IMAGE_TAG: event-processor-${{ github.event.inputs.commit-hash }}
+        IMAGE_TAG: event-processor-${{ github.event.inputs.version }}
         DOCKERFILE: Dockerfile-event-processor
         GITHUB_USER: bitmark-bot
         GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
@@ -288,7 +289,7 @@ jobs:
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: nft-indexer
-        IMAGE_TAG: ethereum-emitter-${{ github.event.inputs.commit-hash }}
+        IMAGE_TAG: ethereum-emitter-${{ github.event.inputs.version }}
         DOCKERFILE: Dockerfile-ethereum-emitter
         GITHUB_USER: bitmark-bot
         GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
@@ -325,7 +326,7 @@ jobs:
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: nft-indexer
-        IMAGE_TAG: tezos-emitter-${{ github.event.inputs.commit-hash }}
+        IMAGE_TAG: tezos-emitter-${{ github.event.inputs.version }}
         DOCKERFILE: Dockerfile-tezos-emitter
         GITHUB_USER: bitmark-bot
         GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
