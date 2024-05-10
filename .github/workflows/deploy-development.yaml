@@ -1,28 +1,28 @@
 on:
   workflow_dispatch:
-
-name: Deploy Staging
-
+  
+name: Deploy Development
+  
 jobs:
   build-indexer-api:
     name: Build Indexer API Image
     runs-on: self-hosted
-
+  
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-
+  
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
         aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
         aws-region: ap-northeast-1
-
+  
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
-
+  
     - name: Build Indexer API Image
       id: build-indexer-api-image
       env:
@@ -75,7 +75,7 @@ jobs:
           docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-
+  
   build-indexer-grpc:
     name: Build Indexer GRPC Image
     runs-on: self-hosted
@@ -83,14 +83,14 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-
+  
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
         aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
         aws-region: ap-northeast-1
-
+  
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
@@ -120,14 +120,14 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-
+  
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
         aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
         aws-region: ap-northeast-1
-
+  
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
@@ -184,7 +184,7 @@ jobs:
           docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-
+  
   build-indexer-image-indexer:
     name: Build Indexer Image Indexer Image
     runs-on: self-hosted
@@ -192,14 +192,14 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-
+  
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
         aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
         aws-region: ap-northeast-1
-
+  
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
@@ -221,7 +221,7 @@ jobs:
           docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-
+  
   build-indexer-event-processor:
     name: Build Event Processor Image
     runs-on: self-hosted
@@ -229,14 +229,14 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-
+  
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
         aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
         aws-region: ap-northeast-1
-
+  
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
@@ -258,7 +258,7 @@ jobs:
           docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-
+  
   build-indexer-event-processor-ethereum-emitter:
     name: Build Event Processor Ethereum Emitter Image
     runs-on: self-hosted
@@ -266,14 +266,14 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-
+  
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
         aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
         aws-region: ap-northeast-1
-
+  
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
@@ -303,14 +303,14 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-
+  
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
         aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
         aws-region: ap-northeast-1
-
+  
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
@@ -332,12 +332,12 @@ jobs:
           docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-
+  
   deploy:
     name: Deploy
     runs-on: self-hosted
     environment: staging
-
+  
     needs: 
     - build-indexer-api
     - build-indexer-background
@@ -348,31 +348,32 @@ jobs:
     - build-indexer-event-processor
     - build-indexer-event-processor-ethereum-emitter
     - build-indexer-event-processor-tezos-emitter
-
+  
     steps:
     - name: Sops Binary Installer
       uses: mdgreenwald/mozilla-sops-action@v1.1.0
       with:
         version: '3.7.1'
       id: install-sops
-
+  
     - name: Setup helmfile (include kubectl and helm)
       uses: mamezou-tech/setup-helmfile@v1.0.0
       with:
         additional-helm-plugins: https://github.com/jkroepke/helm-secrets --version v3.8.3
-
+  
     - name: Set eks cluster context
       uses: azure/k8s-set-context@v2
       with:
         method: kubeconfig
-        kubeconfig: ${{ secrets.STAGING_KUBECONFIG }}
+        kubeconfig: ${{ secrets.DEVELOPMENT_KUBECONFIG }}
       id: set-kubectl-context
-
+  
     - name: Deploy
       env:
         GITHUB_SHA: ${{ github.sha }}
       run: |
-        helmfile --environment staging -l app=indexer apply
-        helmfile --environment staging -l app=image-indexer apply
-        helmfile --environment staging -l app=event-processor apply
-        helmfile --environment staging -l app=event-processor-tezos-emitter apply
+        helmfile --environment development -l app=indexer apply
+        helmfile --environment development -l app=image-indexer apply
+        helmfile --environment development -l app=event-processor apply
+        helmfile --environment development -l app=event-processor-tezos-emitter apply
+  
