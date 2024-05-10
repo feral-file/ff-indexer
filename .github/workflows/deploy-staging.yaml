@@ -350,6 +350,13 @@ jobs:
     - build-indexer-event-processor-tezos-emitter
 
     steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-northeast-1
+
     - name: Sops Binary Installer
       uses: mdgreenwald/mozilla-sops-action@v1.1.0
       with:
