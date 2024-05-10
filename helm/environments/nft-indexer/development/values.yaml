@@ -50,6 +50,14 @@ ingress:
   external_dns: true
   hosts:
     - host: indexer.test.autonomy.io
+      uniqueSuffix: ""
+      issuerRef:
+        name: letsencrypt-aws-dns
+        kind: ClusterIssuer
+      paths:
+        - "/"
+    - host: indexer.dev.feralfile.com
+      uniqueSuffix: "ff1"
       issuerRef:
         name: letsencrypt-aws-dns
         kind: ClusterIssuer
