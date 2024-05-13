@@ -66,6 +66,14 @@ ingress:
   external_dns: true
   hosts:
     - host: indexer.staging.autonomy.io
+      uniqueSuffix: ""
+      issuerRef:
+        name: letsencrypt-aws-dns
+        kind: ClusterIssuer
+      paths:
+        - "/"
+    - host: indexer.staging.feralfile.com
+      uniqueSuffix: "ff1"
       issuerRef:
         name: letsencrypt-aws-dns
         kind: ClusterIssuer
