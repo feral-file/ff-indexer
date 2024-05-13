@@ -1,0 +1,192 @@
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+name: Build production image
+
+jobs:
+  deploy:
+    name: Build
+    runs-on: self-hosted
+    environment: production
+    outputs:
+      image: ${{ steps.build-indexer-api-image.outputs.dockerimg }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-northeast-1
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build Indexer Image
+      id: build-indexer-api-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: nft-indexer
+        IMAGE_TAG: api-${{ env.RELEASE_VERSION }}
+        DOCKERFILE: Dockerfile
+        GITHUB_USER: bitmark-bot
+        GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+      run: |
+        # Build a docker container and push it to ECR so that it can be deployed.
+        # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
+        if ! aws ecr describe-images --repository-name="${ECR_REPOSITORY}" --image-ids="imageTag=${IMAGE_TAG}" > /dev/null 2>&1
+        then
+          docker build --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} --tag="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" --file="${DOCKERFILE}" "."
+          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+        fi
+
+    - name: Build Indexer Background Image
+      id: build-indexer-background-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: nft-indexer
+        IMAGE_TAG: background-${{ env.RELEASE_VERSION }}
+        DOCKERFILE: Dockerfile-background
+        GITHUB_USER: bitmark-bot
+        GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+      run: |
+        # Build a docker container and push it to ECR so that it can be deployed.
+        # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
+        if ! aws ecr describe-images --repository-name="${ECR_REPOSITORY}" --image-ids="imageTag=${IMAGE_TAG}" > /dev/null 2>&1
+        then
+          docker build --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} --tag="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" --file="${DOCKERFILE}" "."
+          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+        fi
+
+    - name: Build Indexer GRPC Image
+      id: build-nft-indexer-grpc-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: nft-indexer
+        IMAGE_TAG: grpc-${{ env.RELEASE_VERSION }}
+        DOCKERFILE: Dockerfile-grpc
+        GITHUB_USER: bitmark-bot
+        GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+      run: |
+        # Build a docker container and push it to ECR so that it can be deployed.
+        # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
+        if ! aws ecr describe-images --repository-name="${ECR_REPOSITORY}" --image-ids="imageTag=${IMAGE_TAG}" > /dev/null 2>&1
+        then
+          docker build --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} --tag="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" --file="${DOCKERFILE}" "."
+          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+        fi
+
+    - name: Build Provenance Indexer Image
+      id: build-provenance-indexer-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: nft-indexer
+        IMAGE_TAG: provenance-indexer-${{ env.RELEASE_VERSION }}
+        DOCKERFILE: Dockerfile-provenance-indexer
+        GITHUB_USER: bitmark-bot
+        GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+      run: |
+        # Build a docker container and push it to ECR so that it can be deployed.
+        # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
+        if ! aws ecr describe-images --repository-name="${ECR_REPOSITORY}" --image-ids="imageTag=${IMAGE_TAG}" > /dev/null 2>&1
+        then
+          docker build --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} --tag="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" --file="${DOCKERFILE}" "."
+          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+        fi
+
+    - name: Build Account Token Indexer Image
+      id: build-account-token-indexer-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: nft-indexer
+        IMAGE_TAG: account-token-indexer-${{ env.RELEASE_VERSION }}
+        DOCKERFILE: Dockerfile-account-token-indexer
+        GITHUB_USER: bitmark-bot
+        GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+      run: |
+        # Build a docker container and push it to ECR so that it can be deployed.
+        # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
+        if ! aws ecr describe-images --repository-name="${ECR_REPOSITORY}" --image-ids="imageTag=${IMAGE_TAG}" > /dev/null 2>&1
+        then
+          docker build --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} --tag="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" --file="${DOCKERFILE}" "."
+          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+        fi
+        echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+
+    - name: Build, Image Indexer Image
+      id: build-image-indexer-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: nft-indexer
+        IMAGE_TAG: image-indexer-${{ env.RELEASE_VERSION }}
+        DOCKERFILE: Dockerfile-image-indexer
+        GITHUB_USER: bitmark-bot
+        GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+      run: |
+        # Build a docker container and push it to ECR so that it can be deployed.
+        # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
+        if ! aws ecr describe-images --repository-name="${ECR_REPOSITORY}" --image-ids="imageTag=${IMAGE_TAG}" > /dev/null 2>&1
+        then
+          docker build --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} --tag="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" --file="${DOCKERFILE}" "."
+          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+        fi
+
+    - name: Build Event Processor Image
+      id: build-event-processor-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: nft-indexer
+        IMAGE_TAG: event-processor-${{ env.RELEASE_VERSION }}
+        DOCKERFILE: Dockerfile-event-processor
+        GITHUB_USER: bitmark-bot
+        GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+      run: |
+        # Build a docker container and push it to ECR so that it can be deployed.
+        # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
+        if ! aws ecr describe-images --repository-name="${ECR_REPOSITORY}" --image-ids="imageTag=${IMAGE_TAG}" > /dev/null 2>&1
+        then
+          docker build --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} --tag="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" --file="${DOCKERFILE}" "."
+          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+        fi
+
+    - name: Build Event Processor Ethereum Emitter Image
+      id: build-event-processor-ethereum-emitter-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: nft-indexer
+        IMAGE_TAG: ethereum-emitter-${{ env.RELEASE_VERSION }}
+        DOCKERFILE: Dockerfile-ethereum-emitter
+        GITHUB_USER: bitmark-bot
+        GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+      run: |
+        # Build a docker container and push it to ECR so that it can be deployed.
+        # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
+        if ! aws ecr describe-images --repository-name="${ECR_REPOSITORY}" --image-ids="imageTag=${IMAGE_TAG}" > /dev/null 2>&1
+        then
+          docker build --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} --tag="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" --file="${DOCKERFILE}" "."
+          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+        fi
+
+    - name: Build Event Processor Tezos Emitter Image
+      id: build-event-processor-tezos-emitter-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: nft-indexer
+        IMAGE_TAG: tezos-emitter-${{ env.RELEASE_VERSION }}
+        DOCKERFILE: Dockerfile-tezos-emitter
+        GITHUB_USER: bitmark-bot
+        GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+      run: |
+        # Build a docker container and push it to ECR so that it can be deployed.
+        # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
+        if ! aws ecr describe-images --repository-name="${ECR_REPOSITORY}" --image-ids="imageTag=${IMAGE_TAG}" > /dev/null 2>&1
+        then
+          docker build --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} --tag="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" --file="${DOCKERFILE}" "."
+          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+        fi
