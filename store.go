@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/bitmark-inc/autonomy-logger"
+	utils "github.com/bitmark-inc/autonomy-utils"
 	"github.com/fatih/structs"
 	"github.com/meirf/gopart"
 	"go.mongodb.org/mongo-driver/bson"
@@ -14,9 +16,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.uber.org/zap"
-
-	log "github.com/bitmark-inc/autonomy-logger"
-	utils "github.com/bitmark-inc/autonomy-utils"
 )
 
 const (
@@ -35,6 +34,7 @@ const (
 	tokenAssetViewCollectionName   = "token_assets"
 	collectionsCollectionName      = "collections"
 	collectionAssetsCollectionName = "colelction_assets"
+	salesTimeSeriesCollectionName  = "sales_time_series"
 )
 
 var ErrNoRecordUpdated = fmt.Errorf("no record updated")
@@ -105,6 +105,13 @@ type Store interface {
 	GetCollectionByID(ctx context.Context, id string) (*Collection, error)
 	GetCollectionsByCreators(ctx context.Context, creators []string, offset, size int64) ([]Collection, error)
 	GetDetailedTokensByCollectionID(ctx context.Context, collectionID string, sortBy string, offset, size int64) ([]DetailedTokenV2, error)
+
+	WriteTimeSeriesData(
+		ctx context.Context,
+		records []GenericSalesTimeSeries,
+	) error
+	GetSaleTimeSeriesData(ctx context.Context, addresses, royaltyAddresses []string, marketplace string, offset, size int64) ([]SaleTimeSeries, error)
+	AggregateSaleRevenues(ctx context.Context, addresses []string, marketplace string) (map[string]primitive.Decimal128, error)
 }
 
 type FilterParameter struct {
@@ -139,6 +146,7 @@ func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*Mo
 	tokenAssetCollection := db.Collection(tokenAssetViewCollectionName)
 	collectionsCollection := db.Collection(collectionsCollectionName)
 	collectionAssetsCollection := db.Collection(collectionAssetsCollectionName)
+	salesTimeSeriesCollection := db.Collection(salesTimeSeriesCollectionName)
 
 	return &MongodbIndexerStore{
 		dbName:                     dbName,
@@ -152,6 +160,7 @@ func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*Mo
 		tokenAssetCollection:       tokenAssetCollection,
 		collectionsCollection:      collectionsCollection,
 		collectionAssetsCollection: collectionAssetsCollection,
+		salesTimeSeriesCollection:  salesTimeSeriesCollection,
 	}, nil
 }
 
@@ -167,6 +176,7 @@ type MongodbIndexerStore struct {
 	tokenAssetCollection       *mongo.Collection
 	collectionsCollection      *mongo.Collection
 	collectionAssetsCollection *mongo.Collection
+	salesTimeSeriesCollection  *mongo.Collection
 }
 
 type AssetUpdateSet struct {
@@ -553,7 +563,7 @@ func (s *MongodbIndexerStore) getDetailedTokensByAggregation(ctx context.Context
 // getPageCounts return the page counts by item length and page size
 func getPageCounts(itemLength, PageSize int) int {
 	pageCounts := itemLength / PageSize
-	if (itemLength % PageSize) != 0 {
+	if itemLength%PageSize != 0 {
 		pageCounts++
 	}
 	return pageCounts
@@ -2258,4 +2268,216 @@ func (s *MongodbIndexerStore) GetDetailedTokensByCollectionID(ctx context.Contex
 
 	filterParameter := FilterParameter{IDs: indexIDs}
 	return s.GetDetailedTokensV2(ctx, filterParameter, 0, int64(len(indexIDs)))
+}
+
+// fields that may not appear in metadata or values maps
+var reserved = map[string]struct{}{
+	"_id":       {},
+	"id":        {},
+	"metadata":  {},
+	"shares":    {},
+	"timestamp": {},
+	"values":    {},
+}
+
+// WriteTimeSeriesData - validate and store a time series record
+func (s *MongodbIndexerStore) WriteTimeSeriesData(
+	ctx context.Context,
+	records []GenericSalesTimeSeries,
+) error {
+
+	var docs []interface{}
+	for _, r := range records {
+		timestamp, err := time.Parse(time.RFC3339Nano, r.Timestamp)
+		if nil != err {
+			log.Error(
+				"error parsing timestamp",
+				zap.String("timestamp", r.Timestamp),
+				zap.Error(err),
+			)
+			return err
+		}
+
+		// ensure no reserved fields in metadata
+		for k, v := range r.Metadata {
+			if _, ok := reserved[k]; ok {
+				log.Warn(
+					"reserved metadata field name",
+					zap.String("key", k),
+					zap.String("value", v),
+				)
+				return fmt.Errorf("reserved field name: metadata.%s", k)
+			}
+		}
+
+		// root of the BSON document
+		doc := bson.M{
+			"timestamp": timestamp,
+			"metadata":  r.Metadata,
+		}
+
+		// ensure no reserved fields in values and convert
+		for k, v := range r.Values {
+			if _, ok := reserved[k]; ok {
+				log.Warn(
+					"reserved values field name",
+					zap.String("key", k),
+					zap.String("value", v),
+				)
+				return fmt.Errorf("reserved field name: values.%s", k)
+			}
+
+			doc[k], err = primitive.ParseDecimal128(v)
+			if err != nil {
+				log.Warn(
+					"invalid Decimal128 in values field",
+					zap.String("key", k),
+					zap.String("value", v),
+					zap.Error(err),
+				)
+				return fmt.Errorf("Decimal128 error: %s on: values.%s = %q\n", err, k, v)
+			}
+		}
+
+		// ensure no reserved fields in shares and convert
+		sv := bson.M{}
+		for k, v := range r.Shares {
+			if _, ok := reserved[k]; ok {
+				log.Warn(
+					"reserved shares field name",
+					zap.String("key", k),
+					zap.String("value", v),
+				)
+				return fmt.Errorf("reserved field name: shares.%s", k)
+			}
+
+			sv[k], err = primitive.ParseDecimal128(v)
+			if err != nil {
+				log.Warn(
+					"invalid Decimal128 in shares field",
+					zap.String("key", k),
+					zap.String("value", v),
+					zap.Error(err),
+				)
+				return fmt.Errorf("Decimal128 error: %s on: shares.%s = %q\n", err, k, v)
+			}
+		}
+		doc["shares"] = sv
+		docs = append(docs, doc)
+	}
+
+	_, err := s.salesTimeSeriesCollection.InsertMany(ctx, docs)
+	if err != nil {
+		log.Error(
+			"error inserting time series data",
+			zap.Any("documents", docs),
+			zap.Error(err),
+		)
+		return err
+	}
+
+	return nil
+}
+
+// GetSaleTimeSeriesData - get list of time series belong to an address
+func (s *MongodbIndexerStore) GetSaleTimeSeriesData(ctx context.Context, addresses, royaltyAddresses []string, marketplace string, offset, size int64) ([]SaleTimeSeries, error) {
+	timeSeries := []SaleTimeSeries{}
+
+	match := bson.M{}
+
+	addressFilter := bson.A{}
+	if len(addresses) > 0 {
+		addressFilter = bson.A{
+			bson.M{"metadata.buyer_address": bson.M{"$in": addresses}},
+			bson.M{"metadata.seller_address": bson.M{"$in": addresses}},
+		}
+	}
+	if len(royaltyAddresses) > 0 {
+		for _, a := range royaltyAddresses {
+			addressFilter = append(addressFilter, bson.M{fmt.Sprintf("shares.%s", a): bson.M{"$nin": bson.A{nil, ""}}})
+		}
+	}
+	match["$or"] = addressFilter
+
+	if marketplace != "" {
+		match["metadata.marketplace"] = marketplace
+	}
+
+	pipelines := []bson.M{
+		{"$match": match},
+		{"$sort": bson.D{{Key: "timestamp", Value: -1}, {Key: "_id", Value: -1}}},
+	}
+
+	pipelines = append(pipelines,
+		bson.M{"$skip": offset},
+		bson.M{"$limit": size},
+	)
+
+	cursor, err := s.salesTimeSeriesCollection.Aggregate(ctx, pipelines)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer cursor.Close(ctx)
+
+	if err := cursor.All(ctx, &timeSeries); err != nil {
+		return nil, err
+	}
+
+	return timeSeries, nil
+}
+
+// AggregateSaleRevenues - get sale revenue group by currency belong to an address
+func (s *MongodbIndexerStore) AggregateSaleRevenues(ctx context.Context, addresses []string, marketplace string) (map[string]primitive.Decimal128, error) {
+	revenues := []struct {
+		Currency string               `bson:"currency"`
+		Total    primitive.Decimal128 `bson:"total"`
+	}{}
+
+	addressFilter := bson.A{}
+	projectRevenueFields := bson.A{}
+	for _, a := range addresses {
+		addressFilter = append(addressFilter, bson.M{fmt.Sprintf("shares.%s", a): bson.M{"$nin": bson.A{nil, ""}}})
+		projectRevenueFields = append(projectRevenueFields, bson.M{"$ifNull": bson.A{fmt.Sprintf("$shares.%s", a), 0}})
+	}
+
+	match := bson.M{"$or": addressFilter}
+	if marketplace != "" {
+		match["metadata.marketplace"] = marketplace
+	}
+
+	pipelines := []bson.M{
+		{"$match": match},
+		{"$project": bson.M{
+			"revenue": bson.M{
+				"$add": projectRevenueFields,
+			},
+			"metadata.revenue_currency": 1,
+		}},
+		{"$group": bson.M{
+			"_id":      "$metadata.revenue_currency",
+			"currency": bson.M{"$last": "$metadata.revenue_currency"},
+			"total":    bson.M{"$sum": "$revenue"},
+		}},
+	}
+
+	cursor, err := s.salesTimeSeriesCollection.Aggregate(ctx, pipelines)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer cursor.Close(ctx)
+
+	if err := cursor.All(ctx, &revenues); err != nil {
+		return nil, err
+	}
+
+	resultMap := make(map[string]primitive.Decimal128)
+	for _, r := range revenues {
+		resultMap[r.Currency] = r.Total
+	}
+
+	return resultMap, nil
 }
