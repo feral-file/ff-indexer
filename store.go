@@ -33,7 +33,7 @@ const (
 	accountTokenCollectionName     = "account_tokens"
 	tokenAssetViewCollectionName   = "token_assets"
 	collectionsCollectionName      = "collections"
-	collectionAssetsCollectionName = "colelction_assets"
+	collectionAssetsCollectionName = "collection_assets"
 	salesTimeSeriesCollectionName  = "sales_time_series"
 )
 
