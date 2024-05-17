@@ -23,6 +23,21 @@ serviceConfig:
   feralfile_api_url: https://feralfile2.dev.bitmark.com
   cache_bucket_name: autonomy-cached-full-artwork-development
   opensea_ratelimit: 1
+  ethereum_erc20:
+    "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9": "WETH"
+    "0xf08A50178dfcDe18524640EA6618a1f965821715": "USDC"
+    "0x0000000000A39bb272e79075ade125fd351887Ac": "Blur Pool"
+  marketplace_contracts:
+    "0x00000000006c3852cbEf3e08E8dF289169EdE581": "OpenSea"
+    "0x00000000000001ad428e4906aE43D8F9852d0dD6": "OpenSea"
+    "0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC": "OpenSea"
+    "0x0000000000000068F116a894984e2DB1123eB395": "OpenSea"
+    "0x7Be8076f4EA4A4AD08075C2508e481d6C946D12b": "OpenSea"
+    "0x7f268357A8c2552623316e2562D90e642bB538E5": "OpenSea"
+    "0x0000000004d3d3966a8b3f6f4a27f89b9fcc7974": "OpenSea"
+  marketplace_feewallets:
+    "0x8De9C5A032463C561423387a9648c5C7BCC5BC90": "OpenSea"
+    "0x0000a26b00c1f0df003000390027140000faa719": "OpenSea"
 
 imagePullSecrets: []
 nameOverride: ""

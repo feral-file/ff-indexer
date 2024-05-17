@@ -86,3 +86,13 @@ data:
     event_processor_server:
       network: tcp
       address: {{ .Values.serviceConfig.eventProcessorEndpoint }}
+    
+    ethereum:
+      erc20: |
+      {{ .Values.serviceConfig.ethereum_erc20 | toYaml | nindent 8 }}
+    
+    marketplace:
+      contracts: |
+      {{ .Values.serviceConfig.marketplace_contracts | toYaml | nindent 8 }}
+      fee_wallets: |
+      {{ .Values.serviceConfig.marketplace_feewallets | toYaml | nindent 8 }}
