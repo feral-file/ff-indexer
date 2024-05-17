@@ -22,6 +22,7 @@ serviceConfig:
   opensea_ratelimit: 1
   environment: development
   logLevel: debug
+  eventProcessorEndpoint: nft-event-processor.autonomy.svc.cluster.local:8765
   network:
     tezos: testnet
     ethereum: sepolia

@@ -134,6 +134,7 @@ func NewEventTx(DB *gorm.DB, event NFTEvent) *EventTx {
 type EventStore interface {
 	CreateEvent(event NFTEvent) error
 	GetEventTransaction(ctx context.Context, filters ...FilterOption) (*EventTx, error)
+	GetArchivedEvents(ctx context.Context, pagination *Pagination, filters ...FilterOption) ([]ArchivedNFTEvent, error)
 }
 
 type PostgresEventStore struct {
@@ -172,19 +173,30 @@ func (s *PostgresEventStore) CreateEvent(event NFTEvent) error {
 // FilterOption is an abstraction to help filtering events with
 // specific conditions
 type FilterOption struct {
-	Statement  string
-	Argumenets []interface{}
+	Statement string
+	Arguments []interface{}
 }
 
 func (f FilterOption) Apply(tx *gorm.DB) *gorm.DB {
-	return tx.Where(f.Statement, f.Argumenets...)
+	return tx.Where(f.Statement, f.Arguments...)
 }
 
 func Filter(statement string, args ...interface{}) FilterOption {
 	return FilterOption{
-		Statement:  statement,
-		Argumenets: args,
+		Statement: statement,
+		Arguments: args,
 	}
+}
+
+type Pagination struct {
+	Limit  int
+	Offset int
+}
+
+func (p *Pagination) Apply(tx *gorm.DB) *gorm.DB {
+	return tx.
+		Limit(p.Limit).
+		Offset(p.Offset)
 }
 
 // GetEventTransaction returns an EventTx
@@ -209,6 +221,35 @@ func (s *PostgresEventStore) GetEventTransaction(ctx context.Context, filters ..
 	}
 
 	return NewEventTx(tx, event), nil
+}
+
+// GetArchivedEvents returns a list of archived events
+func (s *PostgresEventStore) GetArchivedEvents(
+	ctx context.Context,
+	pagination *Pagination,
+	filters ...FilterOption) ([]ArchivedNFTEvent, error) {
+
+	tx := s.db.Debug().
+		WithContext(ctx).
+		Model(&ArchivedNFTEvent{}).
+		Order("tx_time")
+	if nil != filters {
+		for _, filter := range filters {
+			tx = filter.Apply(tx)
+		}
+	}
+	if nil != pagination {
+		tx = pagination.Apply(tx)
+	}
+
+	var evts []ArchivedNFTEvent
+	if err := tx.
+		Find(&evts).
+		Error; err != nil {
+		return nil, err
+	}
+
+	return evts, nil
 }
 
 // AutoMigrate is a help function that update db when the schema changed.

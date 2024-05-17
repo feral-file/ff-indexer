@@ -12,15 +12,19 @@ import (
 
 	goethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/google/uuid"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/contracts"
+	"github.com/bitmark-inc/nft-indexer/externals/etherscan"
+	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 	"github.com/bitmark-inc/tzkt-go"
 )
@@ -175,6 +179,11 @@ func (w *NFTIndexerWorker) IndexToken(ctx context.Context, contract, tokenID str
 	return w.indexerEngine.IndexToken(ctx, contract, tokenID)
 }
 
+// GetTokenByIndexID gets a token by indexID
+func (w *NFTIndexerWorker) GetTokenByIndexID(ctx context.Context, indexID string) (*indexer.Token, error) {
+	return w.indexerStore.GetTokenByIndexID(ctx, indexID)
+}
+
 // GetOwnedTokenIDsByOwner gets tokenIDs by the given owner
 func (w *NFTIndexerWorker) GetOwnedTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
 	return w.indexerStore.GetOwnedTokenIDsByOwner(ctx, owner)
@@ -188,6 +197,16 @@ func (w *NFTIndexerWorker) FilterTokenIDsWithInconsistentProvenanceForOwner(ctx 
 // IndexAsset saves asset data into indexer's storage
 func (w *NFTIndexerWorker) IndexAsset(ctx context.Context, updates indexer.AssetUpdates) error {
 	return w.indexerStore.IndexAsset(ctx, updates.ID, updates)
+}
+
+// WriteSaleTimeSeriesData saves sales time series data into indexer's storage
+func (w *NFTIndexerWorker) WriteSaleTimeSeriesData(ctx context.Context, data []indexer.GenericSalesTimeSeries) error {
+	return w.indexerStore.WriteTimeSeriesData(ctx, data)
+}
+
+// IndexedSaleTx checks if a sale tx is indexed
+func (w *NFTIndexerWorker) IndexedSaleTx(ctx context.Context, txID string) (bool, error) {
+	return w.indexerStore.SaleTimeSeriesDataExists(ctx, txID)
 }
 
 // indexTezosAccount saves tezos account data into indexer's storage
@@ -815,4 +834,63 @@ func (w *NFTIndexerWorker) IndexETHCollectionsByCreator(ctx context.Context, cre
 	}
 
 	return collectionNext, nil
+}
+
+// GetEthereumTxReceipt returns the ethereum transaction receipt object of a tx hash
+func (w *NFTIndexerWorker) GetEthereumTxReceipt(ctx context.Context, txID string) (*types.Receipt, error) {
+	return w.ethClient.TransactionReceipt(ctx, common.HexToHash(txID))
+}
+
+// GetEthereumTx returns the ethereum transaction object of a tx hash
+func (w *NFTIndexerWorker) GetEthereumTx(ctx context.Context, txID string) (*types.Transaction, error) {
+	tx, _, err := w.ethClient.TransactionByHash(ctx, common.HexToHash(txID))
+	return tx, err
+}
+
+// GetEthereumBlockHeaderHash returns the ethereum block object of a block hash
+func (w *NFTIndexerWorker) GetEthereumBlockHeaderHash(ctx context.Context, blkHash string) (*types.Header, error) {
+	return w.ethClient.HeaderByHash(ctx, common.HexToHash(blkHash))
+}
+
+// GetEthereumBlockHeaderByNumber returns the ethereum block object of a block number
+func (w *NFTIndexerWorker) GetEthereumBlockHeaderByNumber(ctx context.Context, blkNumber *big.Int) (*types.Header, error) {
+	return w.ethClient.HeaderByNumber(ctx, blkNumber)
+}
+
+// GetEthereumInternalTxs returns the ethereum internal transactions of a tx hash
+func (w *NFTIndexerWorker) GetEthereumInternalTxs(ctx context.Context, txID string) ([]etherscan.Transaction, error) {
+	ec := etherscan.NewClient(
+		viper.GetString("etherscan.url"),
+		viper.GetString("etherscan.apikey"))
+	return ec.Account.ListInternalTxs(
+		ctx,
+		etherscan.TransactionQueryParams{TxHash: &txID})
+}
+
+// GetArchivedEthereumTransferNFTEventsInPeriod returns the archived transfer NFT events in a period
+func (w *NFTIndexerWorker) GetArchivedEthereumTransferNFTEventsInPeriod(
+	ctx context.Context,
+	from time.Time,
+	to time.Time,
+	offset int32,
+	limit int32) ([]*processor.ArchivedEvent, error) {
+	evtType := "transfer"
+	blkchain := utils.EthereumBlockchain
+	evt, err := w.eventProcessorGPRCClient.GetArchivedEvents(
+		ctx,
+		&processor.ArchivedEventInput{
+			Type:       &evtType,
+			TxFromTime: timestamppb.New(from),
+			TxToTime:   timestamppb.New(to),
+			Blockchain: &blkchain,
+			Pagination: &processor.Pagination{
+				Offset: offset,
+				Limit:  limit,
+			},
+		})
+	if nil != err {
+		return nil, err
+	}
+
+	return evt.Events, nil
 }

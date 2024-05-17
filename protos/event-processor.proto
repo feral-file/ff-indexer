@@ -6,6 +6,7 @@ import "google/protobuf/timestamp.proto";
 
 service EventProcessor {
   rpc PushEvent(EventInput) returns (EventOutput);
+  rpc GetArchivedEvents(ArchivedEventInput) returns (ArchivedEvents);
 }
 
 message EventInput {
@@ -23,4 +24,45 @@ message EventInput {
 message EventOutput {
   string Result = 1;
   int32 status = 2;
+}
+
+message ArchivedEventInput {
+  optional string Type = 1;
+  optional string Blockchain = 2;
+  optional string Contract = 3;
+  optional string TokenID = 4; 
+  optional string From = 5; 
+  optional string To = 6; 
+  optional string TxID = 7;
+  optional google.protobuf.Timestamp TxFromTime = 8;
+  optional google.protobuf.Timestamp TxToTime = 9;
+  optional string Stage = 10;
+  optional string Status = 11;
+  optional Pagination pagination = 12;
+}
+
+message Pagination {
+  int32 Offset = 1;
+  int32 Limit = 2;
+}
+
+message ArchivedEvents {
+  repeated ArchivedEvent events = 1;
+}
+
+message ArchivedEvent {
+  string ID = 1;
+  string Type = 2;
+  string Blockchain = 3; 
+  string Contract = 4;
+  string TokenID = 5; 
+  string From = 6; 
+  string To = 7; 
+  string TxID = 8; 
+  uint64 EventIndex = 9;
+  google.protobuf.Timestamp TxTime = 10;
+  string Stage = 11;
+  string Status = 12;
+  google.protobuf.Timestamp CreatedAt = 13;
+  google.protobuf.Timestamp UpdatedAt = 14;
 }

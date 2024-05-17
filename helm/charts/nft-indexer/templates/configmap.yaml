@@ -82,3 +82,7 @@ data:
       {{- .Values.serviceConfig.preferred_gateways | toYaml | nindent 6 }}
       minter_gateways: |
       {{- .Values.serviceConfig.minter_gateways | toYaml | nindent 8 }}
+
+    event_processor_server:
+      network: tcp
+      address: {{ .Values.serviceConfig.eventProcessorEndpoint }}

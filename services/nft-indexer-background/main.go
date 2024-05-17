@@ -13,6 +13,8 @@ import (
 	"go.uber.org/cadence/activity"
 	"go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"gopkg.in/yaml.v3"
 
 	assetSDK "github.com/bitmark-inc/autonomy-asset-server/sdk/api"
@@ -25,6 +27,7 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
+	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 	"github.com/bitmark-inc/tzkt-go"
 )
 
@@ -88,7 +91,16 @@ func main() {
 
 	assetClient := assetSDK.New(viper.GetString("asset_server.server_url"), nil, viper.GetString("asset_server.secret_key"))
 
-	worker := indexerWorker.New(environment, indexerEngine, cacheStore, indexerStore, assetClient)
+	// event processor GRPC client
+	conn, err := grpc.Dial(viper.GetString("event_processor_server.address"), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Sugar().Fatalf("did not connect: %v", err)
+	}
+	defer conn.Close()
+
+	evtProcessorGPRCClient := processor.NewEventProcessorClient(conn)
+
+	worker := indexerWorker.New(environment, indexerEngine, cacheStore, indexerStore, assetClient, evtProcessorGPRCClient)
 
 	// workflows
 	workflow.Register(worker.IndexETHTokenWorkflow)
@@ -98,15 +110,33 @@ func main() {
 	workflow.RegisterWithOptions(worker.IndexTokenWorkflow, workflow.RegisterOptions{
 		Name: "IndexTokenWorkflow",
 	})
+	workflow.RegisterWithOptions(worker.IndexFeralFileEthereumTokenSaleInPeriod, workflow.RegisterOptions{
+		Name: "IndexFeralFileEthereumTokenSaleInPeriod"})
+	workflow.RegisterWithOptions(worker.IndexEthereumTokenSale, workflow.RegisterOptions{
+		Name: "IndexEthereumTokenSale",
+	})
+	workflow.RegisterWithOptions(worker.IndexTezosTokenSale, workflow.RegisterOptions{
+		Name: "IndexTezosTokenSale",
+	})
+	workflow.RegisterWithOptions(worker.ParseEthereumSingleTokenSale, workflow.RegisterOptions{
+		Name: "ParseEthereumSingleTokenSale"})
 
 	// cache
 	activity.Register(worker.CacheArtifact)
 
 	// all blockchain
 	activity.Register(worker.IndexToken)
+
 	// ethereum
 	activity.Register(worker.IndexETHTokenByOwner)
 	activity.Register(worker.IndexETHCollectionsByCreator)
+	activity.Register(worker.GetEthereumTxReceipt)
+	activity.Register(worker.GetEthereumTx)
+	activity.Register(worker.GetEthereumBlockHeaderHash)
+	activity.Register(worker.GetEthereumBlockHeaderByNumber)
+	activity.Register(worker.GetEthereumInternalTxs)
+	activity.Register(worker.GetArchivedEthereumTransferNFTEventsInPeriod)
+
 	// tezos
 	activity.Register(worker.IndexTezosTokenByOwner)
 	activity.Register(worker.IndexTezosCollectionsByCreator)
@@ -114,6 +144,9 @@ func main() {
 	activity.Register(worker.IndexAsset)
 	activity.Register(worker.GetTokenBalanceOfOwner)
 	activity.Register(worker.RefreshTokenProvenance)
+	activity.Register(worker.GetTokenByIndexID)
+	activity.Register(worker.WriteSaleTimeSeriesData)
+	activity.Register(worker.IndexedSaleTx)
 
 	// index account tokens
 	activity.Register(worker.IndexAccountTokens)

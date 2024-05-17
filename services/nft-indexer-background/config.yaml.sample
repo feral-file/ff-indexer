@@ -40,3 +40,6 @@ ipfs:
   - ipfs.bitmark.com
   - ipfs.test.bitmark.com
   - ipfs.io
+
+event_processor_server:
+  address:

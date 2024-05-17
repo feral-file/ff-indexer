@@ -228,7 +228,7 @@ func (e *EventProcessor) notifyChangeTokenOwner(_ context.Context, event NFTEven
 // NotifyChangeTokenOwner is a stage 3 worker.
 func (e *EventProcessor) NotifyChangeTokenOwner(ctx context.Context) {
 	e.StartWorker(ctx,
-		StageNotification, StageDone,
+		StageNotification, StageTokenSaleIndexing,
 		[]EventType{EventTypeTransfer, EventTypeMint},
 		0, 0, e.notifyChangeTokenOwner,
 	)
@@ -244,6 +244,33 @@ func (e *EventProcessor) sendEventToFeedServer(ctx context.Context, event NFTEve
 
 	return e.feedServer.SendEvent(ctx, blockchain, contract, tokenID, to, eventType,
 		e.environment == indexer.DevelopmentEnvironment)
+}
+
+func (e *EventProcessor) IndexTokenSale(ctx context.Context) {
+	e.StartWorker(
+		ctx,
+		StageTokenSaleIndexing, StageDone,
+		[]EventType{EventTypeTransfer},
+		0, 0, e.indexTokenSale,
+	)
+}
+
+func (e *EventProcessor) indexTokenSale(ctx context.Context, event NFTEvent) error {
+	if event.Type != "transfer" {
+		log.Info("ignore non-transfer event", zap.String("type", event.Type))
+		return nil
+	}
+
+	err := indexerWorker.StartIndexingTokenSale(
+		ctx,
+		e.worker,
+		event.Blockchain,
+		event.TXID)
+	if nil != err {
+		log.Error("fail to start indexing token sale", zap.Error(err))
+	}
+
+	return nil
 }
 
 // SendEventToFeedServer is a stage 4 worker.

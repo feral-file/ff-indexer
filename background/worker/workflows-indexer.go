@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/getsentry/sentry-go"
 	"go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 )
 
 // IndexETHTokenWorkflow is a workflow to index and summarize ETH tokens for a owner.
@@ -237,5 +239,128 @@ func (w *NFTIndexerWorker) IndexETHCollectionWorkflow(ctx workflow.Context, crea
 		nextPage = next
 	}
 	log.Info("ETH collections indexed", zap.String("creator", creator))
+	return nil
+}
+
+func (w *NFTIndexerWorker) IndexFeralFileEthereumTokenSaleInPeriod(
+	ctx workflow.Context,
+	txTimeFrom string,
+	txTimeTo string,
+	offset int32,
+	skipIndexed bool) error {
+	ctx = ContextRegularActivity(ctx, w.TaskListName)
+
+	// Parse from time
+	timeFrom, err := time.Parse(time.RFC3339, txTimeFrom)
+	if nil != err {
+		return err
+	}
+
+	// Parse to time
+	timeTo, err := time.Parse(time.RFC3339, txTimeTo)
+	if nil != err {
+		return err
+	}
+
+	if timeFrom.After(timeTo) {
+		return fmt.Errorf("time from is after time to")
+	}
+
+	const limit = 100
+	log.Info("index feral file ethereum token sale in period",
+		zap.String("txTimeFrom", txTimeFrom),
+		zap.String("txTimeTo", txTimeTo),
+		zap.Int32("offset", offset),
+		zap.Int32("limit", limit))
+
+	// Get archived NFT transfer events
+	var evts []*processor.ArchivedEvent
+	if err := workflow.ExecuteActivity(
+		ctx,
+		w.GetArchivedEthereumTransferNFTEventsInPeriod,
+		timeFrom,
+		timeTo,
+		offset,
+		limit).
+		Get(ctx, &evts); err != nil {
+		return err
+	}
+	if len(evts) == 0 {
+		return nil
+	}
+
+	tokenMap := make(map[string]struct{})
+	txTokenMap := make(map[string][]string)
+	for _, evt := range evts {
+		indexID := indexer.TokenIndexID(evt.Blockchain, evt.Contract, evt.TokenID)
+		tokenMap[indexID] = struct{}{}
+
+		if tokens, ok := txTokenMap[evt.TxID]; ok {
+			txTokenMap[evt.TxID] = append(tokens, indexID)
+		} else {
+			txTokenMap[evt.TxID] = []string{indexID}
+		}
+	}
+
+	// TODO remove when supporting all tokens, not only Feral File one
+	// Query token info
+	var futures []workflow.Future
+	for indexID := range tokenMap {
+		futures = append(futures, workflow.ExecuteActivity(
+			ctx,
+			w.GetTokenByIndexID,
+			indexID,
+		))
+	}
+
+	for _, future := range futures {
+		var token *indexer.Token
+		if err := future.Get(ctx, &token); err != nil {
+			return err
+		}
+
+		if token.Source != "Feral File" {
+			delete(tokenMap, token.IndexID)
+		}
+	}
+
+	// ------------------------------------------------
+
+	// Index token sale
+	futures = make([]workflow.Future, 0)
+	for txID, indexIDs := range txTokenMap {
+		if len(indexIDs) > 1 {
+			log.Warn("multiple token transfer in a single transaction",
+				zap.String("txID", txID),
+				zap.Strings("indexIDs", indexIDs))
+			continue
+		}
+		workflowID := fmt.Sprintf("IndexEthereumTokenSale-%s", txID)
+		cwctx := ContextNamedRegularChildWorkflow(ctx, workflowID, TaskListName)
+		futures = append(
+			futures,
+			workflow.ExecuteChildWorkflow(
+				cwctx,
+				w.IndexEthereumTokenSale,
+				txID,
+				skipIndexed))
+	}
+
+	for _, future := range futures {
+		if err := future.Get(ctx, nil); err != nil {
+			return err
+		}
+	}
+
+	if len(evts) == int(limit) {
+		return workflow.NewContinueAsNewError(
+			ctx,
+			w.IndexFeralFileEthereumTokenSaleInPeriod,
+			txTimeFrom,
+			txTimeTo,
+			offset+limit,
+			skipIndexed)
+	}
+
 	return nil
 }
