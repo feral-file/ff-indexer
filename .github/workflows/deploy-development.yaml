@@ -336,7 +336,7 @@ jobs:
   deploy:
     name: Deploy
     runs-on: self-hosted
-    environment: staging
+    environment: development
   
     needs: 
     - build-indexer-api
