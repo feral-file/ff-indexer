@@ -319,7 +319,7 @@ func (w *NFTIndexerWorker) IndexFeralFileEthereumTokenSaleInPeriod(
 			return err
 		}
 
-		if token.Source != "Feral File" {
+		if nil != token && token.Source != "Feral File" {
 			delete(tokenMap, token.IndexID)
 		}
 	}
