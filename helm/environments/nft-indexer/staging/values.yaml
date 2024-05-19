@@ -39,6 +39,7 @@ serviceConfig:
   - ipfs.io
   asset_server:
     server_url: http://autonomy-asset-server.autonomy-staging.svc.cluster.local
+  eventProcessorEndpoint: nft-event-processor.autonomy-staging.svc.cluster.local:8765
 
 imagePullSecrets: []
 nameOverride: ""
