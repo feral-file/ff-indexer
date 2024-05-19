@@ -13,8 +13,6 @@ import (
 	"go.uber.org/cadence/activity"
 	"go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"gopkg.in/yaml.v3"
 
 	assetSDK "github.com/bitmark-inc/autonomy-asset-server/sdk/api"
@@ -27,7 +25,6 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
-	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 	"github.com/bitmark-inc/tzkt-go"
 )
 
@@ -91,16 +88,7 @@ func main() {
 
 	assetClient := assetSDK.New(viper.GetString("asset_server.server_url"), nil, viper.GetString("asset_server.secret_key"))
 
-	// event processor GRPC client
-	conn, err := grpc.Dial(viper.GetString("event_processor_server.address"), grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Sugar().Fatalf("did not connect: %v", err)
-	}
-	defer conn.Close()
-
-	evtProcessorGPRCClient := processor.NewEventProcessorClient(conn)
-
-	worker := indexerWorker.New(environment, indexerEngine, cacheStore, indexerStore, assetClient, evtProcessorGPRCClient)
+	worker := indexerWorker.New(environment, indexerEngine, cacheStore, indexerStore, assetClient)
 
 	// workflows
 	workflow.Register(worker.IndexETHTokenWorkflow)
@@ -110,8 +98,8 @@ func main() {
 	workflow.RegisterWithOptions(worker.IndexTokenWorkflow, workflow.RegisterOptions{
 		Name: "IndexTokenWorkflow",
 	})
-	workflow.RegisterWithOptions(worker.IndexEthereumTokenSaleInPeriod, workflow.RegisterOptions{
-		Name: "IndexEthereumTokenSaleInPeriod"})
+	workflow.RegisterWithOptions(worker.IndexEthereumTokenSaleInBlockRange, workflow.RegisterOptions{
+		Name: "IndexEthereumTokenSaleInBlockRange"})
 	workflow.RegisterWithOptions(worker.IndexEthereumTokenSale, workflow.RegisterOptions{
 		Name: "IndexEthereumTokenSale",
 	})
@@ -135,7 +123,7 @@ func main() {
 	activity.Register(worker.GetEthereumBlockHeaderHash)
 	activity.Register(worker.GetEthereumBlockHeaderByNumber)
 	activity.Register(worker.GetEthereumInternalTxs)
-	activity.Register(worker.GetArchivedEthereumTransferNFTEventsInPeriod)
+	activity.Register(worker.GetEthereumEventLogs)
 
 	// tezos
 	activity.Register(worker.IndexTezosTokenByOwner)

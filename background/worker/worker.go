@@ -7,7 +7,6 @@ import (
 	assetSDK "github.com/bitmark-inc/autonomy-asset-server/sdk/api"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/cache"
-	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"
 )
@@ -22,12 +21,11 @@ type NFTIndexerWorker struct {
 
 	ipfsCacheBucketName string
 
-	indexerEngine            *indexer.IndexEngine
-	indexerStore             indexer.Store
-	cacheStore               cache.Store
-	assetClient              *assetSDK.Client
-	ethClient                *ethclient.Client
-	eventProcessorGPRCClient processor.EventProcessorClient
+	indexerEngine *indexer.IndexEngine
+	indexerStore  indexer.Store
+	cacheStore    cache.Store
+	assetClient   *assetSDK.Client
+	ethClient     *ethclient.Client
 
 	bitmarkZeroAddress string
 	bitmarkAPIEndpoint string
@@ -43,7 +41,6 @@ func New(environment string,
 	cacheStore cache.Store,
 	store indexer.Store,
 	assetClient *assetSDK.Client,
-	eventProcessorGRPCClient processor.EventProcessorClient,
 ) *NFTIndexerWorker {
 
 	wsClient, err := ethclient.Dial(viper.GetString("ethereum.rpc_url"))
@@ -68,11 +65,10 @@ func New(environment string,
 
 		ipfsCacheBucketName: viper.GetString("cache.bucket_name"),
 
-		indexerEngine:            indexerEngine,
-		indexerStore:             store,
-		cacheStore:               cacheStore,
-		assetClient:              assetClient,
-		eventProcessorGPRCClient: eventProcessorGRPCClient,
+		indexerEngine: indexerEngine,
+		indexerStore:  store,
+		cacheStore:    cacheStore,
+		assetClient:   assetClient,
 
 		bitmarkZeroAddress: bitmarkZeroAddress,
 		bitmarkAPIEndpoint: bitmarkAPIEndpoint,

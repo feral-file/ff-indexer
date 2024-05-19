@@ -17,14 +17,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/contracts"
 	"github.com/bitmark-inc/nft-indexer/externals/etherscan"
-	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 	"github.com/bitmark-inc/tzkt-go"
 )
@@ -867,30 +865,36 @@ func (w *NFTIndexerWorker) GetEthereumInternalTxs(ctx context.Context, txID stri
 		etherscan.TransactionQueryParams{TxHash: &txID})
 }
 
-// GetArchivedEthereumTransferNFTEventsInPeriod returns the archived transfer NFT events in a period
-func (w *NFTIndexerWorker) GetArchivedEthereumTransferNFTEventsInPeriod(
+// GetEthereumEventLogs returns the ethereum event logs by criteria
+func (w *NFTIndexerWorker) GetEthereumEventLogs(
 	ctx context.Context,
-	from time.Time,
-	to time.Time,
-	offset int32,
-	limit int32) ([]*processor.ArchivedEvent, error) {
-	evtType := "transfer"
-	blkchain := utils.EthereumBlockchain
-	evt, err := w.eventProcessorGPRCClient.GetArchivedEvents(
-		ctx,
-		&processor.ArchivedEventInput{
-			Type:       &evtType,
-			TxFromTime: timestamppb.New(from),
-			TxToTime:   timestamppb.New(to),
-			Blockchain: &blkchain,
-			Pagination: &processor.Pagination{
-				Offset: offset,
-				Limit:  limit,
-			},
-		})
-	if nil != err {
-		return nil, err
+	topic0 []string,
+	topic1 *string,
+	topic2 *string,
+	topic3 *string,
+	fromBlk uint64,
+	toBlk uint64) ([]types.Log, error) {
+	topics := [][]common.Hash{}
+	if topic0 != nil {
+		var t0 []common.Hash
+		for _, t := range topic0 {
+			t0 = append(t0, common.HexToHash(t))
+		}
+		topics = append(topics, t0)
+	}
+	if topic1 != nil {
+		topics = append(topics, []common.Hash{common.HexToHash(*topic1)})
+	}
+	if topic2 != nil {
+		topics = append(topics, []common.Hash{common.HexToHash(*topic2)})
+	}
+	if topic3 != nil {
+		topics = append(topics, []common.Hash{common.HexToHash(*topic3)})
 	}
 
-	return evt.Events, nil
+	return w.ethClient.FilterLogs(ctx, goethereum.FilterQuery{
+		Topics:    topics,
+		FromBlock: new(big.Int).SetUint64(fromBlk),
+		ToBlock:   new(big.Int).SetUint64(toBlk),
+	})
 }

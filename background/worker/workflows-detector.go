@@ -181,6 +181,11 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 	ctx = ContextRegularActivity(ctx, TaskListName)
 	ctx = ContextRegularChildWorkflow(ctx, TaskListName)
 
+	// TODO remove in the future
+	if !skipIndexed {
+		return errors.New("skipIndexed must be true until we have a unique index handled properly for sale time series data")
+	}
+
 	if skipIndexed {
 		// Check if sale tx is indexed already
 		var indexed bool

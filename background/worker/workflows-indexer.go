@@ -1,16 +1,17 @@
 package worker
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/getsentry/sentry-go"
 	"go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 )
 
 // IndexETHTokenWorkflow is a workflow to index and summarize ETH tokens for a owner.
@@ -242,56 +243,61 @@ func (w *NFTIndexerWorker) IndexETHCollectionWorkflow(ctx workflow.Context, crea
 	return nil
 }
 
-func (w *NFTIndexerWorker) IndexEthereumTokenSaleInPeriod(
+func (w *NFTIndexerWorker) IndexEthereumTokenSaleInBlockRange(
 	ctx workflow.Context,
-	txTimeFrom string,
-	txTimeTo string,
-	offset int32,
+	fromBlk uint64,
+	toBlk uint64,
+	blkBatchSize uint64,
 	skipIndexed bool) error {
 	ctx = ContextRegularActivity(ctx, w.TaskListName)
 
-	// Parse from time
-	timeFrom, err := time.Parse(time.RFC3339, txTimeFrom)
-	if nil != err {
-		return err
+	// TODO remove in the future
+	if !skipIndexed {
+		return errors.New("skipIndexed must be true until we have a unique index handled properly for sale time series data")
 	}
 
-	// Parse to time
-	timeTo, err := time.Parse(time.RFC3339, txTimeTo)
-	if nil != err {
-		return err
+	if fromBlk > toBlk {
+		return fmt.Errorf("invalid block range")
+	}
+	startBlk := fromBlk
+	endBlk := fromBlk + blkBatchSize
+	if endBlk > toBlk {
+		endBlk = toBlk
 	}
 
-	if timeFrom.After(timeTo) {
-		return fmt.Errorf("time from is after time to")
-	}
+	log.Info("index feral file ethereum token sale in block range",
+		zap.Uint64("startBlk", startBlk),
+		zap.Uint64("endBlk", endBlk))
 
-	const limit = 100
-	log.Info("index feral file ethereum token sale in period",
-		zap.String("txTimeFrom", txTimeFrom),
-		zap.String("txTimeTo", txTimeTo),
-		zap.Int32("offset", offset),
-		zap.Int32("limit", limit))
-
-	// Get archived NFT transfer events
-	var evts []*processor.ArchivedEvent
+	// Query event logs
+	const infuraPageLimit = 10000
+	var logs []types.Log
 	if err := workflow.ExecuteActivity(
 		ctx,
-		w.GetArchivedEthereumTransferNFTEventsInPeriod,
-		timeFrom,
-		timeTo,
-		offset,
-		limit).
-		Get(ctx, &evts); err != nil {
+		w.GetEthereumEventLogs,
+		[]string{indexer.TransferEventSignature, indexer.TransferSingleEventSignature},
+		nil,
+		nil,
+		nil,
+		startBlk,
+		endBlk).
+		Get(ctx, &logs); err != nil {
 		return err
 	}
-	if len(evts) == 0 {
+	if len(logs) == 0 {
 		return nil
 	}
+	if len(logs) == infuraPageLimit {
+		// It should rarely happens so we don't need to handle
+		// properly, just adjust the block batch size smaller
+		// to avoid this error
+		return errors.New("too many logs, need to split")
+	}
 
+	// Turn event log to unique tx map
 	txMap := make(map[string]struct{})
-	for _, evt := range evts {
-		txMap[evt.TxID] = struct{}{}
+	for _, evt := range logs {
+		txMap[evt.TxHash.Hex()] = struct{}{}
 	}
 
 	// Index token sale
@@ -314,13 +320,13 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSaleInPeriod(
 		}
 	}
 
-	if len(evts) == int(limit) {
+	if endBlk < toBlk {
 		return workflow.NewContinueAsNewError(
 			ctx,
-			w.IndexEthereumTokenSaleInPeriod,
-			txTimeFrom,
-			txTimeTo,
-			offset+limit,
+			w.IndexEthereumTokenSaleInBlockRange,
+			startBlk+blkBatchSize,
+			toBlk,
+			blkBatchSize,
 			skipIndexed)
 	}
 
