@@ -294,10 +294,12 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSaleInBlockRange(
 		return errors.New("too many logs, need to split")
 	}
 
-	// Turn event log to unique tx map
+	// Turn event log to ERC721 and ERC1155 unique tx map
 	txMap := make(map[string]struct{})
 	for _, evt := range logs {
-		txMap[evt.TxHash.Hex()] = struct{}{}
+		if indexer.ERC721Transfer(evt) && indexer.ERC1155SingleTransfer(evt) {
+			txMap[evt.TxHash.Hex()] = struct{}{}
+		}
 	}
 
 	// Index token sale
