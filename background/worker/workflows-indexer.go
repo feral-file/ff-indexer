@@ -242,7 +242,7 @@ func (w *NFTIndexerWorker) IndexETHCollectionWorkflow(ctx workflow.Context, crea
 	return nil
 }
 
-func (w *NFTIndexerWorker) IndexFeralFileEthereumTokenSaleInPeriod(
+func (w *NFTIndexerWorker) IndexEthereumTokenSaleInPeriod(
 	ctx workflow.Context,
 	txTimeFrom string,
 	txTimeTo string,
@@ -289,52 +289,14 @@ func (w *NFTIndexerWorker) IndexFeralFileEthereumTokenSaleInPeriod(
 		return nil
 	}
 
-	tokenMap := make(map[string]struct{})
-	txTokenMap := make(map[string][]string)
+	txMap := make(map[string]struct{})
 	for _, evt := range evts {
-		indexID := indexer.TokenIndexID(evt.Blockchain, evt.Contract, evt.TokenID)
-		tokenMap[indexID] = struct{}{}
-
-		if tokens, ok := txTokenMap[evt.TxID]; ok {
-			txTokenMap[evt.TxID] = append(tokens, indexID)
-		} else {
-			txTokenMap[evt.TxID] = []string{indexID}
-		}
+		txMap[evt.TxID] = struct{}{}
 	}
-
-	// TODO remove when supporting all tokens, not only Feral File one
-	// Query token info
-	var futures []workflow.Future
-	for indexID := range tokenMap {
-		futures = append(futures, workflow.ExecuteActivity(
-			ctx,
-			w.GetTokenByIndexID,
-			indexID,
-		))
-	}
-
-	for _, future := range futures {
-		var token *indexer.Token
-		if err := future.Get(ctx, &token); err != nil {
-			return err
-		}
-
-		if nil != token && token.Source != "Feral File" {
-			delete(tokenMap, token.IndexID)
-		}
-	}
-
-	// ------------------------------------------------
 
 	// Index token sale
-	futures = make([]workflow.Future, 0)
-	for txID, indexIDs := range txTokenMap {
-		if len(indexIDs) > 1 {
-			log.Warn("multiple token transfer in a single transaction",
-				zap.String("txID", txID),
-				zap.Strings("indexIDs", indexIDs))
-			continue
-		}
+	futures := make([]workflow.Future, 0)
+	for txID, _ := range txMap {
 		workflowID := fmt.Sprintf("IndexEthereumTokenSale-%s", txID)
 		cwctx := ContextNamedRegularChildWorkflow(ctx, workflowID, TaskListName)
 		futures = append(
@@ -355,7 +317,7 @@ func (w *NFTIndexerWorker) IndexFeralFileEthereumTokenSaleInPeriod(
 	if len(evts) == int(limit) {
 		return workflow.NewContinueAsNewError(
 			ctx,
-			w.IndexFeralFileEthereumTokenSaleInPeriod,
+			w.IndexEthereumTokenSaleInPeriod,
 			txTimeFrom,
 			txTimeTo,
 			offset+limit,

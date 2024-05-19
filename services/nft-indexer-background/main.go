@@ -110,8 +110,8 @@ func main() {
 	workflow.RegisterWithOptions(worker.IndexTokenWorkflow, workflow.RegisterOptions{
 		Name: "IndexTokenWorkflow",
 	})
-	workflow.RegisterWithOptions(worker.IndexFeralFileEthereumTokenSaleInPeriod, workflow.RegisterOptions{
-		Name: "IndexFeralFileEthereumTokenSaleInPeriod"})
+	workflow.RegisterWithOptions(worker.IndexEthereumTokenSaleInPeriod, workflow.RegisterOptions{
+		Name: "IndexEthereumTokenSaleInPeriod"})
 	workflow.RegisterWithOptions(worker.IndexEthereumTokenSale, workflow.RegisterOptions{
 		Name: "IndexEthereumTokenSale",
 	})

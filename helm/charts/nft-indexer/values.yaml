@@ -54,6 +54,7 @@ serviceConfig:
   marketplace_feewallets:
     "0x8De9C5A032463C561423387a9648c5C7BCC5BC90": "OpenSea"
     "0x0000a26b00c1f0df003000390027140000faa719": "OpenSea"
+  etherscan_url: https://api.etherscan.io/api
 
 
 

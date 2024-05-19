@@ -3,7 +3,6 @@ package worker
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"math/big"
 	"strings"
 	"time"
@@ -12,6 +11,7 @@ import (
 	"go.uber.org/zap"
 
 	log "github.com/bitmark-inc/autonomy-logger"
+	utils "github.com/bitmark-inc/autonomy-utils"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/externals/etherscan"
 	"github.com/ethereum/go-ethereum/common"
@@ -411,7 +411,7 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 
 		// Check if the token is published by Feral File
 		// TODO remove after supporting all tokens not only Feral File one
-		indexID := fmt.Sprintf("eth-%s-%s", tokenContract, tokenID)
+		indexID := indexer.TokenIndexID(utils.EthereumBlockchain, tokenContract, tokenID)
 		var token *indexer.Token
 		if err := workflow.ExecuteActivity(
 			ctx,
@@ -649,17 +649,9 @@ func classifyTxLogs(logs []*types.Log) (map[string][]types.Log, map[string][]typ
 
 		switch {
 		case indexer.ERC20Transfer(*l):
-			if logs, ok := erc20Transfers[address]; ok {
-				erc20Transfers[address] = append(logs, *l)
-			} else {
-				erc20Transfers[address] = []types.Log{*l}
-			}
+			erc20Transfers[address] = append(erc20Transfers[address], *l)
 		case indexer.ERC1155SingleTransfer(*l), indexer.ERC721Transfer(*l):
-			if logs, ok := tokenTransfers[address]; ok {
-				tokenTransfers[address] = append(logs, *l)
-			} else {
-				tokenTransfers[address] = []types.Log{*l}
-			}
+			tokenTransfers[address] = append(tokenTransfers[address], *l)
 		default:
 			// Ignore
 		}

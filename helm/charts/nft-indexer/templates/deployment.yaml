@@ -296,6 +296,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-indexer.fullname" . }}
                   key: sentry_dsn
+            - name: NFT_INDEXER_ETHERSCAN_APIKEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: etherscan_apikey
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
