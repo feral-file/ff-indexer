@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/getsentry/sentry-go"
 	"go.uber.org/cadence/workflow"
@@ -269,42 +268,23 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSaleInBlockRange(
 		zap.Uint64("startBlk", startBlk),
 		zap.Uint64("endBlk", endBlk))
 
-	// Query event logs
-	const infuraPageLimit = 10000
-	var logs []types.Log
+	// Query txs
+	var txIDs []string
 	if err := workflow.ExecuteActivity(
 		ctx,
-		w.GetEthereumEventLogs,
-		[]string{indexer.TransferEventSignature, indexer.TransferSingleEventSignature},
-		nil,
-		nil,
-		nil,
+		w.FilterEthereumNFTTxByEventLogs,
 		startBlk,
 		endBlk).
-		Get(ctx, &logs); err != nil {
+		Get(ctx, &txIDs); err != nil {
 		return err
 	}
-	if len(logs) == 0 {
+	if len(txIDs) == 0 {
 		return nil
-	}
-	if len(logs) == infuraPageLimit {
-		// It should rarely happens so we don't need to handle
-		// properly, just adjust the block batch size smaller
-		// to avoid this error
-		return errors.New("too many logs, need to split")
-	}
-
-	// Turn event log to ERC721 and ERC1155 unique tx map
-	txMap := make(map[string]struct{})
-	for _, evt := range logs {
-		if indexer.ERC721Transfer(evt) && indexer.ERC1155SingleTransfer(evt) {
-			txMap[evt.TxHash.Hex()] = struct{}{}
-		}
 	}
 
 	// Index token sale
 	futures := make([]workflow.Future, 0)
-	for txID, _ := range txMap {
+	for _, txID := range txIDs {
 		workflowID := fmt.Sprintf("IndexEthereumTokenSale-%s", txID)
 		cwctx := ContextNamedRegularChildWorkflow(ctx, workflowID, TaskListName)
 		futures = append(

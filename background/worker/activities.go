@@ -865,36 +865,40 @@ func (w *NFTIndexerWorker) GetEthereumInternalTxs(ctx context.Context, txID stri
 		etherscan.TransactionQueryParams{TxHash: &txID})
 }
 
-// GetEthereumEventLogs returns the ethereum event logs by criteria
-func (w *NFTIndexerWorker) GetEthereumEventLogs(
+// FilterEthereumNFTTxByEventLogs filters ethereum NFT txs by event logs
+func (w *NFTIndexerWorker) FilterEthereumNFTTxByEventLogs(
 	ctx context.Context,
-	topic0 []string,
-	topic1 *string,
-	topic2 *string,
-	topic3 *string,
 	fromBlk uint64,
-	toBlk uint64) ([]types.Log, error) {
-	topics := [][]common.Hash{}
-	if topic0 != nil {
-		var t0 []common.Hash
-		for _, t := range topic0 {
-			t0 = append(t0, common.HexToHash(t))
-		}
-		topics = append(topics, t0)
-	}
-	if topic1 != nil {
-		topics = append(topics, []common.Hash{common.HexToHash(*topic1)})
-	}
-	if topic2 != nil {
-		topics = append(topics, []common.Hash{common.HexToHash(*topic2)})
-	}
-	if topic3 != nil {
-		topics = append(topics, []common.Hash{common.HexToHash(*topic3)})
+	toBlk uint64) ([]string, error) {
+	topics := [][]common.Hash{
+		{
+			common.HexToHash(indexer.TransferEventSignature),
+			common.HexToHash(indexer.TransferSingleEventSignature)},
 	}
 
-	return w.ethClient.FilterLogs(ctx, goethereum.FilterQuery{
+	// Filter logs
+	evts, err := w.ethClient.FilterLogs(ctx, goethereum.FilterQuery{
 		Topics:    topics,
 		FromBlock: new(big.Int).SetUint64(fromBlk),
 		ToBlock:   new(big.Int).SetUint64(toBlk),
 	})
+	if nil != err {
+		return nil, err
+	}
+
+	// Dedup txs, collect only ERC721 and ERC1155 txs
+	txMap := make(map[string]struct{})
+	for _, evt := range evts {
+		if indexer.ERC721Transfer(evt) || indexer.ERC1155SingleTransfer(evt) {
+			txMap[evt.TxHash.Hex()] = struct{}{}
+		}
+	}
+
+	// Convert to array
+	txs := make([]string, 0, len(txMap))
+	for tx := range txMap {
+		txs = append(txs, tx)
+	}
+
+	return txs, nil
 }

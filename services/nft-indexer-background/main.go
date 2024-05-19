@@ -123,7 +123,7 @@ func main() {
 	activity.Register(worker.GetEthereumBlockHeaderHash)
 	activity.Register(worker.GetEthereumBlockHeaderByNumber)
 	activity.Register(worker.GetEthereumInternalTxs)
-	activity.Register(worker.GetEthereumEventLogs)
+	activity.Register(worker.FilterEthereumNFTTxByEventLogs)
 
 	// tezos
 	activity.Register(worker.IndexTezosTokenByOwner)
