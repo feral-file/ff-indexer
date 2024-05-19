@@ -134,7 +134,6 @@ func NewEventTx(DB *gorm.DB, event NFTEvent) *EventTx {
 type EventStore interface {
 	CreateEvent(event NFTEvent) error
 	GetEventTransaction(ctx context.Context, filters ...FilterOption) (*EventTx, error)
-	GetArchivedEvents(ctx context.Context, pagination *Pagination, filters ...FilterOption) ([]ArchivedNFTEvent, error)
 }
 
 type PostgresEventStore struct {
@@ -221,35 +220,6 @@ func (s *PostgresEventStore) GetEventTransaction(ctx context.Context, filters ..
 	}
 
 	return NewEventTx(tx, event), nil
-}
-
-// GetArchivedEvents returns a list of archived events
-func (s *PostgresEventStore) GetArchivedEvents(
-	ctx context.Context,
-	pagination *Pagination,
-	filters ...FilterOption) ([]ArchivedNFTEvent, error) {
-
-	tx := s.db.Debug().
-		WithContext(ctx).
-		Model(&ArchivedNFTEvent{}).
-		Order("tx_time")
-	if nil != filters {
-		for _, filter := range filters {
-			tx = filter.Apply(tx)
-		}
-	}
-	if nil != pagination {
-		tx = pagination.Apply(tx)
-	}
-
-	var evts []ArchivedNFTEvent
-	if err := tx.
-		Find(&evts).
-		Error; err != nil {
-		return nil, err
-	}
-
-	return evts, nil
 }
 
 // AutoMigrate is a help function that update db when the schema changed.

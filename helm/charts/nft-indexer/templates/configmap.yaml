@@ -83,10 +83,6 @@ data:
       minter_gateways: |
       {{- .Values.serviceConfig.minter_gateways | toYaml | nindent 8 }}
 
-    event_processor_server:
-      network: tcp
-      address: {{ .Values.serviceConfig.eventProcessorEndpoint }}
-    
     ethereum:
       erc20:
       {{ .Values.serviceConfig.ethereum_erc20 | toYaml | nindent 8 }}

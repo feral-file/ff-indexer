@@ -22,8 +22,3 @@ func (q *EventQueue) PushEvent(event NFTEvent) error {
 func (q *EventQueue) GetEventTransaction(ctx context.Context, filters ...FilterOption) (*EventTx, error) {
 	return q.store.GetEventTransaction(ctx, filters...)
 }
-
-// GetArchivedEvents returns all archived events by filters
-func (q *EventQueue) GetArchivedEvents(ctx context.Context, pagination *Pagination, filters ...FilterOption) ([]ArchivedNFTEvent, error) {
-	return q.store.GetArchivedEvents(ctx, pagination, filters...)
-}

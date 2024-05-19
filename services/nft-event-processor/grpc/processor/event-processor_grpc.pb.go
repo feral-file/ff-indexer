@@ -19,8 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	EventProcessor_PushEvent_FullMethodName         = "/EventProcessor/PushEvent"
-	EventProcessor_GetArchivedEvents_FullMethodName = "/EventProcessor/GetArchivedEvents"
+	EventProcessor_PushEvent_FullMethodName = "/EventProcessor/PushEvent"
 )
 
 // EventProcessorClient is the client API for EventProcessor service.
@@ -28,7 +27,6 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type EventProcessorClient interface {
 	PushEvent(ctx context.Context, in *EventInput, opts ...grpc.CallOption) (*EventOutput, error)
-	GetArchivedEvents(ctx context.Context, in *ArchivedEventInput, opts ...grpc.CallOption) (*ArchivedEvents, error)
 }
 
 type eventProcessorClient struct {
@@ -48,21 +46,11 @@ func (c *eventProcessorClient) PushEvent(ctx context.Context, in *EventInput, op
 	return out, nil
 }
 
-func (c *eventProcessorClient) GetArchivedEvents(ctx context.Context, in *ArchivedEventInput, opts ...grpc.CallOption) (*ArchivedEvents, error) {
-	out := new(ArchivedEvents)
-	err := c.cc.Invoke(ctx, EventProcessor_GetArchivedEvents_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // EventProcessorServer is the server API for EventProcessor service.
 // All implementations must embed UnimplementedEventProcessorServer
 // for forward compatibility
 type EventProcessorServer interface {
 	PushEvent(context.Context, *EventInput) (*EventOutput, error)
-	GetArchivedEvents(context.Context, *ArchivedEventInput) (*ArchivedEvents, error)
 	mustEmbedUnimplementedEventProcessorServer()
 }
 
@@ -72,9 +60,6 @@ type UnimplementedEventProcessorServer struct {
 
 func (UnimplementedEventProcessorServer) PushEvent(context.Context, *EventInput) (*EventOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PushEvent not implemented")
-}
-func (UnimplementedEventProcessorServer) GetArchivedEvents(context.Context, *ArchivedEventInput) (*ArchivedEvents, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetArchivedEvents not implemented")
 }
 func (UnimplementedEventProcessorServer) mustEmbedUnimplementedEventProcessorServer() {}
 
@@ -107,24 +92,6 @@ func _EventProcessor_PushEvent_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
-func _EventProcessor_GetArchivedEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ArchivedEventInput)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(EventProcessorServer).GetArchivedEvents(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: EventProcessor_GetArchivedEvents_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EventProcessorServer).GetArchivedEvents(ctx, req.(*ArchivedEventInput))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // EventProcessor_ServiceDesc is the grpc.ServiceDesc for EventProcessor service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -135,10 +102,6 @@ var EventProcessor_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PushEvent",
 			Handler:    _EventProcessor_PushEvent_Handler,
-		},
-		{
-			MethodName: "GetArchivedEvents",
-			Handler:    _EventProcessor_GetArchivedEvents_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

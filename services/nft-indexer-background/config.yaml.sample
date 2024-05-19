@@ -46,7 +46,3 @@ ipfs:
 marketplace:
   contracts:
   fee_wallets:
-
-
-event_processor_server:
-  address:

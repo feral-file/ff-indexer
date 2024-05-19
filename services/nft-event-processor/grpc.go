@@ -9,7 +9,6 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	log "github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
@@ -92,92 +91,4 @@ func (t *GRPCHandler) PushEvent(
 	}
 
 	return output, nil
-}
-
-// GetArchivedEvents handles GetArchivedEvents requests and return archived events
-func (t *GRPCHandler) GetArchivedEvents(
-	_ context.Context,
-	i *processor.ArchivedEventInput) (*processor.ArchivedEvents, error) {
-	filters := mapGrpcArchivedEventInputToFilters(i)
-	var pagination *Pagination
-	if nil != i.Pagination {
-		pagination = &Pagination{
-			Limit:  int(i.Pagination.Limit),
-			Offset: int(i.Pagination.Offset),
-		}
-	}
-	events, err := t.queueProcessor.GetArchivedEvents(
-		context.Background(),
-		pagination,
-		filters...)
-
-	if err != nil {
-		return nil, err
-	}
-
-	output := &processor.ArchivedEvents{
-		Events: make([]*processor.ArchivedEvent, len(events)),
-	}
-
-	for i, event := range events {
-		output.Events[i] = &processor.ArchivedEvent{
-			ID:         event.ID,
-			Type:       event.Type,
-			Blockchain: event.Blockchain,
-			Contract:   event.Contract,
-			TokenID:    event.TokenID,
-			From:       event.From,
-			To:         event.To,
-			TxID:       event.TXID,
-			TxTime:     timestamppb.New(event.TXTime),
-			CreatedAt:  timestamppb.New(event.CreatedAt),
-			UpdatedAt:  timestamppb.New(event.UpdatedAt),
-			Status:     string(event.Status),
-		}
-	}
-
-	return output, nil
-}
-
-func mapGrpcArchivedEventInputToFilters(i *processor.ArchivedEventInput) []FilterOption {
-	if nil == i {
-		return nil
-	}
-
-	filters := []FilterOption{}
-	if nil != i.Blockchain {
-		filters = append(filters, Filter("blockchain = ?", *i.Blockchain))
-	}
-	if nil != i.Contract {
-		filters = append(filters, Filter("contract = ?", *i.Contract))
-	}
-	if nil != i.TokenID {
-		filters = append(filters, Filter("token_id = ?", *i.TokenID))
-	}
-	if nil != i.From {
-		filters = append(filters, Filter("from = ?", *i.From))
-	}
-	if nil != i.To {
-		filters = append(filters, Filter("to = ?", *i.To))
-	}
-	if nil != i.Type {
-		filters = append(filters, Filter("type = ?", *i.Type))
-	}
-	if nil != i.Status {
-		filters = append(filters, Filter("status = ?", *i.Status))
-	}
-	if nil != i.Stage {
-		filters = append(filters, Filter("stage = ?", *i.Stage))
-	}
-	if nil != i.TxID {
-		filters = append(filters, Filter("tx_id = ?", *i.TxID))
-	}
-	if nil != i.TxFromTime {
-		filters = append(filters, Filter("tx_time >= ?", i.TxFromTime.AsTime()))
-	}
-	if nil != i.TxToTime {
-		filters = append(filters, Filter("tx_time <= ?", i.TxToTime.AsTime()))
-	}
-
-	return filters
 }
