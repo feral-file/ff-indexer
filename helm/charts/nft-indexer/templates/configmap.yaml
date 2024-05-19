@@ -88,13 +88,13 @@ data:
       address: {{ .Values.serviceConfig.eventProcessorEndpoint }}
     
     ethereum:
-      erc20: |
+      erc20:
       {{ .Values.serviceConfig.ethereum_erc20 | toYaml | nindent 8 }}
     
     marketplace:
-      contracts: |
+      contracts:
       {{ .Values.serviceConfig.marketplace_contracts | toYaml | nindent 8 }}
-      fee_wallets: |
+      fee_wallets:
       {{ .Values.serviceConfig.marketplace_feewallets | toYaml | nindent 8 }}
     etherscan:
       url: {{ .Values.serviceConfig.etherscan_url }}
