@@ -247,6 +247,7 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSaleInBlockRange(
 	fromBlk uint64,
 	toBlk uint64,
 	blkBatchSize uint64,
+	contractAddresses []string,
 	skipIndexed bool) error {
 	ctx = ContextRegularActivity(ctx, w.TaskListName)
 
@@ -266,20 +267,19 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSaleInBlockRange(
 
 	log.Info("index feral file ethereum token sale in block range",
 		zap.Uint64("startBlk", startBlk),
-		zap.Uint64("endBlk", endBlk))
+		zap.Uint64("endBlk", endBlk),
+		zap.Strings("contractAddresses", contractAddresses))
 
 	// Query txs
-	var txIDs []string
+	txIDs := make([]string, 0)
 	if err := workflow.ExecuteActivity(
 		ctx,
 		w.FilterEthereumNFTTxByEventLogs,
+		contractAddresses,
 		startBlk,
 		endBlk).
 		Get(ctx, &txIDs); err != nil {
 		return err
-	}
-	if len(txIDs) == 0 {
-		return nil
 	}
 
 	// Index token sale
@@ -309,6 +309,7 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSaleInBlockRange(
 			startBlk+blkBatchSize,
 			toBlk,
 			blkBatchSize,
+			contractAddresses,
 			skipIndexed)
 	}
 

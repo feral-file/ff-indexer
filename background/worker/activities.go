@@ -868,6 +868,7 @@ func (w *NFTIndexerWorker) GetEthereumInternalTxs(ctx context.Context, txID stri
 // FilterEthereumNFTTxByEventLogs filters ethereum NFT txs by event logs
 func (w *NFTIndexerWorker) FilterEthereumNFTTxByEventLogs(
 	ctx context.Context,
+	addresses []string,
 	fromBlk uint64,
 	toBlk uint64) ([]string, error) {
 	topics := [][]common.Hash{
@@ -876,8 +877,14 @@ func (w *NFTIndexerWorker) FilterEthereumNFTTxByEventLogs(
 			common.HexToHash(indexer.TransferSingleEventSignature)},
 	}
 
+	var filterAddress []common.Address
+	for _, addr := range addresses {
+		filterAddress = append(filterAddress, common.HexToAddress(addr))
+	}
+
 	// Filter logs
 	evts, err := w.ethClient.FilterLogs(ctx, goethereum.FilterQuery{
+		Addresses: filterAddress,
 		Topics:    topics,
 		FromBlock: new(big.Int).SetUint64(fromBlk),
 		ToBlock:   new(big.Int).SetUint64(toBlk),
