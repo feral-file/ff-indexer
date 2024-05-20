@@ -425,11 +425,7 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 			Get(ctx, &token); err != nil {
 			return nil, err
 		}
-		// TODO uncomment after testing
-		// if nil == token || token.Source != "feralfile" {
-		// 	continue
-		// }
-		if nil == token {
+		if nil == token || token.Source != "feralfile" {
 			continue
 		}
 
