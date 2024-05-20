@@ -112,6 +112,7 @@ type Store interface {
 	) error
 	GetSaleTimeSeriesData(ctx context.Context, addresses, royaltyAddresses []string, marketplace string, offset, size int64) ([]SaleTimeSeries, error)
 	AggregateSaleRevenues(ctx context.Context, addresses []string, marketplace string) (map[string]primitive.Decimal128, error)
+	SaleTimeSeriesDataExists(ctx context.Context, txID string) (bool, error)
 }
 
 type FilterParameter struct {
@@ -2480,4 +2481,14 @@ func (s *MongodbIndexerStore) AggregateSaleRevenues(ctx context.Context, address
 	}
 
 	return resultMap, nil
+}
+
+// SaleTimeSeriesDataExists - check if a sale time series data exists for a transaction hash
+func (s *MongodbIndexerStore) SaleTimeSeriesDataExists(ctx context.Context, txID string) (bool, error) {
+	count, err := s.salesTimeSeriesCollection.CountDocuments(ctx, bson.M{"metadata.transaction_id": txID})
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }

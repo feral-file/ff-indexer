@@ -33,3 +33,6 @@ cache:
 asset_server:
   server_url:
   secret_key:
+
+event_processor_server:
+  address: 

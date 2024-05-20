@@ -172,19 +172,30 @@ func (s *PostgresEventStore) CreateEvent(event NFTEvent) error {
 // FilterOption is an abstraction to help filtering events with
 // specific conditions
 type FilterOption struct {
-	Statement  string
-	Argumenets []interface{}
+	Statement string
+	Arguments []interface{}
 }
 
 func (f FilterOption) Apply(tx *gorm.DB) *gorm.DB {
-	return tx.Where(f.Statement, f.Argumenets...)
+	return tx.Where(f.Statement, f.Arguments...)
 }
 
 func Filter(statement string, args ...interface{}) FilterOption {
 	return FilterOption{
-		Statement:  statement,
-		Argumenets: args,
+		Statement: statement,
+		Arguments: args,
 	}
+}
+
+type Pagination struct {
+	Limit  int
+	Offset int
+}
+
+func (p *Pagination) Apply(tx *gorm.DB) *gorm.DB {
+	return tx.
+		Limit(p.Limit).
+		Offset(p.Offset)
 }
 
 // GetEventTransaction returns an EventTx

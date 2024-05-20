@@ -12,6 +12,7 @@ import (
 
 	goethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/google/uuid"
 	"github.com/spf13/viper"
@@ -21,6 +22,7 @@ import (
 	utils "github.com/bitmark-inc/autonomy-utils"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/contracts"
+	"github.com/bitmark-inc/nft-indexer/externals/etherscan"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 	"github.com/bitmark-inc/tzkt-go"
 )
@@ -175,6 +177,11 @@ func (w *NFTIndexerWorker) IndexToken(ctx context.Context, contract, tokenID str
 	return w.indexerEngine.IndexToken(ctx, contract, tokenID)
 }
 
+// GetTokenByIndexID gets a token by indexID
+func (w *NFTIndexerWorker) GetTokenByIndexID(ctx context.Context, indexID string) (*indexer.Token, error) {
+	return w.indexerStore.GetTokenByIndexID(ctx, indexID)
+}
+
 // GetOwnedTokenIDsByOwner gets tokenIDs by the given owner
 func (w *NFTIndexerWorker) GetOwnedTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
 	return w.indexerStore.GetOwnedTokenIDsByOwner(ctx, owner)
@@ -188,6 +195,16 @@ func (w *NFTIndexerWorker) FilterTokenIDsWithInconsistentProvenanceForOwner(ctx 
 // IndexAsset saves asset data into indexer's storage
 func (w *NFTIndexerWorker) IndexAsset(ctx context.Context, updates indexer.AssetUpdates) error {
 	return w.indexerStore.IndexAsset(ctx, updates.ID, updates)
+}
+
+// WriteSaleTimeSeriesData saves sales time series data into indexer's storage
+func (w *NFTIndexerWorker) WriteSaleTimeSeriesData(ctx context.Context, data []indexer.GenericSalesTimeSeries) error {
+	return w.indexerStore.WriteTimeSeriesData(ctx, data)
+}
+
+// IndexedSaleTx checks if a sale tx is indexed
+func (w *NFTIndexerWorker) IndexedSaleTx(ctx context.Context, txID string) (bool, error) {
+	return w.indexerStore.SaleTimeSeriesDataExists(ctx, txID)
 }
 
 // indexTezosAccount saves tezos account data into indexer's storage
@@ -815,4 +832,80 @@ func (w *NFTIndexerWorker) IndexETHCollectionsByCreator(ctx context.Context, cre
 	}
 
 	return collectionNext, nil
+}
+
+// GetEthereumTxReceipt returns the ethereum transaction receipt object of a tx hash
+func (w *NFTIndexerWorker) GetEthereumTxReceipt(ctx context.Context, txID string) (*types.Receipt, error) {
+	return w.ethClient.TransactionReceipt(ctx, common.HexToHash(txID))
+}
+
+// GetEthereumTx returns the ethereum transaction object of a tx hash
+func (w *NFTIndexerWorker) GetEthereumTx(ctx context.Context, txID string) (*types.Transaction, error) {
+	tx, _, err := w.ethClient.TransactionByHash(ctx, common.HexToHash(txID))
+	return tx, err
+}
+
+// GetEthereumBlockHeaderHash returns the ethereum block object of a block hash
+func (w *NFTIndexerWorker) GetEthereumBlockHeaderHash(ctx context.Context, blkHash string) (*types.Header, error) {
+	return w.ethClient.HeaderByHash(ctx, common.HexToHash(blkHash))
+}
+
+// GetEthereumBlockHeaderByNumber returns the ethereum block object of a block number
+func (w *NFTIndexerWorker) GetEthereumBlockHeaderByNumber(ctx context.Context, blkNumber *big.Int) (*types.Header, error) {
+	return w.ethClient.HeaderByNumber(ctx, blkNumber)
+}
+
+// GetEthereumInternalTxs returns the ethereum internal transactions of a tx hash
+func (w *NFTIndexerWorker) GetEthereumInternalTxs(ctx context.Context, txID string) ([]etherscan.Transaction, error) {
+	ec := etherscan.NewClient(
+		viper.GetString("etherscan.url"),
+		viper.GetString("etherscan.apikey"))
+	return ec.Account.ListInternalTxs(
+		ctx,
+		etherscan.TransactionQueryParams{TxHash: &txID})
+}
+
+// FilterEthereumNFTTxByEventLogs filters ethereum NFT txs by event logs
+func (w *NFTIndexerWorker) FilterEthereumNFTTxByEventLogs(
+	ctx context.Context,
+	addresses []string,
+	fromBlk uint64,
+	toBlk uint64) ([]string, error) {
+	topics := [][]common.Hash{
+		{
+			common.HexToHash(indexer.TransferEventSignature),
+			common.HexToHash(indexer.TransferSingleEventSignature)},
+	}
+
+	var filterAddress []common.Address
+	for _, addr := range addresses {
+		filterAddress = append(filterAddress, common.HexToAddress(addr))
+	}
+
+	// Filter logs
+	evts, err := w.ethClient.FilterLogs(ctx, goethereum.FilterQuery{
+		Addresses: filterAddress,
+		Topics:    topics,
+		FromBlock: new(big.Int).SetUint64(fromBlk),
+		ToBlock:   new(big.Int).SetUint64(toBlk),
+	})
+	if nil != err {
+		return nil, err
+	}
+
+	// Dedup txs, collect only ERC721 and ERC1155 txs
+	txMap := make(map[string]struct{})
+	for _, evt := range evts {
+		if indexer.ERC721Transfer(evt) || indexer.ERC1155SingleTransfer(evt) {
+			txMap[evt.TxHash.Hex()] = struct{}{}
+		}
+	}
+
+	// Convert to array
+	txs := make([]string, 0, len(txMap))
+	for tx := range txMap {
+		txs = append(txs, tx)
+	}
+
+	return txs, nil
 }

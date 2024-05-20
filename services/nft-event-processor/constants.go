@@ -13,6 +13,8 @@ const (
 	// deprecated
 	StageFeed = 4
 
+	StageTokenSaleIndexing = 5
+
 	StageDoubleSync = 11
 )
 
