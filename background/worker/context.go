@@ -104,3 +104,15 @@ func ContextDetachedChildWorkflow(ctx workflow.Context, workflowID, taskList str
 		ParentClosePolicy: cadenceClient.ParentClosePolicyAbandon,
 	})
 }
+
+func ContextRetriableChildWorkflow(ctx workflow.Context, taskList string) workflow.Context {
+	return workflow.WithChildOptions(ctx, workflow.ChildWorkflowOptions{
+		TaskList:                     taskList,
+		ExecutionStartToCloseTimeout: time.Hour,
+		RetryPolicy: &cadence.RetryPolicy{
+			InitialInterval:    10 * time.Second,
+			BackoffCoefficient: 2.0,
+			MaximumAttempts:    5,
+		},
+	})
+}

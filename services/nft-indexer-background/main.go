@@ -98,15 +98,33 @@ func main() {
 	workflow.RegisterWithOptions(worker.IndexTokenWorkflow, workflow.RegisterOptions{
 		Name: "IndexTokenWorkflow",
 	})
+	workflow.RegisterWithOptions(worker.IndexEthereumTokenSaleInBlockRange, workflow.RegisterOptions{
+		Name: "IndexEthereumTokenSaleInBlockRange"})
+	workflow.RegisterWithOptions(worker.IndexEthereumTokenSale, workflow.RegisterOptions{
+		Name: "IndexEthereumTokenSale",
+	})
+	workflow.RegisterWithOptions(worker.IndexTezosTokenSale, workflow.RegisterOptions{
+		Name: "IndexTezosTokenSale",
+	})
+	workflow.RegisterWithOptions(worker.ParseEthereumSingleTokenSale, workflow.RegisterOptions{
+		Name: "ParseEthereumSingleTokenSale"})
 
 	// cache
 	activity.Register(worker.CacheArtifact)
 
 	// all blockchain
 	activity.Register(worker.IndexToken)
+
 	// ethereum
 	activity.Register(worker.IndexETHTokenByOwner)
 	activity.Register(worker.IndexETHCollectionsByCreator)
+	activity.Register(worker.GetEthereumTxReceipt)
+	activity.Register(worker.GetEthereumTx)
+	activity.Register(worker.GetEthereumBlockHeaderHash)
+	activity.Register(worker.GetEthereumBlockHeaderByNumber)
+	activity.Register(worker.GetEthereumInternalTxs)
+	activity.Register(worker.FilterEthereumNFTTxByEventLogs)
+
 	// tezos
 	activity.Register(worker.IndexTezosTokenByOwner)
 	activity.Register(worker.IndexTezosCollectionsByCreator)
@@ -114,6 +132,9 @@ func main() {
 	activity.Register(worker.IndexAsset)
 	activity.Register(worker.GetTokenBalanceOfOwner)
 	activity.Register(worker.RefreshTokenProvenance)
+	activity.Register(worker.GetTokenByIndexID)
+	activity.Register(worker.WriteSaleTimeSeriesData)
+	activity.Register(worker.IndexedSaleTx)
 
 	// index account tokens
 	activity.Register(worker.IndexAccountTokens)

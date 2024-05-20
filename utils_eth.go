@@ -7,6 +7,7 @@ import (
 	log "github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/nft-indexer/cache"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
@@ -34,4 +35,22 @@ func GetETHBlockTime(ctx context.Context, store cache.Store, rpcClient *ethclien
 	}
 
 	return blockTime, err
+}
+
+func TransferEventLog(l types.Log) bool {
+	evtHash := l.Topics[0]
+	return evtHash.Hex() == TransferEventSignature
+}
+
+func ERC20Transfer(l types.Log) bool {
+	return TransferEventLog(l) && len(l.Topics) == 3
+}
+
+func ERC721Transfer(l types.Log) bool {
+	return TransferEventLog(l) && len(l.Topics) == 4
+}
+
+func ERC1155SingleTransfer(l types.Log) bool {
+	return l.Topics[0].Hex() == TransferSingleEventSignature &&
+		len(l.Topics) == 4
 }

@@ -74,6 +74,7 @@ func (e *EventProcessor) notifyChangeOwner(accountID, toAddress, tokenID string)
 // Run starts event processor server. It spawns a queue processor in the
 // background routine and starts up a gRPC server to wait new events.
 func (e *EventProcessor) Run(ctx context.Context) {
+	log.Info("start event processor")
 	e.ProcessEvents(ctx)
 
 	if err := e.grpcServer.Run(); err != nil {
@@ -172,6 +173,9 @@ func (e *EventProcessor) ProcessEvents(ctx context.Context) {
 
 	//stage 4: send to feed server
 	// e.SendEventToFeedServer(ctx)
+
+	//stage 5: index token sale
+	e.IndexTokenSale(ctx)
 }
 
 // GetAccountIDByAddress get account IDS by address
