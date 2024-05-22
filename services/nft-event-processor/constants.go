@@ -19,11 +19,12 @@ const (
 )
 
 var EventStages = map[Stage]string{
-	StageInit:         "stage_1_init",
-	StageFullSync:     "stage_2_full_sync",
-	StageNotification: "stage_3_send_notification",
-	StageFeed:         "stage_4_send_to_feed",
-	StageDoubleSync:   "stage_11_double_sync_token",
+	StageInit:              "stage_1_init",
+	StageFullSync:          "stage_2_full_sync",
+	StageNotification:      "stage_3_send_notification",
+	StageFeed:              "stage_4_send_to_feed",
+	StageTokenSaleIndexing: "stage_5_index_token_sale",
+	StageDoubleSync:        "stage_11_double_sync_token",
 }
 
 const DefaultCheckInterval = 10 * time.Second

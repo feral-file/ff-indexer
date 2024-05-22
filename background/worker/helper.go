@@ -235,7 +235,7 @@ func StartIndexingTokenSale(
 		if nil != err {
 			return err
 		}
-		log.Debug("start workflow for indexing ethereum sale",
+		log.Info("start workflow for indexing ethereum sale",
 			zap.String("workflow_id", exec.ID),
 			zap.String("run_id", exec.RunID))
 	case utils.TezosBlockchain:
@@ -250,7 +250,7 @@ func StartIndexingTokenSale(
 		// if nil != err {
 		// 	return err
 		// }
-		// log.Debug("start workflow for indexing tezos sale",
+		// log.Info("start workflow for indexing tezos sale",
 		// 	zap.String("workflow_id", exec.ID),
 		// 	zap.String("run_id", exec.RunID))
 	default:
