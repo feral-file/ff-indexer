@@ -2371,6 +2371,7 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 				filter := bson.M{
 					"metadata.transaction_id": r.Metadata["transaction_id"],
 					"metadata.token_id":       r.Metadata["token_id"],
+					"metadata.blockchain":     r.Metadata["blockchain"],
 				}
 				update := bson.M{"$set": doc}
 
