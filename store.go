@@ -2373,33 +2373,17 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 			"metadata.token_id":       tokenID,
 			"metadata.blockchain":     blockchain,
 		}
-		count, err := s.salesTimeSeriesCollection.CountDocuments(ctx, filter)
+		_, err = s.salesTimeSeriesCollection.DeleteMany(ctx, filter)
 		if err != nil {
-			log.Error("error checking for existing documents",
+			log.Warn("error deleting documents",
 				zap.String("transaction_id", transactionID),
 				zap.String("token_id", tokenID),
 				zap.String("blockchain", blockchain),
 				zap.Error(err))
-			return err
+			continue
 		}
 
-		if count > 0 {
-			update := bson.M{"$set": bson.M{
-				"metadata": r.Metadata,
-			}}
-			_, err = s.salesTimeSeriesCollection.UpdateMany(ctx, filter, update)
-			if err != nil {
-				log.Error(
-					"error updating time series data after duplicate key",
-					zap.Any("filter", filter),
-					zap.Any("update", update),
-					zap.Error(err),
-				)
-				return err
-			}
-		} else {
-			inserts = append(inserts, doc)
-		}
+		inserts = append(inserts, doc)
 	}
 
 	if len(inserts) > 0 {
