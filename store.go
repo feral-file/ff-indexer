@@ -2286,7 +2286,7 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 	ctx context.Context,
 	records []GenericSalesTimeSeries,
 ) error {
-
+	var inserts []interface{}
 	for _, r := range records {
 		timestamp, err := time.Parse(time.RFC3339Nano, r.Timestamp)
 		if nil != err {
@@ -2364,35 +2364,33 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 		}
 		doc["shares"] = sv
 
-		_, err = s.salesTimeSeriesCollection.InsertOne(ctx, doc)
-		if err != nil {
-			if mongo.IsDuplicateKeyError(err) {
-				// If duplicate key error, perform an update
-				filter := bson.M{
-					"metadata.transaction_id": r.Metadata["transaction_id"],
-					"metadata.token_id":       r.Metadata["token_id"],
-					"metadata.blockchain":     r.Metadata["blockchain"],
-				}
-				update := bson.M{"$set": doc}
+		transactionID := r.Metadata["transaction_id"]
+		tokenID := r.Metadata["token_id"]
+		blockchain := r.Metadata["blockchain"]
 
-				_, err = s.salesTimeSeriesCollection.UpdateOne(ctx, filter, update)
-				if err != nil {
-					log.Error(
-						"error updating time series data after duplicate key",
-						zap.Any("filter", filter),
-						zap.Any("update", update),
-						zap.Error(err),
-					)
-					return err
-				}
-			} else {
-				log.Error(
-					"error inserting time series data",
-					zap.Any("document", doc),
-					zap.Error(err),
-				)
-				return err
-			}
+		filter := bson.M{
+			"metadata.transaction_id": transactionID,
+			"metadata.token_id":       tokenID,
+			"metadata.blockchain":     blockchain,
+		}
+		_, err = s.salesTimeSeriesCollection.DeleteMany(ctx, filter)
+		if err != nil {
+			log.Error("error deleting documents",
+				zap.String("transaction_id", transactionID),
+				zap.String("token_id", tokenID),
+				zap.String("blockchain", blockchain),
+				zap.Error(err))
+			return err
+		}
+
+		inserts = append(inserts, doc)
+	}
+
+	if len(inserts) > 0 {
+		_, err := s.salesTimeSeriesCollection.InsertMany(ctx, inserts)
+		if err != nil {
+			log.Error("error inserting documents", zap.Error(err))
+			return err
 		}
 	}
 
