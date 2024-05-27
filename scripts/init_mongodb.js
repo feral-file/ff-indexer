@@ -209,5 +209,5 @@ db.sales_time_series.createIndex({
   "metadata.token_id": 1,
   "metadata.blockchain": 1
 }, {
-  unique: true
+  unique: false
 });
