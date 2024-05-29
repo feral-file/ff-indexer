@@ -497,35 +497,33 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 				Amount: amount,
 			})
 		}
-	} else {
-		currency = "ETH"
+	}
 
-		// List internal txs
-		var itxs []etherscan.Transaction
-		if err := workflow.ExecuteActivity(
-			ctx,
-			w.GetEthereumInternalTxs,
-			txID).
-			Get(ctx, &itxs); nil != err {
-			return nil, err
-		}
+	// List internal txs
+	var itxs []etherscan.Transaction
+	if err := workflow.ExecuteActivity(
+		ctx,
+		w.GetEthereumInternalTxs,
+		txID).
+		Get(ctx, &itxs); nil != err {
+		return nil, err
+	}
 
-		if len(itxs) > 0 {
-			for _, itx := range itxs {
-				srcAddrHex := common.HexToAddress(itx.From).Hex()
-				dstAddrHex := common.HexToAddress(itx.To).Hex()
-				val, ok := big.NewInt(0).SetString(itx.Value, 10)
-				if !ok {
-					return nil, errParseInternalTxVal
-				}
-				transfer := payTransferData{
-					From:   srcAddrHex,
-					To:     dstAddrHex,
-					Amount: val,
-				}
-
-				payTxs = append(payTxs, transfer)
+	if len(itxs) > 0 {
+		for _, itx := range itxs {
+			srcAddrHex := common.HexToAddress(itx.From).Hex()
+			dstAddrHex := common.HexToAddress(itx.To).Hex()
+			val, ok := big.NewInt(0).SetString(itx.Value, 10)
+			if !ok {
+				return nil, errParseInternalTxVal
 			}
+			transfer := payTransferData{
+				From:   srcAddrHex,
+				To:     dstAddrHex,
+				Amount: val,
+			}
+
+			payTxs = append(payTxs, transfer)
 		}
 	}
 
