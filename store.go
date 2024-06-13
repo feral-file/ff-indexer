@@ -2304,7 +2304,7 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 				log.Warn(
 					"reserved metadata field name",
 					zap.String("key", k),
-					zap.String("value", v),
+					zap.Any("value", v),
 				)
 				return fmt.Errorf("reserved field name: metadata.%s", k)
 			}
@@ -2364,20 +2364,29 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 		}
 		doc["shares"] = sv
 
-		transactionID := r.Metadata["transaction_id"]
-		tokenID := r.Metadata["token_id"]
-		blockchain := r.Metadata["blockchain"]
-
+		transactionID := r.Metadata["transaction_id"].(string)
+		blockchain := r.Metadata["blockchain"].(string)
 		filter := bson.M{
 			"metadata.transaction_id": transactionID,
-			"metadata.token_id":       tokenID,
 			"metadata.blockchain":     blockchain,
 		}
+
+		var tokenID string
+		var bundleTokenInfo []interface{}
+		if value, ok := r.Metadata["token_id"]; ok {
+			tokenID = value.(string)
+			filter["metadata.token_id"] = tokenID
+		} else {
+			bundleTokenInfo = r.Metadata["bundle_token_info"].([]interface{})
+			filter["metadata.bundle_token_info"] = bundleTokenInfo
+		}
+
 		_, err = s.salesTimeSeriesCollection.DeleteMany(ctx, filter)
 		if err != nil {
 			log.Error("error deleting documents",
 				zap.String("transaction_id", transactionID),
 				zap.String("token_id", tokenID),
+				zap.Any("bundle_token_info", bundleTokenInfo),
 				zap.String("blockchain", blockchain),
 				zap.Error(err))
 			return err
