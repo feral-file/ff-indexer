@@ -256,10 +256,10 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 
 	values := make(map[string]string)
 	values["price"] = tokenSale.Price.String()
-	values["platform_fee"] = tokenSale.PlatformFee.String()
-	values["net_revenue"] = tokenSale.NetRevenue.String()
-	values["payment_amount"] = tokenSale.PaymentAmount.String()
-	values["exchange_rate"] = "1"
+	values["platformFee"] = tokenSale.PlatformFee.String()
+	values["netRevenue"] = tokenSale.NetRevenue.String()
+	values["paymentAmount"] = tokenSale.PaymentAmount.String()
+	values["exchangeRate"] = "1"
 
 	bundleTokenInfo := map[string]interface{}{}
 	err := mapstructure.Decode(tokenSale.BundleTokenInfo, &bundleTokenInfo)
@@ -267,15 +267,15 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 		return err
 	}
 	metadata := map[string]interface{}{
-		"blockchain":        tokenSale.Blockchain,
-		"marketplace":       tokenSale.Marketplace,
-		"payment_currency":  tokenSale.Currency,
-		"payment_method":    "crypto",
-		"pricing_currency":  tokenSale.Currency,
-		"revenue_currency":  tokenSale.Currency,
-		"sale_type":         "secondary",
-		"transaction_id":    tokenSale.TxID,
-		"bundle_token_info": bundleTokenInfo,
+		"blockchain":      tokenSale.Blockchain,
+		"marketplace":     tokenSale.Marketplace,
+		"paymentCurrency": tokenSale.Currency,
+		"paymentMethod":   "crypto",
+		"pricingCurrency": tokenSale.Currency,
+		"revenueCurrency": tokenSale.Currency,
+		"saleType":        "secondary",
+		"transactionID":   tokenSale.TxID,
+		"bundleTokenInfo": bundleTokenInfo,
 	}
 
 	data := []indexer.GenericSalesTimeSeries{

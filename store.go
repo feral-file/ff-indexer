@@ -2364,22 +2364,22 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 		}
 		doc["shares"] = sv
 
-		transactionID := r.Metadata["transaction_id"].(string)
+		transactionID := r.Metadata["transactionID"].(string)
 		blockchain := r.Metadata["blockchain"].(string)
 		filter := bson.M{
-			"metadata.transaction_id": transactionID,
-			"metadata.blockchain":     blockchain,
+			"metadata.transactionID": transactionID,
+			"metadata.blockchain":    blockchain,
 		}
 
 		log.Debug("deleting documents",
-			zap.String("transaction_id", transactionID),
+			zap.String("transactionID", transactionID),
 			zap.String("blockchain", blockchain),
 			zap.Error(err))
 
 		_, err = s.salesTimeSeriesCollection.DeleteMany(ctx, filter)
 		if err != nil {
 			log.Error("error deleting documents",
-				zap.String("transaction_id", transactionID),
+				zap.String("transactionID", transactionID),
 				zap.String("blockchain", blockchain),
 				zap.Error(err))
 			return err
@@ -2477,7 +2477,7 @@ func (s *MongodbIndexerStore) AggregateSaleRevenues(ctx context.Context, address
 		}},
 		{"$group": bson.M{
 			"_id":      "$metadata.revenue_currency",
-			"currency": bson.M{"$last": "$metadata.revenue_currency"},
+			"currency": bson.M{"$last": "$metadata.revenue_Currency"},
 			"total":    bson.M{"$sum": "$revenue"},
 		}},
 	}
@@ -2504,7 +2504,7 @@ func (s *MongodbIndexerStore) AggregateSaleRevenues(ctx context.Context, address
 
 // SaleTimeSeriesDataExists - check if a sale time series data exists for a transaction hash
 func (s *MongodbIndexerStore) SaleTimeSeriesDataExists(ctx context.Context, txID string) (bool, error) {
-	count, err := s.salesTimeSeriesCollection.CountDocuments(ctx, bson.M{"metadata.transaction_id": txID})
+	count, err := s.salesTimeSeriesCollection.CountDocuments(ctx, bson.M{"metadata.transactionID": txID})
 	if err != nil {
 		return false, err
 	}
