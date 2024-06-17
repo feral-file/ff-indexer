@@ -145,12 +145,11 @@ type TokenSaleInfo struct {
 	ContractAddress string `json:"contractAddress" mapstructure:"contractAddress"`
 	TokenID         string `json:"tokenID" mapstructure:"tokenID"`
 	SellerAddress   string `json:"sellerAddress" mapstructure:"sellerAddress"`
+	BuyerAddress    string `json:"buyerAddress" mapstructure:"buyerAddress"`
 }
 
 type TokenSale struct {
 	Timestamp       time.Time           `json:"timestamp"`
-	BuyerAddress    string              `json:"buyerAddress"`
-	TokenRecipient  string              `json:"tokenRecipient"`
 	BundleTokenInfo []TokenSaleInfo     `json:"bundleTokenInfo"`
 	Price           *big.Int            `json:"price"`
 	Marketplace     string              `json:"marketplace"`
@@ -269,7 +268,6 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 	}
 	metadata := map[string]interface{}{
 		"blockchain":        tokenSale.Blockchain,
-		"buyer_address":     tokenSale.BuyerAddress,
 		"marketplace":       tokenSale.Marketplace,
 		"payment_currency":  tokenSale.Currency,
 		"payment_method":    "crypto",
@@ -333,13 +331,6 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 		Get(ctx, &tx); nil != err {
 		return nil, err
 	}
-
-	// Tx from
-	txFrom, err := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
-	if nil != err {
-		return nil, err
-	}
-	txFromHex := txFrom.Hex()
 
 	// Tx to
 	txTo := tx.To()
@@ -455,11 +446,9 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 		tokenTxMap[tokenID] = ttd
 	}
 
-	var tokenTx tokenTransferData
 	var tokenTxs []tokenTransferData
 	for _, t := range tokenTxMap {
 		tokenTxs = append(tokenTxs, t)
-		tokenTx = t
 	}
 
 	// Struct for payment transfer data
@@ -561,13 +550,6 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 		return nil, errors.New("Couldn't load the platform fee wallets")
 	}
 
-	sellerAddr := tokenTx.From
-	buyerAddr := tokenTx.To
-	payerAddr := buyerAddr
-	if sellerAddr != txFromHex && buyerAddr != txFromHex {
-		payerAddr = txFromHex // buy on behalf of someone else
-	}
-
 	shares := make(map[string]*big.Int)
 	platformFee := big.NewInt(0)
 	price := big.NewInt(0)
@@ -625,6 +607,7 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 	bundleTokenInfo := []TokenSaleInfo{}
 	for _, t := range tokenTxs {
 		bundleTokenInfo = append(bundleTokenInfo, TokenSaleInfo{
+			BuyerAddress:    t.To,
 			SellerAddress:   t.From,
 			ContractAddress: t.Contract,
 			TokenID:         t.TokenID,
@@ -633,8 +616,6 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 
 	return &TokenSale{
 		Timestamp:       time.Unix(int64(blkHeader.Time), 0),
-		BuyerAddress:    payerAddr,
-		TokenRecipient:  buyerAddr,
 		Price:           price,
 		Marketplace:     marketplace,
 		Blockchain:      "ethereum",
