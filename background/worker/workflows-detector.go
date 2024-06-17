@@ -149,11 +149,8 @@ type TokenSaleInfo struct {
 
 type TokenSale struct {
 	Timestamp       time.Time           `json:"timestamp"`
-	SellerAddress   *string             `json:"sellerAddress"`
 	BuyerAddress    string              `json:"buyerAddress"`
 	TokenRecipient  string              `json:"tokenRecipient"`
-	ContractAddress *string             `json:"contractAddress"`
-	TokenID         *string             `json:"tokenID"`
 	BundleTokenInfo []TokenSaleInfo     `json:"bundleTokenInfo"`
 	Price           *big.Int            `json:"price"`
 	Marketplace     string              `json:"marketplace"`
@@ -270,27 +267,25 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 	if err != nil {
 		return err
 	}
+	metadata := map[string]interface{}{
+		"blockchain":        tokenSale.Blockchain,
+		"buyer_address":     tokenSale.BuyerAddress,
+		"marketplace":       tokenSale.Marketplace,
+		"payment_currency":  tokenSale.Currency,
+		"payment_method":    "crypto",
+		"pricing_currency":  tokenSale.Currency,
+		"revenue_currency":  tokenSale.Currency,
+		"sale_type":         "secondary",
+		"transaction_id":    tokenSale.TxID,
+		"bundle_token_info": bundleTokenInfo,
+	}
 
 	data := []indexer.GenericSalesTimeSeries{
 		{
 			Timestamp: tokenSale.Timestamp.Format(time.RFC3339Nano),
-			Metadata: map[string]interface{}{
-				"blockchain":        tokenSale.Blockchain,
-				"buyer_address":     tokenSale.BuyerAddress,
-				"seller_address":    tokenSale.SellerAddress,
-				"contract_address":  tokenSale.ContractAddress,
-				"marketplace":       tokenSale.Marketplace,
-				"payment_currency":  tokenSale.Currency,
-				"payment_method":    "crypto",
-				"pricing_currency":  tokenSale.Currency,
-				"revenue_currency":  tokenSale.Currency,
-				"sale_type":         "secondary",
-				"token_id":          tokenSale.TokenID,
-				"bundle_token_info": bundleTokenInfo,
-				"transaction_id":    tokenSale.TxID,
-			},
-			Shares: shares,
-			Values: values,
+			Metadata:  metadata,
+			Shares:    shares,
+			Values:    values,
 		},
 	}
 	if err := workflow.ExecuteActivity(
@@ -627,38 +622,30 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 		return nil, errors.New("Block not found")
 	}
 
-	tokenSale := TokenSale{
-		Timestamp:      time.Unix(int64(blkHeader.Time), 0),
-		BuyerAddress:   payerAddr,
-		TokenRecipient: buyerAddr,
-		Price:          price,
-		Marketplace:    marketplace,
-		Blockchain:     "ethereum",
-		Currency:       currency,
-		TxID:           txID,
-		PlatformFee:    platformFee,
-		NetRevenue:     big.NewInt(0).Sub(price, platformFee),
-		PaymentAmount:  price,
-		Shares:         shares,
+	bundleTokenInfo := []TokenSaleInfo{}
+	for _, t := range tokenTxs {
+		bundleTokenInfo = append(bundleTokenInfo, TokenSaleInfo{
+			SellerAddress:   t.From,
+			ContractAddress: t.Contract,
+			TokenID:         t.TokenID,
+		})
 	}
 
-	if len(tokenTxs) > 1 {
-		bundleTokenInfo := []TokenSaleInfo{}
-		for _, t := range tokenTxs {
-			bundleTokenInfo = append(bundleTokenInfo, TokenSaleInfo{
-				SellerAddress:   t.From,
-				ContractAddress: t.Contract,
-				TokenID:         t.TokenID,
-			})
-		}
-		tokenSale.BundleTokenInfo = bundleTokenInfo
-	} else {
-		tokenSale.SellerAddress = &sellerAddr
-		tokenSale.ContractAddress = &tokenTx.Contract
-		tokenSale.TokenID = &tokenTx.TokenID
-	}
-
-	return &tokenSale, nil
+	return &TokenSale{
+		Timestamp:       time.Unix(int64(blkHeader.Time), 0),
+		BuyerAddress:    payerAddr,
+		TokenRecipient:  buyerAddr,
+		Price:           price,
+		Marketplace:     marketplace,
+		Blockchain:      "ethereum",
+		Currency:        currency,
+		TxID:            txID,
+		PlatformFee:     platformFee,
+		NetRevenue:      big.NewInt(0).Sub(price, platformFee),
+		BundleTokenInfo: bundleTokenInfo,
+		PaymentAmount:   price,
+		Shares:          shares,
+	}, nil
 }
 
 func classifyTxLogs(logs []*types.Log) (map[string][]types.Log, map[string][]types.Log) {

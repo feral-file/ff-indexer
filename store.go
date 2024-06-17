@@ -2371,22 +2371,15 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 			"metadata.blockchain":     blockchain,
 		}
 
-		var tokenID string
-		var bundleTokenInfo []interface{}
-		if value, ok := r.Metadata["token_id"]; ok {
-			tokenID = value.(string)
-			filter["metadata.token_id"] = tokenID
-		} else {
-			bundleTokenInfo = r.Metadata["bundle_token_info"].([]interface{})
-			filter["metadata.bundle_token_info"] = bundleTokenInfo
-		}
+		log.Debug("deleting documents",
+			zap.String("transaction_id", transactionID),
+			zap.String("blockchain", blockchain),
+			zap.Error(err))
 
 		_, err = s.salesTimeSeriesCollection.DeleteMany(ctx, filter)
 		if err != nil {
 			log.Error("error deleting documents",
 				zap.String("transaction_id", transactionID),
-				zap.String("token_id", tokenID),
-				zap.Any("bundle_token_info", bundleTokenInfo),
 				zap.String("blockchain", blockchain),
 				zap.Error(err))
 			return err
