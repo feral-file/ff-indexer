@@ -3,6 +3,7 @@ package worker
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"time"
@@ -363,12 +364,6 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 		return nil, errMultipleERC20Contracts
 	}
 
-	// Token contract
-	var tokenContract string
-	for tc := range tokenTransfers {
-		tokenContract = tc
-	}
-
 	// Struct for internal token transfer data
 	type tokenTransferData struct {
 		From     string
@@ -380,7 +375,7 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 	tokenTxMap := make(map[string]tokenTransferData) // [tokenID] => []tokenTransferData
 
 	// Iterate over internal token transfers and turn them into appropriate data structures
-	for _, l := range tokenTransfers[tokenContract] {
+	for _, l := range tokenTransfers {
 		isERC721 := indexer.ERC721Transfer(l) // if not, it will be ERC-1155
 		topic1 := l.Topics[1]
 		topic2 := l.Topics[2]
@@ -413,6 +408,7 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 		}
 
 		tokenID := indexer.HexToDec(tokenIDHex)
+		tokenContract := l.Address.Hex()
 
 		// Check if the token is published by Feral File
 		// TODO remove after supporting all tokens not only Feral File one
@@ -432,8 +428,9 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 		// If there are multiple transfers for the same token,
 		// the sender is the first transfer sender,
 		// the recipient is the last transfer recipient
+		tokenTxMapKey := fmt.Sprintf("%s-%s", tokenContract, tokenID)
 		var ttd tokenTransferData
-		if token, ok := tokenTxMap[tokenID]; ok {
+		if token, ok := tokenTxMap[tokenTxMapKey]; ok {
 			ttd = tokenTransferData{
 				From:     token.From,
 				To:       recipientAddrHex,
@@ -448,7 +445,7 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 				Contract: tokenContract,
 			}
 		}
-		tokenTxMap[tokenID] = ttd
+		tokenTxMap[tokenTxMapKey] = ttd
 	}
 
 	var tokenTxs []tokenTransferData
@@ -634,9 +631,9 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 	}, nil
 }
 
-func classifyTxLogs(logs []*types.Log) (map[string][]types.Log, map[string][]types.Log) {
+func classifyTxLogs(logs []*types.Log) (map[string][]types.Log, []types.Log) {
 	erc20Transfers := make(map[string][]types.Log) // address => []types.Log
-	tokenTransfers := make(map[string][]types.Log) // address => []types.Log
+	tokenTransfers := []types.Log{}                // address => []types.Log
 	for _, l := range logs {
 		if nil == l {
 			continue
@@ -647,7 +644,7 @@ func classifyTxLogs(logs []*types.Log) (map[string][]types.Log, map[string][]typ
 		case indexer.ERC20Transfer(*l):
 			erc20Transfers[address] = append(erc20Transfers[address], *l)
 		case indexer.ERC1155SingleTransfer(*l), indexer.ERC721Transfer(*l):
-			tokenTransfers[address] = append(tokenTransfers[address], *l)
+			tokenTransfers = append(tokenTransfers, *l)
 		default:
 			// Ignore
 		}
