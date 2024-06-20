@@ -261,11 +261,16 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 	values["paymentAmount"] = tokenSale.PaymentAmount.String()
 	values["exchangeRate"] = "1"
 
-	bundleTokenInfo := map[string]interface{}{}
-	err := mapstructure.Decode(tokenSale.BundleTokenInfo, &bundleTokenInfo)
-	if err != nil {
-		return err
+	bundleTokenInfo := []map[string]interface{}{}
+	for _, info := range tokenSale.BundleTokenInfo {
+		var tokenInfo map[string]interface{}
+		err := mapstructure.Decode(info, &tokenInfo)
+		if err != nil {
+			return err
+		}
+		bundleTokenInfo = append(bundleTokenInfo, tokenInfo)
 	}
+
 	metadata := map[string]interface{}{
 		"blockchain":      tokenSale.Blockchain,
 		"marketplace":     tokenSale.Marketplace,
