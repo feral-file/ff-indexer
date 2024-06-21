@@ -110,8 +110,6 @@ type Store interface {
 		ctx context.Context,
 		records []GenericSalesTimeSeries,
 	) error
-	GetSaleTimeSeriesData(ctx context.Context, addresses, royaltyAddresses []string, marketplace string, offset, size int64) ([]SaleTimeSeries, error)
-	AggregateSaleRevenues(ctx context.Context, addresses []string, marketplace string) (map[string]primitive.Decimal128, error)
 	SaleTimeSeriesDataExists(ctx context.Context, txID string) (bool, error)
 }
 
@@ -2304,7 +2302,7 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 				log.Warn(
 					"reserved metadata field name",
 					zap.String("key", k),
-					zap.String("value", v),
+					zap.Any("value", v),
 				)
 				return fmt.Errorf("reserved field name: metadata.%s", k)
 			}
@@ -2364,20 +2362,22 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 		}
 		doc["shares"] = sv
 
-		transactionID := r.Metadata["transaction_id"]
-		tokenID := r.Metadata["token_id"]
-		blockchain := r.Metadata["blockchain"]
-
+		transactionID := r.Metadata["transactionID"].(string)
+		blockchain := r.Metadata["blockchain"].(string)
 		filter := bson.M{
-			"metadata.transaction_id": transactionID,
-			"metadata.token_id":       tokenID,
-			"metadata.blockchain":     blockchain,
+			"metadata.transactionID": transactionID,
+			"metadata.blockchain":    blockchain,
 		}
+
+		log.Debug("deleting documents",
+			zap.String("transactionID", transactionID),
+			zap.String("blockchain", blockchain),
+			zap.Error(err))
+
 		_, err = s.salesTimeSeriesCollection.DeleteMany(ctx, filter)
 		if err != nil {
 			log.Error("error deleting documents",
-				zap.String("transaction_id", transactionID),
-				zap.String("token_id", tokenID),
+				zap.String("transactionID", transactionID),
 				zap.String("blockchain", blockchain),
 				zap.Error(err))
 			return err
@@ -2397,112 +2397,9 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 	return nil
 }
 
-// GetSaleTimeSeriesData - get list of time series belong to an address
-func (s *MongodbIndexerStore) GetSaleTimeSeriesData(ctx context.Context, addresses, royaltyAddresses []string, marketplace string, offset, size int64) ([]SaleTimeSeries, error) {
-	timeSeries := []SaleTimeSeries{}
-
-	match := bson.M{}
-
-	addressFilter := bson.A{}
-	if len(addresses) > 0 {
-		addressFilter = bson.A{
-			bson.M{"metadata.buyer_address": bson.M{"$in": addresses}},
-			bson.M{"metadata.seller_address": bson.M{"$in": addresses}},
-		}
-	}
-	if len(royaltyAddresses) > 0 {
-		for _, a := range royaltyAddresses {
-			addressFilter = append(addressFilter, bson.M{fmt.Sprintf("shares.%s", a): bson.M{"$nin": bson.A{nil, ""}}})
-		}
-	}
-	match["$or"] = addressFilter
-
-	if marketplace != "" {
-		match["metadata.marketplace"] = marketplace
-	}
-
-	pipelines := []bson.M{
-		{"$match": match},
-		{"$sort": bson.D{{Key: "timestamp", Value: -1}, {Key: "_id", Value: -1}}},
-	}
-
-	pipelines = append(pipelines,
-		bson.M{"$skip": offset},
-		bson.M{"$limit": size},
-	)
-
-	cursor, err := s.salesTimeSeriesCollection.Aggregate(ctx, pipelines)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer cursor.Close(ctx)
-
-	if err := cursor.All(ctx, &timeSeries); err != nil {
-		return nil, err
-	}
-
-	return timeSeries, nil
-}
-
-// AggregateSaleRevenues - get sale revenue group by currency belong to an address
-func (s *MongodbIndexerStore) AggregateSaleRevenues(ctx context.Context, addresses []string, marketplace string) (map[string]primitive.Decimal128, error) {
-	revenues := []struct {
-		Currency string               `bson:"currency"`
-		Total    primitive.Decimal128 `bson:"total"`
-	}{}
-
-	addressFilter := bson.A{}
-	projectRevenueFields := bson.A{}
-	for _, a := range addresses {
-		addressFilter = append(addressFilter, bson.M{fmt.Sprintf("shares.%s", a): bson.M{"$nin": bson.A{nil, ""}}})
-		projectRevenueFields = append(projectRevenueFields, bson.M{"$ifNull": bson.A{fmt.Sprintf("$shares.%s", a), 0}})
-	}
-
-	match := bson.M{"$or": addressFilter}
-	if marketplace != "" {
-		match["metadata.marketplace"] = marketplace
-	}
-
-	pipelines := []bson.M{
-		{"$match": match},
-		{"$project": bson.M{
-			"revenue": bson.M{
-				"$add": projectRevenueFields,
-			},
-			"metadata.revenue_currency": 1,
-		}},
-		{"$group": bson.M{
-			"_id":      "$metadata.revenue_currency",
-			"currency": bson.M{"$last": "$metadata.revenue_currency"},
-			"total":    bson.M{"$sum": "$revenue"},
-		}},
-	}
-
-	cursor, err := s.salesTimeSeriesCollection.Aggregate(ctx, pipelines)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer cursor.Close(ctx)
-
-	if err := cursor.All(ctx, &revenues); err != nil {
-		return nil, err
-	}
-
-	resultMap := make(map[string]primitive.Decimal128)
-	for _, r := range revenues {
-		resultMap[r.Currency] = r.Total
-	}
-
-	return resultMap, nil
-}
-
 // SaleTimeSeriesDataExists - check if a sale time series data exists for a transaction hash
 func (s *MongodbIndexerStore) SaleTimeSeriesDataExists(ctx context.Context, txID string) (bool, error) {
-	count, err := s.salesTimeSeriesCollection.CountDocuments(ctx, bson.M{"metadata.transaction_id": txID})
+	count, err := s.salesTimeSeriesCollection.CountDocuments(ctx, bson.M{"metadata.transactionID": txID})
 	if err != nil {
 		return false, err
 	}

@@ -205,8 +205,7 @@ db.createCollection(
 );
 
 db.sales_time_series.createIndex({
-  "metadata.transaction_id": 1,
-  "metadata.token_id": 1,
+  "metadata.transactionID": 1,
   "metadata.blockchain": 1
 }, {
   unique: false
