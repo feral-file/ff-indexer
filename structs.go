@@ -295,10 +295,10 @@ type CollectionAsset struct {
 }
 
 type GenericSalesTimeSeries struct {
-	Timestamp string            `json:"timestamp"`
-	Metadata  map[string]string `json:"metadata"`
-	Values    map[string]string `json:"values"`
-	Shares    map[string]string `json:"shares"`
+	Timestamp string                 `json:"timestamp"`
+	Metadata  map[string]interface{} `json:"metadata"`
+	Values    map[string]string      `json:"values"`
+	Shares    map[string]string      `json:"shares"`
 }
 
 type SaleTimeSeries struct {

@@ -3,6 +3,7 @@ package worker
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/etherscan"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 )
 
@@ -140,13 +142,16 @@ func (w *NFTIndexerWorker) PendingTxFollowUpWorkflow(ctx workflow.Context, delay
 	return workflow.NewContinueAsNewError(ctx, w.PendingTxFollowUpWorkflow, delay)
 }
 
+type TokenSaleInfo struct {
+	ContractAddress string `json:"contractAddress" mapstructure:"contractAddress"`
+	TokenID         string `json:"tokenID" mapstructure:"tokenID"`
+	SellerAddress   string `json:"sellerAddress" mapstructure:"sellerAddress"`
+	BuyerAddress    string `json:"buyerAddress" mapstructure:"buyerAddress"`
+}
+
 type TokenSale struct {
 	Timestamp       time.Time           `json:"timestamp"`
-	SellerAddress   string              `json:"sellerAddress"`
-	BuyerAddress    string              `json:"buyerAddress"`
-	TokenRecipient  string              `json:"tokenRecipient"`
-	ContractAddress string              `json:"contractAddress"`
-	TokenID         string              `json:"tokenID"`
+	BundleTokenInfo []TokenSaleInfo     `json:"bundleTokenInfo"`
 	Price           *big.Int            `json:"price"`
 	Marketplace     string              `json:"marketplace"`
 	Blockchain      string              `json:"blockchain"`
@@ -209,7 +214,7 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 	var tokenSale *TokenSale
 	if err := workflow.ExecuteChildWorkflow(
 		ctx,
-		w.ParseEthereumSingleTokenSale,
+		w.ParseEthereumTokenSale,
 		txID).
 		Get(ctx, &tokenSale); nil != err {
 		switch err.(type) {
@@ -252,30 +257,39 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 
 	values := make(map[string]string)
 	values["price"] = tokenSale.Price.String()
-	values["platform_fee"] = tokenSale.PlatformFee.String()
-	values["net_revenue"] = tokenSale.NetRevenue.String()
-	values["payment_amount"] = tokenSale.PaymentAmount.String()
-	values["exchange_rate"] = "1"
+	values["platformFee"] = tokenSale.PlatformFee.String()
+	values["netRevenue"] = tokenSale.NetRevenue.String()
+	values["paymentAmount"] = tokenSale.PaymentAmount.String()
+	values["exchangeRate"] = "1"
+
+	bundleTokenInfo := []map[string]interface{}{}
+	for _, info := range tokenSale.BundleTokenInfo {
+		var tokenInfo map[string]interface{}
+		err := mapstructure.Decode(info, &tokenInfo)
+		if err != nil {
+			return err
+		}
+		bundleTokenInfo = append(bundleTokenInfo, tokenInfo)
+	}
+
+	metadata := map[string]interface{}{
+		"blockchain":      tokenSale.Blockchain,
+		"marketplace":     tokenSale.Marketplace,
+		"paymentCurrency": tokenSale.Currency,
+		"paymentMethod":   "crypto",
+		"pricingCurrency": tokenSale.Currency,
+		"revenueCurrency": tokenSale.Currency,
+		"saleType":        "secondary",
+		"transactionID":   tokenSale.TxID,
+		"bundleTokenInfo": bundleTokenInfo,
+	}
 
 	data := []indexer.GenericSalesTimeSeries{
 		{
 			Timestamp: tokenSale.Timestamp.Format(time.RFC3339Nano),
-			Metadata: map[string]string{
-				"blockchain":       tokenSale.Blockchain,
-				"buyer_address":    tokenSale.BuyerAddress,
-				"seller_address":   tokenSale.SellerAddress,
-				"contract_address": tokenSale.ContractAddress,
-				"marketplace":      tokenSale.Marketplace,
-				"payment_currency": tokenSale.Currency,
-				"payment_method":   "crypto",
-				"pricing_currency": tokenSale.Currency,
-				"revenue_currency": tokenSale.Currency,
-				"sale_type":        "secondary",
-				"token_id":         tokenSale.TokenID,
-				"transaction_id":   tokenSale.TxID,
-			},
-			Shares: shares,
-			Values: values,
+			Metadata:  metadata,
+			Shares:    shares,
+			Values:    values,
 		},
 	}
 	if err := workflow.ExecuteActivity(
@@ -292,8 +306,8 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 	return nil
 }
 
-// ParseEthereumSingleTokenSale is a workflow to parse the sale of an Ethereum token
-func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, txID string) (*TokenSale, error) {
+// ParseEthereumTokenSale is a workflow to parse the sale of an Ethereum token
+func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID string) (*TokenSale, error) {
 	ctx = ContextRegularActivity(ctx, TaskListName)
 
 	log.Info("start parsing token sale", zap.String("txID", txID))
@@ -324,13 +338,6 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 		return nil, err
 	}
 
-	// Tx from
-	txFrom, err := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
-	if nil != err {
-		return nil, err
-	}
-	txFromHex := txFrom.Hex()
-
 	// Tx to
 	txTo := tx.To()
 	if nil == txTo {
@@ -357,18 +364,6 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 		return nil, errMultipleERC20Contracts
 	}
 
-	// The tx should only includes one token contract interaction
-	// Otherwise it's bundle sale
-	if len(tokenTransfers) > 1 {
-		return nil, errMultipleTokenContracts
-	}
-
-	// Token contract
-	var tokenContract string
-	for tc := range tokenTransfers {
-		tokenContract = tc
-	}
-
 	// Struct for internal token transfer data
 	type tokenTransferData struct {
 		From     string
@@ -380,7 +375,7 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 	tokenTxMap := make(map[string]tokenTransferData) // [tokenID] => []tokenTransferData
 
 	// Iterate over internal token transfers and turn them into appropriate data structures
-	for _, l := range tokenTransfers[tokenContract] {
+	for _, l := range tokenTransfers {
 		isERC721 := indexer.ERC721Transfer(l) // if not, it will be ERC-1155
 		topic1 := l.Topics[1]
 		topic2 := l.Topics[2]
@@ -413,6 +408,7 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 		}
 
 		tokenID := indexer.HexToDec(tokenIDHex)
+		tokenContract := l.Address.Hex()
 
 		// Check if the token is published by Feral File
 		// TODO remove after supporting all tokens not only Feral File one
@@ -426,14 +422,15 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 			return nil, err
 		}
 		if nil == token || token.Source != "feralfile" {
-			continue
+			return nil, errUnsupportedTokenSale
 		}
 
 		// If there are multiple transfers for the same token,
 		// the sender is the first transfer sender,
 		// the recipient is the last transfer recipient
+		tokenTxMapKey := fmt.Sprintf("%s-%s", tokenContract, tokenID)
 		var ttd tokenTransferData
-		if token, ok := tokenTxMap[tokenID]; ok {
+		if token, ok := tokenTxMap[tokenTxMapKey]; ok {
 			ttd = tokenTransferData{
 				From:     token.From,
 				To:       recipientAddrHex,
@@ -448,16 +445,12 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 				Contract: tokenContract,
 			}
 		}
-		tokenTxMap[tokenID] = ttd
+		tokenTxMap[tokenTxMapKey] = ttd
 	}
 
-	// Only support single Feral File token transfer
-	if len(tokenTxMap) != 1 {
-		return nil, errUnsupportedTokenSale
-	}
-	var tokenTx tokenTransferData
+	var tokenTxs []tokenTransferData
 	for _, t := range tokenTxMap {
-		tokenTx = t
+		tokenTxs = append(tokenTxs, t)
 	}
 
 	// Struct for payment transfer data
@@ -557,13 +550,6 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 		return nil, errors.New("Couldn't load the platform fee wallets")
 	}
 
-	sellerAddr := tokenTx.From
-	buyerAddr := tokenTx.To
-	payerAddr := buyerAddr
-	if sellerAddr != txFromHex && buyerAddr != txFromHex {
-		payerAddr = txFromHex // buy on behalf of someone else
-	}
-
 	shares := make(map[string]*big.Int)
 	platformFee := big.NewInt(0)
 	price := big.NewInt(0)
@@ -618,13 +604,18 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 		return nil, errors.New("Block not found")
 	}
 
+	bundleTokenInfo := []TokenSaleInfo{}
+	for _, t := range tokenTxs {
+		bundleTokenInfo = append(bundleTokenInfo, TokenSaleInfo{
+			BuyerAddress:    t.To,
+			SellerAddress:   t.From,
+			ContractAddress: t.Contract,
+			TokenID:         t.TokenID,
+		})
+	}
+
 	return &TokenSale{
 		Timestamp:       time.Unix(int64(blkHeader.Time), 0),
-		SellerAddress:   sellerAddr,
-		BuyerAddress:    payerAddr,
-		TokenRecipient:  buyerAddr,
-		ContractAddress: tokenTx.Contract,
-		TokenID:         tokenTx.TokenID,
 		Price:           price,
 		Marketplace:     marketplace,
 		Blockchain:      "ethereum",
@@ -632,14 +623,15 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 		TxID:            txID,
 		PlatformFee:     platformFee,
 		NetRevenue:      big.NewInt(0).Sub(price, platformFee),
+		BundleTokenInfo: bundleTokenInfo,
 		PaymentAmount:   price,
 		Shares:          shares,
 	}, nil
 }
 
-func classifyTxLogs(logs []*types.Log) (map[string][]types.Log, map[string][]types.Log) {
+func classifyTxLogs(logs []*types.Log) (map[string][]types.Log, []types.Log) {
 	erc20Transfers := make(map[string][]types.Log) // address => []types.Log
-	tokenTransfers := make(map[string][]types.Log) // address => []types.Log
+	tokenTransfers := []types.Log{}                // address => []types.Log
 	for _, l := range logs {
 		if nil == l {
 			continue
@@ -650,7 +642,7 @@ func classifyTxLogs(logs []*types.Log) (map[string][]types.Log, map[string][]typ
 		case indexer.ERC20Transfer(*l):
 			erc20Transfers[address] = append(erc20Transfers[address], *l)
 		case indexer.ERC1155SingleTransfer(*l), indexer.ERC721Transfer(*l):
-			tokenTransfers[address] = append(tokenTransfers[address], *l)
+			tokenTransfers = append(tokenTransfers, *l)
 		default:
 			// Ignore
 		}

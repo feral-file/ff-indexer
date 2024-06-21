@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -38,53 +37,5 @@ func (s *NFTIndexerServer) SalesTimeSeries(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"ok": 1,
-	})
-}
-
-func (s *NFTIndexerServer) GetSalesTimeSeries(c *gin.Context) {
-	traceutils.SetHandlerTag(c, "GetSalesTimeSeries")
-
-	var reqParams = SalesQueryParams{
-		Offset: 0,
-		Size:   50,
-	}
-
-	if err := c.BindQuery(&reqParams); err != nil {
-		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
-		return
-	}
-
-	if len(reqParams.Addresses) == 0 && len(reqParams.RoyaltyAddresses) == 0 {
-		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("addresses or royaltyAddresses is required"))
-		return
-	}
-
-	saleTimeSeries, err := s.indexerStore.GetSaleTimeSeriesData(c, reqParams.Addresses, reqParams.RoyaltyAddresses, reqParams.Marketplace, reqParams.Offset, reqParams.Size)
-	if err != nil {
-		abortWithError(c, http.StatusInternalServerError, "fail to query sale time series from indexer store", err)
-		return
-	}
-
-	c.JSON(http.StatusOK, saleTimeSeries)
-}
-
-func (s *NFTIndexerServer) AggregateSaleRevenues(c *gin.Context) {
-	traceutils.SetHandlerTag(c, "GetSalesRevenues")
-
-	var reqParams SalesQueryParams
-
-	if err := c.BindQuery(&reqParams); err != nil {
-		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
-		return
-	}
-
-	saleRevenues, err := s.indexerStore.AggregateSaleRevenues(c, reqParams.Addresses, reqParams.Marketplace)
-	if err != nil {
-		abortWithError(c, http.StatusInternalServerError, "fail to query sale time series from indexer store", err)
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"earning": saleRevenues,
 	})
 }

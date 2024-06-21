@@ -1,4 +1,5 @@
 syntax = "proto3";
+import "google/protobuf/struct.proto";
 
 option go_package = "./grpc/indexer";
 
@@ -227,7 +228,7 @@ message AccountIdentity {
 // generic record to support any kind of time series data
 message SaleTimeSeriesRecord {
   string timestamp = 1;             // ts.UTC().Format(time.RFC3339Nano) for BSON.ISODate()
-  map<string,string> metadata = 2;  // just metata data strings for grouping/sorting
+  google.protobuf.Struct metadata = 2; // just metata data for grouping/sorting
   map<string,string> values = 3;    // top-level values for BSON.Decimal128()
   map<string,string> shares = 4;    // sub-level values for BSON.Decimal128()
 }
