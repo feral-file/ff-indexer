@@ -422,7 +422,7 @@ func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID str
 			return nil, err
 		}
 		if nil == token || token.Source != "feralfile" {
-			return nil, errors.New("Non feralfile sale is not supported")
+			return nil, errUnsupportedTokenSale
 		}
 
 		// If there are multiple transfers for the same token,
