@@ -106,8 +106,8 @@ func main() {
 	workflow.RegisterWithOptions(worker.IndexTezosTokenSale, workflow.RegisterOptions{
 		Name: "IndexTezosTokenSale",
 	})
-	workflow.RegisterWithOptions(worker.ParseEthereumSingleTokenSale, workflow.RegisterOptions{
-		Name: "ParseEthereumSingleTokenSale"})
+	workflow.RegisterWithOptions(worker.ParseEthereumTokenSale, workflow.RegisterOptions{
+		Name: "ParseEthereumTokenSale"})
 
 	// cache
 	activity.Register(worker.CacheArtifact)

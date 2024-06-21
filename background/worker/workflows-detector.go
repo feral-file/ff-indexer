@@ -214,7 +214,7 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 	var tokenSale *TokenSale
 	if err := workflow.ExecuteChildWorkflow(
 		ctx,
-		w.ParseEthereumSingleTokenSale,
+		w.ParseEthereumTokenSale,
 		txID).
 		Get(ctx, &tokenSale); nil != err {
 		switch err.(type) {
@@ -306,8 +306,8 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 	return nil
 }
 
-// ParseEthereumSingleTokenSale is a workflow to parse the sale of an Ethereum token
-func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, txID string) (*TokenSale, error) {
+// ParseEthereumTokenSale is a workflow to parse the sale of an Ethereum token
+func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID string) (*TokenSale, error) {
 	ctx = ContextRegularActivity(ctx, TaskListName)
 
 	log.Info("start parsing token sale", zap.String("txID", txID))
@@ -422,7 +422,7 @@ func (w *NFTIndexerWorker) ParseEthereumSingleTokenSale(ctx workflow.Context, tx
 			return nil, err
 		}
 		if nil == token || token.Source != "feralfile" {
-			continue
+			return nil, errors.New("Non feralfile sale is not supported")
 		}
 
 		// If there are multiple transfers for the same token,
