@@ -503,6 +503,10 @@ func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID str
 	}
 
 	if len(itxs) > 0 {
+		// Assume the currency is ETH if not paid by ERC20 tokens and there are internal txs
+		if currency == "" {
+			currency = "ETH"
+		}
 		for _, itx := range itxs {
 			srcAddrHex := common.HexToAddress(itx.From).Hex()
 			dstAddrHex := common.HexToAddress(itx.To).Hex()
