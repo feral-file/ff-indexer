@@ -2374,13 +2374,18 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 			zap.String("blockchain", blockchain),
 			zap.Error(err))
 
-		_, err = s.salesTimeSeriesCollection.DeleteMany(ctx, filter)
+		r, err := s.salesTimeSeriesCollection.DeleteMany(ctx, filter)
 		if err != nil {
 			log.Error("error deleting documents",
 				zap.String("transactionID", transactionID),
 				zap.String("blockchain", blockchain),
 				zap.Error(err))
 			return err
+		}
+		if r.DeletedCount > 0 {
+			log.Info(
+				"deleted duplicated documents",
+				zap.Any("transactionID", transactionID))
 		}
 
 		inserts = append(inserts, doc)
