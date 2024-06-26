@@ -61,6 +61,7 @@ func (s *NFTIndexerServer) SetupRoute() {
 	v2 := s.route.Group("/v2")
 	v2NFT := v2.Group("/nft")
 	v2NFT.GET("", s.GetAccountNFTsV2)
+	v2NFT.GET("/count", s.CountAccountNFTsV2)
 	v2NFT.POST("/query", s.QueryNFTsV2)
 	v2NFT.POST("/index_one", s.IndexOneNFT)
 	v2NFT.POST("/index", s.IndexNFTsV2)

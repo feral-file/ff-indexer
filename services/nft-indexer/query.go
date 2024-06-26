@@ -526,6 +526,37 @@ func (s *NFTIndexerServer) GetAccountNFTsV2(c *gin.Context) {
 	c.JSON(http.StatusOK, tokensInfo)
 }
 
+// CountAccountNFTsV2 count NFTsV2 based on by owner
+func (s *NFTIndexerServer) CountAccountNFTsV2(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "CountAccountNFTsV2")
+
+	var reqParams struct {
+		Owner string `form:"owner"`
+	}
+
+	if err := c.BindQuery(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if reqParams.Owner == "" {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("owner is required"))
+		return
+	}
+
+	count, err := s.indexerStore.CountDetailedAccountTokensByOwner(
+		c,
+		reqParams.Owner,
+	)
+
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to count tokens from indexer store", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"total": count})
+}
+
 // QueryNFTsV2 queries NFTsV2 based on given criteria (decimal input)
 func (s *NFTIndexerServer) QueryNFTsV2(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "QueryNFTsV2")
