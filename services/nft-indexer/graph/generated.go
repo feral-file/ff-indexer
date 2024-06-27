@@ -85,6 +85,7 @@ type ComplexityRoot struct {
 	Collection struct {
 		Blockchain       func(childComplexity int) int
 		Contracts        func(childComplexity int) int
+		CreatedAt        func(childComplexity int) int
 		Creator          func(childComplexity int) int
 		Description      func(childComplexity int) int
 		ExternalID       func(childComplexity int) int
@@ -344,6 +345,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Collection.Contracts(childComplexity), true
+
+	case "Collection.createdAt":
+		if e.complexity.Collection.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.Collection.CreatedAt(childComplexity), true
 
 	case "Collection.creator":
 		if e.complexity.Collection.Creator == nil {
@@ -2684,6 +2692,47 @@ func (ec *executionContext) fieldContext_Collection_lastUpdatedTime(ctx context.
 	return fc, nil
 }
 
+func (ec *executionContext) _Collection_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Collection_createdAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Collection_createdAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Collection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Identity_accountNumber(ctx context.Context, field graphql.CollectedField, obj *model.Identity) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Identity_accountNumber(ctx, field)
 	if err != nil {
@@ -4487,6 +4536,8 @@ func (ec *executionContext) fieldContext_Query_collections(ctx context.Context, 
 				return ec.fieldContext_Collection_lastActivityTime(ctx, field)
 			case "lastUpdatedTime":
 				return ec.fieldContext_Collection_lastUpdatedTime(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Collection_createdAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Collection", field.Name)
 		},
@@ -4573,6 +4624,8 @@ func (ec *executionContext) fieldContext_Query_collection(ctx context.Context, f
 				return ec.fieldContext_Collection_lastActivityTime(ctx, field)
 			case "lastUpdatedTime":
 				return ec.fieldContext_Collection_lastUpdatedTime(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Collection_createdAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Collection", field.Name)
 		},
@@ -7988,6 +8041,8 @@ func (ec *executionContext) _Collection(ctx context.Context, sel ast.SelectionSe
 			out.Values[i] = ec._Collection_lastActivityTime(ctx, field, obj)
 		case "lastUpdatedTime":
 			out.Values[i] = ec._Collection_lastUpdatedTime(ctx, field, obj)
+		case "createdAt":
+			out.Values[i] = ec._Collection_createdAt(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
