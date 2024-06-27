@@ -85,6 +85,7 @@ type Store interface {
 
 	GetDetailedTokensV2(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error)
 	GetDetailedAccountTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, lastUpdatedAt time.Time, sortBy string, offset, size int64) ([]DetailedTokenV2, error)
+	CountDetailedAccountTokensByOwner(ctx context.Context, owner string) (int64, error)
 
 	GetDetailedToken(ctx context.Context, indexID string) (DetailedToken, error)
 	GetTotalBalanceOfOwnerAccounts(ctx context.Context, addresses []string) (int, error)
@@ -1748,6 +1749,16 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 	}
 
 	return results, nil
+}
+
+// CountDetailedAccountTokensByOwner count the number of DetailedToken by owner
+func (s *MongodbIndexerStore) CountDetailedAccountTokensByOwner(ctx context.Context, owner string) (int64, error) {
+	filter := bson.M{
+		"ownerAccount": owner,
+		"balance":      bson.M{"$gt": 0},
+	}
+
+	return s.accountTokenCollection.CountDocuments(ctx, filter)
 }
 
 // GetDetailedTokensV2 returns a list of tokens information based on ids
