@@ -108,6 +108,7 @@ type Gallery struct {
 	Published   bool
 	Tokens      SliceGalleryToken `graphql:"tokens(distinct_on: fa_contract)"`
 	UpdatedAt   Time              `graphql:"updated_at"`
+	InsertedAt  Time              `graphql:"inserted_at"`
 }
 
 type Registry struct {

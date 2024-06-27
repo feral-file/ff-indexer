@@ -384,6 +384,7 @@ func (e *IndexEngine) IndexETHCollectionByCreator(_ context.Context, account ope
 			ProjectURL:       c.ProjectURL,
 			Items:            collection.TotalSupply,
 			LastActivityTime: createdAt,
+			CreatedAt:        createdAt,
 		}
 
 		collectionUpdates = append(collectionUpdates, update)
