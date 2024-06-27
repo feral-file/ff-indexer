@@ -128,6 +128,7 @@ type Collection {
 	thumbnailURL: 		String!
 	lastActivityTime:  	Time
 	lastUpdatedTime: 	Time
+	createdAt: 			Time
 }
 
 type Query {

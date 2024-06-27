@@ -587,6 +587,7 @@ func (e *IndexEngine) IndexTezosCollectionByCreator(ctx context.Context, creator
 			Published:        c.Published,
 			SourceURL:        fmt.Sprintf("https://%s/collections/%s/projects/%s", objktHost, c.Registry.Slug, c.Slug),
 			LastActivityTime: c.UpdatedAt.Time,
+			CreatedAt:        c.InsertedAt.Time,
 		}
 
 		collectionUpdates = append(collectionUpdates, update)

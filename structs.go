@@ -283,6 +283,7 @@ type Collection struct {
 
 	LastUpdatedTime  time.Time `json:"lastUpdatedTime" bson:"lastUpdatedTime"`
 	LastActivityTime time.Time `json:"lastActivityTime" bson:"lastActivityTime"`
+	CreatedAt        time.Time `json:"createdAt" bson:"createdAt"`
 }
 
 type CollectionAsset struct {
