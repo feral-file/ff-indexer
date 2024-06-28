@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"time"
 
-	utils "github.com/bitmark-inc/autonomy-utils"
-	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/autonomy-utils"
+	"github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/services/nft-indexer/graph/model"
 	"github.com/ethereum/go-ethereum/common"

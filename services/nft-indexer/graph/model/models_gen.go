@@ -57,6 +57,7 @@ type Collection struct {
 	ThumbnailURL     string     `json:"thumbnailURL"`
 	LastActivityTime *time.Time `json:"lastActivityTime,omitempty"`
 	LastUpdatedTime  *time.Time `json:"lastUpdatedTime,omitempty"`
+	CreatedAt        *time.Time `json:"createdAt,omitempty"`
 }
 
 type Identity struct {
