@@ -10,6 +10,7 @@ import (
 	"github.com/bitmark-inc/nft-indexer/cache"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/getsentry/sentry-go"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -18,7 +19,12 @@ import (
 
 func main() {
 	config.LoadConfig("NFT_INDEXER")
-	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug")); err != nil {
+
+	environment := viper.GetString("environment")
+	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug"), &sentry.ClientOptions{
+		Dsn:         viper.GetString("sentry.dsn"),
+		Environment: environment,
+	}); err != nil {
 		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
 	}
 
@@ -29,7 +35,7 @@ func main() {
 		log.Panic(err.Error(), zap.Error(err))
 	}
 
-	parameterStore, err := ssm.NewParameterStore(ctx)
+	parameterStore, err := ssm.New(ctx)
 	if err != nil {
 		log.Panic("can not create new parameter store", zap.Error(err))
 	}

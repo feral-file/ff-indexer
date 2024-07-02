@@ -12,7 +12,9 @@ import (
 
 	goethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/google/uuid"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
@@ -20,6 +22,7 @@ import (
 	utils "github.com/bitmark-inc/autonomy-utils"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/contracts"
+	"github.com/bitmark-inc/nft-indexer/externals/etherscan"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 	"github.com/bitmark-inc/tzkt-go"
 )
@@ -28,6 +31,7 @@ var (
 	ErrMapKeyNotFound   = errors.New("key is not found")
 	ErrValueNotString   = errors.New("value is not of string type")
 	ErrInvalidEditionID = errors.New("invalid edition id")
+	QueryPageSize       = 50
 )
 
 // GetOwnedERC721TokenIDByContract returns a list of token id belongs to an owner for a specific contract
@@ -65,7 +69,7 @@ func (w *NFTIndexerWorker) GetOwnedERC721TokenIDByContract(_ context.Context, co
 // IndexETHTokenByOwner indexes ETH token data for an owner into the format of AssetUpdates
 func (w *NFTIndexerWorker) IndexETHTokenByOwner(ctx context.Context, owner string, next string) (string, error) {
 	log.Debug("IndexETHTokenByOwner", zap.String("owner", owner))
-	updates, next, err := w.indexerEngine.IndexETHTokenByOwner(owner, next)
+	updates, next, err := w.indexerEngine.IndexETHTokenByOwner(ctx, owner, next)
 	if err != nil {
 		return "", err
 	}
@@ -173,6 +177,11 @@ func (w *NFTIndexerWorker) IndexToken(ctx context.Context, contract, tokenID str
 	return w.indexerEngine.IndexToken(ctx, contract, tokenID)
 }
 
+// GetTokenByIndexID gets a token by indexID
+func (w *NFTIndexerWorker) GetTokenByIndexID(ctx context.Context, indexID string) (*indexer.Token, error) {
+	return w.indexerStore.GetTokenByIndexID(ctx, indexID)
+}
+
 // GetOwnedTokenIDsByOwner gets tokenIDs by the given owner
 func (w *NFTIndexerWorker) GetOwnedTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
 	return w.indexerStore.GetOwnedTokenIDsByOwner(ctx, owner)
@@ -186,6 +195,16 @@ func (w *NFTIndexerWorker) FilterTokenIDsWithInconsistentProvenanceForOwner(ctx 
 // IndexAsset saves asset data into indexer's storage
 func (w *NFTIndexerWorker) IndexAsset(ctx context.Context, updates indexer.AssetUpdates) error {
 	return w.indexerStore.IndexAsset(ctx, updates.ID, updates)
+}
+
+// WriteSaleTimeSeriesData saves sales time series data into indexer's storage
+func (w *NFTIndexerWorker) WriteSaleTimeSeriesData(ctx context.Context, data []indexer.GenericSalesTimeSeries) error {
+	return w.indexerStore.WriteTimeSeriesData(ctx, data)
+}
+
+// IndexedSaleTx checks if a sale tx is indexed
+func (w *NFTIndexerWorker) IndexedSaleTx(ctx context.Context, txID string) (bool, error) {
+	return w.indexerStore.SaleTimeSeriesDataExists(ctx, txID)
 }
 
 // indexTezosAccount saves tezos account data into indexer's storage
@@ -614,4 +633,279 @@ func (w *NFTIndexerWorker) GetBalanceDiffFromETHTransaction(transactionDetails [
 	}
 
 	return updatedAccountTokens, nil
+}
+
+func (w *NFTIndexerWorker) isCollectionQualifiedToIndex(ctx context.Context, collectionID string) (bool, error) {
+	gapTimeProtection := time.Hour
+	lastUpdatedTime, err := w.indexerStore.GetCollectionLastUpdatedTime(ctx, collectionID)
+
+	if err != nil {
+		log.Error("failed to GetCollectionLastUpdatedTime", zap.Error(err))
+		return false, err
+	}
+
+	if lastUpdatedTime.Unix() > time.Now().Add(-gapTimeProtection).Unix() {
+		log.Debug("collection refresh too frequently",
+			zap.Int64("lastUpdatedTime", lastUpdatedTime.Unix()),
+			zap.Int64("now", time.Now().Unix()),
+			zap.String("collectionID", collectionID))
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// IndexTezosCollectionsByCreator indexes Tezos collections by owner and collection assets
+func (w *NFTIndexerWorker) IndexTezosCollectionsByCreator(ctx context.Context, creator string, offset int) (int, error) {
+	log.Debug("start indexing tezos collections flow", zap.String("creator", creator), zap.Int("offset", offset))
+
+	collectionUpdates, err := w.indexerEngine.IndexTezosCollectionByCreator(ctx, creator, offset, QueryPageSize)
+	if err != nil {
+		log.Error("failed to fetching tezos collections", zap.String("creator", creator), zap.Int("offset", offset))
+		return 0, err
+	}
+
+	if len(collectionUpdates) == 0 {
+		return 0, err
+	}
+
+	for _, collection := range collectionUpdates {
+		shouldIndex, err := w.isCollectionQualifiedToIndex(ctx, collection.ID)
+		if err != nil {
+			return 0, err
+		}
+
+		if !shouldIndex {
+			continue
+		}
+
+		if err := w.indexerStore.IndexCollection(ctx, collection); err != nil {
+			log.Error("failed to update tezos collections into store", zap.String("creator", creator))
+			return 0, err
+		}
+
+		// Index gallery tokens
+		nextOffset := 0
+		runID := uuid.New().String()
+		for {
+			assetUpdates, err := w.indexerEngine.GetObjktTokensByGalleryPK(ctx, collection.ExternalID, nextOffset, QueryPageSize)
+			if err != nil {
+				log.Error("failed to fetch gallery tokens", zap.String("creator", creator), zap.String("gallery_pk", collection.ExternalID))
+				return 0, err
+			}
+
+			collectionAssets := []indexer.CollectionAsset{}
+
+			// Index assets of the colections
+			for _, asset := range assetUpdates {
+				if err := w.indexerStore.IndexAsset(ctx, asset.ID, asset); err != nil {
+					log.Error("failed to index asset for collection", zap.String("creator", creator), zap.String("assetID", asset.ID))
+					return 0, err
+				}
+
+				token := asset.Tokens[0]
+				indexID := indexer.TokenIndexID(token.Blockchain, token.ContractAddress, token.ID)
+
+				collectionAssets = append(collectionAssets, indexer.CollectionAsset{
+					CollectionID:     collection.ID,
+					TokenIndexID:     indexID,
+					Edition:          asset.Tokens[0].Edition,
+					LastActivityTime: asset.Tokens[0].LastActivityTime,
+					RunID:            runID,
+				})
+			}
+
+			if err := w.indexerStore.IndexCollectionAsset(ctx, collection.ID, collectionAssets); err != nil {
+				log.Error("failed to index collection assets", zap.String("creator", creator), zap.String("collectionID", collection.ID))
+				return 0, err
+			}
+
+			if len(assetUpdates) == QueryPageSize {
+				nextOffset += QueryPageSize
+			} else {
+				if err := w.indexerStore.DeleteDeprecatedCollectionAsset(ctx, collection.ID, runID); err != nil {
+					log.Error("failed to delete deprecated collection assets", zap.String("creator", creator), zap.String("collectionID", collection.ID))
+					return 0, err
+				}
+				break
+			}
+		}
+	}
+
+	if len(collectionUpdates) == QueryPageSize {
+		return offset + QueryPageSize, nil
+	}
+
+	return 0, nil
+}
+
+// IndexETHCollectionsByCreator indexes ETH collections by owner and collection assets
+func (w *NFTIndexerWorker) IndexETHCollectionsByCreator(ctx context.Context, creator string, next string) (string, error) {
+	log.Debug("start indexing eth collection flow", zap.String("creator", creator), zap.String("next", next))
+
+	account, err := w.indexerEngine.GetOpenseaAccountByAddress(creator)
+
+	if err != nil {
+		log.Error("fetch opensea acount error", zap.String("creator", creator))
+		return "", err
+	}
+
+	if account == nil || account.Username == "" {
+		log.Error("opensea acount not found", zap.String("creator", creator))
+		return "", err
+	}
+
+	collectionUpdates, collectionNext, err := w.indexerEngine.IndexETHCollectionByCreator(ctx, *account, next)
+	if err != nil {
+		log.Error("failed to fetching ETH collections", zap.String("creator", creator), zap.String("next", next))
+		return "", err
+	}
+
+	if len(collectionUpdates) == 0 {
+		return "", err
+	}
+
+	for _, collection := range collectionUpdates {
+		shouldIndex, err := w.isCollectionQualifiedToIndex(ctx, collection.ID)
+		if err != nil {
+			return "", err
+		}
+
+		if !shouldIndex {
+			continue
+		}
+
+		// Index collection
+		if err := w.indexerStore.IndexCollection(ctx, collection); err != nil {
+			log.Error("failed to update ETH collections into store", zap.String("creator", creator))
+			return "", err
+		}
+
+		// Index collections tokens
+		nextPage := ""
+		runID := uuid.New().String()
+		tokensCount := 0
+		for {
+			assetUpdates, assetNext, err := w.indexerEngine.IndexETHTokenByCollection(ctx, collection.ExternalID, nextPage)
+			if err != nil {
+				log.Error("failed to fetch eth collections tokens", zap.String("creator", creator), zap.String("collection", collection.ExternalID))
+				return "", err
+			}
+
+			collectionAssets := []indexer.CollectionAsset{}
+			// Index assets of the colections
+			for _, asset := range assetUpdates {
+				if err := w.indexerStore.IndexAsset(ctx, asset.ID, asset); err != nil {
+					log.Error("failed to index asset for collection", zap.String("creator", creator), zap.String("assetID", asset.ID))
+					return "", err
+				}
+
+				token := asset.Tokens[0]
+				indexID := indexer.TokenIndexID(token.Blockchain, token.ContractAddress, token.ID)
+
+				collectionAssets = append(collectionAssets, indexer.CollectionAsset{
+					CollectionID:     collection.ID,
+					TokenIndexID:     indexID,
+					Edition:          asset.Tokens[0].Edition,
+					LastActivityTime: asset.Tokens[0].LastActivityTime,
+					RunID:            runID,
+				})
+			}
+
+			if err := w.indexerStore.IndexCollectionAsset(ctx, collection.ID, collectionAssets); err != nil {
+				log.Error("failed to index collection assets", zap.String("creator", creator), zap.String("collectionID", collection.ID))
+				return "", err
+			}
+
+			tokensCount += len(collectionAssets)
+
+			if assetNext != "" {
+				nextPage = assetNext
+			} else {
+				if err := w.indexerStore.DeleteDeprecatedCollectionAsset(ctx, collection.ID, runID); err != nil {
+					log.Error("failed to delete deprecated collection assets", zap.String("creator", creator), zap.String("collectionID", collection.ID))
+					return "", err
+				}
+				break
+			}
+		}
+	}
+
+	return collectionNext, nil
+}
+
+// GetEthereumTxReceipt returns the ethereum transaction receipt object of a tx hash
+func (w *NFTIndexerWorker) GetEthereumTxReceipt(ctx context.Context, txID string) (*types.Receipt, error) {
+	return w.ethClient.TransactionReceipt(ctx, common.HexToHash(txID))
+}
+
+// GetEthereumTx returns the ethereum transaction object of a tx hash
+func (w *NFTIndexerWorker) GetEthereumTx(ctx context.Context, txID string) (*types.Transaction, error) {
+	tx, _, err := w.ethClient.TransactionByHash(ctx, common.HexToHash(txID))
+	return tx, err
+}
+
+// GetEthereumBlockHeaderHash returns the ethereum block object of a block hash
+func (w *NFTIndexerWorker) GetEthereumBlockHeaderHash(ctx context.Context, blkHash string) (*types.Header, error) {
+	return w.ethClient.HeaderByHash(ctx, common.HexToHash(blkHash))
+}
+
+// GetEthereumBlockHeaderByNumber returns the ethereum block object of a block number
+func (w *NFTIndexerWorker) GetEthereumBlockHeaderByNumber(ctx context.Context, blkNumber *big.Int) (*types.Header, error) {
+	return w.ethClient.HeaderByNumber(ctx, blkNumber)
+}
+
+// GetEthereumInternalTxs returns the ethereum internal transactions of a tx hash
+func (w *NFTIndexerWorker) GetEthereumInternalTxs(ctx context.Context, txID string) ([]etherscan.Transaction, error) {
+	ec := etherscan.NewClient(
+		viper.GetString("etherscan.url"),
+		viper.GetString("etherscan.apikey"))
+	return ec.Account.ListInternalTxs(
+		ctx,
+		etherscan.TransactionQueryParams{TxHash: &txID})
+}
+
+// FilterEthereumNFTTxByEventLogs filters ethereum NFT txs by event logs
+func (w *NFTIndexerWorker) FilterEthereumNFTTxByEventLogs(
+	ctx context.Context,
+	addresses []string,
+	fromBlk uint64,
+	toBlk uint64) ([]string, error) {
+	topics := [][]common.Hash{
+		{
+			common.HexToHash(indexer.TransferEventSignature),
+			common.HexToHash(indexer.TransferSingleEventSignature)},
+	}
+
+	var filterAddress []common.Address
+	for _, addr := range addresses {
+		filterAddress = append(filterAddress, common.HexToAddress(addr))
+	}
+
+	// Filter logs
+	evts, err := w.ethClient.FilterLogs(ctx, goethereum.FilterQuery{
+		Addresses: filterAddress,
+		Topics:    topics,
+		FromBlock: new(big.Int).SetUint64(fromBlk),
+		ToBlock:   new(big.Int).SetUint64(toBlk),
+	})
+	if nil != err {
+		return nil, err
+	}
+
+	// Dedup txs, collect only ERC721 and ERC1155 txs
+	txMap := make(map[string]struct{})
+	for _, evt := range evts {
+		if indexer.ERC721Transfer(evt) || indexer.ERC1155SingleTransfer(evt) {
+			txMap[evt.TxHash.Hex()] = struct{}{}
+		}
+	}
+
+	// Convert to array
+	txs := make([]string, 0, len(txMap))
+	for tx := range txMap {
+		txs = append(txs, tx)
+	}
+
+	return txs, nil
 }

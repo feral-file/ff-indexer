@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 
 	log "github.com/bitmark-inc/autonomy-logger"
+	utils "github.com/bitmark-inc/autonomy-utils"
 	"github.com/bitmark-inc/nft-indexer/cadence"
 )
 
@@ -160,6 +161,100 @@ func StartPendingTxFollowUpWorkflow(c context.Context, client *cadence.WorkerCli
 		}
 	} else {
 		log.Debug("start workflow for updating pending account tokens", zap.String("workflow_id", workflow.ID))
+	}
+
+	return nil
+}
+
+// StartIndexTezosTokenWorkflow starts a workflow to index tokens for an ethereum address
+func StartIndexTezosCollectionWorkflow(c context.Context, client *cadence.WorkerClient, caller string, creator string) {
+	option := cadenceClient.StartWorkflowOptions{
+		ID:                           WorkflowIDIndexCollectionsByOwner(caller, creator),
+		TaskList:                     TaskListName,
+		ExecutionStartToCloseTimeout: time.Hour,
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+	}
+
+	var w NFTIndexerWorker
+
+	workflow, err := client.StartWorkflow(c, ClientName, option, w.IndexTezosCollectionWorkflow, creator)
+	if err != nil {
+		log.Error("fail to start workflow to index ETH collections for owner", zap.Error(err), zap.String("caller", caller), zap.String("creator", creator))
+	} else {
+		log.Debug("start workflow for index ETH collections for owner", zap.String("workflow_id", workflow.ID), zap.String("caller", caller), zap.String("creator", creator))
+	}
+}
+
+// StartIndexTezosTokenWorkflow starts a workflow to index tokens for an ethereum address
+func StartIndexETHCollectionWorkflow(c context.Context, client *cadence.WorkerClient, caller string, creator string) {
+	option := cadenceClient.StartWorkflowOptions{
+		ID:                           WorkflowIDIndexCollectionsByOwner(caller, creator),
+		TaskList:                     TaskListName,
+		ExecutionStartToCloseTimeout: 3 * time.Hour,
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+	}
+
+	var w NFTIndexerWorker
+
+	workflow, err := client.StartWorkflow(c, ClientName, option, w.IndexETHCollectionWorkflow, creator)
+	if err != nil {
+		log.Error("fail to start workflow to index ETH collections for owner", zap.Error(err), zap.String("caller", caller), zap.String("creator", creator))
+	} else {
+		log.Debug("start workflow for index ETH collections for owner", zap.String("workflow_id", workflow.ID), zap.String("caller", caller), zap.String("creator", creator))
+	}
+}
+
+// StartIndexingTokenSale starts a workflow to index a token sale
+func StartIndexingTokenSale(
+	ctx context.Context,
+	client *cadence.WorkerClient,
+	blockchain string,
+	txID string) error {
+	opts := cadenceClient.StartWorkflowOptions{
+		TaskList:                     TaskListName,
+		ExecutionStartToCloseTimeout: 30 * time.Minute,
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
+		RetryPolicy: &uberCadence.RetryPolicy{
+			InitialInterval:    15 * time.Second,
+			BackoffCoefficient: 2.0,
+			MaximumAttempts:    5,
+		},
+	}
+
+	var w NFTIndexerWorker
+	switch blockchain {
+	case utils.EthereumBlockchain:
+		opts.ID = fmt.Sprintf("IndexEthereumTokenSale-%s", txID)
+		exec, err := client.StartWorkflow(
+			ctx,
+			ClientName,
+			opts,
+			w.IndexEthereumTokenSale,
+			txID,
+			true)
+		if nil != err {
+			return err
+		}
+		log.Info("start workflow for indexing ethereum sale",
+			zap.String("workflow_id", exec.ID),
+			zap.String("run_id", exec.RunID))
+	case utils.TezosBlockchain:
+		// TOTO uncomment when support tezos
+		// opts.ID = fmt.Sprintf("IndexTezosTokenSale-%s", txID)
+		// exec, err := client.StartWorkflow(
+		// 	ctx,
+		// 	ClientName,
+		// 	opts,
+		// 	w.IndexTezosTokenSale,
+		// 	txID)
+		// if nil != err {
+		// 	return err
+		// }
+		// log.Info("start workflow for indexing tezos sale",
+		// 	zap.String("workflow_id", exec.ID),
+		// 	zap.String("run_id", exec.RunID))
+	default:
+		return fmt.Errorf("unsupported blockchain: %s", blockchain)
 	}
 
 	return nil

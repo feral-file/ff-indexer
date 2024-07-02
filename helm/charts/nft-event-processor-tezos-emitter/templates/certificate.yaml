@@ -3,14 +3,17 @@
 {{ fail ".Values.ingress.hosts should not be empty for requesting certificate" }}
 {{- end }}
 {{- range .Values.ingress.hosts }}
+{{- if eq .uniqueSuffix nil }}
+{{ fail ".uniqueSuffix cannot be empty" }}
+{{- end }}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ include "nft-event-processor-tezos-emitter.fullname" . }}
+  name: {{ include "nft-event-processor-tezos-emitter.fullname" $ }}-{{ .issuerRef.name }}{{- if .uniqueSuffix }}-{{- .uniqueSuffix }}{{- end }}
   labels:
-    {{- include "nft-event-processor-tezos-emitter.labels" . | nindent 4 }}
+    {{- include "nft-event-processor-tezos-emitter.labels" $ | nindent 4 }}
 spec:
-  secretName: {{ include "nft-event-processor-tezos-emitter.tlsSecretName" . }}
+  secretName: {{ include "nft-event-processor-tezos-emitter.tlsSecretName" $ }}-{{ .issuerRef.name }}{{- if .uniqueSuffix }}-{{- .uniqueSuffix }}{{- end }}
   issuerRef:
     name: {{ .issuerRef.name }}
     kind: {{ .issuerRef.kind }}

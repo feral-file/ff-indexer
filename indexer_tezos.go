@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -43,6 +44,42 @@ func (s HexString) MarshalJSON() ([]byte, error) {
 type TezosTokenMetadata struct {
 	TokenID   string               `json:"token_id"`
 	TokenInfo map[string]HexString `json:"token_info"`
+}
+
+func (e *IndexEngine) GetObjktGalleriesByCreator(ctx context.Context, creator string, offset, limit int) ([]objkt.Gallery, error) {
+	sliceGallery, err := e.objkt.GetGalleries(ctx, creator, offset, limit)
+
+	if err != nil {
+		return nil, err
+	}
+
+	galleries := []objkt.Gallery{}
+	for _, c := range sliceGallery {
+		galleries = append(galleries, c.Gallery)
+	}
+
+	return galleries, nil
+}
+
+func (e *IndexEngine) GetObjktTokensByGalleryPK(ctx context.Context, galleryPK string, offset, limit int) ([]AssetUpdates, error) {
+	sliceGalleryToken, err := e.objkt.GetGalleryTokens(ctx, galleryPK, offset, limit)
+
+	if err != nil {
+		return nil, err
+	}
+
+	updates := []AssetUpdates{}
+	for _, c := range sliceGalleryToken {
+		assetUpdate, err := e.IndexTezosToken(ctx, c.FaContract, c.TokenID)
+
+		if err != nil {
+			return nil, err
+		}
+
+		updates = append(updates, *assetUpdate)
+	}
+
+	return updates, nil
 }
 
 func (e *IndexEngine) GetTezosTokenByOwner(owner string, lastTime time.Time, offset int) ([]tzkt.OwnedToken, error) {
@@ -104,31 +141,20 @@ func (e *IndexEngine) IndexTezosToken(ctx context.Context, contract, tokenID str
 	return e.indexTezosToken(ctx, tzktToken, "", 0, tzktToken.LastTime)
 }
 
-// indexTezosTokenFromFXHASH indexes token metadata by a given fxhash objkt id.
-// A fxhash objkt id is a new format from fxhash which is unified id but varied by contracts
-func (e *IndexEngine) indexTezosTokenFromFXHASH(ctx context.Context, fxhashObjectID string,
-	metadataDetail *AssetMetadataDetail, tokenDetail *TokenDetail) {
-
-	metadataDetail.SetMarketplace(
-		MarketplaceProfile{
-			"fxhash",
-			"https://www.fxhash.xyz",
-			fmt.Sprintf("https://www.fxhash.xyz/gentk/%s", fxhashObjectID),
-		},
-	)
-	metadataDetail.SetMedium(MediumSoftware)
-
-	if detail, err := e.fxhash.GetObjectDetail(ctx, fxhashObjectID); err != nil {
-		log.Error("fail to get token detail from fxhash", zap.Error(err), log.SourceFXHASH)
-	} else {
-		metadataDetail.FromFxhashObject(detail)
-		tokenDetail.MintedAt = detail.CreatedAt
-		tokenDetail.Edition = detail.Iteration
-	}
-}
-
 // searchMetadataFromIPFS searches token metadata from a list of preferred ipfs gateway
 func (e *IndexEngine) searchMetadataFromIPFS(ipfsURI string) (*tzkt.TokenMetadata, error) {
+	if strings.HasPrefix(ipfsURI, "https://") {
+		metadata, err := e.fetchMetadataByLink(ipfsURI)
+		if err != nil {
+			log.Error("fail to read token metadata from ipfs",
+				zap.Error(err), zap.String("ipfsURI", ipfsURI), log.SourceTZKT)
+		}
+
+		log.Debug("read token metadata from ipfs",
+			zap.String("uri", ipfsURI), log.SourceTZKT)
+		return metadata, nil
+	}
+
 	if !strings.HasPrefix(ipfsURI, "ipfs://") {
 		return nil, fmt.Errorf("invalid ipfs link")
 	}
@@ -231,15 +257,10 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		case KALAMContractAddress, TezDaoContractAddress, TezosDNSContractAddress:
 			return nil, nil
 
-		case FXHASHContractAddressFX0_0, FXHASHContractAddressFX0_1, FXHASHContractAddressFX0_2:
+		case FXHASHContractAddressFX0_0, FXHASHContractAddressFX0_1, FXHASHContractAddressFX0_2, FXHASHContractAddressFX1:
 			tokenDetail.Fungible = false
-			fxObjktID := fmt.Sprintf("FX0-%s", tzktToken.ID.String())
-			e.indexTezosTokenFromFXHASH(ctx, fxObjktID, metadataDetail, &tokenDetail)
-
-		case FXHASHContractAddressFX1:
-			tokenDetail.Fungible = false
-			fxObjktID := fmt.Sprintf("FX1-%s", tzktToken.ID.String())
-			e.indexTezosTokenFromFXHASH(ctx, fxObjktID, metadataDetail, &tokenDetail)
+			fxObjktID := fmt.Sprintf("%s-%s", tzktToken.Contract.Address, tzktToken.ID.String())
+			e.indexTokenFromFXHASH(ctx, fxObjktID, metadataDetail, &tokenDetail)
 
 		case VersumContractAddress:
 			tokenDetail.Fungible = true
@@ -322,7 +343,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 
 		if _, ok := inhouseMinter[metadataDetail.Minter]; !ok {
 			// fallback to objkt marketplace if the minter is not autonomy inhouse minter
-			objktToken, err := e.GetObjktToken(tzktToken.Contract.Address, tzktToken.ID.String())
+			objktToken, err := e.GetObjktToken(ctx, tzktToken.Contract.Address, tzktToken.ID.String())
 			if err != nil {
 				log.Error("fail to get token detail from objkt", zap.Error(err), log.SourceObjkt)
 			} else {
@@ -488,6 +509,11 @@ func (e *IndexEngine) IndexTezosTokenOwners(contract, tokenID string) ([]OwnerBa
 		ownersLen := len(owners)
 
 		for i, o := range owners {
+			//ignore index token owners if total supply > 100.000
+			if o.TotalSupply > 100000 {
+				return []OwnerBalance{}, nil
+			}
+
 			ownerBalances = append(ownerBalances, OwnerBalance{
 				Address:  o.Address,
 				Balance:  o.Balance,
@@ -507,8 +533,8 @@ func (e *IndexEngine) IndexTezosTokenOwners(contract, tokenID string) ([]OwnerBa
 	return ownerBalances, nil
 }
 
-func (e *IndexEngine) GetObjktToken(contract, tokenID string) (objkt.Token, error) {
-	return e.objkt.GetObjectToken(contract, tokenID)
+func (e *IndexEngine) GetObjktToken(ctx context.Context, contract, tokenID string) (objkt.Token, error) {
+	return e.objkt.GetObjectToken(ctx, contract, tokenID)
 }
 
 // GetTezosTxTimestamp returns the timestamp of an transaction if it exists
@@ -523,4 +549,49 @@ func (e *IndexEngine) GetTezosTxTimestamp(_ context.Context, txHashString string
 	}
 
 	return detailedTransactions[0].Timestamp, nil
+}
+
+// IndexTezosCollectionByCreator indexes all collections created by a specific tezos address
+func (e *IndexEngine) IndexTezosCollectionByCreator(ctx context.Context, creator string, offset, limit int) ([]Collection, error) {
+	galleries, err := e.GetObjktGalleriesByCreator(ctx, creator, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("retrieve collections for creator", zap.Any("galleries", galleries), zap.String("creator", creator))
+
+	collectionUpdates := make([]Collection, 0, len(galleries))
+
+	for _, c := range galleries {
+		objktHost := "objkt.com"
+		if e.environment == DevelopmentEnvironment {
+			objktHost = "ghostnet.objkt.com"
+		}
+
+		contracts := []string{}
+		for _, c := range c.Tokens {
+			contracts = append(contracts, c.FaContract)
+		}
+
+		update := Collection{
+			ID:               fmt.Sprint("objkt-", c.PK),
+			ExternalID:       strconv.FormatInt(c.PK, 10),
+			Blockchain:       utils.TezosBlockchain,
+			Creator:          creator,
+			Name:             c.Name,
+			Description:      c.Description,
+			ImageURL:         c.Logo,
+			Items:            c.Items,
+			Contracts:        contracts,
+			Source:           "objkt",
+			Published:        c.Published,
+			SourceURL:        fmt.Sprintf("https://%s/collections/%s/projects/%s", objktHost, c.Registry.Slug, c.Slug),
+			LastActivityTime: c.UpdatedAt.Time,
+			CreatedAt:        c.InsertedAt.Time,
+		}
+
+		collectionUpdates = append(collectionUpdates, update)
+	}
+
+	return collectionUpdates, nil
 }

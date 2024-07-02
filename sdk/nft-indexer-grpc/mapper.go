@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/structpb"
 
 	log "github.com/bitmark-inc/autonomy-logger"
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -451,4 +452,46 @@ func (m *Mapper) MapGrpcArtworkMetadataToIndexerArtworkMetadata(artworkMetadata 
 	}
 
 	return b
+}
+
+func (m *Mapper) MapGenericSaleTimeSeries(s []indexer.GenericSalesTimeSeries) *grpcIndexer.SaleTimeSeriesRecords {
+	if nil == s {
+		return nil
+	}
+
+	records := make([]*grpcIndexer.SaleTimeSeriesRecord, len(s))
+	for i, v := range s {
+		metadata, err := structpb.NewStruct(v.Metadata)
+		if err != nil {
+			return nil
+		}
+		records[i] = &grpcIndexer.SaleTimeSeriesRecord{
+			Timestamp: v.Timestamp,
+			Metadata:  metadata,
+			Values:    v.Values,
+			Shares:    v.Shares,
+		}
+	}
+
+	return &grpcIndexer.SaleTimeSeriesRecords{
+		Sales: records,
+	}
+}
+
+func (m *Mapper) MapGrpcSaleTimeSeriesRecords(s *grpcIndexer.SaleTimeSeriesRecords) []indexer.GenericSalesTimeSeries {
+	if nil == s {
+		return nil
+	}
+
+	records := make([]indexer.GenericSalesTimeSeries, len(s.Sales))
+	for i, v := range s.Sales {
+		records[i] = indexer.GenericSalesTimeSeries{
+			Timestamp: v.Timestamp,
+			Metadata:  v.Metadata.AsMap(),
+			Values:    v.Values,
+			Shares:    v.Shares,
+		}
+	}
+
+	return records
 }

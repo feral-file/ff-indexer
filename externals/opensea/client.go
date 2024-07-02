@@ -16,6 +16,8 @@ import (
 
 var ErrTooManyRequest = fmt.Errorf("too many requests")
 
+const QueryPageSize = "50"
+
 type Time struct {
 	time.Time
 }
@@ -83,6 +85,34 @@ type DetailedAssetV2 struct {
 type Owner struct {
 	Address  string `json:"address"`
 	Quantity int64  `json:"quantity"`
+}
+
+type Account struct {
+	Address  string `json:"address"`
+	Username string `json:"username"`
+}
+
+type CollectionsResponse struct {
+	Collections []Collection `json:"collections"`
+	Next        string       `json:"next"`
+}
+
+type Collection struct {
+	ID             string `json:"collection"`
+	Name           string `json:"name"`
+	Description    string `json:"description"`
+	ImageURL       string `json:"image_url"`
+	BannerImageURL string `json:"banner_image_url"`
+	Owner          string `json:"owner"`
+	IsDisabled     bool   `json:"is_disabled"`
+	OpenseaURL     string `json:"opensea_url"`
+	ProjectURL     string `json:"project_url"`
+	Contracts      []struct {
+		Address string `json:"address"`
+		Chain   string `json:"chain"`
+	} `json:"contracts"`
+	TotalSupply int    `json:"total_supply"`
+	CreatedDate string `json:"created_date"`
 }
 
 type Client struct {
@@ -164,9 +194,7 @@ func (c *Client) makeRequest(method, url string, body io.Reader) (*http.Response
 		return nil, err
 	}
 
-	if c.chain == "ethereum" {
-		req.Header.Add("X-API-KEY", c.apiKey)
-	}
+	req.Header.Add("X-API-KEY", c.apiKey)
 
 	if c.debug {
 		log.Debug("debug request", zap.String("req_dump", traceutils.DumpRequest(req)))
@@ -234,7 +262,7 @@ func (c *Client) RetrieveAsset(contract, tokenID string) (*DetailedAssetV2, erro
 func (c *Client) RetrieveAssets(owner string, next string) (*AssetsResponse, error) {
 	// NOTE: query by offset is removed from the document but still support at this moment.
 	v := url.Values{
-		"limit": []string{"50"},
+		"limit": []string{QueryPageSize},
 		"next":  []string{next},
 	}
 
@@ -242,6 +270,124 @@ func (c *Client) RetrieveAssets(owner string, next string) (*AssetsResponse, err
 		Scheme:   "https",
 		Host:     c.apiEndpoint,
 		Path:     fmt.Sprintf("/api/v2/chain/%s/account/%s/nfts", c.chain, owner),
+		RawQuery: v.Encode(),
+	}
+
+	resp, err := c.makeRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var assetResp AssetsResponse
+
+	if err := json.NewDecoder(resp.Body).Decode(&assetResp); err != nil {
+		log.Error("fail to read opensea response", zap.Error(err),
+			log.SourceOpensea,
+			zap.String("resp_dump", traceutils.DumpResponse(resp)))
+		return nil, err
+	}
+
+	return &assetResp, nil
+}
+
+// RetrieveAccount returns the opensea account information from given address
+func (c *Client) RetrieveAccount(address string) (*Account, error) {
+	u := url.URL{
+		Scheme: "https",
+		Host:   c.apiEndpoint,
+		Path:   fmt.Sprintf("/api/v2/accounts/%s", address),
+	}
+
+	resp, err := c.makeRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var accountResp Account
+
+	if err := json.NewDecoder(resp.Body).Decode(&accountResp); err != nil {
+		log.Error("fail to read opensea response", zap.Error(err),
+			log.SourceOpensea,
+			zap.String("resp_dump", traceutils.DumpResponse(resp)))
+		return nil, err
+	}
+
+	return &accountResp, nil
+}
+
+// RetrieveColections returns the opensea collections from given creator username
+func (c *Client) RetrieveColections(username string, next string) (*CollectionsResponse, error) {
+	v := url.Values{
+		"limit":            []string{QueryPageSize},
+		"next":             []string{next},
+		"chain":            []string{c.chain},
+		"creator_username": []string{username},
+	}
+
+	u := url.URL{
+		Scheme:   "https",
+		Host:     c.apiEndpoint,
+		Path:     "/api/v2/collections",
+		RawQuery: v.Encode(),
+	}
+
+	resp, err := c.makeRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var collectionResp CollectionsResponse
+
+	if err := json.NewDecoder(resp.Body).Decode(&collectionResp); err != nil {
+		log.Error("fail to read opensea response", zap.Error(err),
+			log.SourceOpensea,
+			zap.String("resp_dump", traceutils.DumpResponse(resp)))
+		return nil, err
+	}
+
+	return &collectionResp, nil
+}
+
+// RetrieveColection returns the opensea collection from given collectionID
+func (c *Client) RetrieveColection(username string, collectionID string) (*Collection, error) {
+	u := url.URL{
+		Scheme: "https",
+		Host:   c.apiEndpoint,
+		Path:   fmt.Sprint("/api/v2/collections/", collectionID),
+	}
+
+	resp, err := c.makeRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var collection Collection
+
+	if err := json.NewDecoder(resp.Body).Decode(&collection); err != nil {
+		log.Error("fail to read opensea response", zap.Error(err),
+			log.SourceOpensea,
+			zap.String("resp_dump", traceutils.DumpResponse(resp)))
+		return nil, err
+	}
+
+	return &collection, nil
+}
+
+// RetrieveColectionAssets returns the opensea collections from given creator username
+func (c *Client) RetrieveColectionAssets(collectionSlug string, next string) (*AssetsResponse, error) {
+	v := url.Values{
+		"limit": []string{QueryPageSize},
+		"next":  []string{next},
+	}
+
+	u := url.URL{
+		Scheme:   "https",
+		Host:     c.apiEndpoint,
+		Path:     fmt.Sprintf("/v2/collection/%s/nfts", collectionSlug),
 		RawQuery: v.Encode(),
 	}
 

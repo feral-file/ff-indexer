@@ -1,9 +1,11 @@
 package worker
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/getsentry/sentry-go"
 	"go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
@@ -189,6 +191,126 @@ func (w *NFTIndexerWorker) CacheIPFSArtifactWorkflow(ctx workflow.Context, fullD
 		// sentry.CaptureException(err)
 		log.Error("fail to cache IPFS data", zap.Error(err))
 		return err
+	}
+
+	return nil
+}
+
+// IndexTezosCollectionWorkflow is a workflow to index and summarized Tezos tokens for a owner
+func (w *NFTIndexerWorker) IndexTezosCollectionWorkflow(ctx workflow.Context, creator string) error {
+	log := workflow.GetLogger(ctx)
+
+	nextOffset := 0
+	for {
+		var next int
+		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx, ""), w.IndexTezosCollectionsByCreator, creator, nextOffset).Get(ctx, &next); err != nil {
+			sentry.CaptureException(err)
+			return err
+		}
+
+		if next == 0 {
+			log.Debug("[loop] no more collections found from tezos", zap.String("creator", creator))
+			break
+		}
+
+		nextOffset = next
+	}
+	log.Info("TEZOS collections indexed", zap.String("creator", creator))
+	return nil
+}
+
+// IndexETHCollectionWorkflow is a workflow to index and summarized ETH tokens for a creator
+func (w *NFTIndexerWorker) IndexETHCollectionWorkflow(ctx workflow.Context, creator string) error {
+	log := workflow.GetLogger(ctx)
+
+	nextPage := ""
+	for {
+		var next string
+		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx, ""), w.IndexETHCollectionsByCreator, creator, nextPage).Get(ctx, &next); err != nil {
+			sentry.CaptureException(err)
+			return err
+		}
+
+		if next == "" {
+			log.Debug("[loop] no more collections found from eth", zap.String("creator", creator))
+			break
+		}
+
+		nextPage = next
+	}
+	log.Info("ETH collections indexed", zap.String("creator", creator))
+	return nil
+}
+
+func (w *NFTIndexerWorker) IndexEthereumTokenSaleInBlockRange(
+	ctx workflow.Context,
+	fromBlk uint64,
+	toBlk uint64,
+	blkBatchSize uint64,
+	contractAddresses []string,
+	skipIndexed bool) error {
+	ctx = ContextRegularActivity(ctx, w.TaskListName)
+
+	// TODO remove in the future
+	if !skipIndexed {
+		return errors.New("skipIndexed must be true until we have a unique index handled properly for sale time series data")
+	}
+
+	if fromBlk > toBlk {
+		return fmt.Errorf("invalid block range")
+	}
+	startBlk := fromBlk
+	endBlk := fromBlk + blkBatchSize
+	if endBlk > toBlk {
+		endBlk = toBlk
+	}
+
+	log.Info("index feral file ethereum token sale in block range",
+		zap.Uint64("startBlk", startBlk),
+		zap.Uint64("endBlk", endBlk),
+		zap.Strings("contractAddresses", contractAddresses))
+
+	// Query txs
+	txIDs := make([]string, 0)
+	if err := workflow.ExecuteActivity(
+		ctx,
+		w.FilterEthereumNFTTxByEventLogs,
+		contractAddresses,
+		startBlk,
+		endBlk).
+		Get(ctx, &txIDs); err != nil {
+		return err
+	}
+
+	// Index token sale
+	futures := make([]workflow.Future, 0)
+	for _, txID := range txIDs {
+		workflowID := fmt.Sprintf("IndexEthereumTokenSale-%s", txID)
+		cwctx := ContextNamedRegularChildWorkflow(ctx, workflowID, TaskListName)
+		futures = append(
+			futures,
+			workflow.ExecuteChildWorkflow(
+				cwctx,
+				w.IndexEthereumTokenSale,
+				txID,
+				skipIndexed))
+	}
+
+	for _, future := range futures {
+		if err := future.Get(ctx, nil); err != nil {
+			return err
+		}
+	}
+
+	if endBlk < toBlk {
+		return workflow.NewContinueAsNewError(
+			ctx,
+			w.IndexEthereumTokenSaleInBlockRange,
+			startBlk+blkBatchSize,
+			toBlk,
+			blkBatchSize,
+			contractAddresses,
+			skipIndexed)
 	}
 
 	return nil

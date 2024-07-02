@@ -4,10 +4,35 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/hasura/go-graphql-client"
 )
+
+type Time struct {
+	time.Time
+}
+
+func (t *Time) UnmarshalJSON(b []byte) (err error) {
+	s := strings.Trim(string(b), "\"")
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil
+	}
+	s = strings.Split(s, "+")[0]
+	tt, err := time.Parse("2006-01-02T15:04:05.999999", s)
+	if err != nil {
+		return err
+	}
+
+	t.Time = tt
+	return nil
+}
+
+func (t *Time) MarshalJSON() ([]byte, error) {
+	return t.Time.MarshalJSON()
+}
 
 type Client struct {
 	Client   *graphql.Client
@@ -66,8 +91,43 @@ type Holder struct {
 	Twitter   string
 }
 
+type SliceGallery []struct {
+	Gallery
+}
+
+type Gallery struct {
+	Name        string
+	Slug        string
+	Editions    int
+	Description string
+	Items       int
+	Logo        string
+	GalleryID   string `graphql:"gallery_id"`
+	PK          int64  `graphql:"pk"`
+	Registry    Registry
+	Published   bool
+	Tokens      SliceGalleryToken `graphql:"tokens(distinct_on: fa_contract)"`
+	UpdatedAt   Time              `graphql:"updated_at"`
+	InsertedAt  Time              `graphql:"inserted_at"`
+}
+
+type Registry struct {
+	ID   int
+	Name string
+	Slug string
+}
+
+type SliceGalleryToken []struct {
+	GalleryToken
+}
+
+type GalleryToken struct {
+	FaContract string `graphql:"fa_contract"`
+	TokenID    string `graphql:"token_id"`
+}
+
 // GetObjectToken query Objkt Token object from Objkt API
-func (g *Client) GetObjectToken(contract string, tokenID string) (Token, error) {
+func (g *Client) GetObjectToken(ctx context.Context, contract string, tokenID string) (Token, error) {
 	var query struct {
 		SliceToken `graphql:"token(where: {token_id: {_eq: $tokenID}, fa_contract: {_eq: $fa_contract}})"`
 	}
@@ -77,7 +137,7 @@ func (g *Client) GetObjectToken(contract string, tokenID string) (Token, error) 
 		"fa_contract": graphql.String(contract),
 	}
 
-	err := g.Client.Query(context.Background(), &query, variables)
+	err := g.Client.Query(ctx, &query, variables)
 	if err != nil {
 		return Token{}, err
 	}
@@ -87,4 +147,45 @@ func (g *Client) GetObjectToken(contract string, tokenID string) (Token, error) 
 	}
 
 	return query.SliceToken[0].Token, nil
+}
+
+// GetGalleries query Objkt galleries from Objkt API
+func (g *Client) GetGalleries(ctx context.Context, address string, offset, limit int) (SliceGallery, error) {
+	var query struct {
+		SliceGallery `graphql:"gallery(where: {curators: {curator_address: {_eq: $address}}}, offset: $offset, limit: $limit)"`
+	}
+
+	variables := map[string]interface{}{
+		"address": graphql.String(address),
+		"offset":  graphql.Int(offset),
+		"limit":   graphql.Int(limit),
+	}
+
+	err := g.Client.Query(ctx, &query, variables)
+	if err != nil {
+		return SliceGallery{}, err
+	}
+
+	return query.SliceGallery, nil
+}
+
+// GetGalleryToken query Objkt gallery tokens from Objkt API
+func (g *Client) GetGalleryTokens(ctx context.Context, galleryPK string, offset, limit int) (SliceGalleryToken, error) {
+	// NOTE: use `graphql.Client.Exec` to query since normal query doesn't support bigint varable
+	query := fmt.Sprintf(`query{
+		gallery_token(where: {gallery_pk: {_eq: %s}}, offset: %d, limit: %d) {
+			fa_contract
+			token_id
+		}
+	}`, galleryPK, offset, limit)
+	res := struct {
+		GalleryToken SliceGalleryToken `graphql:"gallery_token"`
+	}{}
+
+	err := g.Client.Exec(ctx, query, &res, map[string]any{})
+	if err != nil {
+		return SliceGalleryToken{}, err
+	}
+
+	return res.GalleryToken, nil
 }

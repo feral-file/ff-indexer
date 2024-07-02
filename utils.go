@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"bytes"
 	"context"
 	"crypto/aes"
 	"crypto/cipher"
@@ -12,11 +13,13 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"reflect"
 	"strings"
 	"time"
 
 	utils "github.com/bitmark-inc/autonomy-utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/fatih/structs"
 )
 
 func EthereumChecksumAddress(address string) string {
@@ -252,4 +255,57 @@ func NormalizeIndexIDs(indexIDs []string, isConvertToDecimal bool) []string {
 		processedAddresses = append(processedAddresses, indexID)
 	}
 	return processedAddresses
+}
+
+// GetPrefixedSigningMessage formats a message with a predefined nft-indexer: prefix and a given timestamp.
+func GetPrefixedSigningMessage(timestamp string) string {
+	return fmt.Sprintf("nft-indexer: %s", timestamp)
+}
+
+func BuildQueryParams(params interface{}) string {
+	// 1. Validate input type
+	t := reflect.TypeOf(params)
+	if t.Kind() != reflect.Struct {
+		panic("The params has to be a struct")
+	}
+
+	// 2. Iterate over the map to build the query params
+	m := structs.Map(params)
+	var buf bytes.Buffer
+	for k, v := range m {
+		buf.WriteString(getQueryParams(k, reflect.ValueOf(v)))
+		buf.WriteString("&")
+	}
+
+	return strings.TrimSuffix(buf.String(), "&")
+}
+
+func getQueryParams(key string, val reflect.Value) string {
+	urlKey := url.PathEscape(key)
+	var buf bytes.Buffer
+	switch val.Kind() {
+	case reflect.Array, reflect.Slice:
+		for i := 0; i < val.Len(); i++ {
+			buf.WriteString(getQueryParams(urlKey, val.Index(i)))
+			buf.WriteString("&")
+		}
+	case reflect.Pointer:
+		v := url.PathEscape(fmt.Sprintf("%v", val.Elem().Interface()))
+		buf.WriteString(fmt.Sprintf("%s=%s", urlKey, v))
+	default:
+		v := url.PathEscape(fmt.Sprintf("%v", val.Interface()))
+		buf.WriteString(fmt.Sprintf("%s=%s", urlKey, v))
+	}
+
+	return strings.TrimSuffix(strings.ReplaceAll(buf.String(), "+", "%2B"), "&")
+}
+
+// convert HEX token to DEC format
+func HexToDec(hex string) string {
+	n, ok := big.NewInt(0).SetString(hex, 16)
+	if !ok {
+		return ""
+	}
+
+	return n.Text(10)
 }

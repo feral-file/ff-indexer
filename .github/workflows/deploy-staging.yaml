@@ -1,20 +1,16 @@
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 name: Deploy Staging
 
 jobs:
-  deploy:
-    name: Deploy
+  build-indexer-api:
+    name: Build Indexer API Image
     runs-on: self-hosted
-    environment: staging
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -27,7 +23,7 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
 
-    - name: Build Indexer Image
+    - name: Build Indexer API Image
       id: build-indexer-api-image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -45,7 +41,22 @@ jobs:
           docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-
+  
+  build-indexer-background:
+    name: Build Indexer Background Image
+    runs-on: self-hosted
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-northeast-1
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
     - name: Build Indexer Background Image
       id: build-indexer-background-image
       env:
@@ -65,6 +76,24 @@ jobs:
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
 
+  build-indexer-grpc:
+    name: Build Indexer GRPC Image
+    runs-on: self-hosted
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-northeast-1
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
     - name: Build Indexer GRPC Image
       id: build-nft-indexer-grpc-image
       env:
@@ -83,7 +112,25 @@ jobs:
           docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          
+  build-indexer-provenance:
+    name: Build Indexer Provenance Image
+    runs-on: self-hosted
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
 
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-northeast-1
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
     - name: Build Provenance Indexer Image
       id: build-provenance-indexer-image
       env:
@@ -102,7 +149,23 @@ jobs:
           docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-
+  
+  build-indexer-account-token:
+    name: Build Indexer Account Token Image
+    runs-on: self-hosted
+  
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-northeast-1
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
     - name: Build Account Token Indexer Image
       id: build-account-token-indexer-image
       env:
@@ -122,7 +185,25 @@ jobs:
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
 
-    - name: Build, Image Indexer Image
+  build-indexer-image-indexer:
+    name: Build Indexer Image Indexer Image
+    runs-on: self-hosted
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-northeast-1
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+    - name: Build Image Indexer Image
       id: build-image-indexer-image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -141,6 +222,24 @@ jobs:
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
 
+  build-indexer-event-processor:
+    name: Build Event Processor Image
+    runs-on: self-hosted
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-northeast-1
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
     - name: Build Event Processor Image
       id: build-event-processor-image
       env:
@@ -160,6 +259,24 @@ jobs:
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
 
+  build-indexer-event-processor-ethereum-emitter:
+    name: Build Event Processor Ethereum Emitter Image
+    runs-on: self-hosted
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-northeast-1
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
     - name: Build Event Processor Ethereum Emitter Image
       id: build-event-processor-ethereum-emitter-image
       env:
@@ -178,7 +295,25 @@ jobs:
           docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          
+  build-indexer-event-processor-tezos-emitter:
+    name: Build Event Processor Tezos Emitter Image
+    runs-on: self-hosted
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
 
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-northeast-1
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
     - name: Build Event Processor Tezos Emitter Image
       id: build-event-processor-tezos-emitter-image
       env:
@@ -197,6 +332,30 @@ jobs:
           docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+
+  deploy:
+    name: Deploy
+    runs-on: self-hosted
+    environment: staging
+
+    needs: 
+    - build-indexer-api
+    - build-indexer-background
+    - build-indexer-grpc
+    - build-indexer-provenance
+    - build-indexer-account-token
+    - build-indexer-image-indexer
+    - build-indexer-event-processor
+    - build-indexer-event-processor-ethereum-emitter
+    - build-indexer-event-processor-tezos-emitter
+
+    steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-northeast-1
 
     - name: Sops Binary Installer
       uses: mdgreenwald/mozilla-sops-action@v1.1.0

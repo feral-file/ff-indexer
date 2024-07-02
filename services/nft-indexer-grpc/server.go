@@ -6,14 +6,13 @@ import (
 	"net"
 	"time"
 
-	"google.golang.org/grpc"
-
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/cache"
 	indexerGRPCSDK "github.com/bitmark-inc/nft-indexer/sdk/nft-indexer-grpc"
 	pb "github.com/bitmark-inc/nft-indexer/services/nft-indexer-grpc/grpc/indexer"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"google.golang.org/grpc"
 )
 
 type IndexerServer struct {
@@ -240,4 +239,9 @@ func (i *IndexerServer) GetIdentity(ctx context.Context, request *pb.Address) (*
 		Name:            identity.Name,
 		LastUpdatedTime: identity.LastUpdatedTime.Format(time.RFC3339Nano),
 	}, nil
+}
+
+// SendTimeSeriesData send timestamped metadata and values
+func (i *IndexerServer) SendTimeSeriesData(ctx context.Context, req *pb.SaleTimeSeriesRecords) (*pb.Empty, error) {
+	return &pb.Empty{}, i.indexerStore.WriteTimeSeriesData(ctx, i.mapper.MapGrpcSaleTimeSeriesRecords(req))
 }

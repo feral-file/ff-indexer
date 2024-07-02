@@ -82,3 +82,15 @@ data:
       {{- .Values.serviceConfig.preferred_gateways | toYaml | nindent 6 }}
       minter_gateways: |
       {{- .Values.serviceConfig.minter_gateways | toYaml | nindent 8 }}
+
+    ethereum:
+      erc20:
+      {{ .Values.serviceConfig.ethereum_erc20 | toYaml | nindent 8 }}
+    
+    marketplace:
+      contracts:
+      {{ .Values.serviceConfig.marketplace_contracts | toYaml | nindent 8 }}
+      fee_wallets:
+      {{ .Values.serviceConfig.marketplace_feewallets | toYaml | nindent 8 }}
+    etherscan:
+      url: {{ .Values.serviceConfig.etherscan_url }}

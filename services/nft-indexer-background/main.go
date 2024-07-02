@@ -32,20 +32,16 @@ var CadenceService = "cadence-frontend"
 
 func main() {
 	config.LoadConfig("NFT_INDEXER")
-	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug")); err != nil {
+
+	environment := viper.GetString("environment")
+	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug"), &sentry.ClientOptions{
+		Dsn:         viper.GetString("sentry.dsn"),
+		Environment: environment,
+	}); err != nil {
 		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
 	}
 
 	hostPort := viper.GetString("cadence.host_port")
-
-	environment := viper.GetString("environment")
-
-	if err := sentry.Init(sentry.ClientOptions{
-		Dsn:         viper.GetString("sentry.dsn"),
-		Environment: environment,
-	}); err != nil {
-		log.Panic("Sentry initialization failed", zap.Error(err))
-	}
 
 	ctx := context.Background()
 
@@ -97,23 +93,48 @@ func main() {
 	// workflows
 	workflow.Register(worker.IndexETHTokenWorkflow)
 	workflow.Register(worker.IndexTezosTokenWorkflow)
+	workflow.Register(worker.IndexTezosCollectionWorkflow)
+	workflow.Register(worker.IndexETHCollectionWorkflow)
 	workflow.RegisterWithOptions(worker.IndexTokenWorkflow, workflow.RegisterOptions{
 		Name: "IndexTokenWorkflow",
 	})
+	workflow.RegisterWithOptions(worker.IndexEthereumTokenSaleInBlockRange, workflow.RegisterOptions{
+		Name: "IndexEthereumTokenSaleInBlockRange"})
+	workflow.RegisterWithOptions(worker.IndexEthereumTokenSale, workflow.RegisterOptions{
+		Name: "IndexEthereumTokenSale",
+	})
+	workflow.RegisterWithOptions(worker.IndexTezosTokenSale, workflow.RegisterOptions{
+		Name: "IndexTezosTokenSale",
+	})
+	workflow.RegisterWithOptions(worker.ParseEthereumTokenSale, workflow.RegisterOptions{
+		Name: "ParseEthereumTokenSale"})
 
 	// cache
 	activity.Register(worker.CacheArtifact)
 
 	// all blockchain
 	activity.Register(worker.IndexToken)
+
 	// ethereum
 	activity.Register(worker.IndexETHTokenByOwner)
+	activity.Register(worker.IndexETHCollectionsByCreator)
+	activity.Register(worker.GetEthereumTxReceipt)
+	activity.Register(worker.GetEthereumTx)
+	activity.Register(worker.GetEthereumBlockHeaderHash)
+	activity.Register(worker.GetEthereumBlockHeaderByNumber)
+	activity.Register(worker.GetEthereumInternalTxs)
+	activity.Register(worker.FilterEthereumNFTTxByEventLogs)
+
 	// tezos
 	activity.Register(worker.IndexTezosTokenByOwner)
+	activity.Register(worker.IndexTezosCollectionsByCreator)
 	// index store
 	activity.Register(worker.IndexAsset)
 	activity.Register(worker.GetTokenBalanceOfOwner)
 	activity.Register(worker.RefreshTokenProvenance)
+	activity.Register(worker.GetTokenByIndexID)
+	activity.Register(worker.WriteSaleTimeSeriesData)
+	activity.Register(worker.IndexedSaleTx)
 
 	// index account tokens
 	activity.Register(worker.IndexAccountTokens)

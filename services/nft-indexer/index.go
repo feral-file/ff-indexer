@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -41,11 +42,21 @@ type NFTQueryParams struct {
 	Text string `form:"text"`
 
 	// query tokens
-	IDs []string `json:"ids"`
+	IDs          []string `json:"ids"`
+	CollectionID string   `json:"collectionID"`
 
 	// lastUpdatedAt
 	LastUpdatedAt int64  `form:"lastUpdatedAt"`
 	SortBy        string `form:"sortBy"`
+}
+
+type CollectionQueryParams struct {
+	// global
+	Offset int64 `form:"offset"`
+	Size   int64 `form:"size"`
+
+	// list by owners
+	Creators string `form:"creators"`
 }
 
 type TokenFeedbackParams struct {
@@ -254,6 +265,14 @@ func (s *NFTIndexerServer) IndexHistory(c *gin.Context) {
 }
 
 func (s *NFTIndexerServer) SetTokenPendingV1(c *gin.Context) {
+	s.SetTokenPending(c, false)
+}
+
+func (s *NFTIndexerServer) SetTokenPendingV2(c *gin.Context) {
+	s.SetTokenPending(c, true)
+}
+
+func (s *NFTIndexerServer) SetTokenPending(c *gin.Context, withPrefix bool) {
 	traceutils.SetHandlerTag(c, "TokenPending")
 
 	var reqParams PendingTxParamsV1
@@ -285,7 +304,35 @@ func (s *NFTIndexerServer) SetTokenPendingV1(c *gin.Context) {
 		return
 	}
 
-	isValidAddress, err := s.verifyAddressOwner(reqParams.Blockchain, reqParams.Timestamp, reqParams.Signature, reqParams.OwnerAccount, reqParams.PublicKey)
+	message := reqParams.Timestamp
+	if withPrefix {
+		jsonMessage, err := json.Marshal(struct {
+			Blockchain      string `json:"blockchain"`
+			ID              string `json:"id"`
+			ContractAddress string `json:"contractAddress"`
+			OwnerAccount    string `json:"ownerAccount"`
+			Timestamp       string `json:"timestamp"`
+		}{
+			Blockchain:      reqParams.Blockchain,
+			ID:              reqParams.ID,
+			ContractAddress: reqParams.ContractAddress,
+			OwnerAccount:    reqParams.OwnerAccount,
+			Timestamp:       reqParams.Timestamp,
+		})
+		if err != nil {
+			abortWithError(c, http.StatusInternalServerError, "error marshall json message", err)
+			return
+		}
+		message = indexer.GetPrefixedSigningMessage(string(jsonMessage))
+	}
+
+	isValidAddress, err := s.verifyAddressOwner(
+		reqParams.Blockchain,
+		message,
+		reqParams.Signature,
+		reqParams.OwnerAccount,
+		reqParams.PublicKey,
+	)
 
 	if err != nil {
 		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
@@ -304,6 +351,34 @@ func (s *NFTIndexerServer) SetTokenPendingV1(c *gin.Context) {
 		return
 	}
 	log.Info("a pending account token is added", zap.String("owner", reqParams.OwnerAccount), zap.String("pendingTx", reqParams.PendingTx))
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok": 1,
+	})
+}
+
+func (s *NFTIndexerServer) IndexCollections(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "IndexCollections")
+	var req struct {
+		Addresses []indexer.BlockchainAddress `json:"addresses"`
+	}
+
+	if err := c.Bind(&req); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	for _, addr := range req.Addresses {
+		address := addr.String()
+		blockchain := utils.GetBlockchainByAddress(address)
+
+		switch blockchain {
+		case utils.EthereumBlockchain:
+			indexerWorker.StartIndexETHCollectionWorkflow(c, s.cadenceWorker, "indexer", address)
+		case utils.TezosBlockchain:
+			indexerWorker.StartIndexTezosCollectionWorkflow(c, s.cadenceWorker, "indexer", address)
+		}
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"ok": 1,

@@ -7,13 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/managedblockchainquery"
-	"github.com/dgrijalva/jwt-go"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/getsentry/sentry-go"
-	"github.com/spf13/viper"
-	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
-
 	log "github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/config-loader"
 	"github.com/bitmark-inc/config-loader/external/aws/ssm"
@@ -28,6 +21,12 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
 	tezosDomain "github.com/bitmark-inc/nft-indexer/externals/tezos-domain"
 	"github.com/bitmark-inc/tzkt-go"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/getsentry/sentry-go"
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
 )
 
 func main() {
@@ -36,15 +35,11 @@ func main() {
 	config.LoadConfig("NFT_INDEXER")
 
 	environment := viper.GetString("environment")
-	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug")); err != nil {
-		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
-	}
-
-	if err := sentry.Init(sentry.ClientOptions{
+	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug"), &sentry.ClientOptions{
 		Dsn:         viper.GetString("sentry.dsn"),
 		Environment: environment,
 	}); err != nil {
-		log.Panic("Sentry initialization failed", zap.Error(err))
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
 	}
 
 	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
@@ -96,7 +91,7 @@ func main() {
 		managedblockchainquery.New(awsSession),
 	)
 
-	parameterStore, err := ssm.NewParameterStore(ctx)
+	parameterStore, err := ssm.New(ctx)
 	if err != nil {
 		log.Panic("can not create new parameter store", zap.Error(err))
 	}

@@ -29,7 +29,7 @@ type TransactionDetails struct {
 }
 
 // IndexETHTokenByOwner indexes all tokens owned by a specific ethereum address
-func (e *IndexEngine) IndexETHTokenByOwner(owner string, next string) ([]AssetUpdates, string, error) {
+func (e *IndexEngine) IndexETHTokenByOwner(ctx context.Context, owner string, next string) ([]AssetUpdates, string, error) {
 	if _, excluded := EthereumIndexExcludedOwners[owner]; excluded {
 		return nil, "", nil
 	}
@@ -55,7 +55,7 @@ func (e *IndexEngine) IndexETHTokenByOwner(owner string, next string) ([]AssetUp
 			continue
 		}
 
-		update, err := e.indexETHToken(detailedAsset, owner, balance)
+		update, err := e.indexETHToken(ctx, detailedAsset, owner, balance)
 		if err != nil {
 			log.Error("fail to index token data", zap.Error(err))
 		}
@@ -103,23 +103,20 @@ func (e *IndexEngine) getEthereumTokenBalanceOfOwner(_ context.Context, contract
 }
 
 // IndexETHToken indexes an Ethereum token with a specific contract and ID
-func (e *IndexEngine) IndexETHToken(_ context.Context, contract, tokenID string) (*AssetUpdates, error) {
+func (e *IndexEngine) IndexETHToken(ctx context.Context, contract, tokenID string) (*AssetUpdates, error) {
 	a, err := e.opensea.RetrieveAsset(contract, tokenID)
 	if err != nil {
 		return nil, err
 	}
 
-	return e.indexETHToken(a, "", 0)
+	return e.indexETHToken(ctx, a, "", 0)
 }
 
 // indexETHToken prepares indexing data for a specific asset read from opensea
 // The reason to use owner as a parameter is that opensea sometimes returns zero address for it owners. Why?
-func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, balance int64) (*AssetUpdates, error) {
+func (e *IndexEngine) indexETHToken(ctx context.Context, a *opensea.DetailedAssetV2, owner string, balance int64) (*AssetUpdates, error) {
 	dataSource := SourceOpensea
 
-	var sourceURL string
-	var artistURL string
-	artistID := EthereumChecksumAddress(a.Creator)
 	contractAddress := EthereumChecksumAddress(a.Contract)
 	switch contractAddress {
 	case ENSContractAddress1, ENSContractAddress2:
@@ -136,105 +133,65 @@ func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, ba
 		source = getTokenSourceByContract(contractAddress)
 	}
 
-	switch source {
-	case sourceArtBlocks:
-		sourceURL = "https://www.artblocks.io/"
-		artistURL = fmt.Sprintf("%s/%s", sourceURL, a.Creator)
-	case sourceCrayonCodes:
-		sourceURL = "https://openprocessing.org/crayon/"
-		artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator)
-	case sourceFxHash:
-		sourceURL = "https://www.fxhash.xyz/"
-		artistURL = fmt.Sprintf("https://www.fxhash.xyz/u/%s", a.Creator)
-	default:
-		if viper.GetString("network.ethereum") == "sepolia" {
-			sourceURL = "https://testnets.opensea.io"
-		} else {
-			sourceURL = "https://opensea.io"
-		}
-		artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator)
-	}
-
-	log.Debug("source debug", zap.String("source", source), zap.String("contract", a.Contract), zap.String("id", a.Identifier))
-
-	// Opensea GET assets API just provide a creator, not multiple creator
-	artists := []Artist{
-		{
-			ID:   artistID,
-			Name: artistID,
-			URL:  artistURL,
-		},
-	}
-
-	assetURL := a.OpenseaURL
-	animationURL := a.AnimationURL
-
-	imageURL, err := OptimizedOpenseaImageURL(a.ImageURL)
-	if err != nil {
-		log.Warn("invalid opensea image url", zap.String("imageURL", a.ImageURL))
-	}
-
-	// fallback to project origin image url
-	if imageURL == "" {
-		imageURL = a.ImageURL
-	}
-
-	if source == sourceFxHash {
-		assetURL = fmt.Sprintf("https://www.fxhash.xyz/gentk/%s-%s", a.Contract, a.Identifier)
-		imageURL = OptimizeFxHashIPFSURL(imageURL)
-		animationURL = OptimizeFxHashIPFSURL(animationURL)
-	}
-
-	metadata := ProjectMetadata{
-		ArtistID:            artistID,
-		ArtistName:          artistID,
-		ArtistURL:           artistURL,
-		AssetID:             contractAddress,
-		Title:               a.Name,
-		Description:         a.Description,
-		MIMEType:            GetMIMETypeByURL(imageURL),
-		Medium:              MediumUnknown,
-		Source:              source,
-		SourceURL:           sourceURL,
-		PreviewURL:          imageURL,
-		ThumbnailURL:        imageURL,
-		GalleryThumbnailURL: imageURL,
-		AssetURL:            assetURL,
-		LastUpdatedAt:       time.Now(),
-		Artists:             artists,
-	}
-
-	if animationURL != "" {
-		metadata.PreviewURL = animationURL
-		metadata.MIMEType = GetMIMETypeByURL(animationURL)
-
-		if source == sourceArtBlocks {
-			metadata.Medium = MediumSoftware
-		} else {
-			medium := mediumByPreviewFileExtension(metadata.PreviewURL)
-			log.Debug("fallback medium check", zap.String("previewURL", metadata.PreviewURL), zap.Any("medium", medium))
-			metadata.Medium = medium
-		}
-	} else if imageURL != "" {
-		metadata.Medium = MediumImage
+	metadataDetail := NewAssetMetadataDetail(contractAddress)
+	metadataDetail.FromOpenseaAsset(a, source)
+	tokenDetail := TokenDetail{
+		MintedAt: a.CreatedAt.Time, // set minted_at to the contract creation time,
+		Edition:  e.GetEditionNumberByName(a.Name),
 	}
 
 	contractType := strings.ToLower(a.TokenStandard)
-	fungible := contractType != "erc721"
+	tokenDetail.Fungible = contractType != "erc721"
+
+	// Check source and get data from source's API
+	if e.environment != DevelopmentEnvironment {
+		if source == sourceFxHash {
+			fxObjktID := fmt.Sprintf("%s-%s", a.Contract, a.Identifier)
+			e.indexTokenFromFXHASH(ctx, fxObjktID, metadataDetail, &tokenDetail)
+		}
+	}
+
+	pm := ProjectMetadata{
+		AssetID:   metadataDetail.AssetID,
+		Source:    metadataDetail.Source,
+		SourceURL: metadataDetail.SourceURL,
+		AssetURL:  metadataDetail.AssetURL,
+
+		Title:       metadataDetail.Name,
+		Description: metadataDetail.Description,
+		MIMEType:    metadataDetail.MIMEType,
+		Medium:      metadataDetail.Medium,
+
+		ArtistID:   metadataDetail.ArtistID,
+		ArtistName: metadataDetail.ArtistName,
+		ArtistURL:  metadataDetail.ArtistURL,
+		Artists:    metadataDetail.Artists,
+		MaxEdition: metadataDetail.MaxEdition,
+
+		PreviewURL: metadataDetail.PreviewURI,
+		// use the thumbnail in metadata for ThumbnailURL
+		ThumbnailURL: metadataDetail.ThumbnailURI,
+		// use the high quality image for GalleryThumbnailURL
+		GalleryThumbnailURL: metadataDetail.DisplayURI,
+
+		ArtworkMetadata: metadataDetail.ArtworkMetadata,
+
+		LastUpdatedAt: time.Now(),
+	}
 
 	token := Token{
 		BaseTokenInfo: BaseTokenInfo{
 			ID:              a.Identifier,
 			Blockchain:      utils.EthereumBlockchain,
-			Fungible:        fungible,
+			Fungible:        tokenDetail.Fungible,
 			ContractType:    contractType,
 			ContractAddress: contractAddress,
 		},
 		IndexID:           TokenIndexID(utils.EthereumBlockchain, contractAddress, a.Identifier),
-		Edition:           e.GetEditionNumberByName(a.Name),
+		Edition:           tokenDetail.Edition,
 		Balance:           balance,
 		Owner:             owner,
-		MintedAt:          a.CreatedAt.Time, // set minted_at to the contract creation time
+		MintedAt:          tokenDetail.MintedAt,
 		LastRefreshedTime: time.Now(),
 		LastActivityTime:  a.UpdatedAt.Time,
 	}
@@ -246,7 +203,7 @@ func (e *IndexEngine) indexETHToken(a *opensea.DetailedAssetV2, owner string, ba
 	tokenUpdate := &AssetUpdates{
 		ID:              fmt.Sprintf("%s-%s", a.Contract, a.Identifier),
 		Source:          dataSource,
-		ProjectMetadata: metadata,
+		ProjectMetadata: pm,
 		Tokens:          []Token{token},
 	}
 
@@ -376,4 +333,102 @@ func (e *IndexEngine) GetETHTransactionDetailsByPendingTx(ctx context.Context, c
 	}
 
 	return transactionDetails, nil
+}
+
+func (e *IndexEngine) GetOpenseaAccountByAddress(address string) (*opensea.Account, error) {
+	account, err := e.opensea.RetrieveAccount(address)
+	if err != nil {
+		return nil, err
+	}
+
+	return account, nil
+}
+
+// IndexETHCollectionByCreator indexes all collections owned by a specific eth address
+func (e *IndexEngine) IndexETHCollectionByCreator(_ context.Context, account opensea.Account, next string) ([]Collection, string, error) {
+	collectionsResp, err := e.opensea.RetrieveColections(account.Username, next)
+	if err != nil {
+		return nil, "", err
+	}
+
+	log.Debug("retrieve eth collections for creator", zap.Any("collections", collectionsResp), zap.String("username", account.Username))
+
+	collectionUpdates := make([]Collection, 0, len(collectionsResp.Collections))
+
+	for _, c := range collectionsResp.Collections {
+		collection, err := e.opensea.RetrieveColection(account.Username, c.ID)
+		if err != nil {
+			log.Error("failed to RetrieveColection", zap.Error(err), zap.String("collectionID", c.ID))
+			return nil, "", err
+		}
+
+		contracts := []string{}
+		for _, c := range c.Contracts {
+			contracts = append(contracts, c.Address)
+		}
+
+		createdAt, err := time.Parse("2006-01-02", collection.CreatedDate)
+		if err != nil {
+			log.Warn("error parsing date collection created date", zap.Error(err))
+			createdAt = time.Time{}
+		}
+
+		update := Collection{
+			ID:               fmt.Sprint("opensea-", c.ID),
+			ExternalID:       c.ID,
+			Blockchain:       utils.EthereumBlockchain,
+			Creator:          EthereumChecksumAddress(account.Address),
+			Name:             c.Name,
+			Description:      c.Description,
+			ImageURL:         c.ImageURL,
+			Contracts:        contracts,
+			Source:           "opensea",
+			Published:        !c.IsDisabled,
+			SourceURL:        c.OpenseaURL,
+			ProjectURL:       c.ProjectURL,
+			Items:            collection.TotalSupply,
+			LastActivityTime: createdAt,
+			CreatedAt:        createdAt,
+		}
+
+		collectionUpdates = append(collectionUpdates, update)
+	}
+
+	return collectionUpdates, collectionsResp.Next, nil
+}
+
+// IndexETHTokenByCollection indexes all tokens from a given collection slug
+func (e *IndexEngine) IndexETHTokenByCollection(ctx context.Context, slug string, next string) ([]AssetUpdates, string, error) {
+	assets, err := e.opensea.RetrieveColectionAssets(slug, next)
+	if err != nil {
+		return nil, "", err
+	}
+
+	tokenUpdates := make([]AssetUpdates, 0, len(assets.NFTs))
+
+	for _, a := range assets.NFTs {
+		balance := int64(1) // set default balance to 1 to reduce extra call to opensea
+		log.Debug("get token balance",
+			zap.String("contract", a.Contract),
+			zap.String("tokenID", a.Identifier),
+			zap.String("collection", slug),
+			zap.Int64("balance", balance))
+
+		detailedAsset, err := e.opensea.RetrieveAsset(a.Contract, a.Identifier)
+		if err != nil {
+			log.Error("fail to fetch detailed index token data", zap.Error(err))
+			continue
+		}
+
+		update, err := e.indexETHToken(ctx, detailedAsset, "", balance)
+		if err != nil {
+			log.Error("fail to index token data", zap.Error(err))
+		}
+
+		if update != nil {
+			tokenUpdates = append(tokenUpdates, *update)
+		}
+	}
+
+	return tokenUpdates, assets.Next, nil
 }

@@ -5,3 +5,6 @@ tzkt:
   
 event_processor_server:
   address: localhost:8765
+
+sentry:
+  dsn:

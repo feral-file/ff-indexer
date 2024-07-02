@@ -23,7 +23,7 @@ serviceConfig:
   cadence_hostport: cadenceau-frontend.cadenceau.svc.cluster.local:7933
   feralfile_api_url: https://feralfile.com
   cache_bucket_name: autonomy-cached-full-artwork
-  opensea_ratelimit: 0
+  opensea_ratelimit: 1
   environment: production
   network:
     tezos: livenet
@@ -63,6 +63,14 @@ ingress:
   external_dns: true
   hosts:
     - host: indexer.autonomy.io
+      uniqueSuffix: ""
+      issuerRef:
+        name: letsencrypt-aws-dns
+        kind: ClusterIssuer
+      paths:
+        - "/"
+    - host: indexer.feralfile.com
+      uniqueSuffix: "ff1"
       issuerRef:
         name: letsencrypt-aws-dns
         kind: ClusterIssuer
@@ -76,6 +84,10 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/configuration-snippet: |
       more_set_headers "Strict-Transport-Security: max-age=10886400; includeSubDomains; preload";
+      more_set_headers "X-Frame-Options: deny";
+      more_set_headers "Referrer-Policy: strict-origin";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';";
 
 certificate:
   enabled: true

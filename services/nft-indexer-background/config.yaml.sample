@@ -11,6 +11,7 @@ sentry:
 
 ethereum:
   rpc_url: https://mainnet.infura.io/v3/<project-id>
+  erc20: 
 
 environment: development
 
@@ -40,3 +41,8 @@ ipfs:
   - ipfs.bitmark.com
   - ipfs.test.bitmark.com
   - ipfs.io
+  minter_gateways:
+
+marketplace:
+  contracts:
+  fee_wallets:

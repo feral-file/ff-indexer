@@ -4,12 +4,11 @@ import (
 	"context"
 	"time"
 
-	"go.uber.org/zap"
-	"google.golang.org/grpc/status"
-
 	log "github.com/bitmark-inc/autonomy-logger"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
+	"go.uber.org/zap"
+	"google.golang.org/grpc/status"
 )
 
 // updateLatestOwner updates the latest owner of an existent token
@@ -199,10 +198,28 @@ func (e *EventProcessor) notifyChangeTokenOwner(_ context.Context, event NFTEven
 
 	for _, accountID := range accounts {
 		if err := e.notifyChangeOwner(accountID, to, indexID); err != nil {
-			log.Error("fail to send notification for the new owner update",
+			log.Error(
+				"failed to send change owner notification",
 				zap.Error(err),
-				zap.String("accountID", accountID), zap.String("indexID", indexID))
+				zap.String("chain", blockchain),
+				zap.String("contract", contract),
+				zap.String("token", tokenID),
+				zap.String("to", to),
+				zap.String("account", accountID),
+				zap.String("index", indexID),
+			)
 			return err
+		} else {
+			log.Info(
+				"sent change owner notification",
+				zap.String("chain", blockchain),
+				zap.String("contract", contract),
+				zap.String("token", tokenID),
+				zap.String("to", to),
+				zap.String("account", accountID),
+				zap.String("index", indexID),
+			)
+
 		}
 	}
 	return nil
@@ -211,7 +228,7 @@ func (e *EventProcessor) notifyChangeTokenOwner(_ context.Context, event NFTEven
 // NotifyChangeTokenOwner is a stage 3 worker.
 func (e *EventProcessor) NotifyChangeTokenOwner(ctx context.Context) {
 	e.StartWorker(ctx,
-		StageNotification, StageDone,
+		StageNotification, StageTokenSaleIndexing,
 		[]EventType{EventTypeTransfer, EventTypeMint},
 		0, 0, e.notifyChangeTokenOwner,
 	)
@@ -227,6 +244,33 @@ func (e *EventProcessor) sendEventToFeedServer(ctx context.Context, event NFTEve
 
 	return e.feedServer.SendEvent(ctx, blockchain, contract, tokenID, to, eventType,
 		e.environment == indexer.DevelopmentEnvironment)
+}
+
+func (e *EventProcessor) IndexTokenSale(ctx context.Context) {
+	e.StartWorker(
+		ctx,
+		StageTokenSaleIndexing, StageDone,
+		[]EventType{EventTypeTransfer},
+		0, 0, e.indexTokenSale,
+	)
+}
+
+func (e *EventProcessor) indexTokenSale(ctx context.Context, event NFTEvent) error {
+	if event.Type != "transfer" {
+		log.Info("ignore non-transfer event", zap.String("type", event.Type))
+		return nil
+	}
+
+	err := indexerWorker.StartIndexingTokenSale(
+		ctx,
+		e.worker,
+		event.Blockchain,
+		event.TXID)
+	if nil != err {
+		log.Error("fail to start indexing token sale", zap.Error(err))
+	}
+
+	return nil
 }
 
 // SendEventToFeedServer is a stage 4 worker.

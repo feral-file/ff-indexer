@@ -82,7 +82,7 @@ func main() {
 		tokenID := s[2]
 
 		// get objkt cdn
-		objktToken, err := engine.GetObjktToken(contract, tokenID)
+		objktToken, err := engine.GetObjktToken(ctx, contract, tokenID)
 		if err != nil {
 			fmt.Println(err)
 			if strings.Contains(fmt.Sprint(err), "there is no token in objkt") {

@@ -23,14 +23,10 @@ func main() {
 	defer cancel()
 
 	config.LoadConfig("NFT_INDEXER")
-	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug")); err != nil {
-		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
-	}
-
-	if err := sentry.Init(sentry.ClientOptions{
+	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug"), &sentry.ClientOptions{
 		Dsn: viper.GetString("sentry.dsn"),
 	}); err != nil {
-		log.Panic("Sentry initialization failed", zap.Error(err))
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
 	}
 
 	store := imageStore.New(
@@ -52,6 +48,7 @@ func main() {
 	assetCollection := db.Collection("assets")
 	tokenCollection := db.Collection("tokens")
 	accountTokenCollection := db.Collection("account_tokens")
+	collectionsCollection := db.Collection("collections")
 
 	ctx, stop := signal.NotifyContext(mainCtx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -72,8 +69,8 @@ func main() {
 		zap.Duration("retry", thumbnailCacheRetryInterval),
 	)
 
-	imageIndexer := NewNFTContentIndexer(store, assetCollection, tokenCollection, accountTokenCollection,
-		thumbnailCachePeriod, thumbnailCacheRetryInterval)
+	imageIndexer := NewNFTContentIndexer(store, assetCollection, tokenCollection, accountTokenCollection, collectionsCollection,
+		thumbnailCachePeriod, thumbnailCacheRetryInterval, viper.GetString("cloudflare.url_prefix"))
 	imageIndexer.Start(ctx)
 
 	log.Info("Content indexer terminated")
