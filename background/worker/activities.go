@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/google/uuid"
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
@@ -576,7 +577,12 @@ func (w *NFTIndexerWorker) GetBalanceDiffFromTezosTransaction(transactionDetails
 	var updatedAccountTokens = []indexer.AccountToken{}
 	var totalTransferredAmount = int64(0)
 
-	for _, txs := range transactionDetails.Parameter.Value[0].Txs {
+	var paramValues []tzkt.ParametersValue
+	if err := mapstructure.Decode(transactionDetails.Parameter.Value, &paramValues); err != nil {
+		return nil, err
+	}
+
+	for _, txs := range paramValues[0].Txs {
 		if txs.TokenID == strings.Split(accountToken.IndexID, "-")[2] {
 			amount, err := strconv.ParseInt(txs.Amount, 10, 64)
 			if err != nil {
@@ -908,4 +914,136 @@ func (w *NFTIndexerWorker) FilterEthereumNFTTxByEventLogs(
 	}
 
 	return txs, nil
+}
+
+// GetObjktSaleTransactionHashes get objkt sale transaction hashes by time with paging
+func (w *NFTIndexerWorker) GetObjktSaleTransactionHashes(_ context.Context, lastTime *time.Time, offset, limit int) ([]string, error) {
+	txs, err := w.indexerEngine.GetTzktTransactionByContractsAndEntrypoint(
+		[]string{indexer.TezosOBJKTMarketplaceAddress, indexer.TezosOBJKTMarketplaceAddressV2},
+		indexer.OBJKTSaleEntrypoint,
+		lastTime,
+		offset,
+		limit)
+	if err != nil {
+		return nil, err
+	}
+
+	hashes := []string{}
+	for _, tx := range txs {
+		hashes = append(hashes, tx.Hash)
+	}
+
+	return hashes, nil
+}
+
+// GetTzktTransactionByID get tezos transaction hash by tzkt transaction id
+func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash string) (*TokenSale, error) {
+	txs, err := w.indexerEngine.GetTzktTransactionsByHash(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(txs) < 2 {
+		return nil, errors.New("invalid obkjt sale transaction")
+	}
+
+	fullfilTx := txs[0]
+	if fullfilTx.Parameter.EntryPoint != indexer.OBJKTSaleEntrypoint {
+		return nil, errors.New("invalid obkjt sale transaction - invalid sale tx")
+	}
+
+	price := big.NewInt(int64(fullfilTx.Amount))
+
+	transferTx := txs[1]
+	if transferTx.Parameter.EntryPoint != "transfer" {
+		return nil, errors.New("invalid obkjt sale transaction - invalid transfer tx")
+	}
+
+	// parse token transfers
+	var paramValues []tzkt.ParametersValue
+	if err := mapstructure.Decode(transferTx.Parameter.Value, &paramValues); err != nil {
+		return nil, err
+	}
+
+	bundleTokenInfo := []TokenSaleInfo{}
+	for _, tx := range paramValues[0].Txs {
+		bundleTokenInfo = append(bundleTokenInfo, TokenSaleInfo{
+			SellerAddress:   paramValues[0].From,
+			BuyerAddress:    tx.To,
+			TokenID:         tx.TokenID,
+			ContractAddress: transferTx.Target.Address,
+		})
+	}
+
+	platformFee := big.NewInt(0)
+	shares := make(map[string]*big.Int)
+	for _, tx := range txs[2:] {
+		amount := big.NewInt(int64(tx.Amount))
+		if tx.Target.Address == "tz1hFhmqKNB7hnHVHAFSk9wNqm7K9GgF2GDN" {
+			platformFee = big.NewInt(0).Add(platformFee, amount)
+		} else {
+			if s, ok := shares[tx.Target.Address]; ok {
+				shares[tx.Target.Address] = big.NewInt(0).Add(s, amount)
+			} else {
+				shares[tx.Target.Address] = amount
+			}
+		}
+	}
+
+	return &TokenSale{
+		Timestamp:       fullfilTx.Timestamp,
+		Price:           price,
+		Marketplace:     "objkt",
+		Blockchain:      "tezos",
+		Currency:        "XTZ",
+		TxID:            hash,
+		PlatformFee:     platformFee,
+		NetRevenue:      big.NewInt(0).Sub(price, platformFee),
+		BundleTokenInfo: bundleTokenInfo,
+		PaymentAmount:   price,
+		Shares:          shares,
+	}, nil
+}
+
+func (w *NFTIndexerWorker) ParseTokenSaleToGenericSalesTimeSeries(_ context.Context, tokenSale TokenSale) (*indexer.GenericSalesTimeSeries, error) {
+	shares := make(map[string]string)
+	for address, share := range tokenSale.Shares {
+		shares[address] = share.String()
+	}
+
+	values := make(map[string]string)
+	values["price"] = tokenSale.Price.String()
+	values["platformFee"] = tokenSale.PlatformFee.String()
+	values["netRevenue"] = tokenSale.NetRevenue.String()
+	values["paymentAmount"] = tokenSale.PaymentAmount.String()
+	values["exchangeRate"] = "1"
+
+	bundleTokenInfo := []map[string]interface{}{}
+	for _, info := range tokenSale.BundleTokenInfo {
+		var tokenInfo map[string]interface{}
+		err := mapstructure.Decode(info, &tokenInfo)
+		if err != nil {
+			return nil, err
+		}
+		bundleTokenInfo = append(bundleTokenInfo, tokenInfo)
+	}
+
+	metadata := map[string]interface{}{
+		"blockchain":      tokenSale.Blockchain,
+		"marketplace":     tokenSale.Marketplace,
+		"paymentCurrency": tokenSale.Currency,
+		"paymentMethod":   "crypto",
+		"pricingCurrency": tokenSale.Currency,
+		"revenueCurrency": tokenSale.Currency,
+		"saleType":        "secondary",
+		"transactionID":   tokenSale.TxID,
+		"bundleTokenInfo": bundleTokenInfo,
+	}
+
+	return &indexer.GenericSalesTimeSeries{
+		Timestamp: tokenSale.Timestamp.Format(time.RFC3339Nano),
+		Metadata:  metadata,
+		Shares:    shares,
+		Values:    values,
+	}, nil
 }

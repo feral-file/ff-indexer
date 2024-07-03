@@ -595,3 +595,18 @@ func (e *IndexEngine) IndexTezosCollectionByCreator(ctx context.Context, creator
 
 	return collectionUpdates, nil
 }
+
+// GetTzktTransactionByID get tzkt transaction by transaction id
+func (e *IndexEngine) GetTzktTransactionByID(id uint64) (tzkt.Transaction, error) {
+	return e.tzkt.GetTransaction(id)
+}
+
+// GetTzktTransactionByID get tzkt transactions by transaction id
+func (e *IndexEngine) GetTzktTransactionByContractsAndEntrypoint(contracts []string, entrypoint string, lastTime *time.Time, offset, limit int) ([]tzkt.Transaction, error) {
+	return e.tzkt.GetTransactions(contracts, entrypoint, lastTime, offset, limit)
+}
+
+// GetTzktTransactionByHash get tzkt transactions by transaction hash
+func (e *IndexEngine) GetTzktTransactionsByHash(hash string) ([]tzkt.DetailedTransaction, error) {
+	return e.tzkt.GetTransactionByTx(hash)
+}

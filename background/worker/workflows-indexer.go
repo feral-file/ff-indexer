@@ -315,3 +315,59 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSaleInBlockRange(
 
 	return nil
 }
+
+func (w *NFTIndexerWorker) IndexTezosObjktTokenSaleFromTime(
+	ctx workflow.Context,
+	startTime time.Time,
+	offset int,
+	skipIndexed bool) error {
+	ctx = ContextRegularActivity(ctx, w.TaskListName)
+
+	if !skipIndexed {
+		return errors.New("skipIndexed must be true until we have a unique index handled properly for sale time series data")
+	}
+
+	log.Info("index feral file tezos token sale from startTime",
+		zap.Time("startTime", startTime))
+
+	// Fetch tx hashes
+	hashes := make([]string, 0)
+	if err := workflow.ExecuteActivity(
+		ctx,
+		w.GetObjktSaleTransactionHashes,
+		startTime,
+		offset,
+		50).
+		Get(ctx, &hashes); err != nil {
+		return err
+	}
+
+	futures := make([]workflow.Future, 0)
+	for _, hash := range hashes {
+		workflowID := fmt.Sprintf("IndexTezosObjktTokenSale-%s", hash)
+		cwctx := ContextNamedRegularChildWorkflow(ctx, workflowID, TaskListName)
+		futures = append(
+			futures,
+			workflow.ExecuteChildWorkflow(
+				cwctx,
+				w.IndexTezosTokenSale,
+				hash))
+	}
+
+	for _, future := range futures {
+		if err := future.Get(ctx, nil); err != nil {
+			return err
+		}
+	}
+
+	if len(hashes) > 0 {
+		return workflow.NewContinueAsNewError(
+			ctx,
+			w.IndexTezosObjktTokenSaleFromTime,
+			startTime,
+			offset+len(hashes),
+			skipIndexed)
+	}
+
+	return nil
+}
