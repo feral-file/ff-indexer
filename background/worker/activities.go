@@ -916,6 +916,16 @@ func (w *NFTIndexerWorker) FilterEthereumNFTTxByEventLogs(
 	return txs, nil
 }
 
+// GetTezosHashFromTransactionID get tezos hash from transaction ID
+func (w *NFTIndexerWorker) GetTezosHashFromTransactionID(_ context.Context, id uint64) (*string, error) {
+	tx, err := w.indexerEngine.GetTzktTransactionByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tx.Hash, nil
+}
+
 // GetObjktSaleTransactionHashes get objkt sale transaction hashes by time with paging
 func (w *NFTIndexerWorker) GetObjktSaleTransactionHashes(_ context.Context, lastTime *time.Time, offset, limit int) ([]string, error) {
 	txs, err := w.indexerEngine.GetTzktTransactionByContractsAndEntrypoint(

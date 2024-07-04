@@ -350,7 +350,7 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSaleFromTime(
 			futures,
 			workflow.ExecuteChildWorkflow(
 				cwctx,
-				w.IndexTezosTokenSale,
+				w.IndexTezosObjktTokenSale,
 				hash))
 	}
 

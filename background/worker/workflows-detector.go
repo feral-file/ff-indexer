@@ -620,8 +620,31 @@ func classifyTxLogs(logs []*types.Log) (map[string][]types.Log, []types.Log) {
 	return erc20Transfers, tokenTransfers
 }
 
-// IndexTezosTokenSale is a workflow to index the sale of a Tezos token
-func (w *NFTIndexerWorker) IndexTezosTokenSale(ctx workflow.Context, hash string) error {
+// IndexTezosTokenSaleFromTzktTxID is a workflow to get the tezos transaction hash by tzkt txid
+func (w *NFTIndexerWorker) IndexTezosTokenSaleFromTzktTxID(ctx workflow.Context, id uint64) error {
+	var hash *string
+	if err := workflow.ExecuteActivity(
+		ctx,
+		w.GetTezosHashFromTransactionID,
+		id).
+		Get(ctx, &hash); err != nil {
+		return err
+	}
+
+	workflowID := fmt.Sprintf("IndexTezosObjktTokenSale-%s", *hash)
+	cwctx := ContextNamedRegularChildWorkflow(ctx, workflowID, TaskListName)
+	if err := workflow.ExecuteChildWorkflow(
+		cwctx,
+		w.IndexTezosObjktTokenSale,
+		hash).Get(ctx, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// IndexTezosObjktTokenSale is a workflow to index the sale of a Tezos objkt token
+func (w *NFTIndexerWorker) IndexTezosObjktTokenSale(ctx workflow.Context, hash string) error {
 	log.Info("start indexing token sale", zap.String("hash", hash))
 
 	// Fetch & parse token sale by tx hashe
