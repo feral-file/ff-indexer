@@ -319,13 +319,8 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSaleInBlockRange(
 func (w *NFTIndexerWorker) IndexTezosObjktTokenSaleFromTime(
 	ctx workflow.Context,
 	startTime time.Time,
-	offset int,
-	skipIndexed bool) error {
+	offset int) error {
 	ctx = ContextRegularActivity(ctx, w.TaskListName)
-
-	if !skipIndexed {
-		return errors.New("skipIndexed must be true until we have a unique index handled properly for sale time series data")
-	}
 
 	log.Info("index feral file tezos token sale from startTime",
 		zap.Time("startTime", startTime))
@@ -365,8 +360,7 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSaleFromTime(
 			ctx,
 			w.IndexTezosObjktTokenSaleFromTime,
 			startTime,
-			offset+len(hashes),
-			skipIndexed)
+			offset+len(hashes))
 	}
 
 	return nil

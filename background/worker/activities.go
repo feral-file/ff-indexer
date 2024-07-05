@@ -916,8 +916,8 @@ func (w *NFTIndexerWorker) FilterEthereumNFTTxByEventLogs(
 	return txs, nil
 }
 
-// GetTezosHashFromTransactionID get tezos hash from transaction ID
-func (w *NFTIndexerWorker) GetTezosHashFromTransactionID(_ context.Context, id uint64) (*string, error) {
+// GetTezosTxHashFromTzktTransactionID get tezos hash from transaction ID
+func (w *NFTIndexerWorker) GetTezosTxHashFromTzktTransactionID(_ context.Context, id uint64) (*string, error) {
 	tx, err := w.indexerEngine.GetTzktTransactionByID(id)
 	if err != nil {
 		return nil, err
@@ -989,7 +989,7 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 	shares := make(map[string]*big.Int)
 	for _, tx := range txs[2:] {
 		amount := big.NewInt(int64(tx.Amount))
-		if tx.Target.Address == "tz1hFhmqKNB7hnHVHAFSk9wNqm7K9GgF2GDN" {
+		if tx.Target.Address == indexer.TezosOBJKTTreasuryAddress {
 			platformFee = big.NewInt(0).Add(platformFee, amount)
 		} else {
 			if s, ok := shares[tx.Target.Address]; ok {
@@ -1012,48 +1012,5 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 		BundleTokenInfo: bundleTokenInfo,
 		PaymentAmount:   price,
 		Shares:          shares,
-	}, nil
-}
-
-func (w *NFTIndexerWorker) ParseTokenSaleToGenericSalesTimeSeries(_ context.Context, tokenSale TokenSale) (*indexer.GenericSalesTimeSeries, error) {
-	shares := make(map[string]string)
-	for address, share := range tokenSale.Shares {
-		shares[address] = share.String()
-	}
-
-	values := make(map[string]string)
-	values["price"] = tokenSale.Price.String()
-	values["platformFee"] = tokenSale.PlatformFee.String()
-	values["netRevenue"] = tokenSale.NetRevenue.String()
-	values["paymentAmount"] = tokenSale.PaymentAmount.String()
-	values["exchangeRate"] = "1"
-
-	bundleTokenInfo := []map[string]interface{}{}
-	for _, info := range tokenSale.BundleTokenInfo {
-		var tokenInfo map[string]interface{}
-		err := mapstructure.Decode(info, &tokenInfo)
-		if err != nil {
-			return nil, err
-		}
-		bundleTokenInfo = append(bundleTokenInfo, tokenInfo)
-	}
-
-	metadata := map[string]interface{}{
-		"blockchain":      tokenSale.Blockchain,
-		"marketplace":     tokenSale.Marketplace,
-		"paymentCurrency": tokenSale.Currency,
-		"paymentMethod":   "crypto",
-		"pricingCurrency": tokenSale.Currency,
-		"revenueCurrency": tokenSale.Currency,
-		"saleType":        "secondary",
-		"transactionID":   tokenSale.TxID,
-		"bundleTokenInfo": bundleTokenInfo,
-	}
-
-	return &indexer.GenericSalesTimeSeries{
-		Timestamp: tokenSale.Timestamp.Format(time.RFC3339Nano),
-		Metadata:  metadata,
-		Shares:    shares,
-		Values:    values,
 	}, nil
 }

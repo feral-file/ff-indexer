@@ -119,7 +119,6 @@ func main() {
 
 	// all blockchain
 	activity.Register(worker.IndexToken)
-	activity.Register(worker.ParseTokenSaleToGenericSalesTimeSeries)
 
 	// ethereum
 	activity.Register(worker.IndexETHTokenByOwner)
@@ -134,7 +133,7 @@ func main() {
 	// tezos
 	activity.Register(worker.IndexTezosTokenByOwner)
 	activity.Register(worker.IndexTezosCollectionsByCreator)
-	activity.Register(worker.GetTezosHashFromTransactionID)
+	activity.Register(worker.GetTezosTxHashFromTzktTransactionID)
 	activity.Register(worker.GetObjktSaleTransactionHashes)
 	activity.Register(worker.ParseTezosObjktTokenSale)
 
