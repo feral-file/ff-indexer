@@ -665,22 +665,24 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSale(ctx workflow.Context, txHash
 
 	// Check if the token is published by Feral File
 	// TODO remove after supporting all tokens not only Feral File one
-	indexID := indexer.TokenIndexID(
-		utils.TezosBlockchain,
-		tokenSale.BundleTokenInfo[0].ContractAddress,
-		tokenSale.BundleTokenInfo[0].TokenID,
-	)
-	var token *indexer.Token
-	if err := workflow.ExecuteActivity(
-		ctx,
-		w.GetTokenByIndexID,
-		indexID).
-		Get(ctx, &token); err != nil {
-		return err
-	}
-	if nil == token || token.Source != "feralfile" {
-		log.Info("no token sale found in the tx", zap.String("txHash", txHash))
-		return nil
+	for _, info := range tokenSale.BundleTokenInfo {
+		indexID := indexer.TokenIndexID(
+			utils.TezosBlockchain,
+			info.ContractAddress,
+			info.TokenID,
+		)
+		var token *indexer.Token
+		if err := workflow.ExecuteActivity(
+			ctx,
+			w.GetTokenByIndexID,
+			indexID).
+			Get(ctx, &token); err != nil {
+			return err
+		}
+		if nil == token || token.Source != "feralfile" {
+			log.Info("no token sale found in the tx", zap.String("txHash", txHash))
+			return nil
+		}
 	}
 
 	// Index token sale

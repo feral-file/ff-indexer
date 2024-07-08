@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	uberCadence "go.uber.org/cadence"
@@ -240,12 +241,17 @@ func StartIndexingTokenSale(
 			zap.String("run_id", exec.RunID))
 	case utils.TezosBlockchain:
 		opts.ID = fmt.Sprintf("IndexTezosTokenSaleFromTzktTxID-%s", txID)
+		tzktTxID, err := strconv.ParseUint(txID, 10, 64)
+		if nil != err {
+			return err
+		}
+
 		exec, err := client.StartWorkflow(
 			ctx,
 			ClientName,
 			opts,
 			w.IndexTezosTokenSaleFromTzktTxID,
-			txID)
+			tzktTxID)
 		if nil != err {
 			return err
 		}

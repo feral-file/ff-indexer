@@ -64,6 +64,7 @@ serviceConfig:
     "0x1838De7d4e4e42c8eB7b204A91e28E9fad14F536": "LooksRare"
     "0x365F4693e99E06Aa05747B1D07AC49E384E1eaD9": "SuperRare"
     "0xb2D39DA392f19edB27639b92adFe7EdFcC96391b": "SuperRare"
+    "tz1hFhmqKNB7hnHVHAFSk9wNqm7K9GgF2GDN": "SuperRare"
 
   etherscan_url: https://api.etherscan.io/api
 

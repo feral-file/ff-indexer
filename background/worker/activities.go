@@ -582,24 +582,27 @@ func (w *NFTIndexerWorker) GetBalanceDiffFromTezosTransaction(transactionDetails
 		return nil, err
 	}
 
-	for _, txs := range paramValues[0].Txs {
-		if txs.TokenID == strings.Split(accountToken.IndexID, "-")[2] {
-			amount, err := strconv.ParseInt(txs.Amount, 10, 64)
-			if err != nil {
-				continue
-			}
+	for _, paramValue := range paramValues {
+		for _, txs := range paramValue.Txs {
+			if txs.TokenID == strings.Split(accountToken.IndexID, "-")[2] {
+				amount, err := strconv.ParseInt(txs.Amount, 10, 64)
+				if err != nil {
+					continue
+				}
 
-			receiverAccountToken := indexer.AccountToken{
-				IndexID:          accountToken.IndexID,
-				OwnerAccount:     txs.To,
-				Balance:          amount,
-				LastActivityTime: transactionDetails.Timestamp,
-			}
+				receiverAccountToken := indexer.AccountToken{
+					IndexID:          accountToken.IndexID,
+					OwnerAccount:     txs.To,
+					Balance:          amount,
+					LastActivityTime: transactionDetails.Timestamp,
+				}
 
-			updatedAccountTokens = append(updatedAccountTokens, receiverAccountToken)
-			totalTransferredAmount += amount
+				updatedAccountTokens = append(updatedAccountTokens, receiverAccountToken)
+				totalTransferredAmount += amount
+			}
 		}
 	}
+
 	senderAccountToken := indexer.AccountToken{
 		IndexID:          accountToken.IndexID,
 		OwnerAccount:     accountToken.OwnerAccount,
@@ -928,8 +931,15 @@ func (w *NFTIndexerWorker) GetTezosTxHashFromTzktTransactionID(_ context.Context
 
 // GetObjktSaleTransactionHashes get objkt sale transaction hashes by time with paging
 func (w *NFTIndexerWorker) GetObjktSaleTransactionHashes(_ context.Context, lastTime *time.Time, offset, limit int) ([]string, error) {
+	var contracts []string
+	if viper.GetString("network") == "testnet" {
+		contracts = []string{indexer.TezosOBJKTMarketplaceAddressTestnet}
+	} else {
+		contracts = []string{indexer.TezosOBJKTMarketplaceAddress, indexer.TezosOBJKTMarketplaceAddressV2}
+	}
+
 	txs, err := w.indexerEngine.GetTzktTransactionByContractsAndEntrypoint(
-		[]string{indexer.TezosOBJKTMarketplaceAddress, indexer.TezosOBJKTMarketplaceAddressV2},
+		contracts,
 		indexer.OBJKTSaleEntrypoint,
 		lastTime,
 		offset,
@@ -976,20 +986,23 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 	}
 
 	bundleTokenInfo := []TokenSaleInfo{}
-	for _, tx := range paramValues[0].Txs {
-		bundleTokenInfo = append(bundleTokenInfo, TokenSaleInfo{
-			SellerAddress:   paramValues[0].From,
-			BuyerAddress:    tx.To,
-			TokenID:         tx.TokenID,
-			ContractAddress: transferTx.Target.Address,
-		})
+	for _, paramValue := range paramValues {
+		for _, tx := range paramValue.Txs {
+			bundleTokenInfo = append(bundleTokenInfo, TokenSaleInfo{
+				SellerAddress:   paramValue.From,
+				BuyerAddress:    tx.To,
+				TokenID:         tx.TokenID,
+				ContractAddress: transferTx.Target.Address,
+			})
+		}
 	}
 
+	platformFeeWallets := viper.GetStringMapString("marketplace.fee_wallets") // key is lower case
 	platformFee := big.NewInt(0)
 	shares := make(map[string]*big.Int)
 	for _, tx := range txs[2:] {
 		amount := big.NewInt(int64(tx.Amount))
-		if tx.Target.Address == indexer.TezosOBJKTTreasuryAddress {
+		if platformFeeWallets[strings.ToLower(tx.Target.Address)] == "Objkt" {
 			platformFee = big.NewInt(0).Add(platformFee, amount)
 		} else {
 			if s, ok := shares[tx.Target.Address]; ok {

@@ -41,6 +41,11 @@ const (
 	TezosOBJKTTreasuryAddress        = "tz1hFhmqKNB7hnHVHAFSk9wNqm7K9GgF2GDN"
 )
 
+// testent
+const (
+	TezosOBJKTMarketplaceAddressTestnet = "KT1FvqJwEDWb1Gwc55Jd1jjTHRVWbYKUUpyq"
+)
+
 var TezosIndexExcludedOwners = map[string]struct{}{
 	TezosNullAddress:                 {},
 	TezosBurnAddress:                 {},
@@ -61,7 +66,7 @@ const HicEtNuncContractAddress = "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton"
 const FXHASHContractAddressDev0_0 = "KT1NkZho1yRkDdQnN4Mz93sDYyY2pPrEHTNs"
 const FXHASHContractAddressDev0_1 = "KT1TtVAyjh4Ahdm8sLZwFnL7tqoLf59XrK2h"
 
-const OBJKTSaleEntrypoint = "fullfil_ask"
+const OBJKTSaleEntrypoint = "fulfill_ask"
 
 const (
 	SourceFeralFile = "feralfile"
