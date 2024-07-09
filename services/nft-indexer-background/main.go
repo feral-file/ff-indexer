@@ -103,11 +103,16 @@ func main() {
 	workflow.RegisterWithOptions(worker.IndexEthereumTokenSale, workflow.RegisterOptions{
 		Name: "IndexEthereumTokenSale",
 	})
-	workflow.RegisterWithOptions(worker.IndexTezosTokenSale, workflow.RegisterOptions{
-		Name: "IndexTezosTokenSale",
-	})
 	workflow.RegisterWithOptions(worker.ParseEthereumTokenSale, workflow.RegisterOptions{
 		Name: "ParseEthereumTokenSale"})
+	workflow.RegisterWithOptions(worker.IndexTezosObjktTokenSaleFromTime, workflow.RegisterOptions{
+		Name: "IndexTezosObjktTokenSaleFromTime"})
+	workflow.RegisterWithOptions(worker.IndexTezosTokenSaleFromTzktTxID, workflow.RegisterOptions{
+		Name: "IndexTezosTokenSaleFromTzktTxID",
+	})
+	workflow.RegisterWithOptions(worker.IndexTezosObjktTokenSale, workflow.RegisterOptions{
+		Name: "IndexTezosTokenSale",
+	})
 
 	// cache
 	activity.Register(worker.CacheArtifact)
@@ -128,6 +133,10 @@ func main() {
 	// tezos
 	activity.Register(worker.IndexTezosTokenByOwner)
 	activity.Register(worker.IndexTezosCollectionsByCreator)
+	activity.Register(worker.GetTezosTxHashFromTzktTransactionID)
+	activity.Register(worker.GetObjktSaleTransactionHashes)
+	activity.Register(worker.ParseTezosObjktTokenSale)
+
 	// index store
 	activity.Register(worker.IndexAsset)
 	activity.Register(worker.GetTokenBalanceOfOwner)
