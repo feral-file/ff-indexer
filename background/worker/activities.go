@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/google/uuid"
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
@@ -576,24 +577,32 @@ func (w *NFTIndexerWorker) GetBalanceDiffFromTezosTransaction(transactionDetails
 	var updatedAccountTokens = []indexer.AccountToken{}
 	var totalTransferredAmount = int64(0)
 
-	for _, txs := range transactionDetails.Parameter.Value[0].Txs {
-		if txs.TokenID == strings.Split(accountToken.IndexID, "-")[2] {
-			amount, err := strconv.ParseInt(txs.Amount, 10, 64)
-			if err != nil {
-				continue
-			}
+	var paramValues []tzkt.ParametersValue
+	if err := mapstructure.Decode(transactionDetails.Parameter.Value, &paramValues); err != nil {
+		return nil, err
+	}
 
-			receiverAccountToken := indexer.AccountToken{
-				IndexID:          accountToken.IndexID,
-				OwnerAccount:     txs.To,
-				Balance:          amount,
-				LastActivityTime: transactionDetails.Timestamp,
-			}
+	for _, paramValue := range paramValues {
+		for _, txs := range paramValue.Txs {
+			if txs.TokenID == strings.Split(accountToken.IndexID, "-")[2] {
+				amount, err := strconv.ParseInt(txs.Amount, 10, 64)
+				if err != nil {
+					continue
+				}
 
-			updatedAccountTokens = append(updatedAccountTokens, receiverAccountToken)
-			totalTransferredAmount += amount
+				receiverAccountToken := indexer.AccountToken{
+					IndexID:          accountToken.IndexID,
+					OwnerAccount:     txs.To,
+					Balance:          amount,
+					LastActivityTime: transactionDetails.Timestamp,
+				}
+
+				updatedAccountTokens = append(updatedAccountTokens, receiverAccountToken)
+				totalTransferredAmount += amount
+			}
 		}
 	}
+
 	senderAccountToken := indexer.AccountToken{
 		IndexID:          accountToken.IndexID,
 		OwnerAccount:     accountToken.OwnerAccount,
@@ -908,4 +917,113 @@ func (w *NFTIndexerWorker) FilterEthereumNFTTxByEventLogs(
 	}
 
 	return txs, nil
+}
+
+// GetTezosTxHashFromTzktTransactionID get tezos hash from transaction ID
+func (w *NFTIndexerWorker) GetTezosTxHashFromTzktTransactionID(_ context.Context, id uint64) (*string, error) {
+	tx, err := w.indexerEngine.GetTzktTransactionByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tx.Hash, nil
+}
+
+// GetObjktSaleTransactionHashes get objkt sale transaction hashes by time with paging
+func (w *NFTIndexerWorker) GetObjktSaleTransactionHashes(_ context.Context, lastTime *time.Time, offset, limit int) ([]string, error) {
+	var contracts []string
+	if viper.GetString("network") == "testnet" {
+		contracts = []string{indexer.TezosOBJKTMarketplaceAddressTestnet}
+	} else {
+		contracts = []string{indexer.TezosOBJKTMarketplaceAddress, indexer.TezosOBJKTMarketplaceAddressV2}
+	}
+
+	txs, err := w.indexerEngine.GetTzktTransactionByContractsAndEntrypoint(
+		contracts,
+		indexer.OBJKTSaleEntrypoint,
+		lastTime,
+		offset,
+		limit)
+	if err != nil {
+		return nil, err
+	}
+
+	hashes := []string{}
+	for _, tx := range txs {
+		hashes = append(hashes, tx.Hash)
+	}
+
+	return hashes, nil
+}
+
+// GetTzktTransactionByID get tezos transaction hash by tzkt transaction id
+func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash string) (*TokenSale, error) {
+	txs, err := w.indexerEngine.GetTzktTransactionsByHash(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(txs) < 2 {
+		return nil, errors.New("invalid obkjt sale transaction")
+	}
+
+	fullfilTx := txs[0]
+	if fullfilTx.Parameter.EntryPoint != indexer.OBJKTSaleEntrypoint {
+		return nil, errors.New("invalid obkjt sale transaction - invalid sale tx")
+	}
+
+	price := big.NewInt(int64(fullfilTx.Amount))
+
+	transferTx := txs[1]
+	if transferTx.Parameter.EntryPoint != "transfer" {
+		return nil, errors.New("invalid obkjt sale transaction - invalid transfer tx")
+	}
+
+	// parse token transfers
+	var paramValues []tzkt.ParametersValue
+	if err := mapstructure.Decode(transferTx.Parameter.Value, &paramValues); err != nil {
+		return nil, err
+	}
+
+	bundleTokenInfo := []TokenSaleInfo{}
+	for _, paramValue := range paramValues {
+		for _, tx := range paramValue.Txs {
+			bundleTokenInfo = append(bundleTokenInfo, TokenSaleInfo{
+				SellerAddress:   paramValue.From,
+				BuyerAddress:    tx.To,
+				TokenID:         tx.TokenID,
+				ContractAddress: transferTx.Target.Address,
+			})
+		}
+	}
+
+	platformFeeWallets := viper.GetStringMapString("marketplace.fee_wallets") // key is lower case
+	platformFee := big.NewInt(0)
+	shares := make(map[string]*big.Int)
+	for _, tx := range txs[2:] {
+		amount := big.NewInt(int64(tx.Amount))
+		if platformFeeWallets[strings.ToLower(tx.Target.Address)] == "Objkt" {
+			platformFee = big.NewInt(0).Add(platformFee, amount)
+		} else {
+			if s, ok := shares[tx.Target.Address]; ok {
+				shares[tx.Target.Address] = big.NewInt(0).Add(s, amount)
+			} else {
+				shares[tx.Target.Address] = amount
+			}
+		}
+	}
+
+	return &TokenSale{
+		Timestamp:       fullfilTx.Timestamp,
+		Price:           price,
+		Marketplace:     "objkt",
+		Blockchain:      "tezos",
+		Currency:        "XTZ",
+		TxID:            hash,
+		PlatformFee:     platformFee,
+		NetRevenue:      big.NewInt(0).Sub(price, platformFee),
+		BundleTokenInfo: bundleTokenInfo,
+		PaymentAmount:   price,
+		Shares:          shares,
+	}, nil
 }

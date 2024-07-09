@@ -37,6 +37,13 @@ const (
 	TezosHicEtNuncMarketplaceAddress = "KT1HbQepzV1nVGg8QVznG7z4RcHseD5kwqBn"
 	TezosTeiaMarketplaceAddress      = "KT1PHubm9HtyQEJ4BBpMTVomq6mhbfNZ9z5w"
 	TezosOBJKTMarketplaceAddress     = "KT1FvqJwEDWb1Gwc55Jd1jjTHRVWbYKUUpyq"
+	TezosOBJKTMarketplaceAddressV2   = "KT1WvzYHCNBvDSdwafTHv7nJ1dWmZ8GCYuuC"
+	TezosOBJKTTreasuryAddress        = "tz1hFhmqKNB7hnHVHAFSk9wNqm7K9GgF2GDN"
+)
+
+// testent
+const (
+	TezosOBJKTMarketplaceAddressTestnet = "KT1FvqJwEDWb1Gwc55Jd1jjTHRVWbYKUUpyq"
 )
 
 var TezosIndexExcludedOwners = map[string]struct{}{
@@ -58,6 +65,8 @@ const HicEtNuncContractAddress = "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton"
 // development contract
 const FXHASHContractAddressDev0_0 = "KT1NkZho1yRkDdQnN4Mz93sDYyY2pPrEHTNs"
 const FXHASHContractAddressDev0_1 = "KT1TtVAyjh4Ahdm8sLZwFnL7tqoLf59XrK2h"
+
+const OBJKTSaleEntrypoint = "fulfill_ask"
 
 const (
 	SourceFeralFile = "feralfile"
