@@ -940,7 +940,7 @@ func (w *NFTIndexerWorker) GetObjktSaleTransactionHashes(_ context.Context, last
 
 	txs, err := w.indexerEngine.GetTzktTransactionByContractsAndEntrypoint(
 		contracts,
-		indexer.OBJKTSaleEntrypoint,
+		indexer.OBJKTSaleEntrypoints,
 		lastTime,
 		offset,
 		limit)
@@ -968,7 +968,13 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 	}
 
 	fullfilTx := txs[0]
-	if fullfilTx.Parameter.EntryPoint != indexer.OBJKTSaleEntrypoint {
+	isValidSale := false
+	for _, entrypoint := range indexer.OBJKTSaleEntrypoints {
+		if fullfilTx.Parameter.EntryPoint == entrypoint {
+			isValidSale = true
+		}
+	}
+	if !isValidSale {
 		return nil, errors.New("invalid obkjt sale transaction - invalid sale tx")
 	}
 

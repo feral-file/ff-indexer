@@ -602,8 +602,8 @@ func (e *IndexEngine) GetTzktTransactionByID(id uint64) (tzkt.Transaction, error
 }
 
 // GetTzktTransactionByID get tzkt transactions by transaction id
-func (e *IndexEngine) GetTzktTransactionByContractsAndEntrypoint(contracts []string, entrypoint string, lastTime *time.Time, offset, limit int) ([]tzkt.Transaction, error) {
-	return e.tzkt.GetTransactions(contracts, entrypoint, lastTime, offset, limit)
+func (e *IndexEngine) GetTzktTransactionByContractsAndEntrypoint(contracts []string, entrypoints []string, lastTime *time.Time, offset, limit int) ([]tzkt.Transaction, error) {
+	return e.tzkt.GetTransactions(contracts, entrypoints, lastTime, offset, limit)
 }
 
 // GetTzktTransactionByHash get tzkt transactions by transaction hash

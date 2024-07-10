@@ -66,7 +66,7 @@ const HicEtNuncContractAddress = "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton"
 const FXHASHContractAddressDev0_0 = "KT1NkZho1yRkDdQnN4Mz93sDYyY2pPrEHTNs"
 const FXHASHContractAddressDev0_1 = "KT1TtVAyjh4Ahdm8sLZwFnL7tqoLf59XrK2h"
 
-const OBJKTSaleEntrypoint = "fulfill_ask"
+var OBJKTSaleEntrypoints = []string{"fulfill_ask", "fulfill_offer"}
 
 const (
 	SourceFeralFile = "feralfile"
