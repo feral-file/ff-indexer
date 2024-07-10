@@ -13,7 +13,7 @@ require (
 	github.com/bitmark-inc/autonomy-notification v0.0.8
 	github.com/bitmark-inc/autonomy-utils v0.0.5
 	github.com/bitmark-inc/config-loader v0.1.1
-	github.com/bitmark-inc/tzkt-go v0.0.14-0.20240703070933-86ad1a256460
+	github.com/bitmark-inc/tzkt-go v0.0.14
 	github.com/chromedp/chromedp v0.9.5
 	github.com/cloudflare/cloudflare-go v0.92.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
