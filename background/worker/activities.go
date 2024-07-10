@@ -1008,6 +1008,11 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 	shares := make(map[string]*big.Int)
 	for _, tx := range txs[2:] {
 		amount := big.NewInt(int64(tx.Amount))
+		// ignore proxy transfer to ProxyAddress for objktV1 contract
+		if tx.Target.Address == indexer.TezosOBJKTTreasuryProxyAddress {
+			continue
+		}
+
 		if platformFeeWallets[strings.ToLower(tx.Target.Address)] == "Objkt" {
 			platformFee = big.NewInt(0).Add(platformFee, amount)
 		} else {
