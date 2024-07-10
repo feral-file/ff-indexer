@@ -972,6 +972,7 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 	for _, entrypoint := range indexer.OBJKTSaleEntrypoints {
 		if fullfilTx.Parameter.EntryPoint == entrypoint {
 			isValidSale = true
+			break
 		}
 	}
 	if !isValidSale {
@@ -1027,7 +1028,7 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 	return &TokenSale{
 		Timestamp:       fullfilTx.Timestamp,
 		Price:           price,
-		Marketplace:     "objkt",
+		Marketplace:     "Objkt",
 		Blockchain:      "tezos",
 		Currency:        "XTZ",
 		TxID:            hash,
