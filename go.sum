@@ -120,8 +120,8 @@ github.com/bitmark-inc/httpsign v0.0.2-2 h1:r6PEni5eviDEU+6tRxVgG9z7XfOkS1m9HglF
 github.com/bitmark-inc/httpsign v0.0.2-2/go.mod h1:s5eQnhVQO4l9xAdA1fnBS7jWLZ1tOOg6eDpf3mvUYZo=
 github.com/bitmark-inc/traceutils v0.1.0 h1:9Wav80LREfMQa5/LcqSVSyJfGywHLxQLhFTczheoJdI=
 github.com/bitmark-inc/traceutils v0.1.0/go.mod h1:+9BJoMmAMMDWy54EpZKAwEN3WVyXUmWi4UsPDoMS/Hs=
-github.com/bitmark-inc/tzkt-go v0.0.14-0.20240703070933-86ad1a256460 h1:aADv3Z+UAssaBEfEvTX8dewRSZsWBVxcZ/95iXWmqN0=
-github.com/bitmark-inc/tzkt-go v0.0.14-0.20240703070933-86ad1a256460/go.mod h1:e/kgHH4i6YzCveZ79cDiviEAA5FU6YO48nWLQBRAdGE=
+github.com/bitmark-inc/tzkt-go v0.0.14 h1:eeB3LJdXNxlChDTC6BAXtXerDz6hEoC8NAFW5TVJfcM=
+github.com/bitmark-inc/tzkt-go v0.0.14/go.mod h1:e/kgHH4i6YzCveZ79cDiviEAA5FU6YO48nWLQBRAdGE=
 github.com/bits-and-blooms/bitset v1.13.0 h1:bAQ9OPNFYbGHV6Nez0tmNI0RiEu7/hxlYJRUA0wFAVE=
 github.com/bits-and-blooms/bitset v1.13.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
 github.com/bmizerany/perks v0.0.0-20141205001514-d9a9656a3a4b h1:AP/Y7sqYicnjGDfD5VcY4CIfh1hRXBUavxrvELjTiOE=

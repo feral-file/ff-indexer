@@ -940,7 +940,7 @@ func (w *NFTIndexerWorker) GetObjktSaleTransactionHashes(_ context.Context, last
 
 	txs, err := w.indexerEngine.GetTzktTransactionByContractsAndEntrypoint(
 		contracts,
-		indexer.OBJKTSaleEntrypoint,
+		indexer.OBJKTSaleEntrypoints,
 		lastTime,
 		offset,
 		limit)
@@ -968,7 +968,14 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 	}
 
 	fullfilTx := txs[0]
-	if fullfilTx.Parameter.EntryPoint != indexer.OBJKTSaleEntrypoint {
+	isValidSale := false
+	for _, entrypoint := range indexer.OBJKTSaleEntrypoints {
+		if fullfilTx.Parameter.EntryPoint == entrypoint {
+			isValidSale = true
+			break
+		}
+	}
+	if !isValidSale {
 		return nil, errors.New("invalid obkjt sale transaction - invalid sale tx")
 	}
 
@@ -1002,6 +1009,11 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 	shares := make(map[string]*big.Int)
 	for _, tx := range txs[2:] {
 		amount := big.NewInt(int64(tx.Amount))
+		// ignore proxy transfer to ProxyAddress for objktV1 contract
+		if tx.Target.Address == indexer.TezosOBJKTTreasuryProxyAddress {
+			continue
+		}
+
 		if platformFeeWallets[strings.ToLower(tx.Target.Address)] == "Objkt" {
 			platformFee = big.NewInt(0).Add(platformFee, amount)
 		} else {
@@ -1016,7 +1028,7 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 	return &TokenSale{
 		Timestamp:       fullfilTx.Timestamp,
 		Price:           price,
-		Marketplace:     "objkt",
+		Marketplace:     "Objkt",
 		Blockchain:      "tezos",
 		Currency:        "XTZ",
 		TxID:            hash,
