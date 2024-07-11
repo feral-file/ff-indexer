@@ -204,8 +204,8 @@ func (w *NFTIndexerWorker) WriteSaleTimeSeriesData(ctx context.Context, data []i
 }
 
 // IndexedSaleTx checks if a sale tx is indexed
-func (w *NFTIndexerWorker) IndexedSaleTx(ctx context.Context, txID string) (bool, error) {
-	return w.indexerStore.SaleTimeSeriesDataExists(ctx, txID)
+func (w *NFTIndexerWorker) IndexedSaleTx(ctx context.Context, txID, blockchain string) (bool, error) {
+	return w.indexerStore.SaleTimeSeriesDataExists(ctx, txID, blockchain)
 }
 
 // indexTezosAccount saves tezos account data into indexer's storage

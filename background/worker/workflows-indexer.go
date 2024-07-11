@@ -319,7 +319,9 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSaleInBlockRange(
 func (w *NFTIndexerWorker) IndexTezosObjktTokenSaleFromTime(
 	ctx workflow.Context,
 	startTime time.Time,
-	offset int) error {
+	offset int,
+	batchSize int,
+	skipIndexed bool) error {
 	ctx = ContextRegularActivity(ctx, w.TaskListName)
 
 	log.Info("index feral file tezos token sale from startTime",
@@ -332,7 +334,7 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSaleFromTime(
 		w.GetObjktSaleTransactionHashes,
 		startTime,
 		offset,
-		50).
+		batchSize).
 		Get(ctx, &hashes); err != nil {
 		return err
 	}
@@ -346,7 +348,9 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSaleFromTime(
 			workflow.ExecuteChildWorkflow(
 				cwctx,
 				w.IndexTezosObjktTokenSale,
-				hash))
+				hash,
+				skipIndexed,
+			))
 	}
 
 	for _, future := range futures {

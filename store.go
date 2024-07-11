@@ -111,7 +111,7 @@ type Store interface {
 		ctx context.Context,
 		records []GenericSalesTimeSeries,
 	) error
-	SaleTimeSeriesDataExists(ctx context.Context, txID string) (bool, error)
+	SaleTimeSeriesDataExists(ctx context.Context, txID, blockchain string) (bool, error)
 }
 
 type FilterParameter struct {
@@ -2414,9 +2414,12 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 	return nil
 }
 
-// SaleTimeSeriesDataExists - check if a sale time series data exists for a transaction hash
-func (s *MongodbIndexerStore) SaleTimeSeriesDataExists(ctx context.Context, txID string) (bool, error) {
-	count, err := s.salesTimeSeriesCollection.CountDocuments(ctx, bson.M{"metadata.transactionID": txID})
+// SaleTimeSeriesDataExists - check if a sale time series data exists for a transaction hash and blockchain
+func (s *MongodbIndexerStore) SaleTimeSeriesDataExists(ctx context.Context, txID, blockchain string) (bool, error) {
+	count, err := s.salesTimeSeriesCollection.CountDocuments(ctx, bson.M{
+		"metadata.transactionID": txID,
+		"metadata.blockchain":    blockchain,
+	})
 	if err != nil {
 		return false, err
 	}

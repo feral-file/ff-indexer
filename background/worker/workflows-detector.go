@@ -192,7 +192,8 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 		if err := workflow.ExecuteActivity(
 			ctx,
 			w.IndexedSaleTx,
-			txID).
+			txID,
+			utils.EthereumBlockchain).
 			Get(ctx, &indexed); nil != err {
 			return err
 		}
@@ -615,7 +616,9 @@ func classifyTxLogs(logs []*types.Log) (map[string][]types.Log, []types.Log) {
 }
 
 // IndexTezosTokenSaleFromTzktTxID is a workflow to get the tezos transaction hash by tzkt txid
-func (w *NFTIndexerWorker) IndexTezosTokenSaleFromTzktTxID(ctx workflow.Context, id uint64) error {
+func (w *NFTIndexerWorker) IndexTezosTokenSaleFromTzktTxID(
+	ctx workflow.Context,
+	id uint64) error {
 	ctx = ContextRegularActivity(ctx, TaskListName)
 
 	var txHash *string
@@ -626,13 +629,17 @@ func (w *NFTIndexerWorker) IndexTezosTokenSaleFromTzktTxID(ctx workflow.Context,
 		Get(ctx, &txHash); err != nil {
 		return err
 	}
+	if nil == txHash {
+		return errors.New("no tx hash found")
+	}
 
 	workflowID := fmt.Sprintf("IndexTezosObjktTokenSale-%s", *txHash)
 	cwctx := ContextNamedRegularChildWorkflow(ctx, workflowID, TaskListName)
 	if err := workflow.ExecuteChildWorkflow(
 		cwctx,
 		w.IndexTezosObjktTokenSale,
-		txHash).Get(ctx, nil); err != nil {
+		txHash,
+		true).Get(ctx, nil); err != nil {
 		return err
 	}
 
@@ -640,8 +647,26 @@ func (w *NFTIndexerWorker) IndexTezosTokenSaleFromTzktTxID(ctx workflow.Context,
 }
 
 // IndexTezosObjktTokenSale is a workflow to index the sale of a Tezos objkt token
-func (w *NFTIndexerWorker) IndexTezosObjktTokenSale(ctx workflow.Context, txHash string) error {
+func (w *NFTIndexerWorker) IndexTezosObjktTokenSale(ctx workflow.Context, txHash string, skipIndexed bool) error {
 	ctx = ContextRegularActivity(ctx, TaskListName)
+
+	if skipIndexed {
+		// Check if sale tx is indexed already
+		var indexed bool
+		if err := workflow.ExecuteActivity(
+			ctx,
+			w.IndexedSaleTx,
+			txHash,
+			utils.TezosBlockchain).
+			Get(ctx, &indexed); nil != err {
+			return err
+		}
+
+		if indexed {
+			log.Info("skip tx already indexed", zap.String("txID", txHash))
+			return nil
+		}
+	}
 
 	log.Info("start indexing tezos Objkt token sale", zap.String("txHash", txHash))
 	// Fetch & parse token sale by tx hashe
