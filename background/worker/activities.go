@@ -968,59 +968,62 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 	}
 
 	fullfilTx := txs[0]
-	isValidSale := false
+	saleEntrypointMap := make(map[string]bool)
 	for _, entrypoint := range indexer.OBJKTSaleEntrypoints {
-		if fullfilTx.Parameter.EntryPoint == entrypoint {
-			isValidSale = true
-			break
-		}
+		saleEntrypointMap[entrypoint] = true
 	}
-	if !isValidSale {
-		return nil, errors.New("invalid obkjt sale transaction - invalid sale tx")
-	}
-
-	price := big.NewInt(int64(fullfilTx.Amount))
-
-	transferTx := txs[1]
-	if transferTx.Parameter.EntryPoint != "transfer" {
-		return nil, errors.New("invalid obkjt sale transaction - invalid transfer tx")
-	}
-
-	// parse token transfers
-	var paramValues []tzkt.ParametersValue
-	if err := mapstructure.Decode(transferTx.Parameter.Value, &paramValues); err != nil {
-		return nil, err
+	if fullfilTx.Parameter == nil || !saleEntrypointMap[fullfilTx.Parameter.EntryPoint] {
+		return nil, errors.New("invalid obkjt sale transaction")
 	}
 
 	bundleTokenInfo := []TokenSaleInfo{}
-	for _, paramValue := range paramValues {
-		for _, tx := range paramValue.Txs {
-			bundleTokenInfo = append(bundleTokenInfo, TokenSaleInfo{
-				SellerAddress:   paramValue.From,
-				BuyerAddress:    tx.To,
-				TokenID:         tx.TokenID,
-				ContractAddress: transferTx.Target.Address,
-			})
-		}
-	}
-
+	price := big.NewInt(0)
 	platformFeeWallets := viper.GetStringMapString("marketplace.fee_wallets") // key is lower case
 	platformFee := big.NewInt(0)
 	shares := make(map[string]*big.Int)
-	for _, tx := range txs[2:] {
-		amount := big.NewInt(int64(tx.Amount))
-		// ignore proxy transfer to ProxyAddress for objktV1 contract
-		if tx.Target.Address == indexer.TezosOBJKTTreasuryProxyAddress {
-			continue
-		}
+	for _, tx := range txs {
+		if tx.Parameter != nil {
+			// process fullfil tx
+			if saleEntrypointMap[tx.Parameter.EntryPoint] {
+				big.NewInt(0).Add(price, big.NewInt(int64(tx.Amount)))
+				continue
+			}
 
-		if platformFeeWallets[strings.ToLower(tx.Target.Address)] == "Objkt" {
-			platformFee = big.NewInt(0).Add(platformFee, amount)
+			// process token transfers
+			if tx.Parameter.EntryPoint == "transfer" {
+				var paramValues []tzkt.ParametersValue
+				if err := mapstructure.Decode(tx.Parameter.Value, &paramValues); err != nil {
+					return nil, err
+				}
+
+				for _, paramValue := range paramValues {
+					for _, ptx := range paramValue.Txs {
+						bundleTokenInfo = append(bundleTokenInfo, TokenSaleInfo{
+							SellerAddress:   paramValue.From,
+							BuyerAddress:    ptx.To,
+							TokenID:         ptx.TokenID,
+							ContractAddress: tx.Target.Address,
+						})
+					}
+				}
+			}
 		} else {
-			if s, ok := shares[tx.Target.Address]; ok {
-				shares[tx.Target.Address] = big.NewInt(0).Add(s, amount)
+			// process revenue shares transfers
+			amount := big.NewInt(int64(tx.Amount))
+
+			// ignore proxy transfer to ProxyAddress for objktV1 contract
+			if tx.Target.Address == indexer.TezosOBJKTTreasuryProxyAddress {
+				continue
+			}
+
+			if platformFeeWallets[strings.ToLower(tx.Target.Address)] == "Objkt" {
+				platformFee = big.NewInt(0).Add(platformFee, amount)
 			} else {
-				shares[tx.Target.Address] = amount
+				if s, ok := shares[tx.Target.Address]; ok {
+					shares[tx.Target.Address] = big.NewInt(0).Add(s, amount)
+				} else {
+					shares[tx.Target.Address] = amount
+				}
 			}
 		}
 	}
