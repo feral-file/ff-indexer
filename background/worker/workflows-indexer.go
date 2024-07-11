@@ -338,7 +338,13 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSaleFromTime(
 	}
 
 	futures := make([]workflow.Future, 0)
+	indexedHashes := make(map[string]bool)
 	for _, hash := range hashes {
+		if indexedHashes[hash] {
+			continue
+		}
+
+		indexedHashes[hash] = true
 		workflowID := fmt.Sprintf("IndexTezosObjktTokenSale-%s", hash)
 		cwctx := ContextNamedRegularChildWorkflow(ctx, workflowID, TaskListName)
 		futures = append(
