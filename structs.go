@@ -5,7 +5,6 @@ import (
 	"time"
 
 	utils "github.com/bitmark-inc/autonomy-utils"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Medium string
@@ -300,15 +299,4 @@ type GenericSalesTimeSeries struct {
 	Metadata  map[string]interface{} `json:"metadata"`
 	Values    map[string]string      `json:"values"`
 	Shares    map[string]string      `json:"shares"`
-}
-
-type SaleTimeSeries struct {
-	Timestamp     time.Time              `json:"timestamp" bson:"timestamp"`
-	Metadata      map[string]interface{} `json:"metadata" bson:"metadata"`
-	Shares        map[string]interface{} `json:"shares" bson:"shares"`
-	NetValue      primitive.Decimal128   `json:"net_revenue" bson:"net_revenue"`
-	PaymentAmount primitive.Decimal128   `json:"payment_amount" bson:"payment_amount"`
-	PlatformFee   primitive.Decimal128   `json:"platform_fee" bson:"platform_fee"`
-	USDQuote      primitive.Decimal128   `json:"exchange_rate" bson:"exchange_rate"`
-	Price         primitive.Decimal128   `json:"price" bson:"price"`
 }

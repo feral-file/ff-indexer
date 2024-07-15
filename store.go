@@ -2,7 +2,10 @@ package indexer
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -2288,6 +2291,7 @@ var reserved = map[string]struct{}{
 	"shares":    {},
 	"timestamp": {},
 	"values":    {},
+	"uniqueID":  {},
 }
 
 // WriteTimeSeriesData - validate and store a time series record
@@ -2307,8 +2311,9 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 			return err
 		}
 
-		// ensure no reserved fields in metadata
+		var saleTokenUniqueIDs []string
 		for k, v := range r.Metadata {
+			// ensure no reserved fields in metadata
 			if _, ok := reserved[k]; ok {
 				log.Warn(
 					"reserved metadata field name",
@@ -2317,7 +2322,41 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 				)
 				return fmt.Errorf("reserved field name: metadata.%s", k)
 			}
+			if k == "bundleTokenInfo" {
+				interfaces := v.([]interface{})
+				for _, inter := range interfaces {
+					m := inter.(map[string]interface{})
+					var ca string
+					if m["contractAddress"] != nil {
+						ca = m["contractAddress"].(string)
+					}
+					saleTokenUniqueIDs = append(saleTokenUniqueIDs,
+						fmt.Sprintf("%s-%s-%s",
+							r.Metadata["blockchain"].(string),
+							ca,
+							m["tokenID"].(string)))
+				}
+			}
 		}
+
+		var transactionIDs []string
+		for _, v := range r.Metadata["transactionIDs"].([]interface{}) {
+			transactionIDs = append(transactionIDs, v.(string))
+		}
+
+		sort.Strings(saleTokenUniqueIDs)
+		sort.Strings(transactionIDs)
+
+		h := sha1.New()
+		h.Write([]byte(
+			fmt.Sprintf("%s|%s",
+				strings.Join(transactionIDs, ","),
+				strings.Join(saleTokenUniqueIDs, ","),
+			),
+		))
+		hashedBytes := h.Sum(nil)
+		uniqueID := hex.EncodeToString(hashedBytes)
+		r.Metadata["uniqueID"] = uniqueID
 
 		// root of the BSON document
 		doc := bson.M{
@@ -2373,23 +2412,18 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 		}
 		doc["shares"] = sv
 
-		transactionID := r.Metadata["transactionID"].(string)
-		blockchain := r.Metadata["blockchain"].(string)
 		filter := bson.M{
-			"metadata.transactionID": transactionID,
-			"metadata.blockchain":    blockchain,
+			"metadata.uniqueID": uniqueID,
 		}
 
 		log.Debug("deleting documents",
-			zap.String("transactionID", transactionID),
-			zap.String("blockchain", blockchain),
+			zap.String("uniqueID", uniqueID),
 			zap.Error(err))
 
 		_, err = s.salesTimeSeriesCollection.DeleteMany(ctx, filter)
 		if err != nil {
 			log.Error("error deleting documents",
-				zap.String("transactionID", transactionID),
-				zap.String("blockchain", blockchain),
+				zap.String("uniqueID", uniqueID),
 				zap.Error(err))
 			return err
 		}
