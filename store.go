@@ -2,8 +2,6 @@ package indexer
 
 import (
 	"context"
-	"crypto/sha1"
-	"encoding/hex"
 	"fmt"
 	"sort"
 	"strings"
@@ -2323,12 +2321,21 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 				return fmt.Errorf("reserved field name: metadata.%s", k)
 			}
 			if k == "bundleTokenInfo" {
-				interfaces := v.([]interface{})
-				for _, inter := range interfaces {
-					m := inter.(map[string]interface{})
+				interfaces, ok := v.([]interface{})
+				if !ok {
+					return fmt.Errorf("wrong format: metadata.%s is not a slice", k)
+				}
+				for i, inter := range interfaces {
+					m, ok := inter.(map[string]interface{})
+					if !ok {
+						return fmt.Errorf("wrong format: metadata.%s[%d] is not a map[string]interface{}", k, i)
+					}
 					var ca string
 					if m["contractAddress"] != nil {
-						ca = m["contractAddress"].(string)
+						ca, ok = m["contractAddress"].(string)
+						if !ok {
+							return fmt.Errorf("wrong format: metadata.%s[%d][%s] is not a string", k, i, `"contractAddress"`)
+						}
 					}
 					saleTokenUniqueIDs = append(saleTokenUniqueIDs,
 						fmt.Sprintf("%s-%s-%s",
@@ -2340,22 +2347,27 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 		}
 
 		var transactionIDs []string
-		for _, v := range r.Metadata["transactionIDs"].([]interface{}) {
-			transactionIDs = append(transactionIDs, v.(string))
+		txIDs, ok := r.Metadata["transactionIDs"].([]interface{})
+		if !ok {
+			return fmt.Errorf("wrong format: metadata.transactionIDs is not a slice")
+		}
+
+		for i, v := range txIDs {
+			txID, ok := v.(string)
+			if !ok {
+				return fmt.Errorf("wrong format: metadata.transactionIDs[%d] is not a string", i)
+			}
+			transactionIDs = append(transactionIDs, txID)
 		}
 
 		sort.Strings(saleTokenUniqueIDs)
 		sort.Strings(transactionIDs)
 
-		h := sha1.New()
-		h.Write([]byte(
-			fmt.Sprintf("%s|%s",
-				strings.Join(transactionIDs, ","),
-				strings.Join(saleTokenUniqueIDs, ","),
-			),
+		uniqueID := HexSha1(fmt.Sprintf("%s|%s",
+			strings.Join(transactionIDs, ","),
+			strings.Join(saleTokenUniqueIDs, ","),
 		))
-		hashedBytes := h.Sum(nil)
-		uniqueID := hex.EncodeToString(hashedBytes)
+
 		r.Metadata["uniqueID"] = uniqueID
 
 		// root of the BSON document
