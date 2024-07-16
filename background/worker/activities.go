@@ -983,12 +983,6 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 	shares := make(map[string]*big.Int)
 	for _, tx := range txs {
 		if tx.Parameter != nil {
-			// process fullfil tx
-			if saleEntrypointMap[tx.Parameter.EntryPoint] {
-				big.NewInt(0).Add(price, big.NewInt(int64(tx.Amount)))
-				continue
-			}
-
 			// process token transfers
 			if tx.Parameter.EntryPoint == "transfer" {
 				var paramValues []tzkt.ParametersValue
@@ -1016,6 +1010,7 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 				continue
 			}
 
+			price = big.NewInt(0).Add(price, amount)
 			if platformFeeWallets[strings.ToLower(tx.Target.Address)] == "Objkt" {
 				platformFee = big.NewInt(0).Add(platformFee, amount)
 			} else {
