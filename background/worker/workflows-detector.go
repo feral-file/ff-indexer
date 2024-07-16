@@ -760,7 +760,7 @@ func parseTokenSaleToGenericSalesTimeSeries(tokenSale TokenSale) (*indexer.Gener
 		"pricingCurrency": tokenSale.Currency,
 		"revenueCurrency": tokenSale.Currency,
 		"saleType":        "secondary",
-		"transactionID":   tokenSale.TxID,
+		"transactionIDs":  []string{tokenSale.TxID},
 		"bundleTokenInfo": bundleTokenInfo,
 	}
 

@@ -6,6 +6,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -308,4 +309,13 @@ func HexToDec(hex string) string {
 	}
 
 	return n.Text(10)
+}
+
+func HexSha1(str string) string {
+	h := sha1.New()
+	h.Write([]byte(
+		str,
+	))
+	hashedBytes := h.Sum(nil)
+	return hex.EncodeToString(hashedBytes)
 }
