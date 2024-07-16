@@ -1010,15 +1010,23 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 				continue
 			}
 
+			// Accumulate shares
+			if s, ok := shares[tx.Target.Address]; ok {
+				shares[tx.Target.Address] = big.NewInt(0).Add(s, amount)
+			} else {
+				shares[tx.Target.Address] = amount
+			}
 			price = big.NewInt(0).Add(price, amount)
+
+			// Deduct share
+			if s, ok := shares[tx.Sender.Address]; ok {
+				shares[tx.Sender.Address] = big.NewInt(0).Sub(s, amount)
+				price.Sub(price, amount)
+			}
+
+			// Accumulate platform fee
 			if platformFeeWallets[strings.ToLower(tx.Target.Address)] == "Objkt" {
 				platformFee = big.NewInt(0).Add(platformFee, amount)
-			} else {
-				if s, ok := shares[tx.Target.Address]; ok {
-					shares[tx.Target.Address] = big.NewInt(0).Add(s, amount)
-				} else {
-					shares[tx.Target.Address] = amount
-				}
 			}
 		}
 	}
