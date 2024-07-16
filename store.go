@@ -3,6 +3,7 @@ package indexer
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -2288,6 +2289,7 @@ var reserved = map[string]struct{}{
 	"shares":    {},
 	"timestamp": {},
 	"values":    {},
+	"uniqueID":  {},
 }
 
 // WriteTimeSeriesData - validate and store a time series record
@@ -2307,8 +2309,9 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 			return err
 		}
 
-		// ensure no reserved fields in metadata
+		var saleTokenUniqueIDs []string
 		for k, v := range r.Metadata {
+			// ensure no reserved fields in metadata
 			if _, ok := reserved[k]; ok {
 				log.Warn(
 					"reserved metadata field name",
@@ -2317,7 +2320,55 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 				)
 				return fmt.Errorf("reserved field name: metadata.%s", k)
 			}
+			if k == "bundleTokenInfo" {
+				interfaces, ok := v.([]interface{})
+				if !ok {
+					return fmt.Errorf("wrong format: metadata.%s is not a slice", k)
+				}
+				for i, inter := range interfaces {
+					m, ok := inter.(map[string]interface{})
+					if !ok {
+						return fmt.Errorf("wrong format: metadata.%s[%d] is not a map[string]interface{}", k, i)
+					}
+					var ca string
+					if m["contractAddress"] != nil {
+						ca, ok = m["contractAddress"].(string)
+						if !ok {
+							return fmt.Errorf("wrong format: metadata.%s[%d][%s] is not a string", k, i, `"contractAddress"`)
+						}
+					}
+					saleTokenUniqueIDs = append(saleTokenUniqueIDs,
+						fmt.Sprintf("%s-%s-%s",
+							r.Metadata["blockchain"].(string),
+							ca,
+							m["tokenID"].(string)))
+				}
+			}
 		}
+
+		var transactionIDs []string
+		txIDs, ok := r.Metadata["transactionIDs"].([]interface{})
+		if !ok {
+			return fmt.Errorf("wrong format: metadata.transactionIDs is not a slice")
+		}
+
+		for i, v := range txIDs {
+			txID, ok := v.(string)
+			if !ok {
+				return fmt.Errorf("wrong format: metadata.transactionIDs[%d] is not a string", i)
+			}
+			transactionIDs = append(transactionIDs, txID)
+		}
+
+		sort.Strings(saleTokenUniqueIDs)
+		sort.Strings(transactionIDs)
+
+		uniqueID := HexSha1(fmt.Sprintf("%s|%s",
+			strings.Join(transactionIDs, ","),
+			strings.Join(saleTokenUniqueIDs, ","),
+		))
+
+		r.Metadata["uniqueID"] = uniqueID
 
 		// root of the BSON document
 		doc := bson.M{
@@ -2373,23 +2424,18 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 		}
 		doc["shares"] = sv
 
-		transactionID := r.Metadata["transactionID"].(string)
-		blockchain := r.Metadata["blockchain"].(string)
 		filter := bson.M{
-			"metadata.transactionID": transactionID,
-			"metadata.blockchain":    blockchain,
+			"metadata.uniqueID": uniqueID,
 		}
 
 		log.Debug("deleting documents",
-			zap.String("transactionID", transactionID),
-			zap.String("blockchain", blockchain),
+			zap.String("uniqueID", uniqueID),
 			zap.Error(err))
 
 		_, err = s.salesTimeSeriesCollection.DeleteMany(ctx, filter)
 		if err != nil {
 			log.Error("error deleting documents",
-				zap.String("transactionID", transactionID),
-				zap.String("blockchain", blockchain),
+				zap.String("uniqueID", uniqueID),
 				zap.Error(err))
 			return err
 		}
