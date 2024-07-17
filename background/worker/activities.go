@@ -995,7 +995,13 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 			if tx.Parameter.EntryPoint == "transfer" {
 				var paramValues []tzkt.ParametersValue
 				if err := mapstructure.Decode(tx.Parameter.Value, &paramValues); err != nil {
-					return nil, err
+					// We don't support sale operations contain coin transfer operations
+					// Any sale operations contain invalid "transfer" will be ignored
+					log.Error("invalid transfer transaction - not supported buying using token",
+						zap.String("txHash", hash),
+						zap.Error(err),
+					)
+					return nil, nil
 				}
 
 				for _, paramValue := range paramValues {
