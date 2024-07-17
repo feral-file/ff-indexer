@@ -964,7 +964,7 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 	}
 
 	if len(txs) < 2 {
-		return nil, errors.New("invalid obkjt sale transaction")
+		return nil, errInvalidObjktTx
 	}
 
 	saleEntrypointMap := make(map[string]bool)
@@ -980,8 +980,7 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 	shares := make(map[string]*big.Int)
 	for _, tx := range txs {
 		if tx.Status == "failed" {
-			log.Error("ignored failed operation", zap.String("txHash", hash))
-			return nil, nil
+			return nil, errTxFailed
 		}
 
 		if tx.Parameter != nil {
@@ -1040,7 +1039,7 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 	}
 
 	if !isValidObjktSaleOperation {
-		return nil, errors.New("invalid objkt sale operation")
+		return nil, errInvalidObjktTx
 	}
 
 	return &TokenSale{

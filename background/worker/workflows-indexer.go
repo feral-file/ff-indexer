@@ -361,7 +361,18 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSaleFromTime(
 
 	for _, future := range futures {
 		if err := future.Get(ctx, nil); err != nil {
-			return err
+			switch err.(type) {
+			case *workflow.GenericError:
+				switch err.Error() {
+				case errUnsupportedTokenSale.Error(),
+					errInvalidObjktTx.Error():
+					return nil
+				default:
+					return err
+				}
+			default:
+				return err
+			}
 		}
 	}
 

@@ -176,6 +176,7 @@ var (
 	errParseInternalTxVal               = errors.New("Fail to parse internal tx value")
 	errNoMarketContractInteractionTx    = errors.New("No market contract interaction transaction found")
 	errNoPaymentTx                      = errors.New("No payment transaction found")
+	errInvalidObjktTx                   = errors.New("invalid objkt transaction")
 )
 
 // IndexEthereumTokenSale is a workflow to index the sale of an Ethereum token
@@ -640,7 +641,19 @@ func (w *NFTIndexerWorker) IndexTezosTokenSaleFromTzktTxID(
 		w.IndexTezosObjktTokenSale,
 		txHash,
 		true).Get(ctx, nil); err != nil {
-		return err
+		log.Error("fail to index tezos token sale", zap.Error(err))
+		switch err.(type) {
+		case *workflow.GenericError:
+			switch err.Error() {
+			case errUnsupportedTokenSale.Error(),
+				errInvalidObjktTx.Error():
+				return nil
+			default:
+				return err
+			}
+		default:
+			return err
+		}
 	}
 
 	return nil
@@ -676,7 +689,7 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSale(ctx workflow.Context, txHash
 		w.ParseTezosObjktTokenSale,
 		txHash).
 		Get(ctx, &tokenSale); err != nil {
-		log.Error("failed to ParseTezosObjktTokenSale", zap.Error(err))
+		log.Error("fail to parse token sale", zap.String("error", err.Error()))
 		return err
 	}
 
@@ -702,8 +715,7 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSale(ctx workflow.Context, txHash
 			return err
 		}
 		if nil == token || token.Source != "feralfile" {
-			log.Info("no token sale found in the tx", zap.String("txHash", txHash))
-			return nil
+			return errUnsupportedTokenSale
 		}
 	}
 
