@@ -980,7 +980,8 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 	shares := make(map[string]*big.Int)
 	for _, tx := range txs {
 		if tx.Status == "failed" {
-			return nil, errors.New("transaction failed")
+			log.Error("ignored failed operation", zap.String("txHash", hash))
+			return nil, nil
 		}
 
 		if tx.Parameter != nil {
