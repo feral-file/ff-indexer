@@ -366,7 +366,7 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSaleFromTime(
 				switch err.Error() {
 				case errUnsupportedTokenSale.Error(),
 					errInvalidObjktTx.Error():
-					return nil
+					continue
 				default:
 					return err
 				}
