@@ -646,7 +646,8 @@ func (w *NFTIndexerWorker) IndexTezosTokenSaleFromTzktTxID(
 		case *workflow.GenericError:
 			switch err.Error() {
 			case errUnsupportedTokenSale.Error(),
-				errInvalidObjktTx.Error():
+				errInvalidObjktTx.Error(),
+				errTxFailed.Error():
 				return nil
 			default:
 				return err
