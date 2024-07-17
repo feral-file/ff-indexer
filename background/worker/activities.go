@@ -967,22 +967,29 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 		return nil, errors.New("invalid obkjt sale transaction")
 	}
 
-	fullfilTx := txs[0]
 	saleEntrypointMap := make(map[string]bool)
 	for _, entrypoint := range indexer.OBJKTSaleEntrypoints {
 		saleEntrypointMap[entrypoint] = true
 	}
-	if fullfilTx.Parameter == nil || !saleEntrypointMap[fullfilTx.Parameter.EntryPoint] {
-		return nil, errors.New("invalid obkjt sale transaction")
-	}
 
+	isValidObjktSaleOperation := false
 	bundleTokenInfo := []TokenSaleInfo{}
 	price := big.NewInt(0)
 	platformFeeWallets := viper.GetStringMapString("marketplace.fee_wallets") // key is lower case
 	platformFee := big.NewInt(0)
 	shares := make(map[string]*big.Int)
 	for _, tx := range txs {
+		if tx.Status == "failed" {
+			return nil, errors.New("transaction failed")
+		}
+
 		if tx.Parameter != nil {
+			// check for fulfill entrypoints
+			if saleEntrypointMap[tx.Parameter.EntryPoint] {
+				isValidObjktSaleOperation = true
+				continue
+			}
+
 			// process token transfers
 			if tx.Parameter.EntryPoint == "transfer" {
 				var paramValues []tzkt.ParametersValue
@@ -1031,8 +1038,12 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 		}
 	}
 
+	if !isValidObjktSaleOperation {
+		return nil, errors.New("invalid objkt sale operation")
+	}
+
 	return &TokenSale{
-		Timestamp:       fullfilTx.Timestamp,
+		Timestamp:       txs[0].Timestamp,
 		Price:           price,
 		Marketplace:     "Objkt",
 		Blockchain:      "tezos",
