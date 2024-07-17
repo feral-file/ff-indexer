@@ -1000,7 +1000,7 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 						zap.String("txHash", hash),
 						zap.Error(err),
 					)
-					return nil, nil
+					return nil, errUnsupportedTokenSale
 				}
 
 				for _, paramValue := range paramValues {
