@@ -370,7 +370,9 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSaleFromTime(
 			ctx,
 			w.IndexTezosObjktTokenSaleFromTime,
 			startTime,
-			offset+len(hashes))
+			offset+len(hashes),
+			batchSize,
+			skipIndexed)
 	}
 
 	return nil
