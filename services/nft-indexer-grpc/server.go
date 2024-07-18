@@ -245,3 +245,43 @@ func (i *IndexerServer) GetIdentity(ctx context.Context, request *pb.Address) (*
 func (i *IndexerServer) SendTimeSeriesData(ctx context.Context, req *pb.SaleTimeSeriesRecords) (*pb.Empty, error) {
 	return &pb.Empty{}, i.indexerStore.WriteTimeSeriesData(ctx, i.mapper.MapGrpcSaleTimeSeriesRecords(req))
 }
+
+func (i *IndexerServer) GetSaleTimeSeries(ctx context.Context, filter *pb.SaleTimeSeriesFilter) (*pb.SaleTimeSeriesListResponse, error) {
+	offset := int64(0)
+	size := int64(50)
+	if filter.Offset != nil {
+		offset = *filter.Offset
+	}
+	if filter.Size != nil {
+		size = *filter.Size
+	}
+
+	sales, err := i.indexerStore.GetSaleTimeSeriesData(ctx, indexer.SalesFilterParameter{
+		Addresses:   filter.Addresses,
+		Marketplace: filter.Marketplace,
+		From:        i.mapper.MapGrpcTimestampToTime(filter.From),
+		To:          i.mapper.MapGrpcTimestampToTime(filter.To),
+		Offset:      offset,
+		Limit:       size,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return i.mapper.MapToGrpcSaleTimeSeriesListResponse(sales)
+}
+func (i *IndexerServer) GetSaleRevenues(ctx context.Context, filter *pb.SaleTimeSeriesFilter) (*pb.SaleRevenuesResponse, error) {
+	revenues, err := i.indexerStore.AggregateSaleRevenues(ctx, indexer.SalesFilterParameter{
+		Addresses:   filter.Addresses,
+		Marketplace: filter.Marketplace,
+		From:        i.mapper.MapGrpcTimestampToTime(filter.From),
+		To:          i.mapper.MapGrpcTimestampToTime(filter.To),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return i.mapper.MapToGrpcSaleRevenuesResponse(revenues)
+}

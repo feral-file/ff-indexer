@@ -2,8 +2,10 @@ package sdk
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	pb "github.com/bitmark-inc/nft-indexer/services/nft-indexer-grpc/grpc/indexer"
 	"google.golang.org/grpc"
@@ -190,4 +192,46 @@ func (i *IndexerGRPCClient) SendTimeSeriesData(
 		ctx,
 		i.mapper.MapGenericSaleTimeSeries(req))
 	return err
+}
+
+// GetTimeSeriesData get list of SaleTimeSeries base on the filter parameters
+func (i *IndexerGRPCClient) GetTimeSeriesData(
+	ctx context.Context,
+	filter indexer.SalesFilterParameter,
+) ([]indexer.SaleTimeSeries, error) {
+	sales, err := i.client.GetSaleTimeSeries(ctx, &pb.SaleTimeSeriesFilter{
+		Addresses:   filter.Addresses,
+		Marketplace: filter.Marketplace,
+		From:        i.mapper.MapTimeToGrpcTimestamp(filter.From),
+		To:          i.mapper.MapTimeToGrpcTimestamp(filter.To),
+		Offset:      aws.Int64(int64(filter.Offset)),
+		Size:        aws.Int64(int64(filter.Limit)),
+	})
+
+	fmt.Println(sales)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return i.mapper.MapGrpcSaleTimeSeriesListResponseToIndexerSaleTimeSeries(sales)
+}
+
+// GetSaleRevenues get the revenues base on the filter parameters
+func (i *IndexerGRPCClient) GetSaleRevenues(
+	ctx context.Context,
+	filter indexer.SalesFilterParameter,
+) (map[string]string, error) {
+	revenues, err := i.client.GetSaleRevenues(ctx, &pb.SaleTimeSeriesFilter{
+		Addresses:   filter.Addresses,
+		Marketplace: filter.Marketplace,
+		From:        i.mapper.MapTimeToGrpcTimestamp(filter.From),
+		To:          i.mapper.MapTimeToGrpcTimestamp(filter.To),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return revenues.Revenues, err
 }
