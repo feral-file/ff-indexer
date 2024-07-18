@@ -577,8 +577,8 @@ func (w *NFTIndexerWorker) GetBalanceDiffFromTezosTransaction(transactionDetails
 	var updatedAccountTokens = []indexer.AccountToken{}
 	var totalTransferredAmount = int64(0)
 
-	var paramValues []tzkt.ParametersValue
-	if err := mapstructure.Decode(transactionDetails.Parameter.Value, &paramValues); err != nil {
+	paramValues, err := decodeParametersValue(transactionDetails.Parameter.Value)
+	if err != nil {
 		return nil, err
 	}
 
@@ -993,8 +993,8 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 
 			// process token transfers
 			if tx.Parameter.EntryPoint == "transfer" {
-				var paramValues []tzkt.ParametersValue
-				if err := mapstructure.Decode(tx.Parameter.Value, &paramValues); err != nil {
+				paramValues, err := decodeParametersValue(tx.Parameter.Value)
+				if err != nil {
 					// We don't support sale operations contain coin transfer operations
 					// Any sale operations contain invalid "transfer" will be ignored
 					log.Error("invalid transfer transaction - not supported buying using token",
@@ -1049,6 +1049,10 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 		return nil, errors.New("invalid objkt sale operation")
 	}
 
+	if len(bundleTokenInfo) == 0 {
+		return nil, errors.New("invalid sale transaction - no tokens transfer")
+	}
+
 	return &TokenSale{
 		Timestamp:       txs[0].Timestamp,
 		Price:           price,
@@ -1062,4 +1066,41 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 		PaymentAmount:   price,
 		Shares:          shares,
 	}, nil
+}
+
+// Decode Tzkt transfer ParametersValue from an interface
+func decodeParametersValue(input interface{}) ([]tzkt.ParametersValue, error) {
+	var paramValues []tzkt.ParametersValue
+	if err := mapstructure.Decode(input, &paramValues); err != nil {
+		return nil, err
+	}
+
+	var param2 []struct {
+		Address string `mapstructure:"address"`
+		List    []struct {
+			To      string `mapstructure:"to"`
+			Amount  string `mapstructure:"amount"`
+			TokenID string `mapstructure:"token_id"`
+		} `mapstructure:"list"`
+	}
+
+	err := mapstructure.Decode(input, &param2)
+	if err == nil {
+		paramValues = make([]tzkt.ParametersValue, len(param2))
+		for i, p := range param2 {
+			pv := paramValues[i]
+			pv.From = p.Address
+			for _, item := range p.List {
+				pv.Txs = append(pv.Txs, tzkt.TxsFormat{
+					To:      item.To,
+					Amount:  item.Amount,
+					TokenID: item.TokenID,
+				})
+			}
+		}
+
+		return paramValues, nil
+	}
+
+	return nil, err
 }
