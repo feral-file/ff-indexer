@@ -1071,8 +1071,9 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 // Decode Tzkt transfer ParametersValue from an interface
 func decodeParametersValue(input interface{}) ([]tzkt.ParametersValue, error) {
 	var paramValues []tzkt.ParametersValue
-	if err := mapstructure.Decode(input, &paramValues); err != nil {
-		return nil, err
+	err := mapstructure.Decode(input, &paramValues)
+	if err == nil && len(paramValues) > 0 {
+		return paramValues, nil
 	}
 
 	var param2 []struct {
@@ -1084,7 +1085,7 @@ func decodeParametersValue(input interface{}) ([]tzkt.ParametersValue, error) {
 		} `mapstructure:"list"`
 	}
 
-	err := mapstructure.Decode(input, &param2)
+	err = mapstructure.Decode(input, &param2)
 	if err == nil {
 		paramValues = make([]tzkt.ParametersValue, len(param2))
 		for i, p := range param2 {
