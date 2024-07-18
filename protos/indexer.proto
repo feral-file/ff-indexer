@@ -1,5 +1,6 @@
 syntax = "proto3";
 import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "./grpc/indexer";
 
@@ -24,6 +25,8 @@ service Indexer {
   rpc GetIdentity(Address) returns (AccountIdentity);
 
   rpc SendTimeSeriesData(SaleTimeSeriesRecords) returns(Empty);
+  rpc GetSaleTimeSeries(SaleTimeSeriesFilter) returns (SaleTimeSeriesListResponse);
+  rpc GetSaleRevenues(SaleTimeSeriesFilter) returns (SaleRevenuesResponse);
 }
 
 message CheckAddressOwnTokenByCriteriaResponse {
@@ -235,4 +238,32 @@ message SaleTimeSeriesRecord {
 
 message SaleTimeSeriesRecords {
   repeated SaleTimeSeriesRecord sales = 1; 
+}
+
+message SaleTimeSeriesFilter {
+  repeated string addresses = 1; 
+  string marketplace = 2; 
+  optional google.protobuf.Timestamp from = 3; 
+  optional google.protobuf.Timestamp to = 4; 
+  optional int64 offset = 5; 
+  optional int64 size = 6; 
+}
+
+message SaleTimeSeries {
+  google.protobuf.Timestamp timestamp = 1;
+  string metadata = 2;
+  string shares = 3;
+  string netValue = 4;
+	string paymentAmount = 5;
+	string platformFee = 6;
+	string usdQuote = 7;
+	string price = 8;
+}
+
+message SaleTimeSeriesListResponse {
+  repeated SaleTimeSeries sales = 1; 
+}
+
+message SaleRevenuesResponse {
+  map<string,string> revenues = 1; 
 }
