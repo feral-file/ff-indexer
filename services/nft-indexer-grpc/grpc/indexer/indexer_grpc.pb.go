@@ -32,6 +32,8 @@ const (
 	Indexer_GetETHBlockTime_FullMethodName                = "/Indexer/GetETHBlockTime"
 	Indexer_GetIdentity_FullMethodName                    = "/Indexer/GetIdentity"
 	Indexer_SendTimeSeriesData_FullMethodName             = "/Indexer/SendTimeSeriesData"
+	Indexer_GetSaleTimeSeries_FullMethodName              = "/Indexer/GetSaleTimeSeries"
+	Indexer_GetSaleRevenues_FullMethodName                = "/Indexer/GetSaleRevenues"
 )
 
 // IndexerClient is the client API for Indexer service.
@@ -51,6 +53,8 @@ type IndexerClient interface {
 	GetETHBlockTime(ctx context.Context, in *GetETHBlockTimeRequest, opts ...grpc.CallOption) (*BlockTime, error)
 	GetIdentity(ctx context.Context, in *Address, opts ...grpc.CallOption) (*AccountIdentity, error)
 	SendTimeSeriesData(ctx context.Context, in *SaleTimeSeriesRecords, opts ...grpc.CallOption) (*Empty, error)
+	GetSaleTimeSeries(ctx context.Context, in *SaleTimeSeriesFilter, opts ...grpc.CallOption) (*SaleTimeSeriesListResponse, error)
+	GetSaleRevenues(ctx context.Context, in *SaleTimeSeriesFilter, opts ...grpc.CallOption) (*SaleRevenuesResponse, error)
 }
 
 type indexerClient struct {
@@ -178,6 +182,24 @@ func (c *indexerClient) SendTimeSeriesData(ctx context.Context, in *SaleTimeSeri
 	return out, nil
 }
 
+func (c *indexerClient) GetSaleTimeSeries(ctx context.Context, in *SaleTimeSeriesFilter, opts ...grpc.CallOption) (*SaleTimeSeriesListResponse, error) {
+	out := new(SaleTimeSeriesListResponse)
+	err := c.cc.Invoke(ctx, Indexer_GetSaleTimeSeries_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *indexerClient) GetSaleRevenues(ctx context.Context, in *SaleTimeSeriesFilter, opts ...grpc.CallOption) (*SaleRevenuesResponse, error) {
+	out := new(SaleRevenuesResponse)
+	err := c.cc.Invoke(ctx, Indexer_GetSaleRevenues_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // IndexerServer is the server API for Indexer service.
 // All implementations must embed UnimplementedIndexerServer
 // for forward compatibility
@@ -195,6 +217,8 @@ type IndexerServer interface {
 	GetETHBlockTime(context.Context, *GetETHBlockTimeRequest) (*BlockTime, error)
 	GetIdentity(context.Context, *Address) (*AccountIdentity, error)
 	SendTimeSeriesData(context.Context, *SaleTimeSeriesRecords) (*Empty, error)
+	GetSaleTimeSeries(context.Context, *SaleTimeSeriesFilter) (*SaleTimeSeriesListResponse, error)
+	GetSaleRevenues(context.Context, *SaleTimeSeriesFilter) (*SaleRevenuesResponse, error)
 	mustEmbedUnimplementedIndexerServer()
 }
 
@@ -240,6 +264,12 @@ func (UnimplementedIndexerServer) GetIdentity(context.Context, *Address) (*Accou
 }
 func (UnimplementedIndexerServer) SendTimeSeriesData(context.Context, *SaleTimeSeriesRecords) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendTimeSeriesData not implemented")
+}
+func (UnimplementedIndexerServer) GetSaleTimeSeries(context.Context, *SaleTimeSeriesFilter) (*SaleTimeSeriesListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSaleTimeSeries not implemented")
+}
+func (UnimplementedIndexerServer) GetSaleRevenues(context.Context, *SaleTimeSeriesFilter) (*SaleRevenuesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSaleRevenues not implemented")
 }
 func (UnimplementedIndexerServer) mustEmbedUnimplementedIndexerServer() {}
 
@@ -488,6 +518,42 @@ func _Indexer_SendTimeSeriesData_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Indexer_GetSaleTimeSeries_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SaleTimeSeriesFilter)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IndexerServer).GetSaleTimeSeries(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Indexer_GetSaleTimeSeries_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IndexerServer).GetSaleTimeSeries(ctx, req.(*SaleTimeSeriesFilter))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Indexer_GetSaleRevenues_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SaleTimeSeriesFilter)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IndexerServer).GetSaleRevenues(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Indexer_GetSaleRevenues_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IndexerServer).GetSaleRevenues(ctx, req.(*SaleTimeSeriesFilter))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Indexer_ServiceDesc is the grpc.ServiceDesc for Indexer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -546,6 +612,14 @@ var Indexer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SendTimeSeriesData",
 			Handler:    _Indexer_SendTimeSeriesData_Handler,
+		},
+		{
+			MethodName: "GetSaleTimeSeries",
+			Handler:    _Indexer_GetSaleTimeSeries_Handler,
+		},
+		{
+			MethodName: "GetSaleRevenues",
+			Handler:    _Indexer_GetSaleRevenues_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

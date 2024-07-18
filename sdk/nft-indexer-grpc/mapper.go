@@ -5,8 +5,10 @@ import (
 
 	"encoding/json"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/structpb"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 
 	log "github.com/bitmark-inc/autonomy-logger"
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -494,4 +496,128 @@ func (m *Mapper) MapGrpcSaleTimeSeriesRecords(s *grpcIndexer.SaleTimeSeriesRecor
 	}
 
 	return records
+}
+
+func (m *Mapper) MapGrpcTimestampToTime(timestamp *timestamppb.Timestamp) *time.Time {
+	if timestamp == nil {
+		return nil
+	}
+
+	time := timestamp.AsTime()
+	return &time
+}
+
+func (m *Mapper) MapTimeToGrpcTimestamp(time *time.Time) *timestamppb.Timestamp {
+	if time == nil {
+		return nil
+	}
+
+	return timestamppb.New(*time)
+}
+
+func (m *Mapper) MapToJson(input map[string]interface{}) (string, error) {
+	b, err := json.Marshal(input)
+	if err != nil {
+		return "", err
+	}
+
+	return string(b), nil
+}
+
+func (m *Mapper) MapToGrpcSaleTimeSeriesListResponse(sales []indexer.SaleTimeSeries) (*grpcIndexer.SaleTimeSeriesListResponse, error) {
+	results := make([]*grpcIndexer.SaleTimeSeries, len(sales))
+	for i, s := range sales {
+		metadata, err := m.MapToJson(s.Metadata)
+		if err != nil {
+			return nil, err
+		}
+
+		shares, err := m.MapToJson(s.Metadata)
+		if err != nil {
+			return nil, err
+		}
+
+		results[i] = &grpcIndexer.SaleTimeSeries{
+			Timestamp:     m.MapTimeToGrpcTimestamp(&s.Timestamp),
+			Metadata:      metadata,
+			Shares:        shares,
+			NetValue:      s.NetValue.String(),
+			PaymentAmount: s.PaymentAmount.String(),
+			PlatformFee:   s.PlatformFee.String(),
+			UsdQuote:      s.USDQuote.String(),
+			Price:         s.Price.String(),
+		}
+	}
+
+	return &grpcIndexer.SaleTimeSeriesListResponse{
+		Sales: results,
+	}, nil
+}
+
+func (m *Mapper) MapToGrpcSaleRevenuesResponse(revenues map[string]primitive.Decimal128) (*grpcIndexer.SaleRevenuesResponse, error) {
+	results := make(map[string]string)
+
+	for k, v := range revenues {
+		results[k] = v.String()
+	}
+
+	return &grpcIndexer.SaleRevenuesResponse{
+		Revenues: results,
+	}, nil
+}
+
+func (m *Mapper) MapGrpcSaleTimeSeriesListResponseToIndexerSaleTimeSeries(sales *grpcIndexer.SaleTimeSeriesListResponse) ([]indexer.SaleTimeSeries, error) {
+	if sales == nil {
+		return []indexer.SaleTimeSeries{}, nil
+	}
+
+	results := make([]indexer.SaleTimeSeries, len(sales.Sales))
+	for _, s := range sales.Sales {
+		netValue, err := primitive.ParseDecimal128(s.NetValue)
+		if err != nil {
+			return nil, err
+		}
+
+		paymentAmount, err := primitive.ParseDecimal128(s.PaymentAmount)
+		if err != nil {
+			return nil, err
+		}
+
+		platformFee, err := primitive.ParseDecimal128(s.PaymentAmount)
+		if err != nil {
+			return nil, err
+		}
+
+		usdQuote, err := primitive.ParseDecimal128(s.PaymentAmount)
+		if err != nil {
+			return nil, err
+		}
+
+		price, err := primitive.ParseDecimal128(s.PaymentAmount)
+		if err != nil {
+			return nil, err
+		}
+
+		var metadata, shares map[string]interface{}
+		if err := json.Unmarshal([]byte(s.Metadata), &metadata); err != nil {
+			return nil, err
+		}
+
+		if err := json.Unmarshal([]byte(s.Metadata), &shares); err != nil {
+			return nil, err
+		}
+
+		results = append(results, indexer.SaleTimeSeries{
+			Timestamp:     *m.MapGrpcTimestampToTime(s.Timestamp),
+			Metadata:      metadata,
+			Shares:        shares,
+			NetValue:      netValue,
+			PaymentAmount: paymentAmount,
+			PlatformFee:   platformFee,
+			USDQuote:      usdQuote,
+			Price:         price,
+		})
+	}
+
+	return results, nil
 }
