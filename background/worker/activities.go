@@ -1072,7 +1072,8 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 func decodeParametersValue(input interface{}) ([]tzkt.ParametersValue, error) {
 	var paramValues []tzkt.ParametersValue
 	err := mapstructure.Decode(input, &paramValues)
-	if err == nil && len(paramValues) > 0 {
+
+	if err == nil && len(paramValues) > 0 && paramValues[0].From != "" {
 		return paramValues, nil
 	}
 
@@ -1089,10 +1090,9 @@ func decodeParametersValue(input interface{}) ([]tzkt.ParametersValue, error) {
 	if err == nil {
 		paramValues = make([]tzkt.ParametersValue, len(param2))
 		for i, p := range param2 {
-			pv := paramValues[i]
-			pv.From = p.Address
+			paramValues[i].From = p.Address
 			for _, item := range p.List {
-				pv.Txs = append(pv.Txs, tzkt.TxsFormat{
+				paramValues[i].Txs = append(paramValues[i].Txs, tzkt.TxsFormat{
 					To:      item.To,
 					Amount:  item.Amount,
 					TokenID: item.TokenID,
