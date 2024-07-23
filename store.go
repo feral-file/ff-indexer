@@ -3,6 +3,7 @@ package indexer
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -111,7 +112,9 @@ type Store interface {
 		ctx context.Context,
 		records []GenericSalesTimeSeries,
 	) error
-	SaleTimeSeriesDataExists(ctx context.Context, txID string) (bool, error)
+	SaleTimeSeriesDataExists(ctx context.Context, txID, blockchain string) (bool, error)
+	GetSaleTimeSeriesData(ctx context.Context, filter SalesFilterParameter) ([]SaleTimeSeries, error)
+	AggregateSaleRevenues(ctx context.Context, filter SalesFilterParameter) (map[string]primitive.Decimal128, error)
 }
 
 type FilterParameter struct {
@@ -128,6 +131,15 @@ type OwnerBalance struct {
 	Address  string    `json:"address"`
 	Balance  int64     `json:"balance,string"`
 	LastTime time.Time `json:"lastTime"`
+}
+
+type SalesFilterParameter struct {
+	Addresses   []string
+	Marketplace string
+	From        *time.Time
+	To          *time.Time
+	Limit       int64
+	Offset      int64
 }
 
 func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*MongodbIndexerStore, error) {
@@ -2288,6 +2300,7 @@ var reserved = map[string]struct{}{
 	"shares":    {},
 	"timestamp": {},
 	"values":    {},
+	"uniqueID":  {},
 }
 
 // WriteTimeSeriesData - validate and store a time series record
@@ -2307,8 +2320,9 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 			return err
 		}
 
-		// ensure no reserved fields in metadata
+		var saleTokenUniqueIDs []string
 		for k, v := range r.Metadata {
+			// ensure no reserved fields in metadata
 			if _, ok := reserved[k]; ok {
 				log.Warn(
 					"reserved metadata field name",
@@ -2317,7 +2331,55 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 				)
 				return fmt.Errorf("reserved field name: metadata.%s", k)
 			}
+			if k == "bundleTokenInfo" {
+				interfaces, ok := v.([]interface{})
+				if !ok {
+					return fmt.Errorf("wrong format: metadata.%s is not a slice", k)
+				}
+				for i, inter := range interfaces {
+					m, ok := inter.(map[string]interface{})
+					if !ok {
+						return fmt.Errorf("wrong format: metadata.%s[%d] is not a map[string]interface{}", k, i)
+					}
+					var ca string
+					if m["contractAddress"] != nil {
+						ca, ok = m["contractAddress"].(string)
+						if !ok {
+							return fmt.Errorf("wrong format: metadata.%s[%d][%s] is not a string", k, i, `"contractAddress"`)
+						}
+					}
+					saleTokenUniqueIDs = append(saleTokenUniqueIDs,
+						fmt.Sprintf("%s-%s-%s",
+							r.Metadata["blockchain"].(string),
+							ca,
+							m["tokenID"].(string)))
+				}
+			}
 		}
+
+		var transactionIDs []string
+		txIDs, ok := r.Metadata["transactionIDs"].([]interface{})
+		if !ok {
+			return fmt.Errorf("wrong format: metadata.transactionIDs is not a slice")
+		}
+
+		for i, v := range txIDs {
+			txID, ok := v.(string)
+			if !ok {
+				return fmt.Errorf("wrong format: metadata.transactionIDs[%d] is not a string", i)
+			}
+			transactionIDs = append(transactionIDs, txID)
+		}
+
+		sort.Strings(saleTokenUniqueIDs)
+		sort.Strings(transactionIDs)
+
+		uniqueID := HexSha1(fmt.Sprintf("%s|%s",
+			strings.Join(transactionIDs, ","),
+			strings.Join(saleTokenUniqueIDs, ","),
+		))
+
+		r.Metadata["uniqueID"] = uniqueID
 
 		// root of the BSON document
 		doc := bson.M{
@@ -2373,23 +2435,18 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 		}
 		doc["shares"] = sv
 
-		transactionID := r.Metadata["transactionID"].(string)
-		blockchain := r.Metadata["blockchain"].(string)
 		filter := bson.M{
-			"metadata.transactionID": transactionID,
-			"metadata.blockchain":    blockchain,
+			"metadata.uniqueID": uniqueID,
 		}
 
 		log.Debug("deleting documents",
-			zap.String("transactionID", transactionID),
-			zap.String("blockchain", blockchain),
+			zap.String("uniqueID", uniqueID),
 			zap.Error(err))
 
 		result, err := s.salesTimeSeriesCollection.DeleteMany(ctx, filter)
 		if err != nil {
 			log.Error("error deleting documents",
-				zap.String("transactionID", transactionID),
-				zap.String("blockchain", blockchain),
+				zap.String("uniqueID", uniqueID),
 				zap.Error(err))
 			return err
 		}
@@ -2414,12 +2471,129 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 	return nil
 }
 
-// SaleTimeSeriesDataExists - check if a sale time series data exists for a transaction hash
-func (s *MongodbIndexerStore) SaleTimeSeriesDataExists(ctx context.Context, txID string) (bool, error) {
-	count, err := s.salesTimeSeriesCollection.CountDocuments(ctx, bson.M{"metadata.transactionID": txID})
+// SaleTimeSeriesDataExists - check if a sale time series data exists for a transaction hash and blockchain
+func (s *MongodbIndexerStore) SaleTimeSeriesDataExists(ctx context.Context, txID, blockchain string) (bool, error) {
+	count, err := s.salesTimeSeriesCollection.CountDocuments(ctx, bson.M{
+		"metadata.transactionIDs": txID,
+		"metadata.blockchain":     blockchain,
+	})
 	if err != nil {
 		return false, err
 	}
 
 	return count > 0, nil
+}
+
+func (s *MongodbIndexerStore) GetSaleTimeSeriesData(ctx context.Context, filter SalesFilterParameter) ([]SaleTimeSeries, error) {
+	var saleTimeSeries []SaleTimeSeries
+
+	addressFilter := bson.A{}
+	for _, a := range filter.Addresses {
+		addressFilter = append(addressFilter, bson.M{fmt.Sprintf("shares.%s", a): bson.M{"$nin": bson.A{nil, ""}}})
+	}
+
+	match := bson.M{"$or": addressFilter}
+	if filter.Marketplace != "" {
+		match["metadata.marketplace"] = filter.Marketplace
+	}
+
+	timestampFilter := bson.M{}
+	if filter.From != nil {
+		timestampFilter["$gte"] = filter.From
+	}
+	if filter.To != nil {
+		timestampFilter["$lte"] = filter.To
+	}
+	if len(timestampFilter) > 0 {
+		match["timestamp"] = timestampFilter
+	}
+
+	pipelines := []bson.M{
+		{"$match": match},
+		{"$sort": bson.D{{Key: "timestamp", Value: -1}, {Key: "_id", Value: -1}}},
+	}
+
+	pipelines = append(pipelines,
+		bson.M{"$skip": filter.Offset},
+		bson.M{"$limit": filter.Limit},
+	)
+
+	cursor, err := s.salesTimeSeriesCollection.Aggregate(ctx, pipelines)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer cursor.Close(ctx)
+
+	if err := cursor.All(ctx, &saleTimeSeries); err != nil {
+		return nil, err
+	}
+
+	return saleTimeSeries, nil
+}
+
+// AggregateSaleRevenues - get sale revenue group by currency belong to an address
+func (s *MongodbIndexerStore) AggregateSaleRevenues(ctx context.Context, filter SalesFilterParameter) (map[string]primitive.Decimal128, error) {
+	revenues := []struct {
+		Currency string               `bson:"currency"`
+		Total    primitive.Decimal128 `bson:"total"`
+	}{}
+
+	addressFilter := bson.A{}
+	projectRevenueFields := bson.A{}
+	for _, a := range filter.Addresses {
+		addressFilter = append(addressFilter, bson.M{fmt.Sprintf("shares.%s", a): bson.M{"$nin": bson.A{nil, ""}}})
+		projectRevenueFields = append(projectRevenueFields, bson.M{"$ifNull": bson.A{fmt.Sprintf("$shares.%s", a), 0}})
+	}
+
+	match := bson.M{"$or": addressFilter}
+	if filter.Marketplace != "" {
+		match["metadata.marketplace"] = filter.Marketplace
+	}
+
+	timestampFilter := bson.M{}
+	if filter.From != nil {
+		timestampFilter["$gte"] = filter.From
+	}
+	if filter.To != nil {
+		timestampFilter["$lte"] = filter.To
+	}
+	if len(timestampFilter) > 0 {
+		match["timestamp"] = timestampFilter
+	}
+
+	pipelines := []bson.M{
+		{"$match": match},
+		{"$project": bson.M{
+			"revenue": bson.M{
+				"$add": projectRevenueFields,
+			},
+			"metadata.revenueCurrency": 1,
+		}},
+		{"$group": bson.M{
+			"_id":      "$metadata.revenueCurrency",
+			"currency": bson.M{"$last": "$metadata.revenueCurrency"},
+			"total":    bson.M{"$sum": "$revenue"},
+		}},
+	}
+
+	cursor, err := s.salesTimeSeriesCollection.Aggregate(ctx, pipelines)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer cursor.Close(ctx)
+
+	if err := cursor.All(ctx, &revenues); err != nil {
+		return nil, err
+	}
+
+	resultMap := make(map[string]primitive.Decimal128)
+	for _, r := range revenues {
+		resultMap[r.Currency] = r.Total
+	}
+
+	return resultMap, nil
 }

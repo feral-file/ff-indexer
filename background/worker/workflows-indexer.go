@@ -315,3 +315,77 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSaleInBlockRange(
 
 	return nil
 }
+
+func (w *NFTIndexerWorker) IndexTezosObjktTokenSaleFromTime(
+	ctx workflow.Context,
+	startTime time.Time,
+	offset int,
+	batchSize int,
+	skipIndexed bool) error {
+	ctx = ContextRegularActivity(ctx, w.TaskListName)
+
+	log.Info("index feral file tezos token sale from startTime",
+		zap.Time("startTime", startTime))
+
+	// Fetch tx hashes
+	hashes := make([]string, 0)
+	if err := workflow.ExecuteActivity(
+		ctx,
+		w.GetObjktSaleTransactionHashes,
+		startTime,
+		offset,
+		batchSize).
+		Get(ctx, &hashes); err != nil {
+		return err
+	}
+
+	futures := make([]workflow.Future, 0)
+	indexedHashes := make(map[string]bool)
+	for _, hash := range hashes {
+		if indexedHashes[hash] {
+			continue
+		}
+
+		indexedHashes[hash] = true
+		workflowID := fmt.Sprintf("IndexTezosObjktTokenSale-%s", hash)
+		cwctx := ContextNamedRegularChildWorkflow(ctx, workflowID, TaskListName)
+		futures = append(
+			futures,
+			workflow.ExecuteChildWorkflow(
+				cwctx,
+				w.IndexTezosObjktTokenSale,
+				hash,
+				skipIndexed,
+			))
+	}
+
+	for _, future := range futures {
+		if err := future.Get(ctx, nil); err != nil {
+			switch err.(type) {
+			case *workflow.GenericError:
+				switch err.Error() {
+				case errUnsupportedTokenSale.Error(),
+					errInvalidObjktTx.Error(),
+					errTxFailed.Error():
+					continue
+				default:
+					return err
+				}
+			default:
+				return err
+			}
+		}
+	}
+
+	if len(hashes) > 0 {
+		return workflow.NewContinueAsNewError(
+			ctx,
+			w.IndexTezosObjktTokenSaleFromTime,
+			startTime,
+			offset+len(hashes),
+			batchSize,
+			skipIndexed)
+	}
+
+	return nil
+}

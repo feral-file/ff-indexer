@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/google/uuid"
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
@@ -203,8 +204,8 @@ func (w *NFTIndexerWorker) WriteSaleTimeSeriesData(ctx context.Context, data []i
 }
 
 // IndexedSaleTx checks if a sale tx is indexed
-func (w *NFTIndexerWorker) IndexedSaleTx(ctx context.Context, txID string) (bool, error) {
-	return w.indexerStore.SaleTimeSeriesDataExists(ctx, txID)
+func (w *NFTIndexerWorker) IndexedSaleTx(ctx context.Context, txID, blockchain string) (bool, error) {
+	return w.indexerStore.SaleTimeSeriesDataExists(ctx, txID, blockchain)
 }
 
 // indexTezosAccount saves tezos account data into indexer's storage
@@ -576,24 +577,32 @@ func (w *NFTIndexerWorker) GetBalanceDiffFromTezosTransaction(transactionDetails
 	var updatedAccountTokens = []indexer.AccountToken{}
 	var totalTransferredAmount = int64(0)
 
-	for _, txs := range transactionDetails.Parameter.Value[0].Txs {
-		if txs.TokenID == strings.Split(accountToken.IndexID, "-")[2] {
-			amount, err := strconv.ParseInt(txs.Amount, 10, 64)
-			if err != nil {
-				continue
-			}
+	paramValues, err := decodeParametersValue(transactionDetails.Parameter.Value)
+	if err != nil {
+		return nil, err
+	}
 
-			receiverAccountToken := indexer.AccountToken{
-				IndexID:          accountToken.IndexID,
-				OwnerAccount:     txs.To,
-				Balance:          amount,
-				LastActivityTime: transactionDetails.Timestamp,
-			}
+	for _, paramValue := range paramValues {
+		for _, txs := range paramValue.Txs {
+			if txs.TokenID == strings.Split(accountToken.IndexID, "-")[2] {
+				amount, err := strconv.ParseInt(txs.Amount, 10, 64)
+				if err != nil {
+					continue
+				}
 
-			updatedAccountTokens = append(updatedAccountTokens, receiverAccountToken)
-			totalTransferredAmount += amount
+				receiverAccountToken := indexer.AccountToken{
+					IndexID:          accountToken.IndexID,
+					OwnerAccount:     txs.To,
+					Balance:          amount,
+					LastActivityTime: transactionDetails.Timestamp,
+				}
+
+				updatedAccountTokens = append(updatedAccountTokens, receiverAccountToken)
+				totalTransferredAmount += amount
+			}
 		}
 	}
+
 	senderAccountToken := indexer.AccountToken{
 		IndexID:          accountToken.IndexID,
 		OwnerAccount:     accountToken.OwnerAccount,
@@ -908,4 +917,190 @@ func (w *NFTIndexerWorker) FilterEthereumNFTTxByEventLogs(
 	}
 
 	return txs, nil
+}
+
+// GetTezosTxHashFromTzktTransactionID get tezos hash from transaction ID
+func (w *NFTIndexerWorker) GetTezosTxHashFromTzktTransactionID(_ context.Context, id uint64) (*string, error) {
+	tx, err := w.indexerEngine.GetTzktTransactionByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tx.Hash, nil
+}
+
+// GetObjktSaleTransactionHashes get objkt sale transaction hashes by time with paging
+func (w *NFTIndexerWorker) GetObjktSaleTransactionHashes(_ context.Context, lastTime *time.Time, offset, limit int) ([]string, error) {
+	var contracts []string
+	if viper.GetString("network") == "testnet" {
+		contracts = []string{indexer.TezosOBJKTMarketplaceAddressTestnet}
+	} else {
+		contracts = []string{indexer.TezosOBJKTMarketplaceAddress, indexer.TezosOBJKTMarketplaceAddressV2}
+	}
+
+	txs, err := w.indexerEngine.GetTzktTransactionByContractsAndEntrypoint(
+		contracts,
+		indexer.OBJKTSaleEntrypoints,
+		lastTime,
+		offset,
+		limit)
+	if err != nil {
+		return nil, err
+	}
+
+	hashes := []string{}
+	for _, tx := range txs {
+		hashes = append(hashes, tx.Hash)
+	}
+
+	return hashes, nil
+}
+
+// GetTzktTransactionByID get tezos transaction hash by tzkt transaction id
+func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash string) (*TokenSale, error) {
+	txs, err := w.indexerEngine.GetTzktTransactionsByHash(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(txs) < 2 {
+		return nil, errInvalidObjktTx
+	}
+
+	saleEntrypointMap := make(map[string]bool)
+	for _, entrypoint := range indexer.OBJKTSaleEntrypoints {
+		saleEntrypointMap[entrypoint] = true
+	}
+
+	isValidObjktSaleOperation := false
+	bundleTokenInfo := []TokenSaleInfo{}
+	price := big.NewInt(0)
+	platformFeeWallets := viper.GetStringMapString("marketplace.fee_wallets") // key is lower case
+	platformFee := big.NewInt(0)
+	shares := make(map[string]*big.Int)
+	for _, tx := range txs {
+		if tx.Status == "failed" {
+			return nil, errTxFailed
+		}
+
+		if tx.Parameter != nil {
+			// check for fulfill entrypoints
+			if saleEntrypointMap[tx.Parameter.EntryPoint] {
+				isValidObjktSaleOperation = true
+				continue
+			}
+
+			// process token transfers
+			if tx.Parameter.EntryPoint == "transfer" {
+				paramValues, err := decodeParametersValue(tx.Parameter.Value)
+				if err != nil {
+					// We don't support sale operations contain coin transfer operations
+					// Any sale operations contain invalid "transfer" will be ignored
+					log.Error("invalid transfer transaction - not supported buying using token",
+						zap.String("txHash", hash),
+						zap.Error(err),
+					)
+					return nil, errUnsupportedTokenSale
+				}
+
+				for _, paramValue := range paramValues {
+					for _, ptx := range paramValue.Txs {
+						bundleTokenInfo = append(bundleTokenInfo, TokenSaleInfo{
+							SellerAddress:   paramValue.From,
+							BuyerAddress:    ptx.To,
+							TokenID:         ptx.TokenID,
+							ContractAddress: tx.Target.Address,
+						})
+					}
+				}
+			}
+		} else {
+			// process revenue shares transfers
+			amount := big.NewInt(int64(tx.Amount))
+
+			// ignore proxy transfer to ProxyAddress for objktV1 contract
+			if tx.Target.Address == indexer.TezosOBJKTTreasuryProxyAddress {
+				continue
+			}
+
+			// Accumulate shares
+			if s, ok := shares[tx.Target.Address]; ok {
+				shares[tx.Target.Address] = big.NewInt(0).Add(s, amount)
+			} else {
+				shares[tx.Target.Address] = amount
+			}
+			price = big.NewInt(0).Add(price, amount)
+
+			// Deduct share
+			if s, ok := shares[tx.Sender.Address]; ok {
+				shares[tx.Sender.Address] = big.NewInt(0).Sub(s, amount)
+				price.Sub(price, amount)
+			}
+
+			// Accumulate platform fee
+			if platformFeeWallets[strings.ToLower(tx.Target.Address)] == "Objkt" {
+				platformFee = big.NewInt(0).Add(platformFee, amount)
+			}
+		}
+	}
+
+	if !isValidObjktSaleOperation {
+		return nil, errInvalidObjktTx
+	}
+
+	if len(bundleTokenInfo) == 0 {
+		return nil, errors.New("invalid sale transaction - no tokens transfer")
+	}
+
+	return &TokenSale{
+		Timestamp:       txs[0].Timestamp,
+		Price:           price,
+		Marketplace:     "Objkt",
+		Blockchain:      "tezos",
+		Currency:        "XTZ",
+		TxID:            hash,
+		PlatformFee:     platformFee,
+		NetRevenue:      big.NewInt(0).Sub(price, platformFee),
+		BundleTokenInfo: bundleTokenInfo,
+		PaymentAmount:   price,
+		Shares:          shares,
+	}, nil
+}
+
+// Decode Tzkt transfer ParametersValue from an interface
+func decodeParametersValue(input interface{}) ([]tzkt.ParametersValue, error) {
+	var paramValues []tzkt.ParametersValue
+	err := mapstructure.Decode(input, &paramValues)
+
+	if err == nil && len(paramValues) > 0 && paramValues[0].From != "" {
+		return paramValues, nil
+	}
+
+	var param2 []struct {
+		Address string `mapstructure:"address"`
+		List    []struct {
+			To      string `mapstructure:"to"`
+			Amount  string `mapstructure:"amount"`
+			TokenID string `mapstructure:"token_id"`
+		} `mapstructure:"list"`
+	}
+
+	err = mapstructure.Decode(input, &param2)
+	if err == nil {
+		paramValues = make([]tzkt.ParametersValue, len(param2))
+		for i, p := range param2 {
+			paramValues[i].From = p.Address
+			for _, item := range p.List {
+				paramValues[i].Txs = append(paramValues[i].Txs, tzkt.TxsFormat{
+					To:      item.To,
+					Amount:  item.Amount,
+					TokenID: item.TokenID,
+				})
+			}
+		}
+
+		return paramValues, nil
+	}
+
+	return nil, err
 }

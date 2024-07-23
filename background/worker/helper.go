@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	uberCadence "go.uber.org/cadence"
@@ -239,20 +240,24 @@ func StartIndexingTokenSale(
 			zap.String("workflow_id", exec.ID),
 			zap.String("run_id", exec.RunID))
 	case utils.TezosBlockchain:
-		// TOTO uncomment when support tezos
-		// opts.ID = fmt.Sprintf("IndexTezosTokenSale-%s", txID)
-		// exec, err := client.StartWorkflow(
-		// 	ctx,
-		// 	ClientName,
-		// 	opts,
-		// 	w.IndexTezosTokenSale,
-		// 	txID)
-		// if nil != err {
-		// 	return err
-		// }
-		// log.Info("start workflow for indexing tezos sale",
-		// 	zap.String("workflow_id", exec.ID),
-		// 	zap.String("run_id", exec.RunID))
+		opts.ID = fmt.Sprintf("IndexTezosTokenSaleFromTzktTxID-%s", txID)
+		tzktTxID, err := strconv.ParseUint(txID, 10, 64)
+		if nil != err {
+			return err
+		}
+
+		exec, err := client.StartWorkflow(
+			ctx,
+			ClientName,
+			opts,
+			w.IndexTezosTokenSaleFromTzktTxID,
+			tzktTxID)
+		if nil != err {
+			return err
+		}
+		log.Debug("start workflow for indexing tezos sale",
+			zap.String("workflow_id", exec.ID),
+			zap.String("run_id", exec.RunID))
 	default:
 		return fmt.Errorf("unsupported blockchain: %s", blockchain)
 	}
