@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
 	log "github.com/bitmark-inc/autonomy-logger"
@@ -220,8 +221,11 @@ func (e *IndexEngine) IndexETHTokenOwners(contract, tokenID string) ([]OwnerBala
 		zap.String("blockchain", utils.EthereumBlockchain),
 		zap.String("contract", contract), zap.String("tokenID", tokenID))
 
-	// FIXME: does not support testnet indexing for now
 	network := managedblockchainquery.QueryNetworkEthereumMainnet
+
+	if viper.GetString("network.ethereum") == "sepolia" {
+		network = managedblockchainquery.QueryNetworkEthereumSepoliaTestnet
+	}
 
 	var nextToken *string
 	ownerBalances := []OwnerBalance{}
