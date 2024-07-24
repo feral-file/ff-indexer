@@ -15,7 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/google/uuid"
-	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
@@ -1069,39 +1068,74 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 }
 
 // Decode Tzkt transfer ParametersValue from an interface
-func decodeParametersValue(input interface{}) ([]tzkt.ParametersValue, error) {
-	var paramValues []tzkt.ParametersValue
-	err := mapstructure.Decode(input, &paramValues)
-
-	if err == nil && len(paramValues) > 0 && paramValues[0].From != "" {
-		return paramValues, nil
+func decodeParametersValue(input interface{}) (paramValues []tzkt.ParametersValue, err error) {
+	data, ok := input.([]map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid input")
 	}
 
-	var param2 []struct {
-		Address string `mapstructure:"address"`
-		List    []struct {
-			To      string `mapstructure:"to"`
-			Amount  string `mapstructure:"amount"`
-			TokenID string `mapstructure:"token_id"`
-		} `mapstructure:"list"`
-	}
+	for _, paramValue := range data {
+		var valueSlice []interface{}
+		for _, value := range paramValue {
+			valueSlice = append(valueSlice, value)
+		}
 
-	err = mapstructure.Decode(input, &param2)
-	if err == nil {
-		paramValues = make([]tzkt.ParametersValue, len(param2))
-		for i, p := range param2 {
-			paramValues[i].From = p.Address
-			for _, item := range p.List {
-				paramValues[i].Txs = append(paramValues[i].Txs, tzkt.TxsFormat{
-					To:      item.To,
-					Amount:  item.Amount,
-					TokenID: item.TokenID,
-				})
+		if len(valueSlice) != 2 {
+			return nil, fmt.Errorf("invalid param value legth")
+		}
+
+		var txs []map[string]interface{}
+		var from string
+		txs, ok = valueSlice[0].([]map[string]interface{})
+		if !ok {
+			txs, ok = valueSlice[1].([]map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("invalid param value parse txs")
+			}
+
+			from, ok = valueSlice[0].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid parame value parse from")
+			}
+		} else {
+			from, ok = valueSlice[1].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid parame value parse from")
 			}
 		}
 
-		return paramValues, nil
+		txsResult := []tzkt.TxsFormat{}
+		for _, tx := range txs {
+			to, ok := tx["to_"].(string)
+			if !ok {
+				to, ok = tx["to"].(string)
+				if !ok {
+					return nil, fmt.Errorf("invalid tx value parse to")
+				}
+			}
+
+			amount, ok := tx["amount"].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid tx value parse amount")
+			}
+
+			tokenID, ok := tx["token_id"].(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid tx value parse token_id")
+			}
+
+			txsResult = append(txsResult, tzkt.TxsFormat{
+				To:      to,
+				Amount:  amount,
+				TokenID: tokenID,
+			})
+		}
+
+		paramValues = append(paramValues, tzkt.ParametersValue{
+			Txs:  txsResult,
+			From: from,
+		})
 	}
 
-	return nil, err
+	return paramValues, nil
 }
