@@ -2,7 +2,6 @@ package sdk
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -207,8 +206,6 @@ func (i *IndexerGRPCClient) GetTimeSeriesData(
 		Offset:      aws.Int64(int64(filter.Offset)),
 		Size:        aws.Int64(int64(filter.Limit)),
 	})
-
-	fmt.Println(sales)
 
 	if err != nil {
 		return nil, err

@@ -532,7 +532,7 @@ func (m *Mapper) MapToGrpcSaleTimeSeriesListResponse(sales []indexer.SaleTimeSer
 			return nil, err
 		}
 
-		shares, err := m.MapToJson(s.Metadata)
+		shares, err := m.MapToJson(s.Shares)
 		if err != nil {
 			return nil, err
 		}
@@ -603,7 +603,7 @@ func (m *Mapper) MapGrpcSaleTimeSeriesListResponseToIndexerSaleTimeSeries(sales 
 			return nil, err
 		}
 
-		if err := json.Unmarshal([]byte(s.Metadata), &shares); err != nil {
+		if err := json.Unmarshal([]byte(s.Shares), &shares); err != nil {
 			return nil, err
 		}
 
