@@ -571,7 +571,7 @@ func (m *Mapper) MapGrpcSaleTimeSeriesListResponseToIndexerSaleTimeSeries(sales 
 		return []indexer.SaleTimeSeries{}, nil
 	}
 
-	results := make([]indexer.SaleTimeSeries, len(sales.Sales))
+	var results []indexer.SaleTimeSeries
 	for _, s := range sales.Sales {
 		netValue, err := primitive.ParseDecimal128(s.NetValue)
 		if err != nil {
