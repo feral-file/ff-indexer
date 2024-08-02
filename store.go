@@ -26,16 +26,17 @@ const (
 )
 
 const (
-	assetCollectionName            = "assets"
-	tokenCollectionName            = "tokens"
-	identityCollectionName         = "identities"
-	ffIdentityCollectionName       = "ff_identities"
-	accountCollectionName          = "accounts"
-	accountTokenCollectionName     = "account_tokens"
-	tokenAssetViewCollectionName   = "token_assets"
-	collectionsCollectionName      = "collections"
-	collectionAssetsCollectionName = "collection_assets"
-	salesTimeSeriesCollectionName  = "sales_time_series"
+	assetCollectionName                   = "assets"
+	tokenCollectionName                   = "tokens"
+	identityCollectionName                = "identities"
+	ffIdentityCollectionName              = "ff_identities"
+	accountCollectionName                 = "accounts"
+	accountTokenCollectionName            = "account_tokens"
+	tokenAssetViewCollectionName          = "token_assets"
+	collectionsCollectionName             = "collections"
+	collectionAssetsCollectionName        = "collection_assets"
+	salesTimeSeriesCollectionName         = "sales_time_series"
+	historicalExchangeRatesCollectionName = "historic_exchange_rates"
 )
 
 var ErrNoRecordUpdated = fmt.Errorf("no record updated")
@@ -115,6 +116,7 @@ type Store interface {
 	SaleTimeSeriesDataExists(ctx context.Context, txID, blockchain string) (bool, error)
 	GetSaleTimeSeriesData(ctx context.Context, filter SalesFilterParameter) ([]SaleTimeSeries, error)
 	AggregateSaleRevenues(ctx context.Context, filter SalesFilterParameter) (map[string]primitive.Decimal128, error)
+	WriteHistoricalExchangeRate(ctx context.Context, exchangeRate []CoinBaseHistoricalExchangeRate) error
 }
 
 type FilterParameter struct {
@@ -159,36 +161,39 @@ func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*Mo
 	collectionsCollection := db.Collection(collectionsCollectionName)
 	collectionAssetsCollection := db.Collection(collectionAssetsCollectionName)
 	salesTimeSeriesCollection := db.Collection(salesTimeSeriesCollectionName)
+	historicalExchangeRatesCollection := db.Collection(historicalExchangeRatesCollectionName)
 
 	return &MongodbIndexerStore{
-		dbName:                     dbName,
-		mongoClient:                mongoClient,
-		tokenCollection:            tokenCollection,
-		assetCollection:            assetCollection,
-		identityCollection:         identityCollection,
-		ffIdentityCollection:       ffIdentityCollection,
-		accountCollection:          accountCollection,
-		accountTokenCollection:     accountTokenCollection,
-		tokenAssetCollection:       tokenAssetCollection,
-		collectionsCollection:      collectionsCollection,
-		collectionAssetsCollection: collectionAssetsCollection,
-		salesTimeSeriesCollection:  salesTimeSeriesCollection,
+		dbName:                            dbName,
+		mongoClient:                       mongoClient,
+		tokenCollection:                   tokenCollection,
+		assetCollection:                   assetCollection,
+		identityCollection:                identityCollection,
+		ffIdentityCollection:              ffIdentityCollection,
+		accountCollection:                 accountCollection,
+		accountTokenCollection:            accountTokenCollection,
+		tokenAssetCollection:              tokenAssetCollection,
+		collectionsCollection:             collectionsCollection,
+		collectionAssetsCollection:        collectionAssetsCollection,
+		salesTimeSeriesCollection:         salesTimeSeriesCollection,
+		historicalExchangeRatesCollection: historicalExchangeRatesCollection,
 	}, nil
 }
 
 type MongodbIndexerStore struct {
-	dbName                     string
-	mongoClient                *mongo.Client
-	tokenCollection            *mongo.Collection
-	assetCollection            *mongo.Collection
-	identityCollection         *mongo.Collection
-	ffIdentityCollection       *mongo.Collection
-	accountCollection          *mongo.Collection
-	accountTokenCollection     *mongo.Collection
-	tokenAssetCollection       *mongo.Collection
-	collectionsCollection      *mongo.Collection
-	collectionAssetsCollection *mongo.Collection
-	salesTimeSeriesCollection  *mongo.Collection
+	dbName                            string
+	mongoClient                       *mongo.Client
+	tokenCollection                   *mongo.Collection
+	assetCollection                   *mongo.Collection
+	identityCollection                *mongo.Collection
+	ffIdentityCollection              *mongo.Collection
+	accountCollection                 *mongo.Collection
+	accountTokenCollection            *mongo.Collection
+	tokenAssetCollection              *mongo.Collection
+	collectionsCollection             *mongo.Collection
+	collectionAssetsCollection        *mongo.Collection
+	salesTimeSeriesCollection         *mongo.Collection
+	historicalExchangeRatesCollection *mongo.Collection
 }
 
 type AssetUpdateSet struct {
@@ -2462,6 +2467,30 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 
 	if len(inserts) > 0 {
 		_, err := s.salesTimeSeriesCollection.InsertMany(ctx, inserts)
+		if err != nil {
+			log.Error("error inserting documents", zap.Error(err))
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *MongodbIndexerStore) WriteHistoricalExchangeRate(ctx context.Context, records []CoinBaseHistoricalExchangeRate) error {
+	var inserts []interface{}
+	for _, r := range records {
+		exchangeRate := ExchangeRate{
+			Timestamp:    r.Time,
+			Open:         r.Open,
+			Close:        r.Close,
+			CurrencyPair: r.CurrencyPair,
+		}
+
+		inserts = append(inserts, exchangeRate)
+	}
+
+	if len(inserts) > 0 {
+		_, err := s.historicalExchangeRatesCollection.InsertMany(ctx, inserts)
 		if err != nil {
 			log.Error("error inserting documents", zap.Error(err))
 			return err

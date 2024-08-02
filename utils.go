@@ -23,6 +23,15 @@ import (
 	"github.com/fatih/structs"
 )
 
+func ArrayContains(array []string, val string) bool {
+	for _, ele := range array {
+		if ele == val {
+			return true
+		}
+	}
+	return false
+}
+
 func EthereumChecksumAddress(address string) string {
 	return common.HexToAddress(address).Hex()
 }

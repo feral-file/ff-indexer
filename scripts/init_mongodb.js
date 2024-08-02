@@ -209,3 +209,11 @@ db.sales_time_series.createIndex({
 }, {
   unique: false
 });
+
+db.createCollection("historical_exchange_rates");
+db.historical_exchange_rates.createIndex({
+  timestamp: 1,
+  currencyPair: 1
+}, {
+  unique: true,
+});

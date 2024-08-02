@@ -228,6 +228,10 @@ func (w *NFTIndexerWorker) MarkAccountTokenChanged(ctx context.Context, indexIDs
 	return w.indexerStore.MarkAccountTokenChanged(ctx, indexIDs)
 }
 
+func (w *NFTIndexerWorker) WriteHistoricalExchangeRate(ctx context.Context, exchangeRate []indexer.CoinBaseHistoricalExchangeRate) error {
+	return w.indexerStore.WriteHistoricalExchangeRate(ctx, exchangeRate)
+}
+
 type Provenance struct {
 	TxID      string    `json:"tx_id"`
 	Owner     string    `json:"owner"`
