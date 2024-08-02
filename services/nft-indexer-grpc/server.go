@@ -249,11 +249,15 @@ func (i *IndexerServer) SendTimeSeriesData(ctx context.Context, req *pb.SaleTime
 func (i *IndexerServer) GetSaleTimeSeries(ctx context.Context, filter *pb.SaleTimeSeriesFilter) (*pb.SaleTimeSeriesListResponse, error) {
 	offset := int64(0)
 	size := int64(50)
+	sortASC := false
 	if filter.Offset != nil {
 		offset = *filter.Offset
 	}
 	if filter.Size != nil {
 		size = *filter.Size
+	}
+	if filter.SortASC != nil {
+		sortASC = *filter.SortASC
 	}
 
 	sales, err := i.indexerStore.GetSaleTimeSeriesData(ctx, indexer.SalesFilterParameter{
@@ -263,6 +267,7 @@ func (i *IndexerServer) GetSaleTimeSeries(ctx context.Context, filter *pb.SaleTi
 		To:          i.mapper.MapGrpcTimestampToTime(filter.To),
 		Offset:      offset,
 		Limit:       size,
+		SortASC:     sortASC,
 	})
 
 	if err != nil {

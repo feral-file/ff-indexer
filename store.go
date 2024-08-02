@@ -140,6 +140,7 @@ type SalesFilterParameter struct {
 	To          *time.Time
 	Limit       int64
 	Offset      int64
+	SortASC     bool
 }
 
 func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*MongodbIndexerStore, error) {
@@ -2487,12 +2488,14 @@ func (s *MongodbIndexerStore) SaleTimeSeriesDataExists(ctx context.Context, txID
 func (s *MongodbIndexerStore) GetSaleTimeSeriesData(ctx context.Context, filter SalesFilterParameter) ([]SaleTimeSeries, error) {
 	var saleTimeSeries []SaleTimeSeries
 
-	addressFilter := bson.A{}
-	for _, a := range filter.Addresses {
-		addressFilter = append(addressFilter, bson.M{fmt.Sprintf("shares.%s", a): bson.M{"$nin": bson.A{nil, ""}}})
+	match := bson.M{}
+	if len(filter.Addresses) > 0 {
+		addressFilter := bson.A{}
+		for _, a := range filter.Addresses {
+			addressFilter = append(addressFilter, bson.M{fmt.Sprintf("shares.%s", a): bson.M{"$nin": bson.A{nil, ""}}})
+		}
+		match["$or"] = addressFilter
 	}
-
-	match := bson.M{"$or": addressFilter}
 	if filter.Marketplace != "" {
 		match["metadata.marketplace"] = filter.Marketplace
 	}
@@ -2508,9 +2511,13 @@ func (s *MongodbIndexerStore) GetSaleTimeSeriesData(ctx context.Context, filter 
 		match["timestamp"] = timestampFilter
 	}
 
+	sort := -1
+	if filter.SortASC {
+		sort = 1
+	}
 	pipelines := []bson.M{
 		{"$match": match},
-		{"$sort": bson.D{{Key: "timestamp", Value: -1}, {Key: "_id", Value: -1}}},
+		{"$sort": bson.D{{Key: "timestamp", Value: sort}, {Key: "_id", Value: sort}}},
 	}
 
 	pipelines = append(pipelines,

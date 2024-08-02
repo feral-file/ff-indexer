@@ -205,6 +205,7 @@ func (i *IndexerGRPCClient) GetTimeSeriesData(
 		To:          i.mapper.MapTimeToGrpcTimestamp(filter.To),
 		Offset:      aws.Int64(int64(filter.Offset)),
 		Size:        aws.Int64(int64(filter.Limit)),
+		SortASC:     aws.Bool(filter.SortASC),
 	})
 
 	if err != nil {

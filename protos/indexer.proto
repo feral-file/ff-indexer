@@ -247,6 +247,7 @@ message SaleTimeSeriesFilter {
   optional google.protobuf.Timestamp to = 4;
   optional int64 offset = 5;
   optional int64 size = 6;
+  optional bool sortASC = 7;
 }
 
 message SaleTimeSeries {
