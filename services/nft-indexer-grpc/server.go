@@ -285,3 +285,15 @@ func (i *IndexerServer) GetSaleRevenues(ctx context.Context, filter *pb.SaleTime
 
 	return i.mapper.MapToGrpcSaleRevenuesResponse(revenues)
 }
+
+func (i *IndexerServer) GetHistoricalExchangeRate(ctx context.Context, filter *pb.HistoricalExchangeRateFilter) (*pb.ExchangeRateResponse, error) {
+	result, err := i.indexerStore.GetHistoricalExchangeRate(ctx, indexer.HistoricalExchangeRateFilter{
+		CurrencyPair: filter.CurrencyPair,
+		Timestamp:    *i.mapper.MapGrpcTimestampToTime(filter.Timestamp),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return i.mapper.MapToExchangeRateResponse(result)
+}

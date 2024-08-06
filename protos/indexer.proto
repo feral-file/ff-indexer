@@ -27,6 +27,7 @@ service Indexer {
   rpc SendTimeSeriesData(SaleTimeSeriesRecords) returns(Empty);
   rpc GetSaleTimeSeries(SaleTimeSeriesFilter) returns (SaleTimeSeriesListResponse);
   rpc GetSaleRevenues(SaleTimeSeriesFilter) returns (SaleRevenuesResponse);
+  rpc GetHistoricalExchangeRate(HistoricalExchangeRateFilter) returns (ExchangeRateResponse);
 }
 
 message CheckAddressOwnTokenByCriteriaResponse {
@@ -237,16 +238,16 @@ message SaleTimeSeriesRecord {
 }
 
 message SaleTimeSeriesRecords {
-  repeated SaleTimeSeriesRecord sales = 1; 
+  repeated SaleTimeSeriesRecord sales = 1;
 }
 
 message SaleTimeSeriesFilter {
-  repeated string addresses = 1; 
-  string marketplace = 2; 
-  optional google.protobuf.Timestamp from = 3; 
-  optional google.protobuf.Timestamp to = 4; 
-  optional int64 offset = 5; 
-  optional int64 size = 6; 
+  repeated string addresses = 1;
+  string marketplace = 2;
+  optional google.protobuf.Timestamp from = 3;
+  optional google.protobuf.Timestamp to = 4;
+  optional int64 offset = 5;
+  optional int64 size = 6;
 }
 
 message SaleTimeSeries {
@@ -261,9 +262,21 @@ message SaleTimeSeries {
 }
 
 message SaleTimeSeriesListResponse {
-  repeated SaleTimeSeries sales = 1; 
+  repeated SaleTimeSeries sales = 1;
 }
 
 message SaleRevenuesResponse {
-  map<string,string> revenues = 1; 
+  map<string,string> revenues = 1;
+}
+
+message HistoricalExchangeRateFilter {
+	google.protobuf.Timestamp timestamp    = 1; // ts.UTC().Format(time.RFC3339Nano) for BSON.ISODate()
+	string currencyPair = 2;
+}
+
+message ExchangeRateResponse {
+	google.protobuf.Timestamp timestamp = 1; // ts.UTC().Format(time.RFC3339Nano) for BSON.ISODate()
+  string open = 2;
+	string close = 3;
+	string currencyPair = 4;
 }

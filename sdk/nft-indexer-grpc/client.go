@@ -235,3 +235,24 @@ func (i *IndexerGRPCClient) GetSaleRevenues(
 
 	return revenues.Revenues, err
 }
+
+func (i *IndexerGRPCClient) GetExchangeRate(
+	ctx context.Context,
+	filter indexer.HistoricalExchangeRateFilter,
+) (indexer.ExchangeRate, error) {
+	result, err := i.client.GetHistoricalExchangeRate(ctx, &pb.HistoricalExchangeRateFilter{
+		CurrencyPair: filter.CurrencyPair,
+		Timestamp:    i.mapper.MapTimeToGrpcTimestamp(&filter.Timestamp),
+	})
+
+	if err != nil {
+		return indexer.ExchangeRate{}, nil
+	}
+
+	indexerExchangeRate, err := i.mapper.MapGrpcExchangeRateResponseToIndexerExchangeRate(result)
+	if err != nil {
+		return indexer.ExchangeRate{}, err
+	}
+
+	return indexerExchangeRate, nil
+}
