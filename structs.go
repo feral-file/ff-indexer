@@ -324,7 +324,6 @@ type CoinBaseHistoricalExchangeRate struct {
 
 type ExchangeRate struct {
 	Timestamp    time.Time `bson:"timestamp"`
-	Open         float64   `bson:"open"`
-	Close        float64   `bson:"close"`
+	Price        float64   `bson:"price"`
 	CurrencyPair string    `bson:"currencyPair"`
 }

@@ -2490,8 +2490,7 @@ func (s *MongodbIndexerStore) WriteHistoricalExchangeRate(ctx context.Context, r
 		filter := bson.M{"timestamp": r.Time, "currencyPair": r.CurrencyPair}
 		update := bson.M{"$set": bson.M{
 			"timestamp":    r.Time,
-			"open":         r.Open,
-			"close":        r.Close,
+			"price":        r.Open,
 			"currencyPair": r.CurrencyPair,
 		}}
 		model := mongo.NewUpdateOneModel().SetFilter(filter).SetUpdate(update).SetUpsert(true)

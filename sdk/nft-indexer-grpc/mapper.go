@@ -627,37 +627,25 @@ func (m *Mapper) MapGrpcSaleTimeSeriesListResponseToIndexerSaleTimeSeries(sales 
 func (m *Mapper) MapToExchangeRateResponse(exchangeRate indexer.ExchangeRate) (*grpcIndexer.ExchangeRateResponse, error) {
 	return &grpcIndexer.ExchangeRateResponse{
 		Timestamp:    timestamppb.New(exchangeRate.Timestamp),
-		Open:         fmt.Sprintf("%f", exchangeRate.Open),
-		Close:        fmt.Sprintf("%f", exchangeRate.Close),
+		Price:        fmt.Sprintf("%f", exchangeRate.Price),
 		CurrencyPair: exchangeRate.CurrencyPair,
 	}, nil
 }
 
 func (m *Mapper) MapGrpcExchangeRateResponseToIndexerExchangeRate(exchangeRate *grpcIndexer.ExchangeRateResponse) (indexer.ExchangeRate, error) {
-	open, err := primitive.ParseDecimal128(exchangeRate.Open)
+	price, err := primitive.ParseDecimal128(exchangeRate.Price)
 	if err != nil {
 		return indexer.ExchangeRate{}, err
 	}
 
-	close, err := primitive.ParseDecimal128(exchangeRate.Close)
-	if err != nil {
-		return indexer.ExchangeRate{}, err
-	}
-
-	openFloat, err := strconv.ParseFloat(open.String(), 64)
-	if err != nil {
-		return indexer.ExchangeRate{}, err
-	}
-
-	closeFloat, err := strconv.ParseFloat(close.String(), 64)
+	priceFloat, err := strconv.ParseFloat(price.String(), 64)
 	if err != nil {
 		return indexer.ExchangeRate{}, err
 	}
 
 	return indexer.ExchangeRate{
 		Timestamp:    exchangeRate.Timestamp.AsTime(),
-		Open:         openFloat,
-		Close:        closeFloat,
+		Price:        priceFloat,
 		CurrencyPair: exchangeRate.CurrencyPair,
 	}, nil
 }
