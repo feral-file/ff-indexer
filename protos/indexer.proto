@@ -6,11 +6,11 @@ option go_package = "./grpc/indexer";
 
 service Indexer {
   rpc GetTokenByIndexID(IndexID) returns (Token);
-  rpc PushProvenance(PushProvenanceRequest) returns (Empty);
+  rpc PushProvenance(PushProvenanceRequest) returns (EmptyMessage);
 
-  rpc UpdateOwner(UpdateOwnerRequest) returns (Empty);
-  rpc UpdateOwnerForFungibleToken(UpdateOwnerForFungibleTokenRequest) returns (Empty);
-  rpc IndexAccountTokens(IndexAccountTokensRequest) returns (Empty);
+  rpc UpdateOwner(UpdateOwnerRequest) returns (EmptyMessage);
+  rpc UpdateOwnerForFungibleToken(UpdateOwnerForFungibleTokenRequest) returns (EmptyMessage);
+  rpc IndexAccountTokens(IndexAccountTokensRequest) returns (EmptyMessage);
 
   rpc GetDetailedToken(IndexID) returns (DetailedToken);
   rpc GetTotalBalanceOfOwnerAccounts(Addresses) returns (TotalBalance);
@@ -24,7 +24,7 @@ service Indexer {
 
   rpc GetIdentity(Address) returns (AccountIdentity);
 
-  rpc SendTimeSeriesData(SaleTimeSeriesRecords) returns(Empty);
+  rpc SendTimeSeriesData(SaleTimeSeriesRecords) returns(EmptyMessage);
   rpc GetSaleTimeSeries(SaleTimeSeriesFilter) returns (SaleTimeSeriesListResponse);
   rpc GetSaleRevenues(SaleTimeSeriesFilter) returns (SaleRevenuesResponse);
   rpc GetHistoricalExchangeRate(HistoricalExchangeRateFilter) returns (ExchangeRateResponse);
@@ -147,7 +147,7 @@ message UpdateOwnerRequest {
   string UpdatedAt = 3;
 }
 
-message Empty {}
+message EmptyMessage {}
 
 message PushProvenanceRequest {
   string IndexID = 1;
@@ -248,6 +248,7 @@ message SaleTimeSeriesFilter {
   optional google.protobuf.Timestamp to = 4;
   optional int64 offset = 5;
   optional int64 size = 6;
+  optional bool sortASC = 7;
 }
 
 message SaleTimeSeries {

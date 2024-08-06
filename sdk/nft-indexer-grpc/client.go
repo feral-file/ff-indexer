@@ -2,7 +2,6 @@ package sdk
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -206,9 +205,8 @@ func (i *IndexerGRPCClient) GetTimeSeriesData(
 		To:          i.mapper.MapTimeToGrpcTimestamp(filter.To),
 		Offset:      aws.Int64(int64(filter.Offset)),
 		Size:        aws.Int64(int64(filter.Limit)),
+		SortASC:     aws.Bool(filter.SortASC),
 	})
-
-	fmt.Println(sales)
 
 	if err != nil {
 		return nil, err
@@ -246,7 +244,7 @@ func (i *IndexerGRPCClient) GetExchangeRate(
 	})
 
 	if err != nil {
-		return indexer.ExchangeRate{}, nil
+		return indexer.ExchangeRate{}, err
 	}
 
 	indexerExchangeRate, err := i.mapper.MapGrpcExchangeRateResponseToIndexerExchangeRate(result)

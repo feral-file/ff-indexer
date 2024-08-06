@@ -19,10 +19,10 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type IndexerClient interface {
 	GetTokenByIndexID(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*Token, error)
-	PushProvenance(ctx context.Context, in *PushProvenanceRequest, opts ...grpc.CallOption) (*Empty, error)
-	UpdateOwner(ctx context.Context, in *UpdateOwnerRequest, opts ...grpc.CallOption) (*Empty, error)
-	UpdateOwnerForFungibleToken(ctx context.Context, in *UpdateOwnerForFungibleTokenRequest, opts ...grpc.CallOption) (*Empty, error)
-	IndexAccountTokens(ctx context.Context, in *IndexAccountTokensRequest, opts ...grpc.CallOption) (*Empty, error)
+	PushProvenance(ctx context.Context, in *PushProvenanceRequest, opts ...grpc.CallOption) (*EmptyMessage, error)
+	UpdateOwner(ctx context.Context, in *UpdateOwnerRequest, opts ...grpc.CallOption) (*EmptyMessage, error)
+	UpdateOwnerForFungibleToken(ctx context.Context, in *UpdateOwnerForFungibleTokenRequest, opts ...grpc.CallOption) (*EmptyMessage, error)
+	IndexAccountTokens(ctx context.Context, in *IndexAccountTokensRequest, opts ...grpc.CallOption) (*EmptyMessage, error)
 	GetDetailedToken(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*DetailedToken, error)
 	GetTotalBalanceOfOwnerAccounts(ctx context.Context, in *Addresses, opts ...grpc.CallOption) (*TotalBalance, error)
 	GetOwnerAccountsByIndexIDs(ctx context.Context, in *IndexIDs, opts ...grpc.CallOption) (*Addresses, error)
@@ -30,7 +30,7 @@ type IndexerClient interface {
 	GetOwnersByBlockchainContracts(ctx context.Context, in *GetOwnersByBlockchainContractsRequest, opts ...grpc.CallOption) (*Addresses, error)
 	GetETHBlockTime(ctx context.Context, in *GetETHBlockTimeRequest, opts ...grpc.CallOption) (*BlockTime, error)
 	GetIdentity(ctx context.Context, in *Address, opts ...grpc.CallOption) (*AccountIdentity, error)
-	SendTimeSeriesData(ctx context.Context, in *SaleTimeSeriesRecords, opts ...grpc.CallOption) (*Empty, error)
+	SendTimeSeriesData(ctx context.Context, in *SaleTimeSeriesRecords, opts ...grpc.CallOption) (*EmptyMessage, error)
 	GetSaleTimeSeries(ctx context.Context, in *SaleTimeSeriesFilter, opts ...grpc.CallOption) (*SaleTimeSeriesListResponse, error)
 	GetSaleRevenues(ctx context.Context, in *SaleTimeSeriesFilter, opts ...grpc.CallOption) (*SaleRevenuesResponse, error)
 	GetHistoricalExchangeRate(ctx context.Context, in *HistoricalExchangeRateFilter, opts ...grpc.CallOption) (*ExchangeRateResponse, error)
@@ -53,8 +53,8 @@ func (c *indexerClient) GetTokenByIndexID(ctx context.Context, in *IndexID, opts
 	return out, nil
 }
 
-func (c *indexerClient) PushProvenance(ctx context.Context, in *PushProvenanceRequest, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
+func (c *indexerClient) PushProvenance(ctx context.Context, in *PushProvenanceRequest, opts ...grpc.CallOption) (*EmptyMessage, error) {
+	out := new(EmptyMessage)
 	err := c.cc.Invoke(ctx, "/Indexer/PushProvenance", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -62,8 +62,8 @@ func (c *indexerClient) PushProvenance(ctx context.Context, in *PushProvenanceRe
 	return out, nil
 }
 
-func (c *indexerClient) UpdateOwner(ctx context.Context, in *UpdateOwnerRequest, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
+func (c *indexerClient) UpdateOwner(ctx context.Context, in *UpdateOwnerRequest, opts ...grpc.CallOption) (*EmptyMessage, error) {
+	out := new(EmptyMessage)
 	err := c.cc.Invoke(ctx, "/Indexer/UpdateOwner", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -71,8 +71,8 @@ func (c *indexerClient) UpdateOwner(ctx context.Context, in *UpdateOwnerRequest,
 	return out, nil
 }
 
-func (c *indexerClient) UpdateOwnerForFungibleToken(ctx context.Context, in *UpdateOwnerForFungibleTokenRequest, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
+func (c *indexerClient) UpdateOwnerForFungibleToken(ctx context.Context, in *UpdateOwnerForFungibleTokenRequest, opts ...grpc.CallOption) (*EmptyMessage, error) {
+	out := new(EmptyMessage)
 	err := c.cc.Invoke(ctx, "/Indexer/UpdateOwnerForFungibleToken", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -80,8 +80,8 @@ func (c *indexerClient) UpdateOwnerForFungibleToken(ctx context.Context, in *Upd
 	return out, nil
 }
 
-func (c *indexerClient) IndexAccountTokens(ctx context.Context, in *IndexAccountTokensRequest, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
+func (c *indexerClient) IndexAccountTokens(ctx context.Context, in *IndexAccountTokensRequest, opts ...grpc.CallOption) (*EmptyMessage, error) {
+	out := new(EmptyMessage)
 	err := c.cc.Invoke(ctx, "/Indexer/IndexAccountTokens", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -152,8 +152,8 @@ func (c *indexerClient) GetIdentity(ctx context.Context, in *Address, opts ...gr
 	return out, nil
 }
 
-func (c *indexerClient) SendTimeSeriesData(ctx context.Context, in *SaleTimeSeriesRecords, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
+func (c *indexerClient) SendTimeSeriesData(ctx context.Context, in *SaleTimeSeriesRecords, opts ...grpc.CallOption) (*EmptyMessage, error) {
+	out := new(EmptyMessage)
 	err := c.cc.Invoke(ctx, "/Indexer/SendTimeSeriesData", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -193,10 +193,10 @@ func (c *indexerClient) GetHistoricalExchangeRate(ctx context.Context, in *Histo
 // for forward compatibility
 type IndexerServer interface {
 	GetTokenByIndexID(context.Context, *IndexID) (*Token, error)
-	PushProvenance(context.Context, *PushProvenanceRequest) (*Empty, error)
-	UpdateOwner(context.Context, *UpdateOwnerRequest) (*Empty, error)
-	UpdateOwnerForFungibleToken(context.Context, *UpdateOwnerForFungibleTokenRequest) (*Empty, error)
-	IndexAccountTokens(context.Context, *IndexAccountTokensRequest) (*Empty, error)
+	PushProvenance(context.Context, *PushProvenanceRequest) (*EmptyMessage, error)
+	UpdateOwner(context.Context, *UpdateOwnerRequest) (*EmptyMessage, error)
+	UpdateOwnerForFungibleToken(context.Context, *UpdateOwnerForFungibleTokenRequest) (*EmptyMessage, error)
+	IndexAccountTokens(context.Context, *IndexAccountTokensRequest) (*EmptyMessage, error)
 	GetDetailedToken(context.Context, *IndexID) (*DetailedToken, error)
 	GetTotalBalanceOfOwnerAccounts(context.Context, *Addresses) (*TotalBalance, error)
 	GetOwnerAccountsByIndexIDs(context.Context, *IndexIDs) (*Addresses, error)
@@ -204,7 +204,7 @@ type IndexerServer interface {
 	GetOwnersByBlockchainContracts(context.Context, *GetOwnersByBlockchainContractsRequest) (*Addresses, error)
 	GetETHBlockTime(context.Context, *GetETHBlockTimeRequest) (*BlockTime, error)
 	GetIdentity(context.Context, *Address) (*AccountIdentity, error)
-	SendTimeSeriesData(context.Context, *SaleTimeSeriesRecords) (*Empty, error)
+	SendTimeSeriesData(context.Context, *SaleTimeSeriesRecords) (*EmptyMessage, error)
 	GetSaleTimeSeries(context.Context, *SaleTimeSeriesFilter) (*SaleTimeSeriesListResponse, error)
 	GetSaleRevenues(context.Context, *SaleTimeSeriesFilter) (*SaleRevenuesResponse, error)
 	GetHistoricalExchangeRate(context.Context, *HistoricalExchangeRateFilter) (*ExchangeRateResponse, error)
@@ -218,16 +218,16 @@ type UnimplementedIndexerServer struct {
 func (UnimplementedIndexerServer) GetTokenByIndexID(context.Context, *IndexID) (*Token, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTokenByIndexID not implemented")
 }
-func (UnimplementedIndexerServer) PushProvenance(context.Context, *PushProvenanceRequest) (*Empty, error) {
+func (UnimplementedIndexerServer) PushProvenance(context.Context, *PushProvenanceRequest) (*EmptyMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PushProvenance not implemented")
 }
-func (UnimplementedIndexerServer) UpdateOwner(context.Context, *UpdateOwnerRequest) (*Empty, error) {
+func (UnimplementedIndexerServer) UpdateOwner(context.Context, *UpdateOwnerRequest) (*EmptyMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateOwner not implemented")
 }
-func (UnimplementedIndexerServer) UpdateOwnerForFungibleToken(context.Context, *UpdateOwnerForFungibleTokenRequest) (*Empty, error) {
+func (UnimplementedIndexerServer) UpdateOwnerForFungibleToken(context.Context, *UpdateOwnerForFungibleTokenRequest) (*EmptyMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateOwnerForFungibleToken not implemented")
 }
-func (UnimplementedIndexerServer) IndexAccountTokens(context.Context, *IndexAccountTokensRequest) (*Empty, error) {
+func (UnimplementedIndexerServer) IndexAccountTokens(context.Context, *IndexAccountTokensRequest) (*EmptyMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method IndexAccountTokens not implemented")
 }
 func (UnimplementedIndexerServer) GetDetailedToken(context.Context, *IndexID) (*DetailedToken, error) {
@@ -251,7 +251,7 @@ func (UnimplementedIndexerServer) GetETHBlockTime(context.Context, *GetETHBlockT
 func (UnimplementedIndexerServer) GetIdentity(context.Context, *Address) (*AccountIdentity, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetIdentity not implemented")
 }
-func (UnimplementedIndexerServer) SendTimeSeriesData(context.Context, *SaleTimeSeriesRecords) (*Empty, error) {
+func (UnimplementedIndexerServer) SendTimeSeriesData(context.Context, *SaleTimeSeriesRecords) (*EmptyMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendTimeSeriesData not implemented")
 }
 func (UnimplementedIndexerServer) GetSaleTimeSeries(context.Context, *SaleTimeSeriesFilter) (*SaleTimeSeriesListResponse, error) {
