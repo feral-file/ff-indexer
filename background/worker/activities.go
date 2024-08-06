@@ -8,6 +8,7 @@ import (
 	"io"
 	"math/big"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -241,9 +242,23 @@ func (w *NFTIndexerWorker) CrawlExchangeRateFromCoinbase(
 	start int64,
 	end int64,
 ) ([]indexer.CoinBaseHistoricalExchangeRate, error) {
-	url := fmt.Sprintf("https://api.exchange.coinbase.com/products/%s/candles?granularity=%s&start=%s&end=%s", currencyPair, granularity, time.Unix(start, 0).UTC().Format(time.RFC3339), time.Unix(end, 0).UTC().Format(time.RFC3339))
+	rawURL := fmt.Sprintf(indexer.CoinBaseGetExchangeRateApiPrefix+"%s/candles?granularity=%s&start=%s&end=%s",
+		currencyPair, granularity, time.Unix(start, 0).UTC().Format(time.RFC3339), time.Unix(end, 0).UTC().Format(time.RFC3339))
 
-	resp, err := http.Get(url)
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return nil, err
+	}
+
+	if parsedURL.Scheme != "https" {
+		return nil, err
+	}
+
+	if parsedURL.Host != "api.exchange.coinbase.com" {
+		return nil, err
+	}
+
+	resp, err := http.Get(parsedURL.String())
 	if err != nil {
 		return nil, err
 	}
@@ -263,8 +278,8 @@ func (w *NFTIndexerWorker) CrawlExchangeRateFromCoinbase(
 	for _, item := range rawData {
 		rate := indexer.CoinBaseHistoricalExchangeRate{
 			Time:         time.Unix(int64(item[0]), 0).UTC(),
-			Low:          item[2],
-			High:         item[1],
+			Low:          item[1],
+			High:         item[2],
 			Open:         item[3],
 			Close:        item[4],
 			CurrencyPair: currencyPair,

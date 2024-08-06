@@ -97,6 +97,10 @@ var ObjktCDNTypes = []string{
 }
 
 const (
+	CoinBaseGetExchangeRateApiPrefix = "https://api.exchange.coinbase.com/products/"
+)
+
+const (
 	DevelopmentEnvironment = "development"
 	StagingEnvironment     = "staging"
 	ProductiontEnvironment = "production"
