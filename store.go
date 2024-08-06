@@ -36,7 +36,7 @@ const (
 	collectionsCollectionName             = "collections"
 	collectionAssetsCollectionName        = "collection_assets"
 	salesTimeSeriesCollectionName         = "sales_time_series"
-	historicalExchangeRatesCollectionName = "historic_exchange_rates"
+	historicalExchangeRatesCollectionName = "historical_exchange_rates_test"
 )
 
 var ErrNoRecordUpdated = fmt.Errorf("no record updated")
@@ -117,6 +117,7 @@ type Store interface {
 	GetSaleTimeSeriesData(ctx context.Context, filter SalesFilterParameter) ([]SaleTimeSeries, error)
 	AggregateSaleRevenues(ctx context.Context, filter SalesFilterParameter) (map[string]primitive.Decimal128, error)
 	WriteHistoricalExchangeRate(ctx context.Context, exchangeRate []CoinBaseHistoricalExchangeRate) error
+	GetHistoricalExchangeRate(ctx context.Context, filter HistoricalExchangeRateFilter) (ExchangeRate, error)
 }
 
 type FilterParameter struct {
@@ -142,6 +143,11 @@ type SalesFilterParameter struct {
 	To          *time.Time
 	Limit       int64
 	Offset      int64
+}
+
+type HistoricalExchangeRateFilter struct {
+	CurrencyPair string
+	Timestamp    time.Time
 }
 
 func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*MongodbIndexerStore, error) {
@@ -2477,27 +2483,88 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 }
 
 func (s *MongodbIndexerStore) WriteHistoricalExchangeRate(ctx context.Context, records []CoinBaseHistoricalExchangeRate) error {
-	var inserts []interface{}
-	for _, r := range records {
-		exchangeRate := ExchangeRate{
-			Timestamp:    r.Time,
-			Open:         r.Open,
-			Close:        r.Close,
-			CurrencyPair: r.CurrencyPair,
-		}
+	var operations []mongo.WriteModel
 
-		inserts = append(inserts, exchangeRate)
+	for _, r := range records {
+		filter := bson.M{"timestamp": r.Time, "currencyPair": r.CurrencyPair}
+		update := bson.M{"$set": bson.M{
+			"timestamp":    r.Time,
+			"open":         r.Open,
+			"close":        r.Close,
+			"currencyPair": r.CurrencyPair,
+		}}
+		model := mongo.NewUpdateOneModel().SetFilter(filter).SetUpdate(update).SetUpsert(true)
+		operations = append(operations, model)
 	}
 
-	if len(inserts) > 0 {
-		_, err := s.historicalExchangeRatesCollection.InsertMany(ctx, inserts)
+	if len(operations) > 0 {
+		_, err := s.historicalExchangeRatesCollection.BulkWrite(ctx, operations)
 		if err != nil {
-			log.Error("error inserting documents", zap.Error(err))
+			log.Error("error in bulk write operation", zap.Error(err))
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (s *MongodbIndexerStore) GetHistoricalExchangeRate(ctx context.Context, filter HistoricalExchangeRateFilter) (ExchangeRate, error) {
+	var closestExchangeRate ExchangeRate
+	var lowerExchangeRate ExchangeRate
+	var greaterExchangeRate ExchangeRate
+
+	requestingTimestamp := filter.Timestamp.UTC()
+
+	// Find the closest lower timestamp
+	lowerFilterMap := bson.M{
+		"currencyPair": filter.CurrencyPair,
+		"timestamp": bson.M{
+			"$lte": requestingTimestamp,
+		},
+	}
+	lowerFindOptions := options.FindOne()
+	lowerFindOptions.SetSort(bson.D{{Key: "timestamp", Value: -1}})
+
+	err := s.historicalExchangeRatesCollection.FindOne(ctx, lowerFilterMap, lowerFindOptions).Decode(&lowerExchangeRate)
+	if err != nil && err != mongo.ErrNoDocuments {
+		return closestExchangeRate, err
+	}
+
+	if requestingTimestamp.Equal(lowerExchangeRate.Timestamp) {
+		return lowerExchangeRate, nil
+	}
+
+	// Find the closest greater timestamp
+	greaterFilterMap := bson.M{
+		"currencyPair": filter.CurrencyPair,
+		"timestamp": bson.M{
+			"$gte": requestingTimestamp,
+		},
+	}
+	greaterFindOptions := options.FindOne()
+	greaterFindOptions.SetSort(bson.D{{Key: "timestamp", Value: 1}})
+
+	err = s.historicalExchangeRatesCollection.FindOne(ctx, greaterFilterMap, greaterFindOptions).Decode(&greaterExchangeRate)
+	if err != nil && err != mongo.ErrNoDocuments {
+		return closestExchangeRate, err
+	}
+
+	// Compare the two results to find the closest timestamp
+	if lowerExchangeRate.Timestamp.IsZero() {
+		closestExchangeRate = greaterExchangeRate
+	} else if greaterExchangeRate.Timestamp.IsZero() {
+		closestExchangeRate = lowerExchangeRate
+	} else {
+		lowerDiff := requestingTimestamp.Sub(lowerExchangeRate.Timestamp)
+		greaterDiff := greaterExchangeRate.Timestamp.Sub(requestingTimestamp)
+		if lowerDiff <= greaterDiff {
+			closestExchangeRate = lowerExchangeRate
+		} else {
+			closestExchangeRate = greaterExchangeRate
+		}
+	}
+
+	return closestExchangeRate, nil
 }
 
 // SaleTimeSeriesDataExists - check if a sale time series data exists for a transaction hash and blockchain

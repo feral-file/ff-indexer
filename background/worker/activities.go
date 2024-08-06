@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -230,6 +232,47 @@ func (w *NFTIndexerWorker) MarkAccountTokenChanged(ctx context.Context, indexIDs
 
 func (w *NFTIndexerWorker) WriteHistoricalExchangeRate(ctx context.Context, exchangeRate []indexer.CoinBaseHistoricalExchangeRate) error {
 	return w.indexerStore.WriteHistoricalExchangeRate(ctx, exchangeRate)
+}
+
+func (w *NFTIndexerWorker) CrawlExchangeRateFromCoinbase(
+	ctx context.Context,
+	currencyPair string,
+	granularity string,
+	start int64,
+	end int64,
+) ([]indexer.CoinBaseHistoricalExchangeRate, error) {
+	url := fmt.Sprintf("https://api.exchange.coinbase.com/products/%s/candles?granularity=%s&start=%s&end=%s", currencyPair, granularity, time.Unix(start, 0).UTC().Format(time.RFC3339), time.Unix(end, 0).UTC().Format(time.RFC3339))
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var rawData [][]float64
+	if err := json.Unmarshal([]byte(body), &rawData); err != nil {
+		return nil, err
+	}
+
+	var rates []indexer.CoinBaseHistoricalExchangeRate
+	for _, item := range rawData {
+		rate := indexer.CoinBaseHistoricalExchangeRate{
+			Time:         time.Unix(int64(item[0]), 0).UTC(),
+			Low:          item[2],
+			High:         item[1],
+			Open:         item[3],
+			Close:        item[4],
+			CurrencyPair: currencyPair,
+		}
+		rates = append(rates, rate)
+	}
+
+	return rates, nil
 }
 
 type Provenance struct {

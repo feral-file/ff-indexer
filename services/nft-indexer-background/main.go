@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -12,7 +11,6 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/viper"
 	"go.uber.org/cadence/activity"
-	"go.uber.org/cadence/client"
 	"go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
@@ -118,15 +116,9 @@ func main() {
 	workflow.RegisterWithOptions(worker.CrawlHistoricalExchangeRate, workflow.RegisterOptions{
 		Name: "CrawlHistoricalExchangeRate",
 	})
-	workflow.RegisterWithOptions(worker.CrawlExchangeRate, workflow.RegisterOptions{
-		Name: "CrawlExchangeRate",
-	})
 	workflow.RegisterWithOptions(worker.CrawlExchangeRateByCurrencyPair, workflow.RegisterOptions{
 		Name: "CrawlExchangeRateByCurrencyPair",
 	})
-	// workflow.RegisterWithOptions(worker.CrawlExchangeRateFromCoinbase, workflow.RegisterOptions{
-	// 	Name: "CrawlExchangeRateFromCoinbase",
-	// })
 
 	// cache
 	activity.Register(worker.CacheArtifact)
@@ -159,6 +151,7 @@ func main() {
 	activity.Register(worker.WriteSaleTimeSeriesData)
 	activity.Register(worker.IndexedSaleTx)
 	activity.Register(worker.WriteHistoricalExchangeRate)
+	activity.Register(worker.CrawlExchangeRateFromCoinbase)
 
 	// index account tokens
 	activity.Register(worker.IndexAccountTokens)
@@ -166,30 +159,4 @@ func main() {
 
 	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)
 	cadence.StartWorker(log.DefaultLogger(), workerServiceClient, viper.GetString("cadence.domain"), indexerWorker.TaskListName)
-
-	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
-	workflowOptions := client.StartWorkflowOptions{
-		ID:                              "IndexTokenWorkflowID-123", // Unique ID for the workflow execution
-		TaskList:                        indexerWorker.TaskListName, // Task list defined in your worker setup
-		ExecutionStartToCloseTimeout:    time.Hour,                  // Adjust based on expected execution time
-		DecisionTaskStartToCloseTimeout: 5 * time.Minute,            // Adjust based on expected decision task time
-	}
-
-	we, err := cadenceClient.StartWorkflow(
-		ctx,
-		"nft-indexer",
-		workflowOptions,
-		worker.CrawlHistoricalExchangeRate,
-		[]string{
-			"XTZ-USD",
-		},
-		"60",
-		1722470400,
-		1722477600,
-	)
-	if err != nil {
-		log.Panic("Failed to start IndexTokenWorkflow", zap.Error(err))
-	} else {
-		log.Info("IndexTokenWorkflow started successfully", zap.String("WorkflowID", we.ID), zap.String("RunID", we.RunID))
-	}
 }
