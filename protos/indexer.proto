@@ -277,6 +277,6 @@ message HistoricalExchangeRateFilter {
 
 message ExchangeRateResponse {
 	google.protobuf.Timestamp timestamp = 1; // ts.UTC().Format(time.RFC3339Nano) for BSON.ISODate()
-  string price = 2;
+  double price = 2;
 	string currencyPair = 3;
 }

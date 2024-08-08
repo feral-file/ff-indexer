@@ -1,8 +1,6 @@
 package sdk
 
 import (
-	"fmt"
-	"strconv"
 	"time"
 
 	"encoding/json"
@@ -627,25 +625,15 @@ func (m *Mapper) MapGrpcSaleTimeSeriesListResponseToIndexerSaleTimeSeries(sales 
 func (m *Mapper) MapToExchangeRateResponse(exchangeRate indexer.ExchangeRate) (*grpcIndexer.ExchangeRateResponse, error) {
 	return &grpcIndexer.ExchangeRateResponse{
 		Timestamp:    timestamppb.New(exchangeRate.Timestamp),
-		Price:        fmt.Sprintf("%f", exchangeRate.Price),
+		Price:        exchangeRate.Price,
 		CurrencyPair: exchangeRate.CurrencyPair,
 	}, nil
 }
 
 func (m *Mapper) MapGrpcExchangeRateResponseToIndexerExchangeRate(exchangeRate *grpcIndexer.ExchangeRateResponse) (indexer.ExchangeRate, error) {
-	price, err := primitive.ParseDecimal128(exchangeRate.Price)
-	if err != nil {
-		return indexer.ExchangeRate{}, err
-	}
-
-	priceFloat, err := strconv.ParseFloat(price.String(), 64)
-	if err != nil {
-		return indexer.ExchangeRate{}, err
-	}
-
 	return indexer.ExchangeRate{
 		Timestamp:    exchangeRate.Timestamp.AsTime(),
-		Price:        priceFloat,
+		Price:        exchangeRate.Price,
 		CurrencyPair: exchangeRate.CurrencyPair,
 	}, nil
 }

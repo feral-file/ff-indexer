@@ -5,9 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
-	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -26,6 +24,7 @@ import (
 	utils "github.com/bitmark-inc/autonomy-utils"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/contracts"
+	"github.com/bitmark-inc/nft-indexer/externals/coinbase"
 	"github.com/bitmark-inc/nft-indexer/externals/etherscan"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 	"github.com/bitmark-inc/tzkt-go"
@@ -242,48 +241,40 @@ func (w *NFTIndexerWorker) CrawlExchangeRateFromCoinbase(
 	start int64,
 	end int64,
 ) ([]indexer.CoinBaseHistoricalExchangeRate, error) {
-	rawURL := fmt.Sprintf(indexer.CoinBaseGetExchangeRateApiPrefix+"%s/candles?granularity=%s&start=%s&end=%s",
-		currencyPair, granularity, time.Unix(start, 0).UTC().Format(time.RFC3339), time.Unix(end, 0).UTC().Format(time.RFC3339))
+	client := coinbase.NewClient()
 
-	parsedURL, err := url.Parse(rawURL)
+	query := url.Values{}
+	query.Set("granularity", granularity)
+	query.Set("start", time.Unix(start, 0).UTC().Format(time.RFC3339))
+	query.Set("end", time.Unix(end, 0).UTC().Format(time.RFC3339))
+
+	endpoint := fmt.Sprintf("/products/%s/candles", currencyPair)
+	result, err := client.MakeRequest("GET", "application/json", endpoint, query, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	if parsedURL.Scheme != "https" {
-		return nil, err
-	}
-
-	if parsedURL.Host != "api.exchange.coinbase.com" {
-		return nil, err
-	}
-
-	resp, err := http.Get(parsedURL.String())
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var rawData [][]float64
-	if err := json.Unmarshal([]byte(body), &rawData); err != nil {
-		return nil, err
+	rawData, ok := result.([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("unexpected response format")
 	}
 
 	var rates []indexer.CoinBaseHistoricalExchangeRate
 	for _, item := range rawData {
-		rate := indexer.CoinBaseHistoricalExchangeRate{
-			Time:         time.Unix(int64(item[0]), 0).UTC(),
-			Low:          item[1],
-			High:         item[2],
-			Open:         item[3],
-			Close:        item[4],
-			CurrencyPair: currencyPair,
+		candle, ok := item.([]interface{})
+		if !ok {
+			return nil, fmt.Errorf("unexpected candle format")
 		}
+
+		if len(candle) < 5 {
+			return nil, fmt.Errorf("incomplete candle data")
+		}
+
+		var rate indexer.CoinBaseHistoricalExchangeRate
+		if err := rate.Scan(candle, currencyPair); err != nil {
+			return nil, err
+		}
+
 		rates = append(rates, rate)
 	}
 

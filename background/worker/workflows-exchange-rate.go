@@ -15,6 +15,7 @@ import (
 const (
 	granularity          = 60
 	maxCandlesPerRequest = 300
+	chunkSize            = 50
 )
 
 type RequestChunk struct {
@@ -32,34 +33,30 @@ func (w *NFTIndexerWorker) CrawlHistoricalExchangeRate(
 	log := workflow.GetLogger(ctx)
 	log.Debug("start CrawlHistoricalExchangeRate")
 
-	supportedCurrencyPairs := []string{
-		"ETH-USD",
-		"XTZ-USD",
+	supportedCurrencyPairs := map[string]bool{
+		"ETH-USD": true,
+		"XTZ-USD": true,
 	}
 	// Check if all currencyPairs is supported
 	for _, currencyPair := range currencyPairs {
-		if !indexer.ArrayContains(supportedCurrencyPairs, currencyPair) {
+		if !supportedCurrencyPairs[currencyPair] {
 			log.Error("unsupported currency pair", zap.String("currencyPair", currencyPair))
 			return nil
 		}
 	}
 
-	startTime := time.Unix(start, 0).Unix()
-	endTime := time.Unix(end, 0).Unix()
-
-	if startTime > endTime {
+	if start > end {
 		log.Error("Start must be before end")
 		return nil
 	}
 
-	const chunkSize = 50
 	workflowDataChunks := make([][]RequestChunk, 0)
 	requestBatches := make([]RequestChunk, 0, chunkSize)
-	for i := startTime; i < endTime; i += int64(maxCandlesPerRequest * granularity) {
+	for i := start; i < end; i += int64(maxCandlesPerRequest * granularity) {
 		_startTime := i
 		_endTime := i + int64(maxCandlesPerRequest*granularity)
-		if _endTime > endTime {
-			_endTime = endTime
+		if _endTime > end {
+			_endTime = end
 		}
 
 		for _, currencyPair := range currencyPairs {

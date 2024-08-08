@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	utils "github.com/bitmark-inc/autonomy-utils"
@@ -320,6 +321,41 @@ type CoinBaseHistoricalExchangeRate struct {
 	Open         float64   `json:"open"`
 	Close        float64   `json:"close"`
 	CurrencyPair string    `json:"currencyPair"`
+}
+
+func (c *CoinBaseHistoricalExchangeRate) Scan(candle []interface{}, currencyPair string) error {
+	unixTime, ok := candle[0].(float64)
+	if !ok {
+		return fmt.Errorf("failed to parse unix time")
+	}
+	c.Time = time.Unix(int64(unixTime), 0).UTC()
+
+	low, ok := candle[1].(float64)
+	if !ok {
+		return fmt.Errorf("failed to parse low")
+	}
+	c.Low = low
+
+	high, ok := candle[2].(float64)
+	if !ok {
+		return fmt.Errorf("failed to parse low")
+	}
+	c.High = high
+
+	open, ok := candle[3].(float64)
+	if !ok {
+		return fmt.Errorf("failed to parse low")
+	}
+	c.Open = open
+
+	close, ok := candle[4].(float64)
+	if !ok {
+		return fmt.Errorf("failed to parse low")
+	}
+	c.Close = close
+
+	c.CurrencyPair = currencyPair
+	return nil
 }
 
 type ExchangeRate struct {
