@@ -9,6 +9,7 @@ import (
 
 	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
+	coinbase "github.com/bitmark-inc/nft-indexer/externals/coinbase"
 	"github.com/fatih/structs"
 	"github.com/meirf/gopart"
 	"go.mongodb.org/mongo-driver/bson"
@@ -116,7 +117,7 @@ type Store interface {
 	SaleTimeSeriesDataExists(ctx context.Context, txID, blockchain string) (bool, error)
 	GetSaleTimeSeriesData(ctx context.Context, filter SalesFilterParameter) ([]SaleTimeSeries, error)
 	AggregateSaleRevenues(ctx context.Context, filter SalesFilterParameter) (map[string]primitive.Decimal128, error)
-	WriteHistoricalExchangeRate(ctx context.Context, exchangeRate []CoinBaseHistoricalExchangeRate) error
+	WriteHistoricalExchangeRate(ctx context.Context, exchangeRate []coinbase.CoinBaseHistoricalExchangeRate) error
 	GetHistoricalExchangeRate(ctx context.Context, filter HistoricalExchangeRateFilter) (ExchangeRate, error)
 }
 
@@ -2483,7 +2484,7 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 	return nil
 }
 
-func (s *MongodbIndexerStore) WriteHistoricalExchangeRate(ctx context.Context, records []CoinBaseHistoricalExchangeRate) error {
+func (s *MongodbIndexerStore) WriteHistoricalExchangeRate(ctx context.Context, records []coinbase.CoinBaseHistoricalExchangeRate) error {
 	var operations []mongo.WriteModel
 
 	for _, r := range records {

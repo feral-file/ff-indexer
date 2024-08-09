@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer/externals/coinbase"
 	"go.uber.org/cadence"
 	cadenceClient "go.uber.org/cadence/client"
 	"go.uber.org/cadence/workflow"
@@ -121,7 +121,7 @@ func (w *NFTIndexerWorker) CrawlExchangeRateByCurrencyPair(
 	ctx = workflow.WithActivityOptions(ctx, ao)
 	log.Debug("start CrawlExchangeRateByCurrencyPair")
 
-	var rates []indexer.CoinBaseHistoricalExchangeRate
+	var rates []coinbase.CoinBaseHistoricalExchangeRate
 
 	if err := workflow.ExecuteActivity(
 		ctx,

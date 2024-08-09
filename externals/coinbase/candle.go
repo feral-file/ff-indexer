@@ -4,13 +4,55 @@ import (
 	"context"
 	"fmt"
 	"time"
-
-	indexer "github.com/bitmark-inc/nft-indexer"
 )
 
 const (
 	getCandlesEndpoint = "/products/%s/candles"
 )
+
+type CoinBaseHistoricalExchangeRate struct {
+	Time         time.Time `json:"time"`
+	Low          float64   `json:"low"`
+	High         float64   `json:"high"`
+	Open         float64   `json:"open"`
+	Close        float64   `json:"close"`
+	CurrencyPair string    `json:"currencyPair"`
+}
+
+func (c *CoinBaseHistoricalExchangeRate) Scan(candle []interface{}, currencyPair string) error {
+	unixTime, ok := candle[0].(float64)
+	if !ok {
+		return fmt.Errorf("failed to parse unix time")
+	}
+	c.Time = time.Unix(int64(unixTime), 0).UTC()
+
+	low, ok := candle[1].(float64)
+	if !ok {
+		return fmt.Errorf("failed to parse low")
+	}
+	c.Low = low
+
+	high, ok := candle[2].(float64)
+	if !ok {
+		return fmt.Errorf("failed to parse low")
+	}
+	c.High = high
+
+	open, ok := candle[3].(float64)
+	if !ok {
+		return fmt.Errorf("failed to parse low")
+	}
+	c.Open = open
+
+	close, ok := candle[4].(float64)
+	if !ok {
+		return fmt.Errorf("failed to parse low")
+	}
+	c.Close = close
+
+	c.CurrencyPair = currencyPair
+	return nil
+}
 
 func (c *Client) GetCandles(
 	ctx context.Context,
@@ -18,7 +60,7 @@ func (c *Client) GetCandles(
 	granularity string,
 	start int64,
 	end int64,
-) ([]indexer.CoinBaseHistoricalExchangeRate, error) {
+) ([]CoinBaseHistoricalExchangeRate, error) {
 	queryParams := map[string]string{
 		"granularity": granularity,
 		"start":       time.Unix(start, 0).UTC().Format(time.RFC3339),
@@ -33,13 +75,13 @@ func (c *Client) GetCandles(
 	}
 
 	// Process the raw data into the desired format
-	var rates []indexer.CoinBaseHistoricalExchangeRate
+	var rates []CoinBaseHistoricalExchangeRate
 	for _, candle := range rawData {
 		if len(candle) < 5 {
 			return nil, fmt.Errorf("incomplete candle data")
 		}
 
-		var rate indexer.CoinBaseHistoricalExchangeRate
+		var rate CoinBaseHistoricalExchangeRate
 		if err := rate.Scan(candle, currencyPair); err != nil {
 			return nil, err
 		}
