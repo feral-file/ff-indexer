@@ -229,7 +229,7 @@ func (w *NFTIndexerWorker) MarkAccountTokenChanged(ctx context.Context, indexIDs
 	return w.indexerStore.MarkAccountTokenChanged(ctx, indexIDs)
 }
 
-func (w *NFTIndexerWorker) WriteHistoricalExchangeRate(ctx context.Context, exchangeRate []coinbase.CoinBaseHistoricalExchangeRate) error {
+func (w *NFTIndexerWorker) WriteHistoricalExchangeRate(ctx context.Context, exchangeRate []coinbase.HistoricalExchangeRate) error {
 	return w.indexerStore.WriteHistoricalExchangeRate(ctx, exchangeRate)
 }
 
@@ -239,7 +239,7 @@ func (w *NFTIndexerWorker) CrawlExchangeRateFromCoinbase(
 	granularity string,
 	start int64,
 	end int64,
-) ([]coinbase.CoinBaseHistoricalExchangeRate, error) {
+) ([]coinbase.HistoricalExchangeRate, error) {
 	client := coinbase.NewClient()
 	return client.GetCandles(ctx, currencyPair, granularity, start, end)
 }

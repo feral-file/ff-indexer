@@ -117,7 +117,7 @@ type Store interface {
 	SaleTimeSeriesDataExists(ctx context.Context, txID, blockchain string) (bool, error)
 	GetSaleTimeSeriesData(ctx context.Context, filter SalesFilterParameter) ([]SaleTimeSeries, error)
 	AggregateSaleRevenues(ctx context.Context, filter SalesFilterParameter) (map[string]primitive.Decimal128, error)
-	WriteHistoricalExchangeRate(ctx context.Context, exchangeRate []coinbase.CoinBaseHistoricalExchangeRate) error
+	WriteHistoricalExchangeRate(ctx context.Context, exchangeRate []coinbase.HistoricalExchangeRate) error
 	GetHistoricalExchangeRate(ctx context.Context, filter HistoricalExchangeRateFilter) (ExchangeRate, error)
 }
 
@@ -2484,7 +2484,7 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 	return nil
 }
 
-func (s *MongodbIndexerStore) WriteHistoricalExchangeRate(ctx context.Context, records []coinbase.CoinBaseHistoricalExchangeRate) error {
+func (s *MongodbIndexerStore) WriteHistoricalExchangeRate(ctx context.Context, records []coinbase.HistoricalExchangeRate) error {
 	var operations []mongo.WriteModel
 
 	for _, r := range records {

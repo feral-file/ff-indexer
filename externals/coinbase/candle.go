@@ -7,15 +7,17 @@ import (
 )
 
 const (
-	getCandlesEndpoint = "/products/%s/candles"
-	candleTimeIndex    = 0
-	candleLowIndex     = 1
-	candleHighIndex    = 2
-	candleOpenIndex    = 3
-	candleCloseIndex   = 4
+	getCandlesEndpoint         = "/products/%s/candles"
+	errFailedToParseLowMessage = "failed to parse low"
+	candleLength               = 5
+	candleTimeIndex            = 0
+	candleLowIndex             = 1
+	candleHighIndex            = 2
+	candleOpenIndex            = 3
+	candleCloseIndex           = 4
 )
 
-type CoinBaseHistoricalExchangeRate struct {
+type HistoricalExchangeRate struct {
 	Time         time.Time `json:"time"`
 	Low          float64   `json:"low"`
 	High         float64   `json:"high"`
@@ -24,7 +26,7 @@ type CoinBaseHistoricalExchangeRate struct {
 	CurrencyPair string    `json:"currencyPair"`
 }
 
-func (c *CoinBaseHistoricalExchangeRate) Scan(
+func (c *HistoricalExchangeRate) Scan(
 	candle []interface{},
 	currencyPair string) error {
 	unixTime, ok := candle[candleTimeIndex].(float64)
@@ -33,29 +35,29 @@ func (c *CoinBaseHistoricalExchangeRate) Scan(
 	}
 	c.Time = time.Unix(int64(unixTime), 0).UTC()
 
-	low, ok := candle[candleLowIndex].(float64)
+	candleLow, ok := candle[candleLowIndex].(float64)
 	if !ok {
-		return fmt.Errorf("failed to parse low")
+		return fmt.Errorf(errFailedToParseLowMessage)
 	}
-	c.Low = low
+	c.Low = candleLow
 
-	high, ok := candle[candleHighIndex].(float64)
+	candleHigh, ok := candle[candleHighIndex].(float64)
 	if !ok {
-		return fmt.Errorf("failed to parse low")
+		return fmt.Errorf(errFailedToParseLowMessage)
 	}
-	c.High = high
+	c.High = candleHigh
 
-	open, ok := candle[candleOpenIndex].(float64)
+	candleOpen, ok := candle[candleOpenIndex].(float64)
 	if !ok {
-		return fmt.Errorf("failed to parse low")
+		return fmt.Errorf(errFailedToParseLowMessage)
 	}
-	c.Open = open
+	c.Open = candleOpen
 
-	close, ok := candle[candleCloseIndex].(float64)
+	candleClose, ok := candle[candleCloseIndex].(float64)
 	if !ok {
-		return fmt.Errorf("failed to parse low")
+		return fmt.Errorf(errFailedToParseLowMessage)
 	}
-	c.Close = close
+	c.Close = candleClose
 
 	c.CurrencyPair = currencyPair
 	return nil
@@ -67,7 +69,7 @@ func (c *Client) GetCandles(
 	granularity string,
 	start int64,
 	end int64,
-) ([]CoinBaseHistoricalExchangeRate, error) {
+) ([]HistoricalExchangeRate, error) {
 	queryParams := map[string]string{
 		"granularity": granularity,
 		"start":       time.Unix(start, 0).UTC().Format(time.RFC3339),
@@ -76,19 +78,20 @@ func (c *Client) GetCandles(
 
 	endpoint := fmt.Sprintf(getCandlesEndpoint, currencyPair)
 	var rawData [][]interface{}
-	err := c.MakeRequest(ctx, "GET", "application/json", endpoint, queryParams, nil, &rawData)
+	err := c.MakeRequest(
+		ctx, "GET", "application/json", endpoint, queryParams, nil, &rawData)
 	if err != nil {
 		return nil, err
 	}
 
 	// Process the raw data into the desired format
-	var rates []CoinBaseHistoricalExchangeRate
+	var rates []HistoricalExchangeRate
 	for _, candle := range rawData {
-		if len(candle) < 5 {
+		if len(candle) < candleLength {
 			return nil, fmt.Errorf("incomplete candle data")
 		}
 
-		var rate CoinBaseHistoricalExchangeRate
+		var rate HistoricalExchangeRate
 		if err := rate.Scan(candle, currencyPair); err != nil {
 			return nil, err
 		}

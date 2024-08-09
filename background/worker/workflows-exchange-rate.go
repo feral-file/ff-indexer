@@ -121,7 +121,7 @@ func (w *NFTIndexerWorker) CrawlExchangeRateByCurrencyPair(
 	ctx = workflow.WithActivityOptions(ctx, ao)
 	log.Debug("start CrawlExchangeRateByCurrencyPair")
 
-	var rates []coinbase.CoinBaseHistoricalExchangeRate
+	var rates []coinbase.HistoricalExchangeRate
 
 	if err := workflow.ExecuteActivity(
 		ctx,
