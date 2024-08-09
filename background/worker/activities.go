@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -242,40 +241,9 @@ func (w *NFTIndexerWorker) CrawlExchangeRateFromCoinbase(
 	end int64,
 ) ([]indexer.CoinBaseHistoricalExchangeRate, error) {
 	client := coinbase.NewClient()
-
-	query := url.Values{}
-	query.Set("granularity", granularity)
-	query.Set("start", time.Unix(start, 0).UTC().Format(time.RFC3339))
-	query.Set("end", time.Unix(end, 0).UTC().Format(time.RFC3339))
-
-	endpoint := fmt.Sprintf("/products/%s/candles", currencyPair)
-	result, err := client.MakeRequest("GET", "application/json", endpoint, query, nil)
+	rates, err := client.GetCandles(ctx, currencyPair, granularity, start, end)
 	if err != nil {
 		return nil, err
-	}
-
-	rawData, ok := result.([]interface{})
-	if !ok {
-		return nil, fmt.Errorf("unexpected response format")
-	}
-
-	var rates []indexer.CoinBaseHistoricalExchangeRate
-	for _, item := range rawData {
-		candle, ok := item.([]interface{})
-		if !ok {
-			return nil, fmt.Errorf("unexpected candle format")
-		}
-
-		if len(candle) < 5 {
-			return nil, fmt.Errorf("incomplete candle data")
-		}
-
-		var rate indexer.CoinBaseHistoricalExchangeRate
-		if err := rate.Scan(candle, currencyPair); err != nil {
-			return nil, err
-		}
-
-		rates = append(rates, rate)
 	}
 
 	return rates, nil
