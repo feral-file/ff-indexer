@@ -9,6 +9,7 @@ import (
 
 	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
+	coinbase "github.com/bitmark-inc/nft-indexer/externals/coinbase"
 	"github.com/fatih/structs"
 	"github.com/meirf/gopart"
 	"go.mongodb.org/mongo-driver/bson"
@@ -26,16 +27,17 @@ const (
 )
 
 const (
-	assetCollectionName            = "assets"
-	tokenCollectionName            = "tokens"
-	identityCollectionName         = "identities"
-	ffIdentityCollectionName       = "ff_identities"
-	accountCollectionName          = "accounts"
-	accountTokenCollectionName     = "account_tokens"
-	tokenAssetViewCollectionName   = "token_assets"
-	collectionsCollectionName      = "collections"
-	collectionAssetsCollectionName = "collection_assets"
-	salesTimeSeriesCollectionName  = "sales_time_series"
+	assetCollectionName                   = "assets"
+	tokenCollectionName                   = "tokens"
+	identityCollectionName                = "identities"
+	ffIdentityCollectionName              = "ff_identities"
+	accountCollectionName                 = "accounts"
+	accountTokenCollectionName            = "account_tokens"
+	tokenAssetViewCollectionName          = "token_assets"
+	collectionsCollectionName             = "collections"
+	collectionAssetsCollectionName        = "collection_assets"
+	salesTimeSeriesCollectionName         = "sales_time_series"
+	historicalExchangeRatesCollectionName = "historical_exchange_rates"
 )
 
 var ErrNoRecordUpdated = fmt.Errorf("no record updated")
@@ -115,6 +117,8 @@ type Store interface {
 	SaleTimeSeriesDataExists(ctx context.Context, txID, blockchain string) (bool, error)
 	GetSaleTimeSeriesData(ctx context.Context, filter SalesFilterParameter) ([]SaleTimeSeries, error)
 	AggregateSaleRevenues(ctx context.Context, filter SalesFilterParameter) (map[string]primitive.Decimal128, error)
+	WriteHistoricalExchangeRate(ctx context.Context, exchangeRate []coinbase.HistoricalExchangeRate) error
+	GetHistoricalExchangeRate(ctx context.Context, filter HistoricalExchangeRateFilter) (ExchangeRate, error)
 }
 
 type FilterParameter struct {
@@ -140,6 +144,12 @@ type SalesFilterParameter struct {
 	To          *time.Time
 	Limit       int64
 	Offset      int64
+	SortASC     bool
+}
+
+type HistoricalExchangeRateFilter struct {
+	CurrencyPair string
+	Timestamp    time.Time
 }
 
 func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*MongodbIndexerStore, error) {
@@ -159,36 +169,39 @@ func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*Mo
 	collectionsCollection := db.Collection(collectionsCollectionName)
 	collectionAssetsCollection := db.Collection(collectionAssetsCollectionName)
 	salesTimeSeriesCollection := db.Collection(salesTimeSeriesCollectionName)
+	historicalExchangeRatesCollection := db.Collection(historicalExchangeRatesCollectionName)
 
 	return &MongodbIndexerStore{
-		dbName:                     dbName,
-		mongoClient:                mongoClient,
-		tokenCollection:            tokenCollection,
-		assetCollection:            assetCollection,
-		identityCollection:         identityCollection,
-		ffIdentityCollection:       ffIdentityCollection,
-		accountCollection:          accountCollection,
-		accountTokenCollection:     accountTokenCollection,
-		tokenAssetCollection:       tokenAssetCollection,
-		collectionsCollection:      collectionsCollection,
-		collectionAssetsCollection: collectionAssetsCollection,
-		salesTimeSeriesCollection:  salesTimeSeriesCollection,
+		dbName:                            dbName,
+		mongoClient:                       mongoClient,
+		tokenCollection:                   tokenCollection,
+		assetCollection:                   assetCollection,
+		identityCollection:                identityCollection,
+		ffIdentityCollection:              ffIdentityCollection,
+		accountCollection:                 accountCollection,
+		accountTokenCollection:            accountTokenCollection,
+		tokenAssetCollection:              tokenAssetCollection,
+		collectionsCollection:             collectionsCollection,
+		collectionAssetsCollection:        collectionAssetsCollection,
+		salesTimeSeriesCollection:         salesTimeSeriesCollection,
+		historicalExchangeRatesCollection: historicalExchangeRatesCollection,
 	}, nil
 }
 
 type MongodbIndexerStore struct {
-	dbName                     string
-	mongoClient                *mongo.Client
-	tokenCollection            *mongo.Collection
-	assetCollection            *mongo.Collection
-	identityCollection         *mongo.Collection
-	ffIdentityCollection       *mongo.Collection
-	accountCollection          *mongo.Collection
-	accountTokenCollection     *mongo.Collection
-	tokenAssetCollection       *mongo.Collection
-	collectionsCollection      *mongo.Collection
-	collectionAssetsCollection *mongo.Collection
-	salesTimeSeriesCollection  *mongo.Collection
+	dbName                            string
+	mongoClient                       *mongo.Client
+	tokenCollection                   *mongo.Collection
+	assetCollection                   *mongo.Collection
+	identityCollection                *mongo.Collection
+	ffIdentityCollection              *mongo.Collection
+	accountCollection                 *mongo.Collection
+	accountTokenCollection            *mongo.Collection
+	tokenAssetCollection              *mongo.Collection
+	collectionsCollection             *mongo.Collection
+	collectionAssetsCollection        *mongo.Collection
+	salesTimeSeriesCollection         *mongo.Collection
+	historicalExchangeRatesCollection *mongo.Collection
 }
 
 type AssetUpdateSet struct {
@@ -2471,6 +2484,90 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 	return nil
 }
 
+func (s *MongodbIndexerStore) WriteHistoricalExchangeRate(ctx context.Context, records []coinbase.HistoricalExchangeRate) error {
+	var operations []mongo.WriteModel
+
+	for _, r := range records {
+		filter := bson.M{"timestamp": r.Time, "currencyPair": r.CurrencyPair}
+		update := bson.M{"$set": bson.M{
+			"timestamp":    r.Time,
+			"price":        r.Open,
+			"currencyPair": r.CurrencyPair,
+		}}
+		model := mongo.NewUpdateOneModel().SetFilter(filter).SetUpdate(update).SetUpsert(true)
+		operations = append(operations, model)
+	}
+
+	if len(operations) > 0 {
+		_, err := s.historicalExchangeRatesCollection.BulkWrite(ctx, operations)
+		if err != nil {
+			log.Error("error in bulk write operation", zap.Error(err))
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *MongodbIndexerStore) GetHistoricalExchangeRate(ctx context.Context, filter HistoricalExchangeRateFilter) (ExchangeRate, error) {
+	var closestExchangeRate ExchangeRate
+	var lowerExchangeRate ExchangeRate
+	var greaterExchangeRate ExchangeRate
+
+	requestingTimestamp := filter.Timestamp.UTC()
+
+	// Find the closest lower timestamp
+	lowerFilterMap := bson.M{
+		"currencyPair": filter.CurrencyPair,
+		"timestamp": bson.M{
+			"$lte": requestingTimestamp,
+		},
+	}
+	lowerFindOptions := options.FindOne()
+	lowerFindOptions.SetSort(bson.D{{Key: "timestamp", Value: -1}})
+
+	err := s.historicalExchangeRatesCollection.FindOne(ctx, lowerFilterMap, lowerFindOptions).Decode(&lowerExchangeRate)
+	if err != nil && err != mongo.ErrNoDocuments {
+		return closestExchangeRate, err
+	}
+
+	if requestingTimestamp.Equal(lowerExchangeRate.Timestamp) {
+		return lowerExchangeRate, nil
+	}
+
+	// Find the closest greater timestamp
+	greaterFilterMap := bson.M{
+		"currencyPair": filter.CurrencyPair,
+		"timestamp": bson.M{
+			"$gte": requestingTimestamp,
+		},
+	}
+	greaterFindOptions := options.FindOne()
+	greaterFindOptions.SetSort(bson.D{{Key: "timestamp", Value: 1}})
+
+	err = s.historicalExchangeRatesCollection.FindOne(ctx, greaterFilterMap, greaterFindOptions).Decode(&greaterExchangeRate)
+	if err != nil && err != mongo.ErrNoDocuments {
+		return closestExchangeRate, err
+	}
+
+	// Compare the two results to find the closest timestamp
+	if lowerExchangeRate.Timestamp.IsZero() {
+		closestExchangeRate = greaterExchangeRate
+	} else if greaterExchangeRate.Timestamp.IsZero() {
+		closestExchangeRate = lowerExchangeRate
+	} else {
+		lowerDiff := requestingTimestamp.Sub(lowerExchangeRate.Timestamp)
+		greaterDiff := greaterExchangeRate.Timestamp.Sub(requestingTimestamp)
+		if lowerDiff <= greaterDiff {
+			closestExchangeRate = lowerExchangeRate
+		} else {
+			closestExchangeRate = greaterExchangeRate
+		}
+	}
+
+	return closestExchangeRate, nil
+}
+
 // SaleTimeSeriesDataExists - check if a sale time series data exists for a transaction hash and blockchain
 func (s *MongodbIndexerStore) SaleTimeSeriesDataExists(ctx context.Context, txID, blockchain string) (bool, error) {
 	count, err := s.salesTimeSeriesCollection.CountDocuments(ctx, bson.M{
@@ -2487,12 +2584,14 @@ func (s *MongodbIndexerStore) SaleTimeSeriesDataExists(ctx context.Context, txID
 func (s *MongodbIndexerStore) GetSaleTimeSeriesData(ctx context.Context, filter SalesFilterParameter) ([]SaleTimeSeries, error) {
 	var saleTimeSeries []SaleTimeSeries
 
-	addressFilter := bson.A{}
-	for _, a := range filter.Addresses {
-		addressFilter = append(addressFilter, bson.M{fmt.Sprintf("shares.%s", a): bson.M{"$nin": bson.A{nil, ""}}})
+	match := bson.M{}
+	if len(filter.Addresses) > 0 {
+		addressFilter := bson.A{}
+		for _, a := range filter.Addresses {
+			addressFilter = append(addressFilter, bson.M{fmt.Sprintf("shares.%s", a): bson.M{"$nin": bson.A{nil, ""}}})
+		}
+		match["$or"] = addressFilter
 	}
-
-	match := bson.M{"$or": addressFilter}
 	if filter.Marketplace != "" {
 		match["metadata.marketplace"] = filter.Marketplace
 	}
@@ -2508,9 +2607,13 @@ func (s *MongodbIndexerStore) GetSaleTimeSeriesData(ctx context.Context, filter 
 		match["timestamp"] = timestampFilter
 	}
 
+	sort := -1
+	if filter.SortASC {
+		sort = 1
+	}
 	pipelines := []bson.M{
 		{"$match": match},
-		{"$sort": bson.D{{Key: "timestamp", Value: -1}, {Key: "_id", Value: -1}}},
+		{"$sort": bson.D{{Key: "timestamp", Value: sort}, {Key: "_id", Value: sort}}},
 	}
 
 	pipelines = append(pipelines,

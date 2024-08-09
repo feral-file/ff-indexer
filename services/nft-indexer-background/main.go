@@ -113,6 +113,12 @@ func main() {
 	workflow.RegisterWithOptions(worker.IndexTezosObjktTokenSale, workflow.RegisterOptions{
 		Name: "IndexTezosTokenSale",
 	})
+	workflow.RegisterWithOptions(worker.CrawlHistoricalExchangeRate, workflow.RegisterOptions{
+		Name: "CrawlHistoricalExchangeRate",
+	})
+	workflow.RegisterWithOptions(worker.CrawlExchangeRateByCurrencyPair, workflow.RegisterOptions{
+		Name: "CrawlExchangeRateByCurrencyPair",
+	})
 
 	// cache
 	activity.Register(worker.CacheArtifact)
@@ -144,6 +150,8 @@ func main() {
 	activity.Register(worker.GetTokenByIndexID)
 	activity.Register(worker.WriteSaleTimeSeriesData)
 	activity.Register(worker.IndexedSaleTx)
+	activity.Register(worker.WriteHistoricalExchangeRate)
+	activity.Register(worker.CrawlExchangeRateFromCoinbase)
 
 	// index account tokens
 	activity.Register(worker.IndexAccountTokens)

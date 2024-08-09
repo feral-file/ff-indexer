@@ -23,6 +23,7 @@ import (
 	utils "github.com/bitmark-inc/autonomy-utils"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/contracts"
+	"github.com/bitmark-inc/nft-indexer/externals/coinbase"
 	"github.com/bitmark-inc/nft-indexer/externals/etherscan"
 	"github.com/bitmark-inc/nft-indexer/traceutils"
 	"github.com/bitmark-inc/tzkt-go"
@@ -226,6 +227,21 @@ func (w *NFTIndexerWorker) IndexAccountTokens(ctx context.Context, owner string,
 
 func (w *NFTIndexerWorker) MarkAccountTokenChanged(ctx context.Context, indexIDs []string) error {
 	return w.indexerStore.MarkAccountTokenChanged(ctx, indexIDs)
+}
+
+func (w *NFTIndexerWorker) WriteHistoricalExchangeRate(ctx context.Context, exchangeRate []coinbase.HistoricalExchangeRate) error {
+	return w.indexerStore.WriteHistoricalExchangeRate(ctx, exchangeRate)
+}
+
+func (w *NFTIndexerWorker) CrawlExchangeRateFromCoinbase(
+	ctx context.Context,
+	currencyPair string,
+	granularity string,
+	start int64,
+	end int64,
+) ([]coinbase.HistoricalExchangeRate, error) {
+	client := coinbase.NewClient()
+	return client.GetCandles(ctx, currencyPair, granularity, start, end)
 }
 
 type Provenance struct {

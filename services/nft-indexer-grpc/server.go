@@ -85,10 +85,10 @@ func (i *IndexerServer) GetTokenByIndexID(ctx context.Context, indexID *pb.Index
 }
 
 // PushProvenance pushes a provenance to the indexer
-func (i *IndexerServer) PushProvenance(ctx context.Context, in *pb.PushProvenanceRequest) (*pb.Empty, error) {
+func (i *IndexerServer) PushProvenance(ctx context.Context, in *pb.PushProvenanceRequest) (*pb.EmptyMessage, error) {
 	lockedTime, err := indexerGRPCSDK.ParseTime(in.LockedTime)
 	if err != nil {
-		return &pb.Empty{}, err
+		return &pb.EmptyMessage{}, err
 	}
 
 	provenance := i.mapper.MapGRPCProvenancesToIndexerProvenances([]*pb.Provenance{in.Provenance})[0]
@@ -101,14 +101,14 @@ func (i *IndexerServer) PushProvenance(ctx context.Context, in *pb.PushProvenanc
 	)
 
 	if err != nil {
-		return &pb.Empty{}, err
+		return &pb.EmptyMessage{}, err
 	}
 
-	return &pb.Empty{}, nil
+	return &pb.EmptyMessage{}, nil
 }
 
 // UpdateOwner updates the owner of a token
-func (i *IndexerServer) UpdateOwner(ctx context.Context, in *pb.UpdateOwnerRequest) (*pb.Empty, error) {
+func (i *IndexerServer) UpdateOwner(ctx context.Context, in *pb.UpdateOwnerRequest) (*pb.EmptyMessage, error) {
 	updatedAt, err := indexerGRPCSDK.ParseTime(in.UpdatedAt)
 	if err != nil {
 		return nil, err
@@ -119,11 +119,11 @@ func (i *IndexerServer) UpdateOwner(ctx context.Context, in *pb.UpdateOwnerReque
 		return nil, err
 	}
 
-	return &pb.Empty{}, nil
+	return &pb.EmptyMessage{}, nil
 }
 
 // UpdateOwnerForFungibleToken updates the owner of a fungible token
-func (i *IndexerServer) UpdateOwnerForFungibleToken(ctx context.Context, in *pb.UpdateOwnerForFungibleTokenRequest) (*pb.Empty, error) {
+func (i *IndexerServer) UpdateOwnerForFungibleToken(ctx context.Context, in *pb.UpdateOwnerForFungibleTokenRequest) (*pb.EmptyMessage, error) {
 	lockedTime, err := indexerGRPCSDK.ParseTime(in.LockedTime)
 	if err != nil {
 		return nil, err
@@ -134,11 +134,11 @@ func (i *IndexerServer) UpdateOwnerForFungibleToken(ctx context.Context, in *pb.
 		return nil, err
 	}
 
-	return &pb.Empty{}, nil
+	return &pb.EmptyMessage{}, nil
 }
 
 // IndexAccountTokens indexes the Account tokens of an account
-func (i *IndexerServer) IndexAccountTokens(ctx context.Context, in *pb.IndexAccountTokensRequest) (*pb.Empty, error) {
+func (i *IndexerServer) IndexAccountTokens(ctx context.Context, in *pb.IndexAccountTokensRequest) (*pb.EmptyMessage, error) {
 	accountTokens, err := i.mapper.MapGRPCAccountTokensToIndexerAccountTokens(in.AccountTokens)
 	if err != nil {
 		return nil, err
@@ -149,7 +149,7 @@ func (i *IndexerServer) IndexAccountTokens(ctx context.Context, in *pb.IndexAcco
 		return nil, err
 	}
 
-	return &pb.Empty{}, nil
+	return &pb.EmptyMessage{}, nil
 }
 
 // GetDetailedToken returns a detailed token by index ID
@@ -242,18 +242,22 @@ func (i *IndexerServer) GetIdentity(ctx context.Context, request *pb.Address) (*
 }
 
 // SendTimeSeriesData send timestamped metadata and values
-func (i *IndexerServer) SendTimeSeriesData(ctx context.Context, req *pb.SaleTimeSeriesRecords) (*pb.Empty, error) {
-	return &pb.Empty{}, i.indexerStore.WriteTimeSeriesData(ctx, i.mapper.MapGrpcSaleTimeSeriesRecords(req))
+func (i *IndexerServer) SendTimeSeriesData(ctx context.Context, req *pb.SaleTimeSeriesRecords) (*pb.EmptyMessage, error) {
+	return &pb.EmptyMessage{}, i.indexerStore.WriteTimeSeriesData(ctx, i.mapper.MapGrpcSaleTimeSeriesRecords(req))
 }
 
 func (i *IndexerServer) GetSaleTimeSeries(ctx context.Context, filter *pb.SaleTimeSeriesFilter) (*pb.SaleTimeSeriesListResponse, error) {
 	offset := int64(0)
 	size := int64(50)
+	sortASC := false
 	if filter.Offset != nil {
 		offset = *filter.Offset
 	}
 	if filter.Size != nil {
 		size = *filter.Size
+	}
+	if filter.SortASC != nil {
+		sortASC = *filter.SortASC
 	}
 
 	sales, err := i.indexerStore.GetSaleTimeSeriesData(ctx, indexer.SalesFilterParameter{
@@ -263,6 +267,7 @@ func (i *IndexerServer) GetSaleTimeSeries(ctx context.Context, filter *pb.SaleTi
 		To:          i.mapper.MapGrpcTimestampToTime(filter.To),
 		Offset:      offset,
 		Limit:       size,
+		SortASC:     sortASC,
 	})
 
 	if err != nil {
@@ -284,4 +289,16 @@ func (i *IndexerServer) GetSaleRevenues(ctx context.Context, filter *pb.SaleTime
 	}
 
 	return i.mapper.MapToGrpcSaleRevenuesResponse(revenues)
+}
+
+func (i *IndexerServer) GetHistoricalExchangeRate(ctx context.Context, filter *pb.HistoricalExchangeRateFilter) (*pb.ExchangeRateResponse, error) {
+	result, err := i.indexerStore.GetHistoricalExchangeRate(ctx, indexer.HistoricalExchangeRateFilter{
+		CurrencyPair: filter.CurrencyPair,
+		Timestamp:    *i.mapper.MapGrpcTimestampToTime(filter.Timestamp),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return i.mapper.MapToExchangeRateResponse(result)
 }

@@ -312,3 +312,9 @@ type SaleTimeSeries struct {
 	USDQuote      primitive.Decimal128   `json:"exchangeRate" bson:"exchangeRate"`
 	Price         primitive.Decimal128   `json:"price" bson:"price"`
 }
+
+type ExchangeRate struct {
+	Timestamp    time.Time `bson:"timestamp"`
+	Price        float64   `bson:"price"`
+	CurrencyPair string    `bson:"currencyPair"`
+}
