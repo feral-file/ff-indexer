@@ -15,7 +15,7 @@ import (
 const (
 	granularity          = 60
 	maxCandlesPerRequest = 300
-	chunkSize            = 25
+	chunkSize            = 10
 )
 
 type RequestChunk struct {
