@@ -8,6 +8,11 @@ import (
 
 const (
 	getCandlesEndpoint = "/products/%s/candles"
+	candleTimeIndex    = 0
+	candleLowIndex     = 1
+	candleHighIndex    = 2
+	candleOpenIndex    = 3
+	candleCloseIndex   = 4
 )
 
 type CoinBaseHistoricalExchangeRate struct {
@@ -19,32 +24,34 @@ type CoinBaseHistoricalExchangeRate struct {
 	CurrencyPair string    `json:"currencyPair"`
 }
 
-func (c *CoinBaseHistoricalExchangeRate) Scan(candle []interface{}, currencyPair string) error {
-	unixTime, ok := candle[0].(float64)
+func (c *CoinBaseHistoricalExchangeRate) Scan(
+	candle []interface{},
+	currencyPair string) error {
+	unixTime, ok := candle[candleTimeIndex].(float64)
 	if !ok {
 		return fmt.Errorf("failed to parse unix time")
 	}
 	c.Time = time.Unix(int64(unixTime), 0).UTC()
 
-	low, ok := candle[1].(float64)
+	low, ok := candle[candleLowIndex].(float64)
 	if !ok {
 		return fmt.Errorf("failed to parse low")
 	}
 	c.Low = low
 
-	high, ok := candle[2].(float64)
+	high, ok := candle[candleHighIndex].(float64)
 	if !ok {
 		return fmt.Errorf("failed to parse low")
 	}
 	c.High = high
 
-	open, ok := candle[3].(float64)
+	open, ok := candle[candleOpenIndex].(float64)
 	if !ok {
 		return fmt.Errorf("failed to parse low")
 	}
 	c.Open = open
 
-	close, ok := candle[4].(float64)
+	close, ok := candle[candleCloseIndex].(float64)
 	if !ok {
 		return fmt.Errorf("failed to parse low")
 	}

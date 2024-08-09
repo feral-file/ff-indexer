@@ -241,12 +241,7 @@ func (w *NFTIndexerWorker) CrawlExchangeRateFromCoinbase(
 	end int64,
 ) ([]coinbase.CoinBaseHistoricalExchangeRate, error) {
 	client := coinbase.NewClient()
-	rates, err := client.GetCandles(ctx, currencyPair, granularity, start, end)
-	if err != nil {
-		return nil, err
-	}
-
-	return rates, nil
+	return client.GetCandles(ctx, currencyPair, granularity, start, end)
 }
 
 type Provenance struct {

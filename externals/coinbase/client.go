@@ -52,7 +52,11 @@ func (c *Client) MakeRequest(
 	}
 
 	// Create the request
-	req, err := http.NewRequestWithContext(ctx, method, reqURL, bytes.NewBuffer(reqBody))
+	req, err := http.NewRequestWithContext(
+		ctx,
+		method,
+		reqURL,
+		bytes.NewBuffer(reqBody))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -72,14 +76,17 @@ func (c *Client) MakeRequest(
 	}
 
 	// Check for HTTP errors
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return fmt.Errorf("request failed with status %s: %s", resp.Status, respBody)
+	if resp.StatusCode < http.StatusOK ||
+		resp.StatusCode >= http.StatusMultipleChoices {
+		return fmt.Errorf("request failed with status %s: %s",
+			resp.Status, respBody)
 	}
 
 	// Check Content-Type header
 	responseContentType := resp.Header.Get(contentTypeHeader)
 	if !strings.HasPrefix(responseContentType, "application/json") {
-		return fmt.Errorf("unexpected content type %s from endpoint %s", responseContentType, endpoint)
+		return fmt.Errorf("unexpected content type %s from endpoint %s",
+			responseContentType, endpoint)
 	}
 
 	// Unmarshal the response body into the result
