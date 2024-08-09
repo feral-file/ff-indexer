@@ -532,7 +532,7 @@ func (m *Mapper) MapToGrpcSaleTimeSeriesListResponse(sales []indexer.SaleTimeSer
 			return nil, err
 		}
 
-		shares, err := m.MapToJson(s.Metadata)
+		shares, err := m.MapToJson(s.Shares)
 		if err != nil {
 			return nil, err
 		}
@@ -571,7 +571,7 @@ func (m *Mapper) MapGrpcSaleTimeSeriesListResponseToIndexerSaleTimeSeries(sales 
 		return []indexer.SaleTimeSeries{}, nil
 	}
 
-	results := make([]indexer.SaleTimeSeries, len(sales.Sales))
+	var results []indexer.SaleTimeSeries
 	for _, s := range sales.Sales {
 		netValue, err := primitive.ParseDecimal128(s.NetValue)
 		if err != nil {
@@ -603,7 +603,7 @@ func (m *Mapper) MapGrpcSaleTimeSeriesListResponseToIndexerSaleTimeSeries(sales 
 			return nil, err
 		}
 
-		if err := json.Unmarshal([]byte(s.Metadata), &shares); err != nil {
+		if err := json.Unmarshal([]byte(s.Shares), &shares); err != nil {
 			return nil, err
 		}
 
@@ -620,4 +620,20 @@ func (m *Mapper) MapGrpcSaleTimeSeriesListResponseToIndexerSaleTimeSeries(sales 
 	}
 
 	return results, nil
+}
+
+func (m *Mapper) MapToExchangeRateResponse(exchangeRate indexer.ExchangeRate) (*grpcIndexer.ExchangeRateResponse, error) {
+	return &grpcIndexer.ExchangeRateResponse{
+		Timestamp:    timestamppb.New(exchangeRate.Timestamp),
+		Price:        exchangeRate.Price,
+		CurrencyPair: exchangeRate.CurrencyPair,
+	}, nil
+}
+
+func (m *Mapper) MapGrpcExchangeRateResponseToIndexerExchangeRate(exchangeRate *grpcIndexer.ExchangeRateResponse) (indexer.ExchangeRate, error) {
+	return indexer.ExchangeRate{
+		Timestamp:    exchangeRate.Timestamp.AsTime(),
+		Price:        exchangeRate.Price,
+		CurrencyPair: exchangeRate.CurrencyPair,
+	}, nil
 }
