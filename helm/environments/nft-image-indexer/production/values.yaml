@@ -15,3 +15,11 @@ serviceConfig:
   cachePeriod: "144h"
   cacheRetryInterval: "24h"
   cloudflareUrlPrefix: https://imagedelivery.net/iCRs13uicXIPOWrnuHbaKA/
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 400m
+    memory: 512Mi

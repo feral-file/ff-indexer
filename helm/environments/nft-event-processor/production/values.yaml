@@ -21,3 +21,11 @@ serviceConfig:
   tezos:
     tzktWsUrl: https://api.tzkt.io/v1/ws
     lastBlockKeyName: /autonomy/production/event-emitter/tezos/last-stop-block
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi

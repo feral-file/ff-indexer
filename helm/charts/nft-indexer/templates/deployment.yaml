@@ -95,7 +95,7 @@ spec:
                   name: {{ include "nft-indexer.fullname" . }}
                   key: sentry_dsn
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml .Values.resources.api | nindent 12 }}
           volumeMounts:
           - name: config
             mountPath: "/.config"
@@ -190,7 +190,7 @@ spec:
               mountPath: "/.config"
               readOnly: true
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml .Values.resources.gprc | nindent 12 }}
           volumeMounts:
           - name: config
             mountPath: "/.config"
@@ -302,7 +302,7 @@ spec:
                   name: {{ include "nft-indexer.fullname" . }}
                   key: etherscan_apikey
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml .Values.resources.background | nindent 12 }}
           volumeMounts:
           - name: config
             mountPath: "/.config"
@@ -409,7 +409,7 @@ spec:
                   name: {{ include "nft-indexer.fullname" . }}
                   key: sentry_dsn
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml .Values.resources.provenance_indexer | nindent 12 }}
           volumeMounts:
           - name: config
             mountPath: "/.config"
@@ -516,7 +516,7 @@ spec:
                   name: {{ include "nft-indexer.fullname" . }}
                   key: sentry_dsn
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+            {{- toYaml .Values.resources.account_token_indexer | nindent 12 }}
           volumeMounts:
           - name: config
             mountPath: "/.config"

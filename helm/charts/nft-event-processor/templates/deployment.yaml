@@ -126,6 +126,8 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
           - /nft-event-processor-ethereum-emitter
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
           env:
             - name: NFT_INDEXER_ETHEREUM_WORKER_ACCOUNT_MNEMONIC
               valueFrom:
@@ -225,6 +227,8 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
           - /nft-event-processor-tezos-emitter
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
           env:
             - name: AWS_REGION
               value: ap-northeast-1
