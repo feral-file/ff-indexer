@@ -119,11 +119,11 @@ resources:
       cpu: "200m"
   provenance_indexer:
     requests:
-      memory: "256Mi"
-      cpu: "100m"
-    limits:
-      memory: "512Mi"
+      memory: "521Mi"
       cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "400m"
   account_token_indexer:
     requests:
       memory: "256Mi"
