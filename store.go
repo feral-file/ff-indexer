@@ -2321,7 +2321,7 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 	ctx context.Context,
 	records []GenericSalesTimeSeries,
 ) error {
-	var inserts []interface{}
+	insertsMap := make(map[string]interface{})
 	for _, r := range records {
 		timestamp, err := time.Parse(time.RFC3339Nano, r.Timestamp)
 		if nil != err {
@@ -2391,6 +2391,11 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 			strings.Join(transactionIDs, ","),
 			strings.Join(saleTokenUniqueIDs, ","),
 		))
+
+		// skip duplicate
+		if _, existed := insertsMap[uniqueID]; existed {
+			continue
+		}
 
 		r.Metadata["uniqueID"] = uniqueID
 
@@ -2469,7 +2474,11 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 				zap.Int64("deletedCount", result.DeletedCount),
 				zap.Any("record", r.Metadata))
 		}
+		insertsMap[uniqueID] = doc
+	}
 
+	var inserts []interface{}
+	for _, doc := range insertsMap {
 		inserts = append(inserts, doc)
 	}
 
