@@ -101,8 +101,8 @@ resources:
       memory: "256Mi"
       cpu: "150m"
     limits:
-      memory: "512Mi"
-      cpu: "300m"
+      memory: "1024Mi"
+      cpu: "500m"
   background: 
     requests:
       memory: "512Mi"
@@ -122,8 +122,8 @@ resources:
       memory: "521Mi"
       cpu: "200m"
     limits:
-      memory: "1Gi"
-      cpu: "400m"
+      memory: "2Gi"
+      cpu: "500m"
   account_token_indexer:
     requests:
       memory: "256Mi"
