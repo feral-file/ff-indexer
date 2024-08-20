@@ -1083,13 +1083,32 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 	}, nil
 }
 
-// Decode Tzkt transfer ParametersValue from an interface
-func decodeParametersValue(input interface{}) (paramValues []tzkt.ParametersValue, err error) {
-	data, ok := input.([]map[string]interface{})
+func parseArraryMapInterface(input interface{}) ([]map[string]interface{}, error) {
+	slice, ok := input.([]interface{})
 	if !ok {
-		return nil, fmt.Errorf("invalid input")
+		return nil, fmt.Errorf("invalid slice of interface")
 	}
 
+	data := make([]map[string]interface{}, len(slice))
+	for i, item := range slice {
+		m, ok := item.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid slice of map string interface")
+		}
+		data[i] = m
+	}
+
+	return data, nil
+}
+
+// Decode Tzkt transfer ParametersValue from an interface
+func decodeParametersValue(input interface{}) (paramValues []tzkt.ParametersValue, err error) {
+	data, err := parseArraryMapInterface(input)
+	if err != nil {
+		return nil, err
+	}
+
+	var ok bool
 	for _, paramValue := range data {
 		var valueSlice []interface{}
 		for _, value := range paramValue {
@@ -1102,10 +1121,10 @@ func decodeParametersValue(input interface{}) (paramValues []tzkt.ParametersValu
 
 		var txs []map[string]interface{}
 		var from string
-		txs, ok = valueSlice[0].([]map[string]interface{})
-		if !ok {
-			txs, ok = valueSlice[1].([]map[string]interface{})
-			if !ok {
+		txs, err := parseArraryMapInterface(valueSlice[0])
+		if err != nil {
+			txs, err = parseArraryMapInterface(valueSlice[1])
+			if err != nil {
 				return nil, fmt.Errorf("invalid param value parse txs")
 			}
 
