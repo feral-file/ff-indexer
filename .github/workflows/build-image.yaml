@@ -154,43 +154,6 @@ jobs:
           docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
         fi
         echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-  
-  build-indexer-account-token:
-    name: Build Indexer Account Token Image
-    runs-on: self-hosted
-    
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
-        aws-region: ap-northeast-1
-
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v1
-    - name: Build Account Token Indexer Image
-      id: build-account-token-indexer-image
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: nft-indexer
-        IMAGE_TAG: account-token-indexer-${{ github.event.inputs.version }}
-        DOCKERFILE: Dockerfile-account-token-indexer
-        GITHUB_USER: bitmark-bot
-        GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
-      run: |
-        # Build a docker container and push it to ECR so that it can be deployed.
-        # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
-        if ! aws ecr describe-images --repository-name="${ECR_REPOSITORY}" --image-ids="imageTag=${IMAGE_TAG}" > /dev/null 2>&1
-        then
-          docker build --build-arg GITHUB_USER=${GITHUB_USER} --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} --tag="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" --file="${DOCKERFILE}" "."
-          docker push "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-        fi
-        echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
 
   build-indexer-image-indexer:
     name: Build Indexer Image Indexer Image

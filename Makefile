@@ -66,11 +66,6 @@ BUILD_LIST += nft-provenance-indexer
 nft-provenance-indexer:
 	go build -o bin/nft-provenance-indexer ./services/nft-provenance-indexer
 
-BUILD_LIST += nft-account-token-indexer
-.PHONY: nft-account-token-indexer
-nft-account-token-indexer:
-	go build -o bin/nft-account-token-indexer ./services/nft-account-token-indexer
-
 BUILD_LIST += nft-ethereum-emitter
 .PHONY: nft-ethereum-emitter
 nft-ethereum-emitter:
@@ -107,10 +102,6 @@ run-nft-event-processor: nft-event-processor
 run-nft-provenance-indexer: nft-provenance-indexer
 	./bin/nft-provenance-indexer -c config.yaml
 
-.PHONY: run-nft-account-token-indexer
-run-nft-account-token-indexer: nft-account-token-indexer
-	./bin/nft-account-token-indexer -c config.yaml
-
 .PHONY: run-nft-ethereum-emitter
 run-nft-ethereum-emitter: nft-ethereum-emitter
 	./bin/nft-ethereum-emitter -c config.yaml
@@ -139,7 +130,7 @@ generate-nft-indexer-graphql:
 .PHONY: build-rebuild
 build-rebuild: generate-nft-indexer-graphql renew-event-processor-grpc build
 
-#BL=nft-indexer nft-indexer-background nft-event-processor nft-provenance-indexer nft-account-token-indexer nft-ethereum-emitter nft-tezos-emitter
+#BL=nft-indexer nft-indexer-background nft-event-processor nft-provenance-indexer nft-ethereum-emitter nft-tezos-emitter
 .PHONY: build
 build: ${BUILD_LIST}
 
@@ -186,17 +177,6 @@ endif
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t nft-indexer:provenance-indexer-$(dist) -f Dockerfile-provenance-indexer .
 	docker tag nft-indexer:provenance-indexer-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:provenance-indexer-$(dist)
-
-.PHONY: build-nft-account-token-indexer
-build-nft-account-token-indexer:
-ifndef dist
-	$(error dist is undefined)
-endif
-	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
-	--build-arg GITHUB_USER=$(GITHUB_USER) \
-	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
-	-t nft-indexer:account-token-indexer-$(dist) -f Dockerfile-account-token-indexer .
-	docker tag nft-indexer:account-token-indexer-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:account-token-indexer-$(dist)
 
 .PHONY: build-nft-ethereum-emitter
 build-nft-ethereum-emitter:

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	uberCadence "go.uber.org/cadence"
-	"go.uber.org/cadence/.gen/go/shared"
 	cadenceClient "go.uber.org/cadence/client"
 	"go.uber.org/zap"
 
@@ -141,30 +140,6 @@ func StartRefreshTokenProvenanceWorkflow(c context.Context, client *cadence.Work
 	} else {
 		log.Debug("start workflow for refreshing provenance", zap.String("caller", caller), zap.String("workflow_id", workflow.ID))
 	}
-}
-
-func StartPendingTxFollowUpWorkflow(c context.Context, client *cadence.WorkerClient, delay time.Duration) error {
-	workflowContext := cadenceClient.StartWorkflowOptions{
-		ID:                           "pending-tx-follow-up",
-		TaskList:                     AccountTokenTaskListName,
-		ExecutionStartToCloseTimeout: time.Hour,
-		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
-	}
-
-	var w NFTIndexerWorker
-
-	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.PendingTxFollowUpWorkflow, delay)
-	if err != nil {
-		log.Error("fail to start updating account token workflow", zap.Error(err))
-		_, isAlreadyStartedError := err.(*shared.WorkflowExecutionAlreadyStartedError)
-		if !isAlreadyStartedError {
-			return err
-		}
-	} else {
-		log.Debug("start workflow for updating pending account tokens", zap.String("workflow_id", workflow.ID))
-	}
-
-	return nil
 }
 
 // StartIndexTezosTokenWorkflow starts a workflow to index tokens for an ethereum address
