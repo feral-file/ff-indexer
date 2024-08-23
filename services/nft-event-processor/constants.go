@@ -28,3 +28,4 @@ var EventStages = map[Stage]string{
 }
 
 const DefaultCheckInterval = 10 * time.Second
+const DefaultEventExpiryDays = 30

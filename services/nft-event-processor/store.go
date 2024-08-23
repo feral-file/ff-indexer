@@ -134,6 +134,7 @@ func NewEventTx(DB *gorm.DB, event NFTEvent) *EventTx {
 type EventStore interface {
 	CreateEvent(event NFTEvent) error
 	GetEventTransaction(ctx context.Context, filters ...FilterOption) (*EventTx, error)
+	DeleteEvents(duration time.Duration) error
 }
 
 type PostgresEventStore struct {
@@ -220,6 +221,10 @@ func (s *PostgresEventStore) GetEventTransaction(ctx context.Context, filters ..
 	}
 
 	return NewEventTx(tx, event), nil
+}
+
+func (s *PostgresEventStore) DeleteEvents(duration time.Duration) error {
+	return s.db.Where("created_at < ?", time.Now().Add(-duration)).Delete(&ArchivedNFTEvent{}).Error
 }
 
 // AutoMigrate is a help function that update db when the schema changed.
