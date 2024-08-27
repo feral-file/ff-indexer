@@ -19,6 +19,7 @@ import (
 type EventProcessor struct {
 	environment          string
 	defaultCheckInterval time.Duration
+	eventExpiryDuration  time.Duration
 
 	grpcServer   *GRPCServer
 	eventQueue   *EventQueue
@@ -32,6 +33,7 @@ type EventProcessor struct {
 func NewEventProcessor(
 	environment string,
 	defaultCheckInterval time.Duration,
+	eventExpiryDuration time.Duration,
 	network string,
 	address string,
 	store EventStore,
@@ -47,6 +49,7 @@ func NewEventProcessor(
 	return &EventProcessor{
 		environment:          environment,
 		defaultCheckInterval: defaultCheckInterval,
+		eventExpiryDuration:  eventExpiryDuration,
 
 		grpcServer:   grpcServer,
 		eventQueue:   queue,
@@ -71,10 +74,39 @@ func (e *EventProcessor) notifyChangeOwner(accountID, toAddress, tokenID string)
 		})
 }
 
+// removeDeprecatedEvents removes expired archived events
+func (e *EventProcessor) removeDeprecatedEvents() error {
+	return e.eventQueue.store.DeleteEvents(e.eventExpiryDuration)
+}
+
+// PruneDeprecatedEventsCrobjob runs the cron job in a goroutine to remove expired archived events
+func (e *EventProcessor) PruneDeprecatedEventsCrobjob() {
+	go func() {
+		for {
+			now := time.Now()
+
+			// Calculate the next run time at midnight
+			nextRun := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, time.UTC)
+			durationUntilNextRun := nextRun.Sub(now)
+
+			// Wait until the next run time
+			time.Sleep(durationUntilNextRun)
+
+			// Remove expired events
+			if err := e.removeDeprecatedEvents(); err != nil {
+				log.Error("error delete archived events", zap.Error(err))
+			}
+		}
+	}()
+}
+
 // Run starts event processor server. It spawns a queue processor in the
 // background routine and starts up a gRPC server to wait new events.
 func (e *EventProcessor) Run(ctx context.Context) {
 	log.Info("start event processor")
+
+	e.PruneDeprecatedEventsCrobjob()
+
 	e.ProcessEvents(ctx)
 
 	if err := e.grpcServer.Run(); err != nil {

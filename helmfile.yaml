@@ -16,7 +16,6 @@ releases:
         background: "background-{{ env "GITHUB_SHA" }}"
         grpc: "grpc-{{ env "GITHUB_SHA" }}"
         provenance_indexer: "provenance-indexer-{{ env "GITHUB_SHA" }}"
-        account_token_indexer: "account-token-indexer-{{ env "GITHUB_SHA" }}"
   {{- end }}
   secrets:
   - helm/environments/nft-indexer/{{ .Environment.Name }}/secrets.yaml

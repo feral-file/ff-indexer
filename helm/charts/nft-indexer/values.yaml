@@ -13,7 +13,6 @@ image:
     background: "background-912ea7b4b68ff1082f9e479294c311561f3530f5"
     grpc: "grpc-912ea7b4b68ff1082f9e479294c311561f3530f5"
     provenance_indexer: "provenance-indexer-912ea7b4b68ff1082f9e479294c311561f3530f5"
-    account_token_indexer: "account-token-indexer-912ea7b4b68ff1082f9e479294c311561f3530f5"
 
 serviceConfig:
   cadence_hostport: cadence-frontend.cadence.svc.cluster.local:7933

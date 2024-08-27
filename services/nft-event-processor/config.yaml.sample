@@ -18,6 +18,7 @@ store:
 
 environment: development
 default_check_interval: 5s
+expiry_check_inverval: 30d
 
 log:
   level: debug

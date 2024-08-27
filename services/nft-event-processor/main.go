@@ -74,9 +74,16 @@ func main() {
 		checkInterval = DefaultCheckInterval
 	}
 
+	eventExpiryDays := viper.GetInt64("event_expiry_days")
+	if eventExpiryDays <= 0 {
+		eventExpiryDays = DefaultEventExpiryDays
+	}
+	eventExpiryDuration := time.Duration(eventExpiryDays) * time.Hour * 24
+
 	p := NewEventProcessor(
 		environment,
 		checkInterval,
+		eventExpiryDuration,
 		viper.GetString("server.network"),
 		viper.GetString("server.address"),
 		NewPostgresEventStore(db),

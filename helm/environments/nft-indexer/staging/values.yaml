@@ -6,7 +6,6 @@ replicaCounts:
   api: 1
   background: 1
   provenance_indexer: 1
-  account_token_indexer: 1
 
 image:
   repository: 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer
@@ -16,7 +15,6 @@ image:
     api: "api-07930973f2792f4e20370d06bdbbbe7c7726035d"
     background: "background-07930973f2792f4e20370d06bdbbbe7c7726035d"
     provenance_indexer: "provenance-indexer-07930973f2792f4e20370d06bdbbbe7c7726035d"
-    account_token_indexer: "account-token-indexer-07930973f2792f4e20370d06bdbbbe7c7726035d"
 
 serviceConfig:
   jwt_public_key_name: /autonomy/staging/jwtPublicKey
@@ -127,10 +125,3 @@ resources:
     limits:
       memory: "1Gi"
       cpu: "400m"
-  account_token_indexer:
-    requests:
-      memory: "256Mi"
-      cpu: "100m"
-    limits:
-      memory: "512Mi"
-      cpu: "200m"
