@@ -200,8 +200,11 @@ func (e *EventProcessor) ProcessEvents(ctx context.Context) {
 	//stage 2-2: trigger full updates for the token for burned token
 	e.UpdateOwnerAndProvenanceForBurnedToken(ctx)
 
-	//stage 3: send notificationSdk
-	e.NotifyChangeTokenOwner(ctx)
+	//stage 3-1: send notificationSdk for transfer tokens
+	e.NotifyChangeTokenOwnerForTransferToken(ctx)
+
+	//stage 3-2: send notificationSdk for minted tokens
+	e.NotifyChangeTokenOwnerForMintToken(ctx)
 
 	//stage 4: send to feed server
 	// e.SendEventToFeedServer(ctx)

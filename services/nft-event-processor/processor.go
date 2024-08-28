@@ -225,11 +225,20 @@ func (e *EventProcessor) notifyChangeTokenOwner(_ context.Context, event NFTEven
 	return nil
 }
 
-// NotifyChangeTokenOwner is a stage 3 worker.
-func (e *EventProcessor) NotifyChangeTokenOwner(ctx context.Context) {
+// NotifyChangeTokenOwnerForTransferToken is a stage 3 worker.
+func (e *EventProcessor) NotifyChangeTokenOwnerForTransferToken(ctx context.Context) {
 	e.StartWorker(ctx,
 		StageNotification, StageTokenSaleIndexing,
-		[]EventType{EventTypeTransfer, EventTypeMint},
+		[]EventType{EventTypeTransfer},
+		0, 0, e.notifyChangeTokenOwner,
+	)
+}
+
+// NotifyChangeTokenOwnerForMintToken is a stage 3 worker.
+func (e *EventProcessor) NotifyChangeTokenOwnerForMintToken(ctx context.Context) {
+	e.StartWorker(ctx,
+		StageNotification, StageDone,
+		[]EventType{EventTypeMint},
 		0, 0, e.notifyChangeTokenOwner,
 	)
 }
