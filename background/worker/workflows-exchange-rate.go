@@ -45,7 +45,29 @@ func (w *NFTIndexerWorker) CrawlHistoricalExchangeRate(
 		}
 	}
 
-	if start > end {
+	if start == 0 && end == 0 {
+		ao := workflow.ActivityOptions{
+
+			TaskList:               w.TaskListName,
+			ScheduleToStartTimeout: 10 * time.Minute,
+			StartToCloseTimeout:    time.Hour,
+		}
+		ctxac := workflow.WithActivityOptions(ctx, ao)
+
+		var lastTime time.Time
+		if err := workflow.ExecuteActivity(
+			ctxac,
+			w.GetExchangeRateLastTime,
+		).Get(ctx, &lastTime); err != nil {
+			log.Error("Failed get exchange rate last time", zap.Error(err))
+			return err
+		}
+
+		start = lastTime.Unix()
+		end = time.Now().Unix()
+	}
+
+	if start >= end {
 		log.Error("Start must be before end")
 		return nil
 	}

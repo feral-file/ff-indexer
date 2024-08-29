@@ -228,6 +228,10 @@ func (w *NFTIndexerWorker) MarkAccountTokenChanged(ctx context.Context, indexIDs
 	return w.indexerStore.MarkAccountTokenChanged(ctx, indexIDs)
 }
 
+func (w *NFTIndexerWorker) GetExchangeRateLastTime(ctx context.Context) (time.Time, error) {
+	return w.indexerStore.GetExchangeRateLastTime(ctx)
+}
+
 func (w *NFTIndexerWorker) WriteHistoricalExchangeRate(ctx context.Context, exchangeRate []coinbase.HistoricalExchangeRate) error {
 	return w.indexerStore.WriteHistoricalExchangeRate(ctx, exchangeRate)
 }

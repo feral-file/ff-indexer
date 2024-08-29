@@ -7,6 +7,7 @@ import (
 	"time"
 
 	uberCadence "go.uber.org/cadence"
+	"go.uber.org/cadence/.gen/go/shared"
 	cadenceClient "go.uber.org/cadence/client"
 	"go.uber.org/zap"
 
@@ -236,6 +237,31 @@ func StartIndexingTokenSale(
 	default:
 		return fmt.Errorf("unsupported blockchain: %s", blockchain)
 	}
+
+	return nil
+}
+
+func StartIndexExchangeRateCronWorkflow(c context.Context, client *cadence.WorkerClient) error {
+	workflowContext := cadenceClient.StartWorkflowOptions{
+		ID:                           "index-exchange-rate-cron",
+		TaskList:                     TaskListName,
+		ExecutionStartToCloseTimeout: 5 * time.Minute,
+		CronSchedule:                 "*/10 * * * *", //every 10 mins
+	}
+
+	var w NFTIndexerWorker
+
+	pairs := []string{"ETH-USD", "XTZ-USD"}
+	if _, err := client.StartWorkflow(c, ClientName,
+		workflowContext, w.CrawlHistoricalExchangeRate, pairs, int64(0), int64(0)); err != nil {
+		_, isAlreadyStartedError := err.(*shared.WorkflowExecutionAlreadyStartedError)
+		if !isAlreadyStartedError {
+			log.Error("fail to start index exchange rate workflow", zap.Error(err))
+			return err
+		}
+	}
+
+	log.Debug("workflow index exchange rate started")
 
 	return nil
 }

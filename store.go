@@ -119,6 +119,7 @@ type Store interface {
 	AggregateSaleRevenues(ctx context.Context, filter SalesFilterParameter) (map[string]primitive.Decimal128, error)
 	WriteHistoricalExchangeRate(ctx context.Context, exchangeRate []coinbase.HistoricalExchangeRate) error
 	GetHistoricalExchangeRate(ctx context.Context, filter HistoricalExchangeRateFilter) (ExchangeRate, error)
+	GetExchangeRateLastTime(ctx context.Context) (time.Time, error)
 }
 
 type FilterParameter struct {
@@ -2708,4 +2709,25 @@ func (s *MongodbIndexerStore) AggregateSaleRevenues(ctx context.Context, filter 
 	}
 
 	return resultMap, nil
+}
+
+func (s *MongodbIndexerStore) GetExchangeRateLastTime(ctx context.Context) (time.Time, error) {
+	findOptions := options.FindOne().SetSort(bson.D{{Key: "time", Value: -1}})
+	r := s.historicalExchangeRatesCollection.FindOne(ctx, bson.M{}, findOptions)
+
+	if err := r.Err(); err != nil {
+		if err == mongo.ErrNoDocuments {
+			// If a document is not found, return zero time
+			return time.Time{}, nil
+		}
+
+		return time.Time{}, err
+	}
+
+	var rate ExchangeRate
+	if err := r.Decode(&rate); err != nil {
+		return time.Time{}, err
+	}
+
+	return rate.Timestamp, nil
 }
