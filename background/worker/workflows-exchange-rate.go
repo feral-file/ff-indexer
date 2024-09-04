@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/externals/coinbase"
 	"go.uber.org/cadence"
 	cadenceClient "go.uber.org/cadence/client"
@@ -33,13 +34,9 @@ func (w *NFTIndexerWorker) CrawlHistoricalExchangeRate(
 	log := workflow.GetLogger(ctx)
 	log.Debug("start CrawlHistoricalExchangeRate")
 
-	supportedCurrencyPairs := map[string]bool{
-		"ETH-USD": true,
-		"XTZ-USD": true,
-	}
 	// Check if all currencyPairs is supported
 	for _, currencyPair := range currencyPairs {
-		if !supportedCurrencyPairs[currencyPair] {
+		if !indexer.SupportedCurrencyPairs[currencyPair] {
 			log.Error("unsupported currency pair", zap.String("currencyPair", currencyPair))
 			return nil
 		}

@@ -103,3 +103,8 @@ const (
 )
 
 const hicetnuncDefaultThumbnailURL = "ipfs://QmNrhZHUaEqxhyLfqoq1mtHSipkWHeT31LNHb1QEbDHgnc"
+
+var SupportedCurrencyPairs = map[string]bool{
+	"ETH-USD": true,
+	"XTZ-USD": true,
+}

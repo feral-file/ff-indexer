@@ -40,6 +40,8 @@ func (s *NFTIndexerServer) SetupRoute() {
 
 	s.route.GET("/eth/:block_hash/block_time", s.GetETHBlockTime)
 
+	s.route.GET("/exchange_rate", s.GetExchangeRate)
+
 	v1 := s.route.Group("/v1")
 	v1NFT := v1.Group("/nft")
 	v1NFT.GET("", s.GetAccountNFTs)

@@ -59,15 +59,9 @@ type CollectionQueryParams struct {
 	Creators string `form:"creators"`
 }
 
-type TokenFeedbackParams struct {
-	Tokens    []indexer.TokenFeedbackUpdate `json:"tokens"`
-	RequestID string                        `json:"requestID"`
-}
-
-type RequestedTokenFeedback struct {
-	DID       string          `json:"did"`
-	Timestamp int64           `json:"timestamp"`
-	Tokens    map[string]bool `json:"tokens"`
+type ExchangeRateQueryParams struct {
+	CurrencyPair string    `form:"currencyPair" binding:"required"`
+	Timestamp    time.Time `form:"timestamp"`
 }
 
 // FIXME: remove this and merge with background / helpers

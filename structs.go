@@ -314,7 +314,7 @@ type SaleTimeSeries struct {
 }
 
 type ExchangeRate struct {
-	Timestamp    time.Time `bson:"timestamp"`
-	Price        float64   `bson:"price"`
-	CurrencyPair string    `bson:"currencyPair"`
+	Timestamp    time.Time `json:"timestamp" bson:"timestamp"`
+	Price        float64   `json:"price" bson:"price"`
+	CurrencyPair string    `json:"currencyPair" bson:"currencyPair"`
 }
