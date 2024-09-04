@@ -246,7 +246,7 @@ func StartIndexExchangeRateCronWorkflow(c context.Context, client *cadence.Worke
 		ID:                           "index-exchange-rate-cron",
 		TaskList:                     TaskListName,
 		ExecutionStartToCloseTimeout: 5 * time.Minute,
-		CronSchedule:                 "*/10 * * * *", //every 10 mins
+		CronSchedule:                 "*/5 * * * *", //every 5 mins
 	}
 
 	var w NFTIndexerWorker
