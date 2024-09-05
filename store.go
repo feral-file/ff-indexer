@@ -2712,7 +2712,7 @@ func (s *MongodbIndexerStore) AggregateSaleRevenues(ctx context.Context, filter 
 }
 
 func (s *MongodbIndexerStore) GetExchangeRateLastTime(ctx context.Context) (time.Time, error) {
-	findOptions := options.FindOne().SetSort(bson.D{{Key: "time", Value: -1}})
+	findOptions := options.FindOne().SetSort(bson.D{{Key: "timestamp", Value: -1}})
 	r := s.historicalExchangeRatesCollection.FindOne(ctx, bson.M{}, findOptions)
 
 	if err := r.Err(); err != nil {
