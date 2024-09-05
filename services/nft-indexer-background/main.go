@@ -152,11 +152,19 @@ func main() {
 	activity.Register(worker.IndexedSaleTx)
 	activity.Register(worker.WriteHistoricalExchangeRate)
 	activity.Register(worker.CrawlExchangeRateFromCoinbase)
+	activity.Register(worker.GetExchangeRateLastTime)
 
 	// index account tokens
 	activity.Register(worker.IndexAccountTokens)
 	activity.Register(worker.MarkAccountTokenChanged)
 
 	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)
+
+	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
+	cadenceClient.AddService(indexerWorker.ClientName)
+	if err := indexerWorker.StartIndexExchangeRateCronWorkflow(ctx, cadenceClient); err != nil {
+		panic(err)
+	}
+
 	cadence.StartWorker(log.DefaultLogger(), workerServiceClient, viper.GetString("cadence.domain"), indexerWorker.TaskListName)
 }

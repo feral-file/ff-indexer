@@ -689,3 +689,33 @@ func (s *NFTIndexerServer) GetCollectionByID(c *gin.Context) {
 
 	c.JSON(http.StatusOK, collection)
 }
+
+// GetCollectionByID queries the exchange rate by currency pair and timestamp
+func (s *NFTIndexerServer) GetExchangeRate(c *gin.Context) {
+	traceutils.SetHandlerTag(c, "GetExchangeRate")
+
+	var reqParams = ExchangeRateQueryParams{
+		Timestamp: time.Now(), // default is latest exchange rate
+	}
+
+	if err := c.BindQuery(&reqParams); err != nil {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
+		return
+	}
+
+	if !indexer.SupportedCurrencyPairs[reqParams.CurrencyPair] {
+		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("unsupported currency pair"))
+		return
+	}
+
+	result, err := s.indexerStore.GetHistoricalExchangeRate(c, indexer.HistoricalExchangeRateFilter{
+		CurrencyPair: reqParams.CurrencyPair,
+		Timestamp:    reqParams.Timestamp,
+	})
+	if err != nil {
+		abortWithError(c, http.StatusInternalServerError, "fail to query exchange rate from indexer store", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
