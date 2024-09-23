@@ -68,15 +68,10 @@ type Store interface {
 	GetIdentities(ctx context.Context, accountNumbers []string) (map[string]AccountIdentity, error)
 	IndexIdentity(ctx context.Context, identity AccountIdentity) error
 
-	GetPendingAccountTokens(ctx context.Context) ([]AccountToken, error)
-	AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx, blockchain, ID string) error
-	UpdatePendingTxsToAccountToken(ctx context.Context, ownerAccount, indexID string, pendingTxs []string, lastPendingTimes []time.Time) error
-
 	IndexAccount(ctx context.Context, account Account) error
 	IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error
 	GetAccount(ctx context.Context, owner string) (Account, error)
 	UpdateAccountTokenOwners(ctx context.Context, indexID string, tokenBalances []OwnerBalance) error
-	GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
 	IndexDemoTokens(ctx context.Context, owner string, indexIDs []string) error
 	DeleteDemoTokens(ctx context.Context, owner string) error
 
@@ -1207,122 +1202,6 @@ func (s *MongodbIndexerStore) IndexIdentity(ctx context.Context, identity Accoun
 	return nil
 }
 
-// AddPendingTxToAccountToken add pendingTx to a specific account token if this pendingTx does not exist
-func (s *MongodbIndexerStore) AddPendingTxToAccountToken(ctx context.Context, ownerAccount, indexID, pendingTx, blockchain, ID string) error {
-	_, err := s.accountTokenCollection.UpdateOne(ctx,
-		bson.M{
-			"indexID":      indexID,
-			"ownerAccount": ownerAccount,
-			"pendingTxs":   bson.M{"$nin": bson.A{pendingTx}},
-		},
-		bson.M{
-			"$push": bson.M{
-				"pendingTxs":      pendingTx,
-				"lastPendingTime": time.Now(),
-			},
-			"$set": bson.M{
-				"blockchain": blockchain,
-				"id":         ID,
-			},
-		},
-	)
-
-	if err != nil {
-		log.Error("cannot add pendingTx to account token",
-			zap.String("ownerAccount", ownerAccount),
-			zap.String("indexID", indexID),
-			zap.String("pendingTx", pendingTx),
-			zap.Error(err))
-		return err
-	}
-
-	// if r.MatchedCount == 0 || r.ModifiedCount == 0 {
-	// 	// 1. We don't have this account token OR
-	// 	// 2. This account token already has the pendingTx.
-	// 	// We try to insert this account token. If an error happen, it has a
-	// 	// high chance to be 2. We log down it with error for tracking.
-	// 	_, err := s.accountTokenCollection.InsertOne(ctx,
-	// 		bson.M{
-	// 			"indexID":         indexID,
-	// 			"ownerAccount":    ownerAccount,
-	// 			"blockchain":      blockchain,
-	// 			"id":              ID,
-	// 			"lastPendingTime": bson.A{time.Now()},
-	// 			"pendingTxs":      bson.A{pendingTx},
-	// 		},
-	// 	)
-	// 	if err != nil {
-	// 		log.Warn("cannot insert a new account token",
-	// 			zap.Error(err),
-	// 			zap.String("ownerAccount", ownerAccount),
-	// 			zap.String("indexID", indexID),
-	// 			zap.String("pendingTx", pendingTx))
-	// 	}
-	// }
-
-	return nil
-}
-
-// UpdatePendingTxsToAccountToken updates the the pending txs of an account token
-func (s *MongodbIndexerStore) UpdatePendingTxsToAccountToken(ctx context.Context, ownerAccount, indexID string, pendingTxs []string, lastPendingTimes []time.Time) error {
-	r, err := s.accountTokenCollection.UpdateOne(ctx,
-		bson.M{
-			"indexID":      indexID,
-			"ownerAccount": ownerAccount,
-		},
-		bson.M{
-			"$set": bson.M{
-				"pendingTxs":      pendingTxs,
-				"lastPendingTime": lastPendingTimes,
-			},
-		},
-	)
-
-	if err != nil {
-		log.Error("cannot update pendingTxs and lastPendingTime to account token",
-			zap.String("ownerAccount", ownerAccount),
-			zap.String("indexID", indexID),
-			zap.Error(err))
-		return err
-	}
-
-	if r.ModifiedCount == 0 {
-		log.Warn("account token does not update",
-			zap.Error(err),
-			zap.String("ownerAccount", ownerAccount),
-			zap.String("indexID", indexID),
-		)
-	}
-
-	return nil
-}
-
-// GetPendingAccountTokens gets all pending account tokens in the db
-func (s *MongodbIndexerStore) GetPendingAccountTokens(ctx context.Context) ([]AccountToken, error) {
-	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{"pendingTxs": bson.M{"$nin": bson.A{nil, bson.A{}}}})
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
-	pendingAccountTokens := []AccountToken{}
-	for cursor.Next(ctx) {
-		var accountToken AccountToken
-
-		if err := cursor.Decode(&accountToken); err != nil {
-			var raw interface{}
-			if err := cursor.Decode(&raw); err != nil {
-				log.Error("fail to decode account token into raw interface", zap.Error(err))
-			}
-			log.Error("fail to decode account token", zap.Error(err), zap.Any("raw", raw))
-			continue
-		}
-
-		pendingAccountTokens = append(pendingAccountTokens, accountToken)
-	}
-	return pendingAccountTokens, nil
-}
-
 // IndexAccount indexes the account by inputs
 func (s *MongodbIndexerStore) IndexAccount(ctx context.Context, account Account) error {
 	if account.LastUpdatedTime.IsZero() {
@@ -1477,57 +1356,6 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 	})
 
 	return err
-}
-
-// GetDetailedAccountTokensByOwner returns a list of DetailedToken by account owner
-func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwner(ctx context.Context, account string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error) {
-	findOptions := options.Find().SetSort(bson.D{{Key: "lastActivityTime", Value: -1}, {Key: "_id", Value: -1}}).SetLimit(size).SetSkip(offset)
-
-	log.Debug("GetDetailedAccountTokensByOwner",
-		zap.Any("filterParameter", filterParameter),
-		zap.Int64("offset", offset),
-		zap.Int64("size", size))
-
-	cursor, err := s.accountTokenCollection.Find(ctx, bson.M{
-		"ownerAccount": account,
-		"balance":      bson.M{"$gt": 0}}, findOptions)
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-
-	indexIDs := make([]string, 0)
-	accountTokenMap := map[string]AccountToken{}
-	for cursor.Next(ctx) {
-		var token AccountToken
-
-		if err := cursor.Decode(&token); err != nil {
-			return nil, err
-		}
-
-		indexIDs = append(indexIDs, token.IndexID)
-		accountTokenMap[token.IndexID] = token
-	}
-
-	if len(indexIDs) == 0 {
-		return []DetailedToken{}, nil
-	}
-
-	filterParameter.IDs = indexIDs
-	assets, err := s.GetDetailedTokens(ctx, filterParameter, offset, size)
-
-	if err != nil {
-		return nil, err
-	}
-
-	for i := range assets {
-		asset := &assets[i]
-
-		asset.Balance = accountTokenMap[asset.IndexID].Balance
-		asset.Owner = accountTokenMap[asset.IndexID].OwnerAccount
-	}
-
-	return assets, nil
 }
 
 // IndexDemoTokens copies  existent tokens in the db but change the blockchain name to "demo" and modify owner

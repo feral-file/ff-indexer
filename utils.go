@@ -3,13 +3,9 @@ package indexer
 import (
 	"bytes"
 	"context"
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"math/big"
 	"net/http"
 	"net/url"
@@ -34,12 +30,6 @@ func OpenseaTokenIDToHex(tokenID string) (string, error) {
 	}
 
 	return tokenIDBig.Text(16), nil
-}
-
-// AssetIndexID returns a source-based unique asset id. It is constructed by
-// source of the asset data and the asset id from the source site.
-func AssetIndexID(source, id string) string {
-	return fmt.Sprintf("%s-%s", source, id)
 }
 
 // TokenIndexID returns blockchain-based unique token id. It is constructed by
@@ -149,61 +139,6 @@ func GetMIMETypeByURL(urlString string) string {
 	}
 }
 
-func AESSeal(message []byte, passphrase string) (string, error) {
-	key := []byte(passphrase)
-
-	c, err := aes.NewCipher(key)
-	if err != nil {
-		return "", err
-	}
-
-	gcm, err := cipher.NewGCM(c)
-	if err != nil {
-		return "", err
-	}
-
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
-		return "", err
-	}
-
-	bytes := gcm.Seal(nonce, nonce, message, nil)
-
-	return hex.EncodeToString(bytes), nil
-}
-
-func AESOpen(hexString string, passphrase string) ([]byte, error) {
-	ciphertext, err := hex.DecodeString(hexString)
-	if err != nil {
-		return nil, err
-	}
-
-	key := []byte(passphrase)
-
-	c, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-
-	gcm, err := cipher.NewGCM(c)
-	if err != nil {
-		return nil, err
-	}
-
-	nonceSize := gcm.NonceSize()
-	if len(ciphertext) < nonceSize {
-		return nil, err
-	}
-
-	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
-	message, err := gcm.Open(nil, nonce, ciphertext, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return message, nil
-}
-
 // GetCIDFromIPFSLink seaches and returns the CID for a give url
 func GetCIDFromIPFSLink(link string) (string, error) {
 	u, err := url.Parse(link)
@@ -256,11 +191,6 @@ func NormalizeIndexIDs(indexIDs []string, isConvertToDecimal bool) []string {
 		processedAddresses = append(processedAddresses, indexID)
 	}
 	return processedAddresses
-}
-
-// GetPrefixedSigningMessage formats a message with a predefined nft-indexer: prefix and a given timestamp.
-func GetPrefixedSigningMessage(timestamp string) string {
-	return fmt.Sprintf("nft-indexer: %s", timestamp)
 }
 
 func BuildQueryParams(params interface{}) string {
