@@ -44,9 +44,6 @@ func (s *NFTIndexerServer) SetupRoute() {
 
 	v1 := s.route.Group("/v1")
 	v1NFT := v1.Group("/nft")
-	v1NFT.GET("", s.GetAccountNFTs)
-	v1NFT.POST("/query", s.QueryNFTsV1)
-	v1NFT.POST("/pending", s.SetTokenPendingV1)
 	v1NFT.GET("/owned", s.OwnedNFTIDs)
 
 	v1.POST("/admin/demo-tokens/", TokenAuthenticate("API-TOKEN", s.adminAPIToken), s.CreateDemoTokens)
@@ -68,7 +65,6 @@ func (s *NFTIndexerServer) SetupRoute() {
 	v2NFT.POST("/index_one", s.IndexOneNFT)
 	v2NFT.POST("/index", s.IndexNFTsV2)
 	v2NFT.POST("/index_history", s.IndexHistory)
-	v2NFT.POST("/pending", s.SetTokenPendingV2)
 
 	v2Collections := v2.Group("/collections")
 	v2Collections.POST("/index", s.IndexCollections)

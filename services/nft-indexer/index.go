@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -252,99 +251,6 @@ func (s *NFTIndexerServer) IndexHistory(c *gin.Context) {
 	} else {
 		indexerWorker.StartRefreshTokenProvenanceWorkflow(c, s.cadenceWorker, "indexer", reqParams.IndexID, 0)
 	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"ok": 1,
-	})
-}
-
-func (s *NFTIndexerServer) SetTokenPendingV1(c *gin.Context) {
-	s.SetTokenPending(c, false)
-}
-
-func (s *NFTIndexerServer) SetTokenPendingV2(c *gin.Context) {
-	s.SetTokenPending(c, true)
-}
-
-func (s *NFTIndexerServer) SetTokenPending(c *gin.Context, withPrefix bool) {
-	traceutils.SetHandlerTag(c, "TokenPending")
-
-	var reqParams PendingTxParamsV1
-
-	if err := c.BindQuery(&reqParams); err != nil {
-		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
-		return
-	}
-
-	if err := c.Bind(&reqParams); err != nil {
-		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
-		return
-	}
-
-	if reqParams.PendingTx == "" {
-		abortWithError(c, http.StatusBadRequest, "invalid parameter", fmt.Errorf("pendingTx is required"))
-		return
-	}
-
-	createdAt, err := utils.EpochStringToTime(reqParams.Timestamp)
-	if err != nil {
-		abortWithError(c, http.StatusBadRequest, "invalid parameter", err)
-		return
-	}
-
-	now := time.Now()
-	if !utils.IsTimeInRange(createdAt, now, 5) {
-		abortWithError(c, http.StatusBadRequest, "invalid parameter", fmt.Errorf("request time too skewed"))
-		return
-	}
-
-	message := reqParams.Timestamp
-	if withPrefix {
-		jsonMessage, err := json.Marshal(struct {
-			Blockchain      string `json:"blockchain"`
-			ID              string `json:"id"`
-			ContractAddress string `json:"contractAddress"`
-			OwnerAccount    string `json:"ownerAccount"`
-			Timestamp       string `json:"timestamp"`
-		}{
-			Blockchain:      reqParams.Blockchain,
-			ID:              reqParams.ID,
-			ContractAddress: reqParams.ContractAddress,
-			OwnerAccount:    reqParams.OwnerAccount,
-			Timestamp:       reqParams.Timestamp,
-		})
-		if err != nil {
-			abortWithError(c, http.StatusInternalServerError, "error marshall json message", err)
-			return
-		}
-		message = indexer.GetPrefixedSigningMessage(string(jsonMessage))
-	}
-
-	isValidAddress, err := s.verifyAddressOwner(
-		reqParams.Blockchain,
-		message,
-		reqParams.Signature,
-		reqParams.OwnerAccount,
-		reqParams.PublicKey,
-	)
-
-	if err != nil {
-		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
-		return
-	}
-
-	if !isValidAddress {
-		abortWithError(c, http.StatusBadRequest, "invalid parameters", fmt.Errorf("invalid signature for ownerAddress"))
-		return
-	}
-
-	indexID := indexer.TokenIndexID(reqParams.Blockchain, reqParams.ContractAddress, reqParams.ID)
-
-	if err := s.indexerStore.AddPendingTxToAccountToken(c, reqParams.OwnerAccount, indexID, reqParams.PendingTx, reqParams.Blockchain, reqParams.ID); err != nil {
-		log.Warn("error while adding pending accountToken", zap.Error(err), zap.String("owner", reqParams.OwnerAccount), zap.String("pendingTx", reqParams.PendingTx))
-		return
-	}
-	log.Info("a pending account token is added", zap.String("owner", reqParams.OwnerAccount), zap.String("pendingTx", reqParams.PendingTx))
 
 	c.JSON(http.StatusOK, gin.H{
 		"ok": 1,
