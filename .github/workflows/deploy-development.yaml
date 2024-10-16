@@ -321,17 +321,6 @@ jobs:
         aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
         aws-region: ap-northeast-1
 
-    - name: Sops Binary Installer
-      uses: mdgreenwald/mozilla-sops-action@v1.1.0
-      with:
-        version: '3.7.1'
-      id: install-sops
-  
-    - name: Setup helmfile (include kubectl and helm)
-      uses: mamezou-tech/setup-helmfile@v1.0.0
-      with:
-        additional-helm-plugins: https://github.com/jkroepke/helm-secrets --version v3.8.3
-  
     - name: Set eks cluster context
       uses: azure/k8s-set-context@v2
       with:
