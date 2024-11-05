@@ -45,16 +45,24 @@ func main() {
 
 	var records bson.A
 	for _, i := range identities {
-		records = append(records, bson.M{"accountNumber": i.Bitmark, "blockchain": "bitmark", "name": i.Alias})
-		records = append(records, bson.M{"accountNumber": i.Ethereum, "blockchain": "ethereum", "name": i.Alias})
-		records = append(records, bson.M{"accountNumber": i.Tezos, "blockchain": "tezos", "name": i.Alias})
-
+		if i.Alias == "" {
+			panic("Alias is required")
+		}
+		if i.Tezos != "" {
+			records = append(records, bson.M{"accountNumber": i.Tezos, "blockchain": "tezos", "name": i.Alias})
+		}
+		if i.Bitmark != "" {
+			records = append(records, bson.M{"accountNumber": i.Bitmark, "blockchain": "bitmark", "name": i.Alias})
+		}
+		if i.Ethereum != "" {
+			records = append(records, bson.M{"accountNumber": i.Ethereum, "blockchain": "ethereum", "name": i.Alias})
+		}
 	}
 
 	if _, err := ffIdentityCollection.InsertMany(ctx, records); err != nil {
-		fmt.Printf("%+v", records)
+		fmt.Println(err)
 		panic(err)
 	}
 
-	// fmt.Println(r)
+	fmt.Println("Imported ff_identities.json")
 }
