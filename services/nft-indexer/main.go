@@ -15,7 +15,6 @@ import (
 	"github.com/bitmark-inc/nft-indexer/cache"
 	"github.com/bitmark-inc/nft-indexer/cadence"
 	"github.com/bitmark-inc/nft-indexer/externals/ens"
-	"github.com/bitmark-inc/nft-indexer/externals/feralfile"
 	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
 	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/nft-indexer/externals/opensea"
@@ -57,7 +56,6 @@ func main() {
 
 	ensClient := ens.New(viper.GetString("ens.rpc_url"))
 	tezosDomain := tezosDomain.New(viper.GetString("tezos.domain_api_url"))
-	feralfileClient := feralfile.New(viper.GetString("feralfile.api_url"))
 
 	var minterGateways map[string]string
 	if err := yaml.Unmarshal([]byte(viper.GetString("ipfs.minter_gateways")), &minterGateways); err != nil {
@@ -106,7 +104,7 @@ func main() {
 		log.Panic("jwt public key parsing failed", zap.Error(err))
 	}
 
-	s := NewNFTIndexerServer(cadenceClient, ensClient, tezosDomain, ethClient, feralfileClient, indexerStore, cacheStore, engine, jwtPubkey, viper.GetString("server.api_token"), viper.GetString("server.admin_api_token"), viper.GetString("server.secret_symmetric_key"))
+	s := NewNFTIndexerServer(cadenceClient, ensClient, tezosDomain, ethClient, indexerStore, cacheStore, engine, jwtPubkey, viper.GetString("server.api_token"), viper.GetString("server.admin_api_token"), viper.GetString("server.secret_symmetric_key"))
 	s.SetupRoute()
 	if err := s.Run(viper.GetString("server.port")); err != nil {
 		log.Panic("server interrupted", zap.Error(err))

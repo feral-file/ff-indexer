@@ -187,12 +187,6 @@ func (s *NFTIndexerServer) fetchIdentity(c context.Context, accountNumber string
 			return nil, err
 		}
 		id.Name = domain
-	case utils.BitmarkBlockchain:
-		account, err := s.feralfile.GetAccountInfo(accountNumber)
-		if err != nil {
-			return nil, err
-		}
-		id.Name = account.Alias
 	default:
 		return nil, ErrUnsupportedBlockchain
 	}

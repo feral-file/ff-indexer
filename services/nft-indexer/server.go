@@ -10,7 +10,6 @@ import (
 	"github.com/bitmark-inc/nft-indexer/cache"
 	"github.com/bitmark-inc/nft-indexer/cadence"
 	"github.com/bitmark-inc/nft-indexer/externals/ens"
-	"github.com/bitmark-inc/nft-indexer/externals/feralfile"
 	tezosDomain "github.com/bitmark-inc/nft-indexer/externals/tezos-domain"
 )
 
@@ -23,7 +22,6 @@ type NFTIndexerServer struct {
 	ensClient          *ens.ENS
 	tezosDomain        *tezosDomain.Client
 	ethClient          *ethclient.Client
-	feralfile          *feralfile.Feralfile
 	cadenceWorker      *cadence.WorkerClient
 	indexerStore       indexer.Store
 	cacheStore         cache.Store
@@ -34,7 +32,6 @@ func NewNFTIndexerServer(cadenceWorker *cadence.WorkerClient,
 	ensClient *ens.ENS,
 	tezosDomain *tezosDomain.Client,
 	ethClient *ethclient.Client,
-	feralfileClient *feralfile.Feralfile,
 	indexerStore indexer.Store,
 	cacheStore cache.Store,
 	indexerEngine *indexer.IndexEngine,
@@ -53,7 +50,6 @@ func NewNFTIndexerServer(cadenceWorker *cadence.WorkerClient,
 		ensClient:          ensClient,
 		tezosDomain:        tezosDomain,
 		ethClient:          ethClient,
-		feralfile:          feralfileClient,
 		cadenceWorker:      cadenceWorker,
 		indexerStore:       indexerStore,
 		cacheStore:         cacheStore,
