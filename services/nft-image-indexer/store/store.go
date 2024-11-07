@@ -166,6 +166,8 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageReade
 			return NewImageCachingError(ReasonDownloadFileFailed)
 		}
 		log.Debug("download thumbnail finished",
+			zap.String("mimeType", mimeType),
+			zap.Int("imageSize", imageSize),
 			zap.Duration("duration", time.Since(downloadStartTime)),
 			zap.String("assetID", assetID))
 
@@ -208,8 +210,15 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageReade
 				log.Debug("caught cloudflare request error", zap.String("type", string(cerr.Type())),
 					zap.Any("codes", cerr.ErrorCodes()), zap.Any("msg", cerr.ErrorMessages()))
 				for _, code := range cerr.ErrorCodes() {
-					if code == 9422 {
+					switch code {
+					case 5455: // Unsupported content type
+						return NewImageCachingError(ReasonUnsupportedImageType)
+					case 9422:
 						return NewImageCachingError(ReasonBrokenImage)
+					case 5443: // The animation is too large
+						return NewImageCachingError(ReasonFileSizeTooLarge)
+					default:
+						return err
 					}
 				}
 				return err
