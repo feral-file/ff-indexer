@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"os/exec"
-	"regexp"
 	"strings"
 	"time"
 
@@ -215,7 +214,7 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageReade
 						return NewImageCachingError(ReasonUnsupportedImageType)
 					case 9422:
 						return NewImageCachingError(ReasonBrokenImage)
-					case 5443: // The animation is too large
+					case 5443: // The image is too large
 						return NewImageCachingError(ReasonFileSizeTooLarge)
 					default:
 						return err
@@ -225,15 +224,6 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageReade
 			case *cloudflare.ServiceError:
 				log.Debug("caught cloudflare serivce error", zap.Any("codes", cerr.ErrorCodes()), zap.Any("msg", cerr.ErrorMessages()))
 				return err
-			}
-
-			isErrSizeTooLarge, _ := regexp.MatchString("entity.*too large", err.Error())
-			if isErrSizeTooLarge {
-				return NewImageCachingError(ReasonFileSizeTooLarge)
-			}
-
-			if strings.Contains(err.Error(), "error unmarshalling the JSON response error body") {
-				return NewImageCachingError(ReasonUnknownCloudflareAPIFailure)
 			}
 
 			return err
