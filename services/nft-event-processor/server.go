@@ -4,13 +4,13 @@ import (
 	"context"
 	"time"
 
+	accountGRPC "github.com/bitmark-inc/autonomy-account/sdk/account-grpc"
+	sdk "github.com/bitmark-inc/autonomy-account/sdk/account-grpc"
 	"github.com/bitmark-inc/autonomy-account/storage"
+	"github.com/bitmark-inc/autonomy-account/structs"
 	log "github.com/bitmark-inc/autonomy-logger"
-	notificationConst "github.com/bitmark-inc/autonomy-notification"
-	notificationSdk "github.com/bitmark-inc/autonomy-notification/sdk"
 	"github.com/bitmark-inc/nft-indexer/cadence"
 	indexerGRPCSDK "github.com/bitmark-inc/nft-indexer/sdk/nft-indexer-grpc"
-	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -21,13 +21,13 @@ type EventProcessor struct {
 	defaultCheckInterval time.Duration
 	eventExpiryDuration  time.Duration
 
-	grpcServer   *GRPCServer
-	eventQueue   *EventQueue
-	indexerGRPC  *indexerGRPCSDK.IndexerGRPCClient
-	worker       *cadence.WorkerClient
-	accountStore *storage.AccountInformationStorage
-	notification *notificationSdk.Client
-	feedServer   *FeedClient
+	grpcServer        *GRPCServer
+	eventQueue        *EventQueue
+	indexerGRPC       *indexerGRPCSDK.IndexerGRPCClient
+	worker            *cadence.WorkerClient
+	accountStore      *storage.AccountInformationStorage
+	feedServer        *FeedClient
+	accountGRPCClient *accountGRPC.AccountGRPCClient
 }
 
 func NewEventProcessor(
@@ -40,8 +40,8 @@ func NewEventProcessor(
 	indexerGRPC *indexerGRPCSDK.IndexerGRPCClient,
 	worker *cadence.WorkerClient,
 	accountStore *storage.AccountInformationStorage,
-	notification *notificationSdk.Client,
 	feedServer *FeedClient,
+	accountGRPCClient *accountGRPC.AccountGRPCClient,
 ) *EventProcessor {
 	queue := NewEventQueue(store)
 	grpcServer := NewGRPCServer(network, address, queue)
@@ -51,27 +51,38 @@ func NewEventProcessor(
 		defaultCheckInterval: defaultCheckInterval,
 		eventExpiryDuration:  eventExpiryDuration,
 
-		grpcServer:   grpcServer,
-		eventQueue:   queue,
-		indexerGRPC:  indexerGRPC,
-		worker:       worker,
-		accountStore: accountStore,
-		notification: notification,
-		feedServer:   feedServer,
+		grpcServer:        grpcServer,
+		eventQueue:        queue,
+		indexerGRPC:       indexerGRPC,
+		worker:            worker,
+		accountStore:      accountStore,
+		feedServer:        feedServer,
+		accountGRPCClient: accountGRPCClient,
 	}
 }
 
 // notifyChangeOwner send change_token_owner notification to notification server
-func (e *EventProcessor) notifyChangeOwner(accountID, toAddress, tokenID string) error {
-	return e.notification.SendNotification("",
-		notificationConst.NewNFTArrived,
-		accountID,
-		[]any{},
-		gin.H{
-			"notification_type": "change_token_owner",
-			"owner":             toAddress,
-			"token_id":          tokenID,
-		})
+func (e *EventProcessor) notifyChangeOwner(toAddress, tokenID string) error {
+	message := "A new NFT has been added to one of your accounts. Tap to view."
+	targetInfo := map[string]interface{}{
+		"userIDs": []string{toAddress},
+	}
+	notificationData := map[string]interface{}{
+		"notification_type": "change_token_owner",
+		"owner":             toAddress,
+		"token_id":          tokenID,
+	}
+	_, err := e.accountGRPCClient.SendNotification(context.Background(), sdk.NotificationRequest{
+		Content:           message,
+		ShortMessage:      &message,
+		NotificationType:  sdk.SendNotificationTypeCollectionUpdates,
+		Target:            structs.NotificationTargetSpecificUsers,
+		TargetInformation: &targetInfo,
+		NotificationData:  &notificationData,
+		InAppEnabled:      true,
+	})
+
+	return err
 }
 
 // removeDeprecatedEvents removes expired archived events

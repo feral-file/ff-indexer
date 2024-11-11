@@ -189,40 +189,8 @@ func (e *EventProcessor) notifyChangeTokenOwner(_ context.Context, event NFTEven
 	tokenID := event.TokenID
 	to := event.To
 
-	accounts, err := e.accountStore.GetAccountIDByAddress(to)
-	if err != nil {
-		log.Error("fail to check accounts by address", zap.Error(err))
-		return err
-	}
 	indexID := indexer.TokenIndexID(blockchain, contract, tokenID)
-
-	for _, accountID := range accounts {
-		if err := e.notifyChangeOwner(accountID, to, indexID); err != nil {
-			log.Error(
-				"failed to send change owner notification",
-				zap.Error(err),
-				zap.String("chain", blockchain),
-				zap.String("contract", contract),
-				zap.String("token", tokenID),
-				zap.String("to", to),
-				zap.String("account", accountID),
-				zap.String("index", indexID),
-			)
-			return err
-		} else {
-			log.Info(
-				"sent change owner notification",
-				zap.String("chain", blockchain),
-				zap.String("contract", contract),
-				zap.String("token", tokenID),
-				zap.String("to", to),
-				zap.String("account", accountID),
-				zap.String("index", indexID),
-			)
-
-		}
-	}
-	return nil
+	return e.notifyChangeOwner(to, indexID)
 }
 
 // NotifyChangeTokenOwnerForTransferToken is a stage 3 worker.
