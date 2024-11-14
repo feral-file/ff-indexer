@@ -4,8 +4,8 @@
 
 replicaCounts:
   api: 2
-  background: 5
-  provenance_indexer: 5
+  background: 3
+  provenance_indexer: 2
 
 image:
   repository: 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer
@@ -120,5 +120,5 @@ resources:
       memory: "521Mi"
       cpu: "200m"
     limits:
-      memory: "2Gi"
+      memory: "1Gi"
       cpu: "500m"
