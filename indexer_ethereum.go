@@ -198,6 +198,16 @@ func (e *IndexEngine) indexETHToken(ctx context.Context, a *opensea.DetailedAsse
 
 	if owner != "" {
 		token.Owners = map[string]int64{owner: balance}
+	} else if a.Owners != nil {
+		owners := make(map[string]int64)
+		for _, o := range a.Owners {
+			owners[o.Address] = o.Quantity
+		}
+		token.Owners = owners
+
+		if len(a.Owners) == 1 {
+			token.Owner = a.Owners[0].Address
+		}
 	}
 
 	tokenUpdate := &AssetUpdates{
