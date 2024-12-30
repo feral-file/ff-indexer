@@ -190,6 +190,8 @@ db.collection_assets.createIndexes([{
   "lastActivityTime": -1
 }, {
   "edition": 1
+},{
+  "tokenIndexID" : 1
 }]);
 
 // time series data for sales info
