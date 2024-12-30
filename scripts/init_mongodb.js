@@ -206,11 +206,16 @@ db.createCollection(
   }
 );
 
-db.sales_time_series.createIndex({
-  "metadata.uniqueID": 1
-}, {
-  unique: false
-});
+db.sales_time_series.createIndexes([
+  {"metadata.blockchain" : 1},
+  {"metadata.bundleTokenInfo.contractAddress" : 1},
+  {"metadata.bundleTokenInfo.tokenID" : 1},
+  {"metadata.bundleTokenInfo.buyerAddress" : 1},
+  {"metadata.bundleTokenInfo.sellerAddress" : 1},
+  {"metadata.marketplace" : 1},
+  {"metadata.saleType" : 1},
+  {"metadata.transactionIDs" : 1},
+]);
 
 db.createCollection("historical_exchange_rates");
 db.historical_exchange_rates.createIndex({
