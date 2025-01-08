@@ -156,8 +156,17 @@ db.createView("token_assets", "tokens", [{
     "$unwind": "$asset"
   },
   {
+    "$lookup": {
+      "from": "asset_static_preview_url",
+      "localField": "assetID",
+      "foreignField": "assetID",
+      "as": "staticPreviewURL"
+    }
+  },
+  {
     "$addFields": {
-      "asset.metadata.project": "$asset.projectMetadata"
+      "asset.metadata.project": "$asset.projectMetadata",
+      "asset.staticPreviewURL": { "$arrayElemAt": ["$staticPreviewURL.staticPreviewURL", 0] }
     }
   },
   {
@@ -165,7 +174,8 @@ db.createView("token_assets", "tokens", [{
       "asset._id": 0,
       "asset.projectMetadata": 0,
       "ownersArray": 0,
-      "_id": 0
+      "_id": 0,
+      "staticPreviewURL": 0
     }
   }
 ]);
@@ -193,6 +203,27 @@ db.collection_assets.createIndexes([{
 },{
   "tokenIndexID" : 1
 }]);
+
+db.createCollection("asset_static_preview_url", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["assetID"],
+      properties: {
+        assetID: {
+          bsonType: "string",
+          description: "must be a string and is required"
+        }
+      }
+    }
+  }
+});
+
+db.asset_static_preview_url.createIndex({
+  assetID: 1
+}, {
+  unique: true
+});
 
 // time series data for sales info
 db.createCollection(
