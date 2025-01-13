@@ -164,9 +164,15 @@ db.createView("token_assets", "tokens", [{
     }
   },
   {
+    "$unwind": {
+      "path": "$staticPreviewURL",
+      "preserveNullAndEmptyArrays": true
+    }
+  },
+  {
     "$addFields": {
       "asset.metadata.project": "$asset.projectMetadata",
-      "asset.staticPreviewURL": { "$arrayElemAt": ["$staticPreviewURL.staticPreviewURL", 0] }
+      "asset.staticPreviewURL": "$staticPreviewURL.staticPreviewURL"
     }
   },
   {
@@ -203,21 +209,6 @@ db.collection_assets.createIndexes([{
 },{
   "tokenIndexID" : 1
 }]);
-
-db.createCollection("asset_static_preview_url", {
-  validator: {
-    $jsonSchema: {
-      bsonType: "object",
-      required: ["assetID"],
-      properties: {
-        assetID: {
-          bsonType: "string",
-          description: "must be a string and is required"
-        }
-      }
-    }
-  }
-});
 
 db.asset_static_preview_url.createIndex({
   assetID: 1
