@@ -172,7 +172,8 @@ db.createView("token_assets", "tokens", [{
   {
     "$addFields": {
       "asset.metadata.project": "$asset.projectMetadata",
-      "asset.staticPreviewURL": "$staticPreviewURL.staticPreviewURL"
+      "asset.landscapeURL": "$staticPreviewURL.landscapeURL",
+      "asset.portraitURL": "$staticPreviewURL.portraitURL"
     }
   },
   {
