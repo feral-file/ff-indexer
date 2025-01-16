@@ -1673,14 +1673,11 @@ func (ec *executionContext) _Asset_staticPreviewURLLandscape(ctx context.Context
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Asset_staticPreviewURLLandscape(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1717,14 +1714,11 @@ func (ec *executionContext) _Asset_staticPreviewURLPortrait(ctx context.Context,
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Asset_staticPreviewURLPortrait(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -7867,14 +7861,8 @@ func (ec *executionContext) _Asset(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "staticPreviewURLLandscape":
 			out.Values[i] = ec._Asset_staticPreviewURLLandscape(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "staticPreviewURLPortrait":
 			out.Values[i] = ec._Asset_staticPreviewURLPortrait(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

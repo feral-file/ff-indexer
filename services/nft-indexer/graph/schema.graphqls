@@ -61,8 +61,8 @@ type Asset {
 	lastRefreshedTime:  		Time
 	attributes:         		AssetAttributes
 	metadata:           		AssetMetadata!
-	staticPreviewURLLandscape: 	String!
-	staticPreviewURLPortrait: 	String!
+	staticPreviewURLLandscape: 	String
+	staticPreviewURLPortrait: 	String
 }
 
 type AssetMetadata {

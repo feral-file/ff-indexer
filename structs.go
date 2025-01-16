@@ -214,8 +214,8 @@ type AssetV2 struct {
 	LastRefreshedTime         time.Time        `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
 	Attributes                *AssetAttributes `json:"attributes" bson:"attributes,omitempty"`
 	Metadata                  AssetMetadata    `json:"metadata" bson:"metadata"`
-	StaticPreviewURLLandscape string           `json:"staticPreviewURLLandscape" bson:"staticPreviewURLLandscape"`
-	StaticPreviewURLPortrait  string           `json:"staticPreviewURLPortrait" bson:"staticPreviewURLPortrait"`
+	StaticPreviewURLLandscape *string          `json:"staticPreviewURLLandscape" bson:"staticPreviewURLLandscape"`
+	StaticPreviewURLPortrait  *string          `json:"staticPreviewURLPortrait" bson:"staticPreviewURLPortrait"`
 }
 
 type AssetMetadata struct {

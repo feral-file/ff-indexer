@@ -18,8 +18,8 @@ type Asset struct {
 	LastRefreshedTime         *time.Time       `json:"lastRefreshedTime,omitempty"`
 	Attributes                *AssetAttributes `json:"attributes,omitempty"`
 	Metadata                  *AssetMetadata   `json:"metadata"`
-	StaticPreviewURLLandscape string           `json:"staticPreviewURLLandscape"`
-	StaticPreviewURLPortrait  string           `json:"staticPreviewURLPortrait"`
+	StaticPreviewURLLandscape *string          `json:"staticPreviewURLLandscape,omitempty"`
+	StaticPreviewURLPortrait  *string          `json:"staticPreviewURLPortrait,omitempty"`
 }
 
 type AssetAttributes struct {
