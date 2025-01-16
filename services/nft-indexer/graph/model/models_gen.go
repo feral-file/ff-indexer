@@ -13,11 +13,13 @@ type Artist struct {
 }
 
 type Asset struct {
-	IndexID           string           `json:"indexID"`
-	ThumbnailID       string           `json:"thumbnailID"`
-	LastRefreshedTime *time.Time       `json:"lastRefreshedTime,omitempty"`
-	Attributes        *AssetAttributes `json:"attributes,omitempty"`
-	Metadata          *AssetMetadata   `json:"metadata"`
+	IndexID                   string           `json:"indexID"`
+	ThumbnailID               string           `json:"thumbnailID"`
+	LastRefreshedTime         *time.Time       `json:"lastRefreshedTime,omitempty"`
+	Attributes                *AssetAttributes `json:"attributes,omitempty"`
+	Metadata                  *AssetMetadata   `json:"metadata"`
+	StaticPreviewURLLandscape string           `json:"staticPreviewURLLandscape"`
+	StaticPreviewURLPortrait  string           `json:"staticPreviewURLPortrait"`
 }
 
 type AssetAttributes struct {
