@@ -66,6 +66,8 @@ serviceConfig:
     "tz1hFhmqKNB7hnHVHAFSk9wNqm7K9GgF2GDN": "Objkt"
 
   etherscan_url: https://api.etherscan.io/api
+  bitmarkd:
+    rpc_conn: node-d1.test.bitmark.com:12130
 
 
 

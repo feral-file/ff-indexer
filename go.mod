@@ -1,17 +1,19 @@
 module github.com/bitmark-inc/nft-indexer
 
-go 1.21
+go 1.23
 
-toolchain go1.21.8
+toolchain go1.23.5
 
 require (
 	github.com/99designs/gqlgen v0.17.45
 	github.com/aws/aws-sdk-go v1.51.9
+	github.com/aws/aws-sdk-go-v2 v1.26.0
 	github.com/bitmark-inc/autonomy-account v0.0.7
 	github.com/bitmark-inc/autonomy-asset-server v0.0.3
 	github.com/bitmark-inc/autonomy-logger v0.0.5
 	github.com/bitmark-inc/autonomy-notification v0.0.8
 	github.com/bitmark-inc/autonomy-utils v0.0.5
+	github.com/bitmark-inc/bitmarkdClient v0.0.0-20250117092037-7897d0fd4334
 	github.com/bitmark-inc/config-loader v0.1.1
 	github.com/bitmark-inc/tzkt-go v0.0.15-0.20240717022029-4fb5a78da4aa
 	github.com/chromedp/chromedp v0.9.5
@@ -53,7 +55,6 @@ require (
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/apache/thrift v0.16.0 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.26.0 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.18.45 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.43 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.13.13 // indirect
@@ -67,10 +68,13 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.23.2 // indirect
 	github.com/aws/smithy-go v1.20.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/bitmark-inc/bitmarkd v0.14.0-beta.1 // indirect
 	github.com/bitmark-inc/go-utils v0.0.0-20220509034903-59f3369237d3 // indirect
 	github.com/bitmark-inc/httpsign v0.0.2-2 // indirect
+	github.com/bitmark-inc/logger v0.3.5 // indirect
 	github.com/bitmark-inc/traceutils v0.1.0 // indirect
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect
+	github.com/btcsuite/btcd v0.21.0-beta // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
 	github.com/bytedance/sonic v1.11.3 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
@@ -79,6 +83,7 @@ require (
 	github.com/chenzhuoyu/iasm v0.9.1 // indirect
 	github.com/chromedp/cdproto v0.0.0-20240202021202-6d0b6a386732 // indirect
 	github.com/chromedp/sysutil v1.0.0 // indirect
+	github.com/cihub/seelog v0.0.0-20170130134532-f561c5e57575 // indirect
 	github.com/consensys/bavard v0.1.13 // indirect
 	github.com/consensys/gnark-crypto v0.12.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect

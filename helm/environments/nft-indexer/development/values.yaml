@@ -38,6 +38,8 @@ serviceConfig:
     "0x0000a26b00c1f0df003000390027140000faa719": "OpenSea"
     "tz1YMmpvNPRzkgwV2oA8CbMm1kqXFCqBKkdw": "Objkt"
   etherscan_url: https://api-sepolia.etherscan.io/api
+  bitmarkd:
+    rpc_conn: node-d1.test.bitmark.com:12130
 
 imagePullSecrets: []
 nameOverride: ""

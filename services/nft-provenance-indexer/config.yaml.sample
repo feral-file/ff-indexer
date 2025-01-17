@@ -44,3 +44,7 @@ ipfs:
 
 event_processor_server:
   address:
+
+bitmarkd:
+  rpc_conn: node-d1.live.bitmark.com:2130
+

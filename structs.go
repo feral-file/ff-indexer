@@ -54,7 +54,7 @@ type Provenance struct {
 	Type        string    `json:"type" bson:"type"`
 	Owner       string    `json:"owner" bson:"owner"`
 	Blockchain  string    `json:"blockchain" bson:"blockchain"`
-	BlockNumber *uint64   `json:"blockNumber,omitempty" bson:"blockNumber,omitempty"`
+	BlockNumber *uint64   `json:"blockNumber,omitempty" bson:"blockNumber,omitempty"` // TODO: make it non-nullable, just temporarily support the compatibility
 	Timestamp   time.Time `json:"timestamp" bson:"timestamp"`
 	TxID        string    `json:"txid" bson:"txid"`
 	TxURL       string    `json:"txURL" bson:"txURL"`

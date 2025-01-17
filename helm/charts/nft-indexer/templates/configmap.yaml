@@ -94,3 +94,5 @@ data:
       {{ .Values.serviceConfig.marketplace_feewallets | toYaml | nindent 8 }}
     etherscan:
       url: {{ .Values.serviceConfig.etherscan_url }}
+    bitmarkd:
+      rpc_conn: {{ .Values.serviceConfig.bitmarkd.rpc_conn }}

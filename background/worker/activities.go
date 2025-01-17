@@ -24,7 +24,6 @@ import (
 	"github.com/bitmark-inc/nft-indexer/contracts"
 	"github.com/bitmark-inc/nft-indexer/externals/coinbase"
 	"github.com/bitmark-inc/nft-indexer/externals/etherscan"
-	"github.com/bitmark-inc/nft-indexer/traceutils"
 	"github.com/bitmark-inc/tzkt-go"
 )
 
@@ -269,41 +268,87 @@ type Bitmark struct {
 
 // fetchBitmarkProvenance reads bitmark provenances through bitmark api
 func (w *NFTIndexerWorker) fetchBitmarkProvenance(bitmarkID string) ([]indexer.Provenance, error) {
-	provenances := []indexer.Provenance{}
+	provenanceResp, err := w.bitmarkdClient.GetBitmarkFullProvenance(bitmarkID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get bitmark provenance: %w", err)
+	}
 
 	var data struct {
-		Bitmark Bitmark `json:"bitmark"`
+		Data []json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(provenanceResp, &data); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal provenance data: %w", err)
 	}
 
-	resp, err := w.http.Get(fmt.Sprintf("%s/v1/bitmarks/%s?provenance=true", w.bitmarkAPIEndpoint, bitmarkID))
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		log.Error("fail to decode bitmark payload", zap.Error(err),
-			log.SourceBitmark,
-			zap.String("respData", traceutils.DumpResponse(resp)))
-		return nil, err
+	s := len(data.Data)
+	if s == 0 {
+		return nil, fmt.Errorf("no provenance data found for bitmark ID: %s", bitmarkID)
 	}
 
-	for i, p := range data.Bitmark.Provenance {
+	provenanceData := data.Data[0 : s-1] // the last item is the asset data
+	provenances := make([]indexer.Provenance, 0, len(provenanceData))
+
+	for _, d := range provenanceData {
+		// unmarshal the provenance data
+		var p struct {
+			Record string                 `json:"record"`
+			TxID   string                 `json:"txId"`
+			Block  string                 `json:"inBlock"`
+			Data   map[string]interface{} `json:"data"`
+		}
+		if err := json.Unmarshal(d, &p); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal provenance item: %w", err)
+		}
+
+		// get the owner
+		owner, ok := p.Data["owner"].(string)
+		if !ok {
+			return nil, fmt.Errorf("owner is not a string in provenance data")
+		}
+
+		// get the tx type
 		txType := "transfer"
-
-		if i == len(data.Bitmark.Provenance)-1 {
+		if p.Record == "BitmarkIssue" {
 			txType = "issue"
-		} else if p.Owner == w.bitmarkZeroAddress {
+		} else if owner == w.bitmarkZeroAddress {
 			txType = "burn"
 		}
 
+		// get the block height and timestamp
+		blockHeight, err := strconv.ParseUint(p.Block, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse block height: %w", err)
+		}
+
+		blockResp, err := w.bitmarkdClient.BlockDump(blockHeight, false)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get block dump: %w", err)
+		}
+
+		var blockData struct {
+			Block struct {
+				Header struct {
+					Timestamp string `json:"timestamp"`
+				} `json:"header"`
+			} `json:"block"`
+		}
+		if err := json.Unmarshal(blockResp, &blockData); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal block data: %w", err)
+		}
+
+		timestamp, err := strconv.ParseInt(blockData.Block.Header.Timestamp, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse timestamp: %w", err)
+		}
+
 		provenances = append(provenances, indexer.Provenance{
-			Type:       txType,
-			Owner:      p.Owner,
-			Blockchain: utils.BitmarkBlockchain,
-			Timestamp:  p.CreatedAt,
-			TxID:       p.TxID,
-			TxURL:      indexer.TxURL(utils.BitmarkBlockchain, w.Environment, p.TxID),
+			Type:        txType,
+			Owner:       owner,
+			Blockchain:  utils.BitmarkBlockchain,
+			BlockNumber: &blockHeight,
+			Timestamp:   time.Unix(timestamp, 0),
+			TxID:        p.TxID,
+			TxURL:       indexer.TxURL(utils.BitmarkBlockchain, w.Environment, p.TxID),
 		})
 	}
 
