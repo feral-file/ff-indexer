@@ -156,8 +156,24 @@ db.createView("token_assets", "tokens", [{
     "$unwind": "$asset"
   },
   {
+    "$lookup": {
+      "from": "asset_static_preview_url",
+      "localField": "assetID",
+      "foreignField": "assetID",
+      "as": "staticPreviewURL"
+    }
+  },
+  {
+    "$unwind": {
+      "path": "$staticPreviewURL",
+      "preserveNullAndEmptyArrays": true
+    }
+  },
+  {
     "$addFields": {
-      "asset.metadata.project": "$asset.projectMetadata"
+      "asset.metadata.project": "$asset.projectMetadata",
+      "asset.staticPreviewURLLandscape": "$staticPreviewURL.landscapeURL",
+      "asset.staticPreviewURLPortrait": "$staticPreviewURL.portraitURL"
     }
   },
   {
@@ -165,7 +181,8 @@ db.createView("token_assets", "tokens", [{
       "asset._id": 0,
       "asset.projectMetadata": 0,
       "ownersArray": 0,
-      "_id": 0
+      "_id": 0,
+      "staticPreviewURL": 0
     }
   }
 ]);
@@ -193,6 +210,12 @@ db.collection_assets.createIndexes([{
 },{
   "tokenIndexID" : 1
 }]);
+
+db.asset_static_preview_url.createIndex({
+  assetID: 1
+}, {
+  unique: true
+});
 
 // time series data for sales info
 db.createCollection(

@@ -209,11 +209,13 @@ type DetailedTokenV2 struct {
 }
 
 type AssetV2 struct {
-	IndexID           string           `json:"indexID" bson:"indexID"`
-	ThumbnailID       string           `json:"thumbnailID" bson:"thumbnailID"`
-	LastRefreshedTime time.Time        `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
-	Attributes        *AssetAttributes `json:"attributes" bson:"attributes,omitempty"`
-	Metadata          AssetMetadata    `json:"metadata" bson:"metadata"`
+	IndexID                   string           `json:"indexID" bson:"indexID"`
+	ThumbnailID               string           `json:"thumbnailID" bson:"thumbnailID"`
+	LastRefreshedTime         time.Time        `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
+	Attributes                *AssetAttributes `json:"attributes" bson:"attributes,omitempty"`
+	Metadata                  AssetMetadata    `json:"metadata" bson:"metadata"`
+	StaticPreviewURLLandscape *string          `json:"staticPreviewURLLandscape" bson:"staticPreviewURLLandscape"`
+	StaticPreviewURLPortrait  *string          `json:"staticPreviewURLPortrait" bson:"staticPreviewURLPortrait"`
 }
 
 type AssetMetadata struct {

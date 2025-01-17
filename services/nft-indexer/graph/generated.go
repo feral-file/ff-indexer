@@ -55,11 +55,13 @@ type ComplexityRoot struct {
 	}
 
 	Asset struct {
-		Attributes        func(childComplexity int) int
-		IndexID           func(childComplexity int) int
-		LastRefreshedTime func(childComplexity int) int
-		Metadata          func(childComplexity int) int
-		ThumbnailID       func(childComplexity int) int
+		Attributes                func(childComplexity int) int
+		IndexID                   func(childComplexity int) int
+		LastRefreshedTime         func(childComplexity int) int
+		Metadata                  func(childComplexity int) int
+		StaticPreviewURLLandscape func(childComplexity int) int
+		StaticPreviewURLPortrait  func(childComplexity int) int
+		ThumbnailID               func(childComplexity int) int
 	}
 
 	AssetAttributes struct {
@@ -268,6 +270,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Asset.Metadata(childComplexity), true
+
+	case "Asset.staticPreviewURLLandscape":
+		if e.complexity.Asset.StaticPreviewURLLandscape == nil {
+			break
+		}
+
+		return e.complexity.Asset.StaticPreviewURLLandscape(childComplexity), true
+
+	case "Asset.staticPreviewURLPortrait":
+		if e.complexity.Asset.StaticPreviewURLPortrait == nil {
+			break
+		}
+
+		return e.complexity.Asset.StaticPreviewURLPortrait(childComplexity), true
 
 	case "Asset.thumbnailID":
 		if e.complexity.Asset.ThumbnailID == nil {
@@ -1631,6 +1647,88 @@ func (ec *executionContext) fieldContext_Asset_metadata(ctx context.Context, fie
 				return ec.fieldContext_AssetMetadata_project(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AssetMetadata", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Asset_staticPreviewURLLandscape(ctx context.Context, field graphql.CollectedField, obj *model.Asset) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Asset_staticPreviewURLLandscape(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.StaticPreviewURLLandscape, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Asset_staticPreviewURLLandscape(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Asset",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Asset_staticPreviewURLPortrait(ctx context.Context, field graphql.CollectedField, obj *model.Asset) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Asset_staticPreviewURLPortrait(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.StaticPreviewURLPortrait, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Asset_staticPreviewURLPortrait(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Asset",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5718,6 +5816,10 @@ func (ec *executionContext) fieldContext_Token_asset(ctx context.Context, field 
 				return ec.fieldContext_Asset_attributes(ctx, field)
 			case "metadata":
 				return ec.fieldContext_Asset_metadata(ctx, field)
+			case "staticPreviewURLLandscape":
+				return ec.fieldContext_Asset_staticPreviewURLLandscape(ctx, field)
+			case "staticPreviewURLPortrait":
+				return ec.fieldContext_Asset_staticPreviewURLPortrait(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Asset", field.Name)
 		},
@@ -7757,6 +7859,10 @@ func (ec *executionContext) _Asset(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "staticPreviewURLLandscape":
+			out.Values[i] = ec._Asset_staticPreviewURLLandscape(ctx, field, obj)
+		case "staticPreviewURLPortrait":
+			out.Values[i] = ec._Asset_staticPreviewURLPortrait(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

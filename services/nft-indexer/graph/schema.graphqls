@@ -56,11 +56,13 @@ type AssetAttributes {
 }
 
 type Asset {
-	indexID:            String!
-	thumbnailID:        String!
-	lastRefreshedTime:  Time
-	attributes:         AssetAttributes
-	metadata:           AssetMetadata!
+	indexID:            		String!
+	thumbnailID:        		String!
+	lastRefreshedTime:  		Time
+	attributes:         		AssetAttributes
+	metadata:           		AssetMetadata!
+	staticPreviewURLLandscape: 	String
+	staticPreviewURLPortrait: 	String
 }
 
 type AssetMetadata {

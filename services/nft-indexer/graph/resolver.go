@@ -80,6 +80,8 @@ func (r *Resolver) mapGraphQLToken(t indexer.DetailedTokenV2) *model.Token {
 					Latest: r.mapGraphQLProjectMetadata(t.Asset.Metadata.Project.Latest),
 				},
 			},
+			StaticPreviewURLLandscape: t.Asset.StaticPreviewURLLandscape,
+			StaticPreviewURLPortrait:  t.Asset.StaticPreviewURLPortrait,
 		},
 	}
 }
