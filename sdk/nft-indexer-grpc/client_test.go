@@ -86,7 +86,7 @@ func TestGetDetailedToken(t *testing.T) {
 
 	indexID := "tez-KT1VZ6Zkoae9DtXkbuw4wtFCg9WH8eywcvEX-23798030035473632618901897089878275372960165372586891230635421889000008911882"
 
-	_, err = client.GetDetailedToken(context.Background(), indexID)
+	_, err = client.GetDetailedToken(context.Background(), indexID, false)
 
 	assert.NoError(t, err)
 }

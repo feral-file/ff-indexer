@@ -86,8 +86,14 @@ func (i *IndexerGRPCClient) IndexAccountTokens(ctx context.Context, owner string
 }
 
 // GetDetailedToken returns a detailed token by indexID
-func (i *IndexerGRPCClient) GetDetailedToken(ctx context.Context, indexID string) (indexer.DetailedToken, error) {
-	detailedToken, err := i.client.GetDetailedToken(ctx, &pb.IndexID{IndexID: indexID})
+func (i *IndexerGRPCClient) GetDetailedToken(ctx context.Context, indexID string, burnedIncluded bool) (indexer.DetailedToken, error) {
+	detailedToken, err := i.client.GetDetailedToken(
+		ctx,
+		&pb.GetDetailedTokenRequest{
+			IndexID:        indexID,
+			BurnedIncluded: burnedIncluded,
+		},
+	)
 	if err != nil {
 		return indexer.DetailedToken{}, err
 	}

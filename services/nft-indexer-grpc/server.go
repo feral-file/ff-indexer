@@ -153,8 +153,8 @@ func (i *IndexerServer) IndexAccountTokens(ctx context.Context, in *pb.IndexAcco
 }
 
 // GetDetailedToken returns a detailed token by index ID
-func (i *IndexerServer) GetDetailedToken(ctx context.Context, indexID *pb.IndexID) (*pb.DetailedToken, error) {
-	detailedToken, err := i.indexerStore.GetDetailedToken(ctx, indexID.IndexID)
+func (i *IndexerServer) GetDetailedToken(ctx context.Context, in *pb.GetDetailedTokenRequest) (*pb.DetailedToken, error) {
+	detailedToken, err := i.indexerStore.GetDetailedToken(ctx, in.IndexID, in.BurnedIncluded)
 	if err != nil {
 		return nil, err
 	}

@@ -39,9 +39,14 @@ func (s *NFTIndexerServer) QueryNFTs(c *gin.Context) {
 	}
 
 	checksumDecimalIDs := indexer.NormalizeIndexIDs(reqParams.IDs, true)
-	tokenInfo, err := s.indexerStore.GetDetailedTokens(c, indexer.FilterParameter{
-		IDs: checksumDecimalIDs,
-	}, reqParams.Offset, reqParams.Size)
+	tokenInfo, err := s.indexerStore.GetDetailedTokens(
+		c,
+		indexer.FilterParameter{
+			IDs:            checksumDecimalIDs,
+			BurnedIncluded: reqParams.BurnedIncluded,
+		},
+		reqParams.Offset,
+		reqParams.Size)
 	if err != nil {
 		abortWithError(c, http.StatusInternalServerError, "fail to query tokens from indexer store", err)
 		return

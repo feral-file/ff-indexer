@@ -13,7 +13,7 @@ service Indexer {
   rpc UpdateOwnerForFungibleToken(UpdateOwnerForFungibleTokenRequest) returns (EmptyMessage);
   rpc IndexAccountTokens(IndexAccountTokensRequest) returns (EmptyMessage);
 
-  rpc GetDetailedToken(IndexID) returns (DetailedToken);
+  rpc GetDetailedToken(GetDetailedTokenRequest) returns (DetailedToken);
   rpc GetTotalBalanceOfOwnerAccounts(Addresses) returns (TotalBalance);
   rpc GetOwnerAccountsByIndexIDs(IndexIDs) returns (Addresses);
 
@@ -55,6 +55,10 @@ message Addresses {
 
 message IndexIDs {
   repeated string IndexIDs = 1;
+}
+
+message IndexID {
+  string IndexID = 1;
 }
 
 message TotalBalance {
@@ -154,10 +158,6 @@ message PushProvenanceRequest {
   string IndexID = 1;
   string LockedTime = 2;
   Provenance Provenance = 3;
-}
-
-message IndexID {
-  string IndexID = 1;
 }
 
 message Token {
@@ -280,4 +280,9 @@ message ExchangeRateResponse {
 	google.protobuf.Timestamp timestamp = 1; // ts.UTC().Format(time.RFC3339Nano) for BSON.ISODate()
   double price = 2;
 	string currencyPair = 3;
+}
+
+message GetDetailedTokenRequest {
+  string IndexID = 1;
+  bool BurnedIncluded = 2;
 }
