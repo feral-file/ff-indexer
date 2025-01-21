@@ -526,7 +526,6 @@ func (s *MongodbIndexerStore) FilterTokenIDsWithInconsistentProvenanceForOwner(c
 		bson.M{
 			"indexID":            bson.M{"$in": indexIDs},
 			"fungible":           false,
-			"burned":             bson.M{"$ne": true},
 			"provenance.0.owner": bson.M{"$ne": owner},
 		},
 		options.Find().SetProjection(bson.M{"indexID": 1, "_id": 0}),
@@ -640,7 +639,6 @@ func (s *MongodbIndexerStore) UpdateOwner(ctx context.Context, indexID string, o
 	_, err := s.tokenCollection.UpdateOne(ctx, bson.M{
 		"indexID":          indexID,
 		"fungible":         false,
-		"burned":           bson.M{"$ne": true},
 		"lastActivityTime": bson.M{"$lt": updatedAt},
 	}, bson.M{
 		"$set": bson.M{
