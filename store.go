@@ -680,7 +680,6 @@ func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID
 	// update provenance only for non-burned tokens
 	_, err := s.tokenCollection.UpdateOne(ctx, bson.M{
 		"indexID": indexID,
-		"burned":  bson.M{"$ne": true},
 	}, bson.M{
 		"$set": tokenUpdates,
 	})
@@ -716,7 +715,6 @@ func (s *MongodbIndexerStore) UpdateTokenOwners(ctx context.Context, indexID str
 	// update provenance only for non-burned tokens
 	_, err := s.tokenCollection.UpdateOne(ctx, bson.M{
 		"indexID": indexID,
-		"burned":  bson.M{"$ne": true},
 	}, bson.M{
 		"$set": tokenUpdates,
 	})
