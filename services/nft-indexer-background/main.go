@@ -48,7 +48,7 @@ func main() {
 
 	ctx := context.Background()
 
-	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
+	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"), environment)
 	if err != nil {
 		log.Panic("fail to initiate indexer store", zap.Error(err))
 	}

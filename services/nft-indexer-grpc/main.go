@@ -23,7 +23,8 @@ func main() {
 		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
 	}
 
-	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
+	environment := viper.GetString("environment")
+	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"), environment)
 	if err != nil {
 		log.Panic("fail to initiate indexer store", zap.Error(err))
 	}

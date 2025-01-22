@@ -149,7 +149,7 @@ type HistoricalExchangeRateFilter struct {
 	Timestamp    time.Time
 }
 
-func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*MongodbIndexerStore, error) {
+func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName, environment string) (*MongodbIndexerStore, error) {
 	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(mongodbURI))
 	if err != nil {
 		return nil, err
@@ -169,6 +169,7 @@ func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*Mo
 	historicalExchangeRatesCollection := db.Collection(historicalExchangeRatesCollectionName)
 
 	return &MongodbIndexerStore{
+		environment:                       environment,
 		dbName:                            dbName,
 		mongoClient:                       mongoClient,
 		tokenCollection:                   tokenCollection,
@@ -186,6 +187,7 @@ func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*Mo
 }
 
 type MongodbIndexerStore struct {
+	environment                       string
 	dbName                            string
 	mongoClient                       *mongo.Client
 	tokenCollection                   *mongo.Collection
@@ -635,7 +637,7 @@ func (s *MongodbIndexerStore) UpdateOwner(ctx context.Context, indexID string, o
 		return nil
 	}
 
-	// update provenance only for non-burned tokens
+	burned := IsBurnAddress(owner, s.environment)
 	_, err := s.tokenCollection.UpdateOne(ctx, bson.M{
 		"indexID":          indexID,
 		"fungible":         false,
@@ -647,6 +649,7 @@ func (s *MongodbIndexerStore) UpdateOwner(ctx context.Context, indexID string, o
 			"ownersArray":       []string{owner},
 			"lastActivityTime":  updatedAt,
 			"lastRefreshedTime": time.Now(),
+			"burned":            burned,
 		},
 	})
 

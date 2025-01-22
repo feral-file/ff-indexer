@@ -100,27 +100,3 @@ func (s *NFTIndexerServer) SetupRoute() {
 		})
 	})
 }
-
-// QueryNFTPrices returns prices information for NFTs
-// func (s *NFTIndexerServer) QueryNFTPrices(c *gin.Context) {
-// 	abortWithError(c, http.StatusInternalServerError, "not implemented", nil)
-// }
-
-// // PushNFTPrice returns push an trade price information to a specific NFT
-// func (s *NFTIndexerServer) PushNFTPrice(c *gin.Context) {
-// 	tokenID := c.Param("token_id")
-// 	var input indexer.PriceUpdate
-// 	if err := c.Bind(&input); err != nil {
-// 		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
-// 		return
-// 	}
-
-// 	if err := s.indexerStore.UpdateTokenPrice(c, tokenID, input); err != nil {
-// 		abortWithError(c, http.StatusInternalServerError, "unable to push token price", err)
-// 		return
-// 	}
-
-// 	c.JSON(http.StatusOK, gin.H{
-// 		"ok": 1,
-// 	})
-// }
