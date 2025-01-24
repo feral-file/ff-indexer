@@ -68,8 +68,9 @@ func (m *Mapper) MapGRPCProvenancesToIndexerProvenances(provenance []*grpcIndexe
 			Type:        v.Type,
 			Owner:       v.Owner,
 			Blockchain:  v.Blockchain,
+			BlockNumber: v.BlockNumber,
 			Timestamp:   timestamp,
-			TxID:        v.Timestamp,
+			TxID:        v.TxID,
 			TxURL:       v.TxURL,
 		}
 	}
@@ -182,8 +183,9 @@ func (m *Mapper) MapIndexerProvenancesToGRPCProvenances(provenance []indexer.Pro
 			Type:        v.Type,
 			Owner:       v.Owner,
 			Blockchain:  v.Blockchain,
+			BlockNumber: v.BlockNumber,
 			Timestamp:   v.Timestamp.Format(time.RFC3339Nano),
-			TxID:        v.Timestamp.Format(time.RFC3339Nano),
+			TxID:        v.TxID,
 			TxURL:       v.TxURL,
 		}
 	}

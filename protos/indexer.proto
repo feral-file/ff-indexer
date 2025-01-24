@@ -196,7 +196,7 @@ message Provenance {
   string Type = 2;
   string Owner = 3;
   string Blockchain = 4;
-  int64 BlockNumber = 5;
+  optional uint64 BlockNumber = 5;
 
   string Timestamp = 6;
   string TxID = 7;
