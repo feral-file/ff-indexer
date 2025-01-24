@@ -1,8 +1,8 @@
 module github.com/bitmark-inc/nft-indexer
 
-go 1.23
+go 1.21
 
-toolchain go1.23.5
+toolchain go1.21.8
 
 require (
 	github.com/99designs/gqlgen v0.17.45
@@ -13,7 +13,7 @@ require (
 	github.com/bitmark-inc/autonomy-logger v0.0.5
 	github.com/bitmark-inc/autonomy-notification v0.0.8
 	github.com/bitmark-inc/autonomy-utils v0.0.5
-	github.com/bitmark-inc/bitmarkdClient v0.0.0-20250117092037-7897d0fd4334
+	github.com/bitmark-inc/bitmarkdClient v0.0.0-20250124093304-dff4260ef91f
 	github.com/bitmark-inc/config-loader v0.1.1
 	github.com/bitmark-inc/tzkt-go v0.0.15-0.20240717022029-4fb5a78da4aa
 	github.com/chromedp/chromedp v0.9.5
