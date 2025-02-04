@@ -91,7 +91,7 @@ func main() {
 
 	assetClient := assetSDK.New(viper.GetString("asset_server.server_url"), nil, viper.GetString("asset_server.secret_key"))
 
-	bitmarkdClient := bitmarkd.New(strings.Split(viper.GetString("bitmarkd.rpc_conn"), ","), 30*time.Second)
+	bitmarkdClient := bitmarkd.New(strings.Split(viper.GetString("bitmarkd.rpc_conn"), ","), time.Minute)
 
 	worker := indexerWorker.New(environment, indexerEngine, cacheStore, indexerStore, assetClient, bitmarkdClient)
 
