@@ -24,7 +24,7 @@ func TestGetTokensByIndexID(t *testing.T) {
 	ctx := context.Background()
 	config.LoadConfig("NFT_INDEXER")
 
-	indexerStore, err := NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
+	indexerStore, err := NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"), viper.GetString("environment"))
 	if err != nil {
 		panic(err)
 	}
@@ -40,7 +40,7 @@ func TestGetDetailedAccountTokensByOwners(t *testing.T) {
 	ctx := context.Background()
 	config.LoadConfig("NFT_INDEXER")
 
-	indexerStore, err := NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
+	indexerStore, err := NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"), viper.GetString("environment"))
 	if err != nil {
 		panic(err)
 	}
@@ -67,7 +67,7 @@ func TestCheckAddressOwnTokenByCriteria(t *testing.T) {
 	ctx := context.Background()
 	config.LoadConfig("NFT_INDEXER")
 
-	indexerStore, err := NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
+	indexerStore, err := NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"), viper.GetString("environment"))
 	if err != nil {
 		panic(err)
 	}

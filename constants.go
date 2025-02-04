@@ -99,7 +99,7 @@ var ObjktCDNTypes = []string{
 const (
 	DevelopmentEnvironment = "development"
 	StagingEnvironment     = "staging"
-	ProductiontEnvironment = "production"
+	ProductionEnvironment  = "production"
 )
 
 const hicetnuncDefaultThumbnailURL = "ipfs://QmNrhZHUaEqxhyLfqoq1mtHSipkWHeT31LNHb1QEbDHgnc"

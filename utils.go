@@ -249,3 +249,11 @@ func HexSha1(str string) string {
 	hashedBytes := h.Sum(nil)
 	return hex.EncodeToString(hashedBytes)
 }
+
+// IsBurnAddress returns true if the address is a burn address
+func IsBurnAddress(address string, environment string) bool {
+	return address == EthereumZeroAddress ||
+		address == TezosBurnAddress ||
+		(environment == DevelopmentEnvironment && address == TestnetZeroAddress) ||
+		(environment == ProductionEnvironment && address == LivenetZeroAddress)
+}

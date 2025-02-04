@@ -3,10 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/managedblockchainquery"
+	bitmarkd "github.com/bitmark-inc/bitmarkdClient"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/viper"
@@ -45,7 +48,7 @@ func main() {
 
 	ctx := context.Background()
 
-	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
+	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"), environment)
 	if err != nil {
 		log.Panic("fail to initiate indexer store", zap.Error(err))
 	}
@@ -88,7 +91,9 @@ func main() {
 
 	assetClient := assetSDK.New(viper.GetString("asset_server.server_url"), nil, viper.GetString("asset_server.secret_key"))
 
-	worker := indexerWorker.New(environment, indexerEngine, cacheStore, indexerStore, assetClient)
+	bitmarkdClient := bitmarkd.New(strings.Split(viper.GetString("bitmarkd.rpc_conn"), ","), 30*time.Second)
+
+	worker := indexerWorker.New(environment, indexerEngine, cacheStore, indexerStore, assetClient, bitmarkdClient)
 
 	// workflows
 	workflow.Register(worker.RefreshTokenProvenanceWorkflow)

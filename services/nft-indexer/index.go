@@ -41,8 +41,9 @@ type NFTQueryParams struct {
 	Text string `form:"text"`
 
 	// query tokens
-	IDs          []string `json:"ids"`
-	CollectionID string   `json:"collectionID"`
+	IDs            []string `json:"ids"`
+	CollectionID   string   `json:"collectionID"`
+	BurnedIncluded bool     `json:"burnedIncluded"`
 
 	// lastUpdatedAt
 	LastUpdatedAt int64  `form:"lastUpdatedAt"`

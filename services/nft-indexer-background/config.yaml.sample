@@ -46,3 +46,6 @@ ipfs:
 marketplace:
   contracts:
   fee_wallets:
+
+bitmarkd:
+  rpc_conn: node-d1.live.bitmark.com:2130

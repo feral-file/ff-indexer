@@ -85,7 +85,7 @@ type Store interface {
 	GetDetailedAccountTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, lastUpdatedAt time.Time, sortBy string, offset, size int64) ([]DetailedTokenV2, error)
 	CountDetailedAccountTokensByOwner(ctx context.Context, owner string) (int64, error)
 
-	GetDetailedToken(ctx context.Context, indexID string) (DetailedToken, error)
+	GetDetailedToken(ctx context.Context, indexID string, burnedIncluded bool) (DetailedToken, error)
 	GetTotalBalanceOfOwnerAccounts(ctx context.Context, addresses []string) (int, error)
 
 	GetNullProvenanceTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
@@ -118,8 +118,9 @@ type Store interface {
 }
 
 type FilterParameter struct {
-	Source string
-	IDs    []string
+	Source         string
+	IDs            []string
+	BurnedIncluded bool
 }
 
 type Criteria struct {
@@ -148,7 +149,7 @@ type HistoricalExchangeRateFilter struct {
 	Timestamp    time.Time
 }
 
-func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*MongodbIndexerStore, error) {
+func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName, environment string) (*MongodbIndexerStore, error) {
 	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(mongodbURI))
 	if err != nil {
 		return nil, err
@@ -168,6 +169,7 @@ func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*Mo
 	historicalExchangeRatesCollection := db.Collection(historicalExchangeRatesCollectionName)
 
 	return &MongodbIndexerStore{
+		environment:                       environment,
 		dbName:                            dbName,
 		mongoClient:                       mongoClient,
 		tokenCollection:                   tokenCollection,
@@ -185,6 +187,7 @@ func NewMongodbIndexerStore(ctx context.Context, mongodbURI, dbName string) (*Mo
 }
 
 type MongodbIndexerStore struct {
+	environment                       string
 	dbName                            string
 	mongoClient                       *mongo.Client
 	tokenCollection                   *mongo.Collection
@@ -525,7 +528,6 @@ func (s *MongodbIndexerStore) FilterTokenIDsWithInconsistentProvenanceForOwner(c
 		bson.M{
 			"indexID":            bson.M{"$in": indexIDs},
 			"fungible":           false,
-			"burned":             bson.M{"$ne": true},
 			"provenance.0.owner": bson.M{"$ne": owner},
 		},
 		options.Find().SetProjection(bson.M{"indexID": 1, "_id": 0}),
@@ -609,7 +611,11 @@ func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParam
 			}
 
 			pagedTokens, err := s.getDetailedTokensByAggregation(ctx,
-				FilterParameter{IDs: filterParameter.IDs[start:end], Source: filterParameter.Source},
+				FilterParameter{
+					IDs:            filterParameter.IDs[start:end],
+					Source:         filterParameter.Source,
+					BurnedIncluded: filterParameter.BurnedIncluded,
+				},
 				offset, size)
 			if err != nil {
 				return nil, err
@@ -631,11 +637,10 @@ func (s *MongodbIndexerStore) UpdateOwner(ctx context.Context, indexID string, o
 		return nil
 	}
 
-	// update provenance only for non-burned tokens
+	burned := IsBurnAddress(owner, s.environment)
 	_, err := s.tokenCollection.UpdateOne(ctx, bson.M{
 		"indexID":          indexID,
 		"fungible":         false,
-		"burned":           bson.M{"$ne": true},
 		"lastActivityTime": bson.M{"$lt": updatedAt},
 	}, bson.M{
 		"$set": bson.M{
@@ -644,6 +649,7 @@ func (s *MongodbIndexerStore) UpdateOwner(ctx context.Context, indexID string, o
 			"ownersArray":       []string{owner},
 			"lastActivityTime":  updatedAt,
 			"lastRefreshedTime": time.Now(),
+			"burned":            burned,
 		},
 	})
 
@@ -675,7 +681,6 @@ func (s *MongodbIndexerStore) UpdateTokenProvenance(ctx context.Context, indexID
 	// update provenance only for non-burned tokens
 	_, err := s.tokenCollection.UpdateOne(ctx, bson.M{
 		"indexID": indexID,
-		"burned":  bson.M{"$ne": true},
 	}, bson.M{
 		"$set": tokenUpdates,
 	})
@@ -711,7 +716,6 @@ func (s *MongodbIndexerStore) UpdateTokenOwners(ctx context.Context, indexID str
 	// update provenance only for non-burned tokens
 	_, err := s.tokenCollection.UpdateOne(ctx, bson.M{
 		"indexID": indexID,
-		"burned":  bson.M{"$ne": true},
 	}, bson.M{
 		"$set": tokenUpdates,
 	})
@@ -850,7 +854,10 @@ func (s *MongodbIndexerStore) getTokensByAggregationForOwner(ctx context.Context
 	matchQuery := bson.M{
 		fmt.Sprintf("owners.%s", owner): bson.M{"$gte": 1},
 		"ownersArray":                   bson.M{"$in": bson.A{owner}},
-		"burned":                        bson.M{"$ne": true},
+	}
+
+	if !filterParameter.BurnedIncluded {
+		matchQuery["burned"] = bson.M{"$ne": true}
 	}
 
 	pipelines := []bson.M{
@@ -903,12 +910,14 @@ func (s *MongodbIndexerStore) getTokensByAggregationForOwner(ctx context.Context
 
 // DEPRECATED: getTokensByAggregationByOwners queries tokens by aggregation which provides a more flexible query option by mongodb
 func (s *MongodbIndexerStore) getTokensByAggregationByOwners(ctx context.Context, owners []string, filterParameter FilterParameter, offset, size int64) (*mongo.Cursor, error) {
+	entryMatch := bson.M{"owner": bson.M{"$in": owners}}
+	if !filterParameter.BurnedIncluded {
+		entryMatch["burned"] = bson.M{"$ne": true}
+	}
+
 	pipelines := []bson.M{
 		{
-			"$match": bson.M{
-				"owner":  bson.M{"$in": owners},
-				"burned": bson.M{"$ne": true},
-			},
+			"$match": entryMatch,
 		},
 		{"$sort": bson.D{{Key: "lastActivityTime", Value: -1}, {Key: "_id", Value: -1}}},
 		// lookup performs a cross blockchain join between tokens and assets collections
@@ -962,7 +971,9 @@ func (s *MongodbIndexerStore) getTokensByAggregation(ctx context.Context, filter
 	if len(filterParameter.IDs) > 0 {
 		matchQuery = bson.M{
 			"indexID": bson.M{"$in": filterParameter.IDs},
-			"burned":  bson.M{"$ne": true},
+		}
+		if !filterParameter.BurnedIncluded {
+			matchQuery["burned"] = bson.M{"$ne": true}
 		}
 	}
 
@@ -1657,9 +1668,13 @@ func (s *MongodbIndexerStore) GetDetailedTokensV2(ctx context.Context, filterPar
 // getDetailedTokensV2InView returns detail tokens from mongodb custom view
 func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error) {
 	tokens := []DetailedTokenV2{}
+	match := bson.M{"indexID": bson.M{"$in": filterParameter.IDs}}
+	if !filterParameter.BurnedIncluded {
+		match["burned"] = bson.M{"$ne": true}
+	}
 
 	pipelines := []bson.M{
-		{"$match": bson.M{"indexID": bson.M{"$in": filterParameter.IDs}, "burned": bson.M{"$ne": true}}},
+		{"$match": match},
 		{"$addFields": bson.M{"__order": bson.M{"$indexOfArray": bson.A{filterParameter.IDs, "$indexID"}}}},
 		{"$sort": bson.M{"__order": 1}},
 	}
@@ -1689,9 +1704,10 @@ func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, fil
 }
 
 // GetDetailedToken returns a token information based on indexID
-func (s *MongodbIndexerStore) GetDetailedToken(ctx context.Context, indexID string) (DetailedToken, error) {
+func (s *MongodbIndexerStore) GetDetailedToken(ctx context.Context, indexID string, burnedIncluded bool) (DetailedToken, error) {
 	filterParameter := FilterParameter{
-		IDs: []string{indexID},
+		IDs:            []string{indexID},
+		BurnedIncluded: burnedIncluded,
 	}
 
 	detailedTokens, err := s.GetDetailedTokens(ctx, filterParameter, 0, 1)
