@@ -128,8 +128,8 @@ func StartRefreshTokenProvenanceWorkflow(c context.Context, client *cadence.Work
 		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
 		RetryPolicy: &uberCadence.RetryPolicy{
 			InitialInterval:    10 * time.Second,
-			BackoffCoefficient: 1.0,
-			MaximumAttempts:    60,
+			BackoffCoefficient: 2.0,
+			MaximumAttempts:    10,
 		},
 	}
 
