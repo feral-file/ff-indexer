@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bitmark-inc/autonomy-utils"
-	"github.com/bitmark-inc/nft-indexer"
+	utils "github.com/bitmark-inc/autonomy-utils"
+	indexer "github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/services/nft-indexer/graph/model"
 	"github.com/ethereum/go-ethereum/common"
@@ -53,7 +53,7 @@ func (r *mutationResolver) IndexCollection(ctx context.Context, creators []strin
 }
 
 // Tokens is the resolver for the tokens field.
-func (r *queryResolver) Tokens(ctx context.Context, owners []string, ids []string, collectionID string, source string, lastUpdatedAt *time.Time, sortBy *string, offset int64, size int64) ([]*model.Token, error) {
+func (r *queryResolver) Tokens(ctx context.Context, owners []string, ids []string, collectionID string, source string, lastUpdatedAt *time.Time, burnedIncluded bool, sortBy *string, offset int64, size int64) ([]*model.Token, error) {
 	var tokensInfo []indexer.DetailedTokenV2
 	var err error
 
@@ -83,7 +83,8 @@ func (r *queryResolver) Tokens(ctx context.Context, owners []string, ids []strin
 		checksumIDs := indexer.NormalizeIndexIDs(ids, false)
 		tokensInfo, err = r.indexerStore.GetDetailedTokensV2(
 			ctx, indexer.FilterParameter{
-				IDs: checksumIDs,
+				IDs:            checksumIDs,
+				BurnedIncluded: burnedIncluded,
 			},
 			offset,
 			size)

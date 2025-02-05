@@ -158,7 +158,7 @@ type ComplexityRoot struct {
 		Collections  func(childComplexity int, creators []string, offset int64, size int64) int
 		EthBlockTime func(childComplexity int, blockHash string) int
 		Identity     func(childComplexity int, account string) int
-		Tokens       func(childComplexity int, owners []string, ids []string, collectionID string, source string, lastUpdatedAt *time.Time, sortBy *string, offset int64, size int64) int
+		Tokens       func(childComplexity int, owners []string, ids []string, collectionID string, source string, lastUpdatedAt *time.Time, burnedIncluded bool, sortBy *string, offset int64, size int64) int
 	}
 
 	Token struct {
@@ -196,7 +196,7 @@ type MutationResolver interface {
 	IndexCollection(ctx context.Context, creators []string) (bool, error)
 }
 type QueryResolver interface {
-	Tokens(ctx context.Context, owners []string, ids []string, collectionID string, source string, lastUpdatedAt *time.Time, sortBy *string, offset int64, size int64) ([]*model.Token, error)
+	Tokens(ctx context.Context, owners []string, ids []string, collectionID string, source string, lastUpdatedAt *time.Time, burnedIncluded bool, sortBy *string, offset int64, size int64) ([]*model.Token, error)
 	Identity(ctx context.Context, account string) (*model.Identity, error)
 	EthBlockTime(ctx context.Context, blockHash string) (*model.BlockTime, error)
 	Collections(ctx context.Context, creators []string, offset int64, size int64) ([]*model.Collection, error)
@@ -773,7 +773,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Tokens(childComplexity, args["owners"].([]string), args["ids"].([]string), args["collectionID"].(string), args["source"].(string), args["lastUpdatedAt"].(*time.Time), args["sortBy"].(*string), args["offset"].(int64), args["size"].(int64)), true
+		return e.complexity.Query.Tokens(childComplexity, args["owners"].([]string), args["ids"].([]string), args["collectionID"].(string), args["source"].(string), args["lastUpdatedAt"].(*time.Time), args["burnedIncluded"].(bool), args["sortBy"].(*string), args["offset"].(int64), args["size"].(int64)), true
 
 	case "Token.asset":
 		if e.complexity.Token.Asset == nil {
@@ -1230,33 +1230,42 @@ func (ec *executionContext) field_Query_tokens_args(ctx context.Context, rawArgs
 		}
 	}
 	args["lastUpdatedAt"] = arg4
-	var arg5 *string
+	var arg5 bool
+	if tmp, ok := rawArgs["burnedIncluded"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("burnedIncluded"))
+		arg5, err = ec.unmarshalNBoolean2bool(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["burnedIncluded"] = arg5
+	var arg6 *string
 	if tmp, ok := rawArgs["sortBy"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sortBy"))
-		arg5, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		arg6, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["sortBy"] = arg5
-	var arg6 int64
+	args["sortBy"] = arg6
+	var arg7 int64
 	if tmp, ok := rawArgs["offset"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
-		arg6, err = ec.unmarshalNInt642int64(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["offset"] = arg6
-	var arg7 int64
-	if tmp, ok := rawArgs["size"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("size"))
 		arg7, err = ec.unmarshalNInt642int64(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["size"] = arg7
+	args["offset"] = arg7
+	var arg8 int64
+	if tmp, ok := rawArgs["size"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("size"))
+		arg8, err = ec.unmarshalNInt642int64(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["size"] = arg8
 	return args, nil
 }
 
@@ -4362,7 +4371,7 @@ func (ec *executionContext) _Query_tokens(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Tokens(rctx, fc.Args["owners"].([]string), fc.Args["ids"].([]string), fc.Args["collectionID"].(string), fc.Args["source"].(string), fc.Args["lastUpdatedAt"].(*time.Time), fc.Args["sortBy"].(*string), fc.Args["offset"].(int64), fc.Args["size"].(int64))
+		return ec.resolvers.Query().Tokens(rctx, fc.Args["owners"].([]string), fc.Args["ids"].([]string), fc.Args["collectionID"].(string), fc.Args["source"].(string), fc.Args["lastUpdatedAt"].(*time.Time), fc.Args["burnedIncluded"].(bool), fc.Args["sortBy"].(*string), fc.Args["offset"].(int64), fc.Args["size"].(int64))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

@@ -134,7 +134,7 @@ type Collection {
 }
 
 type Query {
-  tokens(owners: [String!]! = [], ids: [String!]! = [], collectionID: String! = "", source: String! = "", lastUpdatedAt: Time, sortBy: String, offset: Int64! = 0, size: Int64! = 50): [Token!]!
+  tokens(owners: [String!]! = [], ids: [String!]! = [], collectionID: String! = "", source: String! = "", lastUpdatedAt: Time, burnedIncluded: Boolean! = false, sortBy: String, offset: Int64! = 0, size: Int64! = 50): [Token!]!
   identity(account: String!): Identity
   ethBlockTime(blockHash: String!): BlockTime
   collections(creators: [String!]! = [], offset: Int64! = 0, size: Int64! = 50): [Collection!]!

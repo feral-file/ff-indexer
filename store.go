@@ -1651,7 +1651,13 @@ func (s *MongodbIndexerStore) GetDetailedTokensV2(ctx context.Context, filterPar
 			}
 
 			pagedTokens, err := s.getDetailedTokensV2InView(ctx,
-				FilterParameter{IDs: queryIDs[start:end], Source: filterParameter.Source}, 0, int64(end-start))
+				FilterParameter{
+					IDs:            queryIDs[start:end],
+					Source:         filterParameter.Source,
+					BurnedIncluded: filterParameter.BurnedIncluded,
+				},
+				0,
+				int64(end-start))
 			if err != nil {
 				return nil, err
 			}
