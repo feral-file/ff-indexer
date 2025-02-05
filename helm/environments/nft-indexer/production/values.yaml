@@ -36,7 +36,7 @@ serviceConfig:
   - ipfs.nftstorage.link
   - ipfs.io
   bitmarkd:
-    rpc_conn: node-d1.live.bitmark.com:2130
+    rpc_conn: bitmarkd-nodes.bitmark.com:2130
 
 imagePullSecrets: []
 nameOverride: ""
