@@ -3,9 +3,9 @@
 # Declare variables to be passed into your templates.
 
 replicaCounts:
-  api: 2
-  background: 3
-  provenance_indexer: 2
+  api: 1
+  background: 2
+  provenance_indexer: 1
 
 image:
   repository: 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer
