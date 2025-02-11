@@ -190,7 +190,7 @@ spec:
               mountPath: "/.config"
               readOnly: true
           resources:
-            {{- toYaml .Values.resources.gprc | nindent 12 }}
+            {{- toYaml .Values.resources.grpc | nindent 12 }}
           volumeMounts:
           - name: config
             mountPath: "/.config"
