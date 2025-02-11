@@ -18,8 +18,8 @@ serviceConfig:
 
 resources:
   requests:
-    cpu: 1000m
-    memory: 4Gi
+    cpu: 200m
+    memory: 512Mi
   limits:
-    cpu: 2000m
-    memory: 8Gi
+    cpu: 400m
+    memory: 1024Mi
