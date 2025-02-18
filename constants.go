@@ -24,6 +24,15 @@ var EthereumIndexExcludedOwners = map[string]struct{}{
 const TransferEventSignature = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
 const TransferSingleEventSignature = "0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62"
 
+// Series Index Contract
+
+const SeriesRegistryContract = "0xD4416b13d2b3a9aBae7AcD5D6C2BbDBE25686401"
+const SeriesEventRegisteredSignature = "0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62"
+const SeriesEventUpdatedSignature = "0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f3"
+const SeriesEventDeletedSignature = "0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f64"
+const SeriesEventArtistAddressUpdatedSignature = "0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f65"
+const SeriesEventCollaboratorConfirmedSignature = "0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f66"
+
 // Tezos contract addresses
 // ignored contracts
 const TezDaoContractAddress = "KT1C9X9s5rpVJGxwVuHEVBLYEdAQ1Qw8QDjH"

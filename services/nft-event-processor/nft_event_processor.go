@@ -21,7 +21,7 @@ func (e *EventProcessor) updateLatestOwner(ctx context.Context, event NFTEvent) 
 	indexID := indexer.TokenIndexID(blockchain, contract, tokenID)
 
 	switch event.Type {
-	case string(EventTypeTransfer):
+	case string(NftEventTypeTransfer):
 		token, err := e.indexerGRPC.GetTokenByIndexID(ctx, indexID)
 		if err != nil {
 			if grpcError, ok := status.FromError(err); !ok || grpcError.Message() != "token does not exist" {
@@ -85,9 +85,9 @@ func (e *EventProcessor) updateLatestOwner(ctx context.Context, event NFTEvent) 
 
 // UpdateLatestOwner is a stage 1 worker.
 func (e *EventProcessor) UpdateLatestOwner(ctx context.Context) {
-	e.StartWorker(ctx,
-		StageInit, StageFullSync,
-		[]EventType{EventTypeTransfer, EventTypeMint, EventTypeBurned},
+	e.StartNftEventWorker(ctx,
+		NftEventStageInit, NftEventStageFullSync,
+		[]NftEventType{NftEventTypeTransfer, NftEventTypeMint, NftEventTypeBurned},
 		0, 0, e.updateLatestOwner,
 	)
 }
@@ -166,18 +166,18 @@ func (e *EventProcessor) updateOwnerAndProvenance(ctx context.Context, event NFT
 
 // UpdateOwnerAndProvenance is a stage 2 worker.
 func (e *EventProcessor) UpdateOwnerAndProvenance(ctx context.Context) {
-	e.StartWorker(ctx,
-		StageFullSync, StageNotification,
-		[]EventType{EventTypeTransfer, EventTypeMint},
+	e.StartNftEventWorker(ctx,
+		NftEventStageFullSync, NftEventStageNotification,
+		[]NftEventType{NftEventTypeTransfer, NftEventTypeMint},
 		0, 0, e.updateOwnerAndProvenance,
 	)
 }
 
 // UpdateOwnerAndProvenanceForBurnedToken is a variant stage 2 worker. It ignores sending notification
 func (e *EventProcessor) UpdateOwnerAndProvenanceForBurnedToken(ctx context.Context) {
-	e.StartWorker(ctx,
-		StageFullSync, StageDone,
-		[]EventType{EventTypeBurned},
+	e.StartNftEventWorker(ctx,
+		NftEventStageFullSync, NftEventStageDone,
+		[]NftEventType{NftEventTypeBurned},
 		0, 0, e.updateOwnerAndProvenance,
 	)
 }
@@ -227,18 +227,18 @@ func (e *EventProcessor) notifyChangeTokenOwner(_ context.Context, event NFTEven
 
 // NotifyChangeTokenOwnerForTransferToken is a stage 3 worker.
 func (e *EventProcessor) NotifyChangeTokenOwnerForTransferToken(ctx context.Context) {
-	e.StartWorker(ctx,
-		StageNotification, StageTokenSaleIndexing,
-		[]EventType{EventTypeTransfer},
+	e.StartNftEventWorker(ctx,
+		NftEventStageNotification, NftEventStageTokenSaleIndexing,
+		[]NftEventType{NftEventTypeTransfer},
 		0, 0, e.notifyChangeTokenOwner,
 	)
 }
 
 // NotifyChangeTokenOwnerForMintToken is a stage 3 worker.
 func (e *EventProcessor) NotifyChangeTokenOwnerForMintToken(ctx context.Context) {
-	e.StartWorker(ctx,
-		StageNotification, StageDone,
-		[]EventType{EventTypeMint},
+	e.StartNftEventWorker(ctx,
+		NftEventStageNotification, NftEventStageDone,
+		[]NftEventType{NftEventTypeMint},
 		0, 0, e.notifyChangeTokenOwner,
 	)
 }
@@ -256,10 +256,10 @@ func (e *EventProcessor) sendEventToFeedServer(ctx context.Context, event NFTEve
 }
 
 func (e *EventProcessor) IndexTokenSale(ctx context.Context) {
-	e.StartWorker(
+	e.StartNftEventWorker(
 		ctx,
-		StageTokenSaleIndexing, StageDone,
-		[]EventType{EventTypeTransfer},
+		NftEventStageTokenSaleIndexing, NftEventStageDone,
+		[]NftEventType{NftEventTypeTransfer},
 		0, 0, e.indexTokenSale,
 	)
 }
@@ -284,9 +284,9 @@ func (e *EventProcessor) indexTokenSale(ctx context.Context, event NFTEvent) err
 
 // SendEventToFeedServer is a stage 4 worker.
 func (e *EventProcessor) SendEventToFeedServer(ctx context.Context) {
-	e.StartWorker(ctx,
-		StageFeed, StageDone,
-		[]EventType{EventTypeTransfer, EventTypeMint, EventTypeBurned},
+	e.StartNftEventWorker(ctx,
+		NftEventStageFeed, NftEventStageDone,
+		[]NftEventType{NftEventTypeTransfer, NftEventTypeMint, NftEventTypeBurned},
 		0, 0, e.sendEventToFeedServer,
 	)
 }

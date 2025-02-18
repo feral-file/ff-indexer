@@ -8,8 +8,10 @@ import (
 	log "github.com/bitmark-inc/autonomy-logger"
 	notificationConst "github.com/bitmark-inc/autonomy-notification"
 	notificationSdk "github.com/bitmark-inc/autonomy-notification/sdk"
+	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/cadence"
 	indexerGRPCSDK "github.com/bitmark-inc/nft-indexer/sdk/nft-indexer-grpc"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 	"go.uber.org/zap"
@@ -26,8 +28,10 @@ type EventProcessor struct {
 	indexerGRPC  *indexerGRPCSDK.IndexerGRPCClient
 	worker       *cadence.WorkerClient
 	accountStore *storage.AccountInformationStorage
+	indexerStore *indexer.MongodbIndexerStore
 	notification *notificationSdk.Client
 	feedServer   *FeedClient
+	rpcClient    *ethclient.Client
 }
 
 func NewEventProcessor(
@@ -40,8 +44,10 @@ func NewEventProcessor(
 	indexerGRPC *indexerGRPCSDK.IndexerGRPCClient,
 	worker *cadence.WorkerClient,
 	accountStore *storage.AccountInformationStorage,
+	indexerStore *indexer.MongodbIndexerStore,
 	notification *notificationSdk.Client,
 	feedServer *FeedClient,
+	rpcClient *ethclient.Client,
 ) *EventProcessor {
 	queue := NewEventQueue(store)
 	grpcServer := NewGRPCServer(network, address, queue)
@@ -56,8 +62,10 @@ func NewEventProcessor(
 		indexerGRPC:  indexerGRPC,
 		worker:       worker,
 		accountStore: accountStore,
+		indexerStore: indexerStore,
 		notification: notification,
 		feedServer:   feedServer,
+		rpcClient:    rpcClient,
 	}
 }
 
@@ -74,13 +82,13 @@ func (e *EventProcessor) notifyChangeOwner(accountID, toAddress, tokenID string)
 		})
 }
 
-// removeDeprecatedEvents removes expired archived events
-func (e *EventProcessor) removeDeprecatedEvents() error {
-	return e.eventQueue.store.DeleteEvents(e.eventExpiryDuration)
+// removeDeprecatedNftEvents removes expired archived events
+func (e *EventProcessor) removeDeprecatedNftEvents() error {
+	return e.eventQueue.store.DeleteNftEvents(e.eventExpiryDuration)
 }
 
-// PruneDeprecatedEventsCrobjob runs the cron job in a goroutine to remove expired archived events
-func (e *EventProcessor) PruneDeprecatedEventsCrobjob() {
+// PruneDeprecatedNftEventsCronjob runs the cron job in a goroutine to remove expired archived events
+func (e *EventProcessor) PruneDeprecatedNftEventsCronjob() {
 	go func() {
 		for {
 			now := time.Now()
@@ -93,7 +101,7 @@ func (e *EventProcessor) PruneDeprecatedEventsCrobjob() {
 			time.Sleep(durationUntilNextRun)
 
 			// Remove expired events
-			if err := e.removeDeprecatedEvents(); err != nil {
+			if err := e.removeDeprecatedNftEvents(); err != nil {
 				log.Error("error delete archived events", zap.Error(err))
 			}
 		}
@@ -105,7 +113,7 @@ func (e *EventProcessor) PruneDeprecatedEventsCrobjob() {
 func (e *EventProcessor) Run(ctx context.Context) {
 	log.Info("start event processor")
 
-	e.PruneDeprecatedEventsCrobjob()
+	e.PruneDeprecatedNftEventsCronjob()
 
 	e.ProcessEvents(ctx)
 
@@ -114,10 +122,10 @@ func (e *EventProcessor) Run(ctx context.Context) {
 	}
 }
 
-type processorFunc func(ctx context.Context, event NFTEvent) error
+type nftEventProcessorFunc func(ctx context.Context, event NFTEvent) error
 
-func (e *EventProcessor) StartWorker(ctx context.Context, currentStage, nextStage Stage,
-	types []EventType, checkIntervalSecond, deferSecond int64, processor processorFunc) {
+func (e *EventProcessor) StartNftEventWorker(ctx context.Context, currentStage, nextStage Stage,
+	types []NftEventType, checkIntervalSecond, deferSecond int64, processor nftEventProcessorFunc) {
 
 	checkInterval := e.defaultCheckInterval
 	if checkIntervalSecond != 0 {
@@ -135,15 +143,15 @@ func (e *EventProcessor) StartWorker(ctx context.Context, currentStage, nextStag
 
 				filters := []FilterOption{
 					Filter("type = ANY(?)", pq.Array(types)),
-					Filter("status = ANY(?)", pq.Array([]EventStatus{EventStatusCreated, EventStatusProcessing})),
-					Filter("stage = ?", EventStages[currentStage]),
+					Filter("status = ANY(?)", pq.Array([]NftEventStatus{NftEventStatusCreated, NftEventStatusProcessing})),
+					Filter("stage = ?", NftEventStages[currentStage]),
 				}
 
 				if deferSecond > 0 {
 					filters = append(filters, Filter("created_at < ?", time.Now().Add(-time.Duration(deferSecond)*time.Second)))
 				}
 
-				eventTx, err := e.eventQueue.GetEventTransaction(ctx, filters...)
+				eventTx, err := e.eventQueue.GetNftEventTransaction(ctx, filters...)
 				if err != nil {
 					if err == gorm.ErrRecordNotFound {
 						log.Info("No new events")
@@ -153,30 +161,98 @@ func (e *EventProcessor) StartWorker(ctx context.Context, currentStage, nextStag
 					time.Sleep(checkInterval)
 					continue
 				}
-				e.logStartStage(eventTx.Event, currentStage)
-				if err := processor(ctx, eventTx.Event); err != nil {
+				e.logStartStage(eventTx.NftEvent.ID, currentStage)
+				if err := processor(ctx, eventTx.NftEvent); err != nil {
 					log.Error("stage processing failed", zap.Error(err))
-					if err := eventTx.UpdateEvent("", string(EventStatusFailed)); err != nil {
+					if err := eventTx.UpdateNftEvent("", string(NftEventStatusFailed)); err != nil {
 						log.Error("fail to update event", zap.Error(err))
 						eventTx.Rollback()
 					}
 				}
 
 				// stage starts from 1. stage zero means there is no next stage.
-				if nextStage == 0 {
+				if nextStage == NftEventStageDone {
 					if err := eventTx.ArchiveNFTEvent(); err != nil {
 						log.Error("fail to archive event", zap.Error(err))
 						eventTx.Rollback()
 					}
 				} else {
-					if err := eventTx.UpdateEvent(EventStages[nextStage], ""); err != nil {
+					if err := eventTx.UpdateNftEvent(NftEventStages[nextStage], ""); err != nil {
 						log.Error("fail to update event", zap.Error(err))
 						eventTx.Rollback()
 					}
 				}
 
 				eventTx.Commit()
-				e.logEndStage(eventTx.Event, currentStage)
+				e.logEndStage(eventTx.NftEvent.ID, currentStage)
+			}
+		}
+	}()
+}
+
+type seriesEventProcessorFunc func(ctx context.Context, event SeriesEvent) error
+
+func (e *EventProcessor) StartSeriesEventWorker(ctx context.Context, currentStage, nextStage Stage,
+	types []SeriesEventType, checkIntervalSecond, deferSecond int64, processor seriesEventProcessorFunc) {
+
+	checkInterval := e.defaultCheckInterval
+	if checkIntervalSecond != 0 {
+		checkInterval = time.Second * time.Duration(checkIntervalSecond)
+	}
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				log.Info("process stopped")
+				return
+			default:
+				e.logStageEvent(currentStage, "query event")
+
+				filters := []FilterOption{
+					Filter("type = ANY(?)", pq.Array(types)),
+					Filter("status = ANY(?)", pq.Array([]SeriesEventStatus{SeriesEventStatusCreated, SeriesEventStatusProcessing})),
+					Filter("stage = ?", SeriesEventStages[currentStage]),
+				}
+
+				if deferSecond > 0 {
+					filters = append(filters, Filter("created_at < ?", time.Now().Add(-time.Duration(deferSecond)*time.Second)))
+				}
+
+				eventTx, err := e.eventQueue.GetSeriesEventTransaction(ctx, filters...)
+				if err != nil {
+					if err == gorm.ErrRecordNotFound {
+						log.Info("No new events")
+					} else {
+						log.Error("Fail to get a event db transaction", zap.Error(err))
+					}
+					time.Sleep(checkInterval)
+					continue
+				}
+				e.logStartStage(eventTx.SeriesEvent.ID, currentStage)
+				if err := processor(ctx, eventTx.SeriesEvent); err != nil {
+					log.Error("stage processing failed", zap.Error(err))
+					if err := eventTx.UpdateSeriesEvent("", string(NftEventStatusFailed)); err != nil {
+						log.Error("fail to update event", zap.Error(err))
+						eventTx.Rollback()
+					}
+				}
+
+				// stage starts from 1. stage zero means there is no next stage.
+				if nextStage == SeriesEventStageHandled {
+					if err := eventTx.HandledSeriesEvent(); err != nil {
+						log.Error("fail to set event to handled", zap.Error(err))
+						eventTx.Rollback()
+					}
+				} else {
+					if err := eventTx.UpdateSeriesEvent(NftEventStages[nextStage], ""); err != nil {
+						log.Error("fail to update event", zap.Error(err))
+						eventTx.Rollback()
+					}
+				}
+
+				eventTx.Commit()
+				e.logEndStage(eventTx.SeriesEvent.ID, currentStage)
 			}
 		}
 	}()
@@ -185,7 +261,7 @@ func (e *EventProcessor) StartWorker(ctx context.Context, currentStage, nextStag
 // ProcessEvents start a loop to continuously consuming queud event
 func (e *EventProcessor) ProcessEvents(ctx context.Context) {
 	// run goroutines forever
-	log.Debug("start event processing goroutines")
+	log.Debug("start nft event processing goroutines")
 
 	// token update
 	e.RefreshTokenData(ctx)
@@ -211,6 +287,14 @@ func (e *EventProcessor) ProcessEvents(ctx context.Context) {
 
 	//stage 5: index token sale
 	e.IndexTokenSale(ctx)
+
+	log.Debug("start series event processing goroutines")
+
+	e.CreateSeriesCollection(ctx)
+	e.UpdateSeriesCollection(ctx)
+	e.DeleteSeriesCollection(ctx)
+	e.ArtistAddressUpdated(ctx)
+	e.CollaboratorConfirmed(ctx)
 }
 
 // GetAccountIDByAddress get account IDS by address

@@ -3,12 +3,14 @@ syntax = "proto3";
 option go_package = "./grpc/processor";
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
 
 service EventProcessor {
-  rpc PushEvent(EventInput) returns (EventOutput);
+  rpc PushNftEvent(NftEventInput) returns (EventOutput);
+  rpc PushSeriesEvent(SeriesEventInput) returns (EventOutput);
 }
 
-message EventInput {
+message NftEventInput {
   string Type = 1;
   string Blockchain = 2;
   string Contract = 3;
@@ -18,6 +20,15 @@ message EventInput {
   string TXID = 7;
   google.protobuf.Timestamp TXTime = 8;
   uint64 EventIndex = 9;
+}
+
+message SeriesEventInput {
+  string Type = 1;
+  string Contract = 2;
+  google.protobuf.Struct Data = 3;
+  string TXID = 4;
+  google.protobuf.Timestamp TXTime = 5;
+  uint64 EventIndex = 6;
 }
 
 message EventOutput {

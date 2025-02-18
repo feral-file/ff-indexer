@@ -43,6 +43,35 @@ func StartIndexTokenWorkflow(c context.Context, client *cadence.WorkerClient, ow
 	}
 }
 
+// ExecuteIndexTokenWorkflow execute a workflow to index a single token
+func ExecuteIndexTokenWorkflow(c context.Context, client *cadence.WorkerClient, owner, contract, tokenID string, indexProvenance, indexPreview bool) (cadenceClient.WorkflowRun, error) {
+	workflowContext := cadenceClient.StartWorkflowOptions{
+		ID:                           fmt.Sprintf("index-single-nft-%s-%s", contract, tokenID),
+		TaskList:                     TaskListName,
+		ExecutionStartToCloseTimeout: 2 * time.Hour,
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyTerminateIfRunning,
+	}
+
+	var w NFTIndexerWorker
+
+	exec, err := client.ExecuteWorkflow(c, ClientName, workflowContext,
+		w.IndexTokenWorkflow, owner, contract, tokenID, indexProvenance, indexPreview)
+	if err != nil {
+		log.Error("fail to execute indexing workflow",
+			zap.Error(err),
+			zap.String("owner", owner), zap.String("contract", contract), zap.String("token_id", tokenID))
+		return nil, err
+	}
+
+	log.Debug("executed workflow to index a token",
+		zap.String("owner", owner),
+		zap.String("contract", contract),
+		zap.String("token_id", tokenID),
+		zap.String("workflow_id", exec.GetID()))
+
+	return exec, nil
+}
+
 // StartIndexETHTokenWorkflow starts a workflow to index tokens for an ethereum address
 func StartIndexETHTokenWorkflow(c context.Context, client *cadence.WorkerClient, caller string, owner string, includeHistory bool) {
 	option := cadenceClient.StartWorkflowOptions{

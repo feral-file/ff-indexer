@@ -38,9 +38,9 @@ func (e *EventProcessor) refreshTokenData(ctx context.Context, event NFTEvent) e
 
 // RefreshTokenData process the EventTypeTokenUpdated and trigger cadence workflow to refresh the token data
 func (e *EventProcessor) RefreshTokenData(ctx context.Context) {
-	e.StartWorker(ctx,
-		StageInit, StageDoubleSync,
-		[]EventType{EventTypeTokenUpdated},
+	e.StartNftEventWorker(ctx,
+		NftEventStageInit, NftEventStageDoubleSync,
+		[]NftEventType{NftEventTypeTokenUpdated},
 		viper.GetInt64("events.check_interval_seconds.token_updated"),
 		viper.GetInt64("events.process_delay_seconds.token_updated"),
 		e.refreshTokenData,
@@ -49,9 +49,9 @@ func (e *EventProcessor) RefreshTokenData(ctx context.Context) {
 
 // DoubleSyncTokenData process the EventTypeTokenUpdated and to ensure a token is corrected updates
 func (e *EventProcessor) DoubleSyncTokenData(ctx context.Context) {
-	e.StartWorker(ctx,
-		StageDoubleSync, StageDone,
-		[]EventType{EventTypeTokenUpdated},
+	e.StartNftEventWorker(ctx,
+		NftEventStageDoubleSync, NftEventStageDone,
+		[]NftEventType{NftEventTypeTokenUpdated},
 		0, 60, e.refreshTokenData,
 	)
 }

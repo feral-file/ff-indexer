@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -16,6 +17,7 @@ import (
 	log "github.com/bitmark-inc/autonomy-logger"
 	notification "github.com/bitmark-inc/autonomy-notification/sdk"
 	"github.com/bitmark-inc/config-loader"
+	indexer "github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/cadence"
 	indexerGRPCSDK "github.com/bitmark-inc/nft-indexer/sdk/nft-indexer-grpc"
@@ -60,6 +62,11 @@ func main() {
 		log.Fatal("fail to connect indexer grpc", zap.Error(err))
 	}
 
+	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"), environment)
+	if err != nil {
+		log.Panic("fail to initiate indexer store", zap.Error(err))
+	}
+
 	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
 	cadenceClient.AddService(indexerWorker.ClientName)
 
@@ -80,6 +87,11 @@ func main() {
 	}
 	eventExpiryDuration := time.Duration(eventExpiryDays) * time.Hour * 24
 
+	rpcClient, err := ethclient.Dial(viper.GetString("ethereum.rpc_url"))
+	if err != nil {
+		log.Panic(err.Error(), zap.Error(err))
+	}
+
 	p := NewEventProcessor(
 		environment,
 		checkInterval,
@@ -90,8 +102,10 @@ func main() {
 		indexerGRPC,
 		cadenceClient,
 		accountStore,
+		indexerStore,
 		notification,
 		feedServer,
+		rpcClient,
 	)
 	p.Run(ctx)
 }
