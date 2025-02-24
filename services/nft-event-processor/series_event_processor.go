@@ -7,8 +7,12 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"regexp"
+	"net/http"
+	"net/url"
+	"strings"
+	"time"
 
+	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
 	seriesRegistry "github.com/bitmark-inc/feralfile-exhibition-smart-contract/go-binding/series-registry"
 	indexer "github.com/bitmark-inc/nft-indexer"
@@ -16,18 +20,19 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/google/uuid"
-	shell "github.com/ipfs/go-ipfs-api"
-	"github.com/spf13/viper"
 	"go.uber.org/cadence/client"
+	"go.uber.org/zap"
 )
 
 func (e *EventProcessor) indexSeriesCollection(ctx context.Context, event SeriesEvent) error {
 	var data map[string]interface{}
-	if err := json.Unmarshal(event.Data.RawMessage, &data); err != nil {
+	if err := json.Unmarshal(event.Data, &data); err != nil {
 		return err
 	}
 
-	seriesID, ok := new(big.Int).SetString(data["series_id"].(string), 10)
+	seriesID := data["series_id"].(string)
+
+	biSeriesID, ok := new(big.Int).SetString(seriesID, 10)
 	if !ok {
 		return errors.New("invalid series ID")
 	}
@@ -37,11 +42,11 @@ func (e *EventProcessor) indexSeriesCollection(ctx context.Context, event Series
 		return err
 	}
 
-	metadataURI, err := sr.GetSeriesMetadataURI(nil, seriesID)
+	metadataURI, err := sr.GetSeriesMetadataURI(nil, biSeriesID)
 	if err != nil {
 		return err
 	}
-	bytesMetadata, err := ipfsCat(ipfsURIToCID(metadataURI))
+	bytesMetadata, err := e.FetchIPFSData(metadataURI)
 	if err != nil {
 		return err
 	}
@@ -50,11 +55,11 @@ func (e *EventProcessor) indexSeriesCollection(ctx context.Context, event Series
 		return err
 	}
 
-	tokenMapURI, err := sr.GetSeriesContractTokenDataURI(nil, seriesID)
+	tokenMapURI, err := sr.GetSeriesContractTokenDataURI(nil, biSeriesID)
 	if err != nil {
 		return err
 	}
-	bytesTokenMap, err := ipfsCat(ipfsURIToCID(tokenMapURI))
+	bytesTokenMap, err := e.FetchIPFSData(tokenMapURI)
 	if err != nil {
 		return err
 	}
@@ -63,7 +68,7 @@ func (e *EventProcessor) indexSeriesCollection(ctx context.Context, event Series
 		return err
 	}
 
-	artists, err := sr.GetSeriesArtistAddresses(nil, seriesID)
+	artists, err := sr.GetSeriesArtistAddresses(nil, biSeriesID)
 	if err != nil {
 		return err
 	}
@@ -73,16 +78,17 @@ func (e *EventProcessor) indexSeriesCollection(ctx context.Context, event Series
 		artistAddresses[i] = a.Hex()
 	}
 
-	collection, err := e.indexerStore.GetNewCollectionByID(ctx, fmt.Sprint("seriesRegistry-", data["series_id"].(string)))
+	collection, err := e.indexerStore.GetNewCollectionByID(ctx, seriesCollectionID(seriesID))
 	if err != nil {
 		return err
 	}
 
 	if collection == nil {
 		collection = &indexer.NewCollection{
-			ID:         fmt.Sprint("seriesRegistry-", data["series_id"].(string)),
-			ExternalID: data["series_id"].(string),
+			ID:         seriesCollectionID(seriesID),
+			ExternalID: seriesID,
 			Source:     "seriesRegistry",
+			Published:  true,
 			CreatedAt:  event.CreatedAt,
 		}
 	}
@@ -193,11 +199,13 @@ func (e *EventProcessor) indexSeriesCollection(ctx context.Context, event Series
 
 func (e *EventProcessor) deleteSeriesCollection(ctx context.Context, event SeriesEvent) error {
 	var data map[string]interface{}
-	if err := json.Unmarshal(event.Data.RawMessage, &data); err != nil {
+	if err := json.Unmarshal(event.Data, &data); err != nil {
 		return err
 	}
 
-	collection, err := e.indexerStore.GetNewCollectionByID(ctx, fmt.Sprint("seriesRegistry-", data["series_id"].(string)))
+	seriesID := data["series_id"].(string)
+
+	collection, err := e.indexerStore.GetNewCollectionByID(ctx, seriesCollectionID(seriesID))
 	if err != nil {
 		return err
 	}
@@ -210,7 +218,7 @@ func (e *EventProcessor) deleteSeriesCollection(ctx context.Context, event Serie
 
 func (e *EventProcessor) artistAddressUpdated(ctx context.Context, event SeriesEvent) error {
 	var data map[string]interface{}
-	if err := json.Unmarshal(event.Data.RawMessage, &data); err != nil {
+	if err := json.Unmarshal(event.Data, &data); err != nil {
 		return err
 	}
 	oldAddress := data["old_address"].(string)
@@ -220,13 +228,15 @@ func (e *EventProcessor) artistAddressUpdated(ctx context.Context, event SeriesE
 
 func (e *EventProcessor) collaboratorConfirmed(ctx context.Context, event SeriesEvent) error {
 	var data map[string]interface{}
-	if err := json.Unmarshal(event.Data.RawMessage, &data); err != nil {
+	if err := json.Unmarshal(event.Data, &data); err != nil {
 		return err
 	}
 
-	collaboratorID, ok := new(big.Int).SetString(data["confirmed_artist_id"].(string), 10)
+	seriesID := data["series_id"].(string)
+
+	biSeriesID, ok := new(big.Int).SetString(seriesID, 10)
 	if !ok {
-		return errors.New("invalid collaboratorID")
+		return errors.New("invalid series ID")
 	}
 
 	sr, err := newSeriesRegistryContract(e.rpcClient)
@@ -234,11 +244,16 @@ func (e *EventProcessor) collaboratorConfirmed(ctx context.Context, event Series
 		return err
 	}
 
-	collaboratorAddress, err := sr.GetArtistAddress(nil, collaboratorID)
+	artists, err := sr.GetSeriesArtistAddresses(nil, biSeriesID)
 	if err != nil {
 		return err
 	}
-	return e.indexerStore.UpdateNewCollectionCollaborator(ctx, data["series_id"].(string), collaboratorAddress.Hex())
+
+	var addresses []string
+	for _, addr := range artists {
+		addresses = append(addresses, addr.Hex())
+	}
+	return e.indexerStore.UpdateCollectionArtists(ctx, seriesCollectionID(seriesID), addresses)
 }
 
 func (e *EventProcessor) CreateSeriesCollection(ctx context.Context) {
@@ -252,7 +267,7 @@ func (e *EventProcessor) CreateSeriesCollection(ctx context.Context) {
 func (e *EventProcessor) UpdateSeriesCollection(ctx context.Context) {
 	e.StartSeriesEventWorker(ctx,
 		SeriesEventStageInit, SeriesEventStageHandled,
-		[]SeriesEventType{SeriesEventTypeRegistered},
+		[]SeriesEventType{SeriesEventTypeUpdated},
 		0, 0, e.indexSeriesCollection,
 	)
 }
@@ -285,17 +300,69 @@ func newSeriesRegistryContract(ec *ethclient.Client) (*seriesRegistry.SeriesRegi
 	return seriesRegistry.NewSeriesRegistry(common.HexToAddress(indexer.SeriesRegistryContract), ec)
 }
 
-func ipfsURIToCID(ipfsLink string) string {
-	return regexp.MustCompile("^ipfs://").
-		ReplaceAllString(ipfsLink, "")
+// FetchIPFSData retrieves content from an IPFS URI using available gateways.
+// It attempts each gateway sequentially and returns the first successful response.
+func (e *EventProcessor) FetchIPFSData(ipfsURI string) ([]byte, error) {
+	var lastErr error
+	for _, gateway := range e.ipfsGateways {
+		gatewayURL := convertIPFSToGatewayURL(gateway, ipfsURI)
+		data, err := downloadIPFSContent(gatewayURL)
+		if err == nil {
+			log.Debug("Successfully retrieved IPFS content",
+				zap.String("gateway", gateway),
+				zap.String("url", gatewayURL))
+			return data, nil
+		}
+		lastErr = err
+		log.Warn("Failed to retrieve IPFS content from gateway",
+			zap.Error(err),
+			zap.String("uri", ipfsURI),
+			zap.String("gateway", gateway))
+	}
+	return nil, fmt.Errorf("failed to fetch IPFS data from all gateways; last error: %w", lastErr)
 }
 
-func ipfsCat(cid string) ([]byte, error) {
-	reader, err := shell.NewShell(viper.GetString("ipfs.addr")).Cat(cid)
-	if nil != err {
-		return nil, err
+// ConvertIPFSToGatewayURL transforms an IPFS URI (e.g., ipfs://CID/path) into an HTTPS URL
+// using the specified gateway host. Returns the original URI if parsing fails or scheme isn't "ipfs".
+func convertIPFSToGatewayURL(gatewayHost, ipfsURI string) string {
+	parsedURL, err := url.Parse(ipfsURI)
+	if err != nil || parsedURL.Scheme != "ipfs" {
+		return ipfsURI // Return original if invalid or not IPFS
 	}
-	defer reader.Close()
 
-	return io.ReadAll(reader)
+	// Clean the path and construct gateway URL
+	cid := parsedURL.Host // CID is typically the host in ipfs://CID/path
+	path := strings.TrimLeft(parsedURL.Path, "/")
+	gatewayPath := fmt.Sprintf("ipfs/%s", cid)
+	if path != "" {
+		gatewayPath = fmt.Sprintf("%s/%s", gatewayPath, path)
+	}
+
+	return fmt.Sprintf("https://%s/%s", gatewayHost, gatewayPath)
+}
+
+// downloadIPFSContent retrieves content from a given URL with a timeout.
+func downloadIPFSContent(contentURL string) ([]byte, error) {
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+	}
+	resp, err := client.Get(contentURL)
+	if err != nil {
+		return nil, fmt.Errorf("HTTP request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+	return data, nil
+}
+
+func seriesCollectionID(seriesID string) string {
+	return fmt.Sprint("seriesRegistry-", seriesID)
 }

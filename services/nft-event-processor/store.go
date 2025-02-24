@@ -8,9 +8,9 @@ import (
 
 	"github.com/fatih/structs"
 	"github.com/jackc/pgconn"
-	"github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
@@ -100,13 +100,13 @@ func (NFTEvent) TableName() string {
 
 // SeriesEvent is the model for series events
 type SeriesEvent struct {
-	ID         string    `gorm:"primaryKey;size:255;default:uuid_generate_v4()"`
-	Type       string    `gorm:"index:idx_event,unique"`
-	Contract   string    `gorm:"index:idx_event,unique"`
-	TXID       string    `gorm:"index:idx_event,unique"`
-	EventIndex uint      `gorm:"index:idx_event,unique"`
-	TXTime     time.Time `gorm:"index:idx_event,unique"`
-	Data       postgres.Jsonb
+	ID         string            `gorm:"primaryKey;size:255;default:uuid_generate_v4()"`
+	Type       string            `gorm:"index:idx_event,unique"`
+	Contract   string            `gorm:"index:idx_event,unique"`
+	TXID       string            `gorm:"index:idx_event,unique"`
+	EventIndex uint              `gorm:"index:idx_event,unique"`
+	TXTime     time.Time         `gorm:"index:idx_event,unique"`
+	Data       datatypes.JSON    `gorm:"type:jsonb;NOT NULL;default:'{}'"`
 	Stage      string            `gorm:"index"`
 	Status     SeriesEventStatus `gorm:"index"`
 	CreatedAt  time.Time         `gorm:"default:now()"`

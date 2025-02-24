@@ -208,7 +208,7 @@ func (e *EthereumEventsEmitter) processLogsSinceLastStoppedBlock(ctx context.Con
 }
 
 func (e *EthereumEventsEmitter) Run(ctx context.Context) {
-	e.processLogsSinceLastStoppedBlock(ctx)
+	// e.processLogsSinceLastStoppedBlock(ctx)
 
 	go e.Watch(ctx)
 
@@ -217,6 +217,7 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 
 	go func() {
 		defer wg.Done()
+		log.Debug("start receiving nft transfer event log")
 		for eLog := range e.nftTransferLogChan {
 			e.processNftTransferLog(ctx, eLog)
 		}
@@ -224,6 +225,7 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 
 	go func() {
 		defer wg.Done()
+		log.Debug("start receiving series event log")
 		for eLog := range e.seriesIndexLogChan {
 			e.processSeriesIndexLog(ctx, eLog)
 		}
@@ -311,91 +313,89 @@ func (e *EthereumEventsEmitter) processSeriesIndexLog(ctx context.Context, eLog 
 		return
 	}
 
-	if topicLen := len(eLog.Topics); topicLen == 2 {
-		contractAddress := indexer.EthereumChecksumAddress(eLog.Address.String())
+	contractAddress := indexer.EthereumChecksumAddress(eLog.Address.String())
 
-		txTime, err := indexer.GetETHBlockTime(ctx, e.cacheStore, e.wsClient, eLog.BlockHash)
+	txTime, err := indexer.GetETHBlockTime(ctx, e.cacheStore, e.wsClient, eLog.BlockHash)
+	if err != nil {
+		log.Error("fail to get the block time", zap.Error(err), log.SourceGRPC)
+		sentry.CaptureException(err)
+		return
+	}
+
+	var data *map[string]interface{}
+	var eventType string
+	switch eLog.Topics[0].Hex() {
+	case indexer.SeriesEventRegisteredSignature:
+		eventType = "registered"
+		ev, err := sr.ParseSeriesRegistered(eLog)
 		if err != nil {
-			log.Error("fail to get the block time", zap.Error(err), log.SourceGRPC)
-			sentry.CaptureException(err)
+			log.Error(err.Error())
 			return
 		}
-
-		var data *map[string]interface{}
-		var eventType string
-		switch eLog.Topics[0].Hex() {
-		case indexer.SeriesEventRegisteredSignature:
-			eventType = "registered"
-			ev, err := sr.ParseSeriesRegistered(eLog)
-			if err != nil {
-				log.Error(err.Error())
-				return
-			}
-			data = &map[string]interface{}{
-				"series_id": ev.SeriesID.Text(10),
-			}
-		case indexer.SeriesEventUpdatedSignature:
-			eventType = "updated"
-			ev, err := sr.ParseSeriesUpdated(eLog)
-			if err != nil {
-				log.Error(err.Error())
-				return
-			}
-			data = &map[string]interface{}{
-				"series_id": ev.SeriesID.Text(10),
-			}
-		case indexer.SeriesEventDeletedSignature:
-			eventType = "deleted"
-			ev, err := sr.ParseSeriesDeleted(eLog)
-			if err != nil {
-				log.Error(err.Error())
-				return
-			}
-			data = &map[string]interface{}{
-				"series_id": ev.SeriesID.Text(10),
-			}
-		case indexer.SeriesEventArtistAddressUpdatedSignature:
-			eventType = "artist_address_updated"
-			ev, err := sr.ParseArtistAddressUpdated(eLog)
-			if err != nil {
-				log.Error(err.Error())
-				return
-			}
-			data = &map[string]interface{}{
-				"artist_id":   ev.ArtistID.Text(10),
-				"old_address": ev.OldAddress.Hex(),
-				"new_address": ev.NewAddress.Hex(),
-			}
-		case indexer.SeriesEventCollaboratorConfirmedSignature:
-			eventType = "collaborator_confirmed"
-			ev, err := sr.ParseCollaboratorConfirmed(eLog)
-			if err != nil {
-				log.Error(err.Error())
-				return
-			}
-			data = &map[string]interface{}{
-				"series_id":           ev.SeriesID.Text(10),
-				"confirmed_artist_id": ev.ConfirmedArtistID.Text(10),
-			}
-		default:
-			log.Error("unsupported event")
+		data = &map[string]interface{}{
+			"series_id": ev.SeriesID.Text(10),
+		}
+	case indexer.SeriesEventUpdatedSignature:
+		eventType = "updated"
+		ev, err := sr.ParseSeriesUpdated(eLog)
+		if err != nil {
+			log.Error(err.Error())
 			return
 		}
-
-		log.Debug("receive transfer event on ethereum",
-			zap.String("contractAddress", contractAddress),
-			zap.String("eventType", eventType),
-			zap.Any("data", data),
-			zap.String("txID", eLog.TxHash.Hex()),
-			zap.Uint("txIndex", eLog.TxIndex),
-			zap.String("txTime", txTime.String()),
-		)
-
-		if err := e.PushSeriesEvent(ctx, eventType, contractAddress, eLog.TxHash.Hex(), data, eLog.Index, txTime); err != nil {
-			log.Error("gRPC request failed", zap.Error(err), log.SourceGRPC)
-			sentry.CaptureException(err)
+		data = &map[string]interface{}{
+			"series_id": ev.SeriesID.Text(10),
+		}
+	case indexer.SeriesEventDeletedSignature:
+		eventType = "deleted"
+		ev, err := sr.ParseSeriesDeleted(eLog)
+		if err != nil {
+			log.Error(err.Error())
 			return
 		}
+		data = &map[string]interface{}{
+			"series_id": ev.SeriesID.Text(10),
+		}
+	case indexer.SeriesEventArtistAddressUpdatedSignature:
+		eventType = "artist_address_updated"
+		ev, err := sr.ParseArtistAddressUpdated(eLog)
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+		data = &map[string]interface{}{
+			"artist_id":   ev.ArtistID.Text(10),
+			"old_address": ev.OldAddress.Hex(),
+			"new_address": ev.NewAddress.Hex(),
+		}
+	case indexer.SeriesEventCollaboratorConfirmedSignature:
+		eventType = "collaborator_confirmed"
+		ev, err := sr.ParseCollaboratorConfirmed(eLog)
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+		data = &map[string]interface{}{
+			"series_id":           ev.SeriesID.Text(10),
+			"confirmed_artist_id": ev.ConfirmedArtistID.Text(10),
+		}
+	default:
+		log.Error("unsupported event")
+		return
+	}
+
+	log.Debug("receive series event on ethereum",
+		zap.String("contractAddress", contractAddress),
+		zap.String("eventType", eventType),
+		zap.Any("data", data),
+		zap.String("txID", eLog.TxHash.Hex()),
+		zap.Uint("txIndex", eLog.TxIndex),
+		zap.String("txTime", txTime.String()),
+	)
+
+	if err := e.PushSeriesEvent(ctx, eventType, contractAddress, eLog.TxHash.Hex(), data, eLog.Index, txTime); err != nil {
+		log.Error("gRPC request failed", zap.Error(err), log.SourceGRPC)
+		sentry.CaptureException(err)
+		return
 	}
 
 	if eLog.BlockNumber > currentLastStoppedBlock {

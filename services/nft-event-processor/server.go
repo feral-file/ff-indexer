@@ -20,6 +20,7 @@ import (
 
 type EventProcessor struct {
 	environment          string
+	ipfsGateways         []string
 	defaultCheckInterval time.Duration
 	eventExpiryDuration  time.Duration
 
@@ -36,6 +37,7 @@ type EventProcessor struct {
 
 func NewEventProcessor(
 	environment string,
+	ipfsGateways []string,
 	defaultCheckInterval time.Duration,
 	eventExpiryDuration time.Duration,
 	network string,
@@ -54,6 +56,7 @@ func NewEventProcessor(
 
 	return &EventProcessor{
 		environment:          environment,
+		ipfsGateways:         ipfsGateways,
 		defaultCheckInterval: defaultCheckInterval,
 		eventExpiryDuration:  eventExpiryDuration,
 
@@ -230,12 +233,17 @@ func (e *EventProcessor) StartSeriesEventWorker(ctx context.Context, currentStag
 					continue
 				}
 				e.logStartStage(eventTx.SeriesEvent.ID, currentStage)
+				if err := eventTx.UpdateSeriesEvent("", string(SeriesEventStatusProcessing)); err != nil {
+					log.Error("fail to update series event status processing", zap.Error(err))
+					eventTx.Rollback()
+				}
 				if err := processor(ctx, eventTx.SeriesEvent); err != nil {
 					log.Error("stage processing failed", zap.Error(err))
-					if err := eventTx.UpdateSeriesEvent("", string(NftEventStatusFailed)); err != nil {
-						log.Error("fail to update event", zap.Error(err))
+					if err := eventTx.UpdateSeriesEvent("", string(SeriesEventStatusFailed)); err != nil {
+						log.Error("fail to update series event status failed", zap.Error(err))
 						eventTx.Rollback()
 					}
+					continue
 				}
 
 				// stage starts from 1. stage zero means there is no next stage.

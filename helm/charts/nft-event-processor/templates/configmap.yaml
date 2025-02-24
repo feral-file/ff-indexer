@@ -48,6 +48,10 @@ data:
     notification:
       endpoint: {{ .Values.serviceConfig.notificationEndpoint }}
 
+    ipfs:
+      preferred_gateways:
+      {{- .Values.serviceConfig.preferred_gateways | toYaml | nindent 6 }}
+
   ethereum.yaml: |
     ethereum:
       ws_url:

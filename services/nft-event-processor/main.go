@@ -62,7 +62,7 @@ func main() {
 		log.Fatal("fail to connect indexer grpc", zap.Error(err))
 	}
 
-	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"), environment)
+	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("indexer.store.db_uri"), viper.GetString("indexer.store.db_name"), environment)
 	if err != nil {
 		log.Panic("fail to initiate indexer store", zap.Error(err))
 	}
@@ -94,6 +94,7 @@ func main() {
 
 	p := NewEventProcessor(
 		environment,
+		viper.GetStringSlice("ipfs.preferred_gateways"),
 		checkInterval,
 		eventExpiryDuration,
 		viper.GetString("server.network"),

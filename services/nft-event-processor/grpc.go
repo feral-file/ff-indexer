@@ -13,7 +13,6 @@ import (
 
 	log "github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
-	"github.com/jinzhu/gorm/dialects/postgres"
 )
 
 type GRPCServer struct {
@@ -116,7 +115,7 @@ func (t *GRPCHandler) PushSeriesEvent(
 		if err != nil {
 			return nil, err
 		}
-		se.Data = postgres.Jsonb{RawMessage: b}
+		se.Data = b
 	}
 
 	if err := t.queueProcessor.PushSeriesEvent(se); err != nil {

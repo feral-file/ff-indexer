@@ -2113,7 +2113,7 @@ func (s *MongodbIndexerStore) DeleteDeprecatedNewCollectionAsset(ctx context.Con
 // DeleteNewCollection removes the collection and related assets
 func (s *MongodbIndexerStore) DeleteNewCollection(ctx context.Context, collectionID string) error {
 	if _, err := s.newCollectionsCollection.DeleteOne(ctx,
-		bson.M{"collectionID": collectionID},
+		bson.M{"id": collectionID},
 	); err != nil {
 		return err
 	}
@@ -2154,13 +2154,15 @@ func (s *MongodbIndexerStore) UpdateNewCollectionArtistAddress(ctx context.Conte
 	return err
 }
 
-// UpdateNewCollectionCollaborator adds the newCollaboratorAddress to the creators array
+// UpdateCollectionArtists sync the newArtists to the creators array
 // of the collection identified by collectionID, if not already present, and updates lastUpdatedTime.
-func (s *MongodbIndexerStore) UpdateNewCollectionCollaborator(ctx context.Context, collectionID string, newCollaboratorAddress string) error {
+func (s *MongodbIndexerStore) UpdateCollectionArtists(ctx context.Context, collectionID string, newArtists []string) error {
 	// Define the update operation
 	update := bson.M{
-		"$addToSet": bson.M{"creators": newCollaboratorAddress},
-		"$set":      bson.M{"lastUpdatedTime": time.Now()},
+		"$set": bson.M{
+			"creators":        newArtists,
+			"lastUpdatedTime": time.Now(),
+		},
 	}
 
 	// Perform the update on the collection with the specified ID
