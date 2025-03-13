@@ -28,12 +28,12 @@ var NftEventStages = map[Stage]string{
 }
 
 const (
-	SeriesEventStageDone = 0
-	SeriesEventStageInit = 1
+	SeriesRegistryEventStageDone = 0
+	SeriesRegistryEventStageInit = 1
 )
 
 var SeriesEventStages = map[Stage]string{
-	SeriesEventStageInit: "stage_1_init",
+	SeriesRegistryEventStageInit: "stage_1_init",
 }
 
 const DefaultCheckInterval = 10 * time.Second

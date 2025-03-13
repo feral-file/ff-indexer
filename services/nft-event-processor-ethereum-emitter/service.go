@@ -213,7 +213,7 @@ func (e *EthereumEventsEmitter) processLogsSinceLastStoppedBlock(ctx context.Con
 }
 
 func (e *EthereumEventsEmitter) Run(ctx context.Context) {
-	// e.processLogsSinceLastStoppedBlock(ctx)
+	e.processLogsSinceLastStoppedBlock(ctx)
 
 	go e.Watch(ctx)
 

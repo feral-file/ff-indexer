@@ -259,7 +259,7 @@ func (e *EventProcessor) StartSeriesRegistryEventWorker(ctx context.Context, cur
 				}
 
 				// stage starts from 1. stage zero means there is no next stage.
-				if nextStage == SeriesEventStageDone {
+				if nextStage == SeriesRegistryEventStageDone {
 					if err := eventTx.UpdateSeriesRegistryEvent("", string(SeriesRegistryEventStatusProcessed)); err != nil {
 						log.Error("fail to set event to handled", zap.Error(err))
 						eventTx.Rollback()

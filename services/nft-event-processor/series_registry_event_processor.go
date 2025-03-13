@@ -307,7 +307,7 @@ func (e *EventProcessor) updateCollectionCreators(ctx context.Context, event Ser
 
 func (e *EventProcessor) IndexCollection(ctx context.Context) {
 	e.StartSeriesRegistryEventWorker(ctx,
-		SeriesEventStageInit, SeriesEventStageDone,
+		SeriesRegistryEventStageInit, SeriesRegistryEventStageDone,
 		[]SeriesRegistryEventType{
 			SeriesRegistryEventTypeRegisterSeries,
 			SeriesRegistryEventTypeUpdateSeries},
@@ -317,7 +317,7 @@ func (e *EventProcessor) IndexCollection(ctx context.Context) {
 
 func (e *EventProcessor) DeleteCollection(ctx context.Context) {
 	e.StartSeriesRegistryEventWorker(ctx,
-		SeriesEventStageInit, SeriesEventStageDone,
+		SeriesRegistryEventStageInit, SeriesRegistryEventStageDone,
 		[]SeriesRegistryEventType{SeriesRegistryEventTypeDeleteSeries},
 		0, 0, e.deleteCollection,
 	)
@@ -325,7 +325,7 @@ func (e *EventProcessor) DeleteCollection(ctx context.Context) {
 
 func (e *EventProcessor) ReplaceCollectionCreator(ctx context.Context) {
 	e.StartSeriesRegistryEventWorker(ctx,
-		SeriesEventStageInit, SeriesEventStageDone,
+		SeriesRegistryEventStageInit, SeriesRegistryEventStageDone,
 		[]SeriesRegistryEventType{
 			SeriesRegistryEventTypeUpdateArtistAddress,
 			SeriesRegistryEventTypeAssignSeries,
@@ -336,7 +336,7 @@ func (e *EventProcessor) ReplaceCollectionCreator(ctx context.Context) {
 
 func (e *EventProcessor) UpdateCollectionCreators(ctx context.Context) {
 	e.StartSeriesRegistryEventWorker(ctx,
-		SeriesEventStageInit, SeriesEventStageDone,
+		SeriesRegistryEventStageInit, SeriesRegistryEventStageDone,
 		[]SeriesRegistryEventType{
 			SeriesRegistryEventTypeOptInCollaboration,
 			SeriesRegistryEventTypeOptOutSeries,

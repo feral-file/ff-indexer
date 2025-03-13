@@ -107,7 +107,7 @@ func (t *GRPCHandler) PushSeriesRegistryEvent(
 		TxID:       i.TxID,
 		TxTime:     i.TxTime.AsTime(),
 		EventIndex: uint(i.EventIndex),
-		Stage:      SeriesEventStages[SeriesEventStageInit],
+		Stage:      SeriesEventStages[SeriesRegistryEventStageInit],
 		Status:     SeriesRegistryEventStatusCreated,
 	}
 	if i.Data != nil {
