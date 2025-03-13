@@ -35,23 +35,25 @@ const (
 	NftEventStatusFailed     NftEventStatus = "failed"
 )
 
-type SeriesEventType string
+type SeriesRegistryEventType string
 
 const (
-	SeriesEventTypeRegistered            SeriesEventType = "registered"
-	SeriesEventTypeUpdated               SeriesEventType = "updated"
-	SeriesEventTypeDeleted               SeriesEventType = "deleted"
-	SeriesEventTypeArtistAddressUpdated  SeriesEventType = "artist_address_updated"
-	SeriesEventTypeCollaboratorConfirmed SeriesEventType = "collaborator_confirmed"
+	SeriesRegistryEventTypeRegisterSeries      SeriesRegistryEventType = "register_series"
+	SeriesRegistryEventTypeUpdateSeries        SeriesRegistryEventType = "update_series"
+	SeriesRegistryEventTypeDeleteSeries        SeriesRegistryEventType = "delete_series"
+	SeriesRegistryEventTypeUpdateArtistAddress SeriesRegistryEventType = "update_artist_address"
+	SeriesRegistryEventTypeOptInCollaboration  SeriesRegistryEventType = "opt_in_collaboration"
+	SeriesRegistryEventTypeOptOutSeries        SeriesRegistryEventType = "opt_out_series"
+	SeriesRegistryEventTypeAssignSeries        SeriesRegistryEventType = "assign_series"
 )
 
-type SeriesEventStatus string
+type SeriesRegistryEventStatus string
 
 const (
-	SeriesEventStatusCreated    SeriesEventStatus = "created"
-	SeriesEventStatusProcessing SeriesEventStatus = "processing"
-	SeriesEventStatusProcessed  SeriesEventStatus = "processed"
-	SeriesEventStatusFailed     SeriesEventStatus = "failed"
+	SeriesRegistryEventStatusCreated    SeriesRegistryEventStatus = "created"
+	SeriesRegistryEventStatusProcessing SeriesRegistryEventStatus = "processing"
+	SeriesRegistryEventStatusProcessed  SeriesRegistryEventStatus = "processed"
+	SeriesRegistryEventStatusFailed     SeriesRegistryEventStatus = "failed"
 )
 
 // NFTEvent is the model for processed token events
@@ -98,23 +100,23 @@ func (NFTEvent) TableName() string {
 	return "new_nft_events"
 }
 
-// SeriesEvent is the model for series events
-type SeriesEvent struct {
-	ID         string            `gorm:"primaryKey;size:255;default:uuid_generate_v4()"`
-	Type       string            `gorm:"index:idx_event,unique"`
-	Contract   string            `gorm:"index:idx_event,unique"`
-	TXID       string            `gorm:"index:idx_event,unique"`
-	EventIndex uint              `gorm:"index:idx_event,unique"`
-	TXTime     time.Time         `gorm:"index:idx_event,unique"`
-	Data       datatypes.JSON    `gorm:"type:jsonb;NOT NULL;default:'{}'"`
-	Stage      string            `gorm:"index"`
-	Status     SeriesEventStatus `gorm:"index"`
-	CreatedAt  time.Time         `gorm:"default:now()"`
-	UpdatedAt  time.Time         `gorm:"default:now()"`
+// SeriesRegistryEvent is the model for series registry events
+type SeriesRegistryEvent struct {
+	ID         string                    `gorm:"primaryKey;size:255;default:uuid_generate_v4()"`
+	Type       string                    `gorm:"index:idx_event,unique"`
+	Contract   string                    `gorm:"index:idx_event,unique"`
+	TxID       string                    `gorm:"index:idx_event,unique"`
+	EventIndex uint                      `gorm:"index:idx_event,unique"`
+	TxTime     time.Time                 `gorm:"index:idx_event,unique"`
+	Data       datatypes.JSON            `gorm:"type:jsonb;NOT NULL;default:'{}'"`
+	Stage      string                    `gorm:"index"`
+	Status     SeriesRegistryEventStatus `gorm:"index"`
+	CreatedAt  time.Time                 `gorm:"default:now()"`
+	UpdatedAt  time.Time                 `gorm:"default:now()"`
 }
 
-func (SeriesEvent) TableName() string {
-	return "series_events"
+func (SeriesRegistryEvent) TableName() string {
+	return "series_registry_events"
 }
 
 // NftEventTx is an transaction object with nft event values
@@ -170,21 +172,21 @@ func (tx *NftEventTx) ArchiveNFTEvent() error {
 	return tx.DB.Where("id = ?", tx.NftEvent.ID).Delete(&NFTEvent{}).Error
 }
 
-// SeriesEventTx is an transaction object with series event values
-type SeriesEventTx struct {
+// SeriesRegistryEventTx is an transaction object with series registry event values
+type SeriesRegistryEventTx struct {
 	*gorm.DB
-	SeriesEvent SeriesEvent
+	Event SeriesRegistryEvent
 }
 
-func NewSeriesEventTx(DB *gorm.DB, seriesEvent SeriesEvent) *SeriesEventTx {
-	return &SeriesEventTx{
-		DB:          DB,
-		SeriesEvent: seriesEvent,
+func NewSeriesRegistryEventTx(DB *gorm.DB, evt SeriesRegistryEvent) *SeriesRegistryEventTx {
+	return &SeriesRegistryEventTx{
+		DB:    DB,
+		Event: evt,
 	}
 }
 
-// UpdateSeriesEvent updates series events by given stage or status
-func (tx *SeriesEventTx) UpdateSeriesEvent(stage, status string) error {
+// UpdateSeriesRegistryEvent updates series events by given stage or status
+func (tx *SeriesRegistryEventTx) UpdateSeriesRegistryEvent(stage, status string) error {
 	updates := map[string]interface{}{}
 	if stage != "" {
 		updates["stage"] = stage
@@ -198,13 +200,7 @@ func (tx *SeriesEventTx) UpdateSeriesEvent(stage, status string) error {
 		return fmt.Errorf("nothing for update to a nft event")
 	}
 
-	return tx.DB.Model(&SeriesEvent{}).Where("id = ?", tx.SeriesEvent.ID).Updates(updates).Error
-}
-
-// HandledSeriesEvent change the series event status to processed
-func (tx *SeriesEventTx) HandledSeriesEvent() error {
-	tx.SeriesEvent.Status = SeriesEventStatusProcessed
-	return tx.DB.Save(&tx.SeriesEvent).Error
+	return tx.DB.Model(&SeriesRegistryEvent{}).Where("id = ?", tx.Event.ID).Updates(updates).Error
 }
 
 // FilterOption is an abstraction to help filtering events with
@@ -241,8 +237,9 @@ type EventStore interface {
 	GetNftEventTransaction(ctx context.Context, filters ...FilterOption) (*NftEventTx, error)
 	DeleteNftEvents(duration time.Duration) error
 
-	CreateSeriesEvent(event SeriesEvent) error
-	GetSeriesEventTransaction(ctx context.Context, filters ...FilterOption) (*SeriesEventTx, error)
+	CreateSeriesRegistryEvent(event SeriesRegistryEvent) error
+	GetSeriesRegistryEventTransaction(ctx context.Context, filters ...FilterOption) (*SeriesRegistryEventTx, error)
+	DeleteSeriesRegistryEvents(duration time.Duration) error
 }
 
 type PostgresEventStore struct {
@@ -306,13 +303,13 @@ func (s *PostgresEventStore) DeleteNftEvents(duration time.Duration) error {
 	return s.db.Where("created_at < ?", time.Now().Add(-duration)).Delete(&ArchivedNFTEvent{}).Error
 }
 
-// CreateSeriesEvent add a new event into series event store.
-func (s *PostgresEventStore) CreateSeriesEvent(event SeriesEvent) error {
+// CreateSeriesRegistryEvent add a new event into series registry event store.
+func (s *PostgresEventStore) CreateSeriesRegistryEvent(event SeriesRegistryEvent) error {
 	err := s.db.Exec(`
-	INSERT INTO series_events("type","contract","data","tx_id","event_index","tx_time","stage","status")
-	SELECT @Type, @Contract, @Data, @TXID, @EventIndex, @TXTime, @Stage, @Status
-	WHERE NOT EXISTS (SELECT * FROM series_events WHERE "type"=@Type AND "contract"=@Contract
-		AND "tx_id"=@TXID AND "event_index"=@EventIndex)`, structs.Map(event)).Error
+	INSERT INTO series_registry_events("type","contract","data","tx_id","event_index","tx_time","stage","status")
+	SELECT @Type, @Contract, @Data, @TxID, @EventIndex, @TxTime, @Stage, @Status
+	WHERE NOT EXISTS (SELECT * FROM series_registry_events WHERE "type"=@Type AND "contract"=@Contract
+		AND "tx_id"=@TxID AND "event_index"=@EventIndex)`, structs.Map(event)).Error
 
 	var pgError *pgconn.PgError
 	if err != nil && errors.As(err, &pgError) {
@@ -325,9 +322,9 @@ func (s *PostgresEventStore) CreateSeriesEvent(event SeriesEvent) error {
 	return err
 }
 
-// GetSeriesEventTransaction returns an SeriesEventTx
-func (s *PostgresEventStore) GetSeriesEventTransaction(ctx context.Context, filters ...FilterOption) (*SeriesEventTx, error) {
-	var event SeriesEvent
+// GetSeriesRegistryEventTransaction returns an SeriesRegistryEventTx
+func (s *PostgresEventStore) GetSeriesRegistryEventTransaction(ctx context.Context, filters ...FilterOption) (*SeriesRegistryEventTx, error) {
+	var event SeriesRegistryEvent
 
 	tx := s.db.WithContext(ctx).Begin()
 	if err := tx.Error; err != nil {
@@ -346,7 +343,12 @@ func (s *PostgresEventStore) GetSeriesEventTransaction(ctx context.Context, filt
 		return nil, err
 	}
 
-	return NewSeriesEventTx(tx, event), nil
+	return NewSeriesRegistryEventTx(tx, event), nil
+}
+
+// DeleteSeriesRegistryEvents deletes series registry events older than the given duration
+func (s *PostgresEventStore) DeleteSeriesRegistryEvents(duration time.Duration) error {
+	return s.db.Where("created_at < ?", time.Now().Add(-duration)).Delete(&SeriesRegistryEvent{}).Error
 }
 
 // AutoMigrate is a help function that update db when the schema changed.
@@ -357,7 +359,7 @@ func (s *PostgresEventStore) AutoMigrate() error {
 	if err := s.db.AutoMigrate(&NFTEvent{}); err != nil {
 		return err
 	}
-	if err := s.db.AutoMigrate(&SeriesEvent{}); err != nil {
+	if err := s.db.AutoMigrate(&SeriesRegistryEvent{}); err != nil {
 		return err
 	}
 	return nil

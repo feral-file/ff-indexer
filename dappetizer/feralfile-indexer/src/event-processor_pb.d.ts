@@ -55,37 +55,37 @@ export namespace NftEventInput {
     }
 }
 
-export class SeriesEventInput extends jspb.Message { 
+export class SeriesRegistryEventInput extends jspb.Message { 
     getType(): string;
-    setType(value: string): SeriesEventInput;
+    setType(value: string): SeriesRegistryEventInput;
     getContract(): string;
-    setContract(value: string): SeriesEventInput;
+    setContract(value: string): SeriesRegistryEventInput;
 
     hasData(): boolean;
     clearData(): void;
     getData(): google_protobuf_struct_pb.Struct | undefined;
-    setData(value?: google_protobuf_struct_pb.Struct): SeriesEventInput;
+    setData(value?: google_protobuf_struct_pb.Struct): SeriesRegistryEventInput;
     getTxid(): string;
-    setTxid(value: string): SeriesEventInput;
+    setTxid(value: string): SeriesRegistryEventInput;
 
     hasTxtime(): boolean;
     clearTxtime(): void;
     getTxtime(): google_protobuf_timestamp_pb.Timestamp | undefined;
-    setTxtime(value?: google_protobuf_timestamp_pb.Timestamp): SeriesEventInput;
+    setTxtime(value?: google_protobuf_timestamp_pb.Timestamp): SeriesRegistryEventInput;
     getEventindex(): number;
-    setEventindex(value: number): SeriesEventInput;
+    setEventindex(value: number): SeriesRegistryEventInput;
 
     serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): SeriesEventInput.AsObject;
-    static toObject(includeInstance: boolean, msg: SeriesEventInput): SeriesEventInput.AsObject;
+    toObject(includeInstance?: boolean): SeriesRegistryEventInput.AsObject;
+    static toObject(includeInstance: boolean, msg: SeriesRegistryEventInput): SeriesRegistryEventInput.AsObject;
     static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
     static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-    static serializeBinaryToWriter(message: SeriesEventInput, writer: jspb.BinaryWriter): void;
-    static deserializeBinary(bytes: Uint8Array): SeriesEventInput;
-    static deserializeBinaryFromReader(message: SeriesEventInput, reader: jspb.BinaryReader): SeriesEventInput;
+    static serializeBinaryToWriter(message: SeriesRegistryEventInput, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): SeriesRegistryEventInput;
+    static deserializeBinaryFromReader(message: SeriesRegistryEventInput, reader: jspb.BinaryReader): SeriesRegistryEventInput;
 }
 
-export namespace SeriesEventInput {
+export namespace SeriesRegistryEventInput {
     export type AsObject = {
         type: string,
         contract: string,

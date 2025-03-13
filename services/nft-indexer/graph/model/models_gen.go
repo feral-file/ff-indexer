@@ -43,23 +43,30 @@ type BlockTime struct {
 }
 
 type Collection struct {
-	ID               string     `json:"id"`
-	ExternalID       string     `json:"externalID"`
-	Creator          string     `json:"creator"`
-	Name             string     `json:"name"`
-	Description      string     `json:"description"`
-	Items            int64      `json:"items"`
-	ImageURL         string     `json:"imageURL"`
-	Blockchain       string     `json:"blockchain"`
-	Contracts        []string   `json:"contracts"`
-	Published        bool       `json:"published"`
-	Source           string     `json:"source"`
-	SourceURL        string     `json:"sourceURL"`
-	ProjectURL       string     `json:"projectURL"`
-	ThumbnailURL     string     `json:"thumbnailURL"`
-	LastActivityTime *time.Time `json:"lastActivityTime,omitempty"`
-	LastUpdatedTime  *time.Time `json:"lastUpdatedTime,omitempty"`
-	CreatedAt        *time.Time `json:"createdAt,omitempty"`
+	ID              string             `json:"id"`
+	ExternalID      string             `json:"externalID"`
+	Creators        []string           `json:"creators,omitempty"`
+	Name            string             `json:"name"`
+	Description     string             `json:"description"`
+	Items           int64              `json:"items"`
+	ImageURL        string             `json:"imageURL"`
+	Contracts       *ContractAddresses `json:"contracts"`
+	Published       bool               `json:"published"`
+	Source          string             `json:"source"`
+	ExternalURL     string             `json:"externalURL"`
+	Metadata        JSON               `json:"metadata,omitempty"`
+	LastUpdatedTime *time.Time         `json:"lastUpdatedTime,omitempty"`
+	CreatedAt       *time.Time         `json:"createdAt,omitempty"`
+}
+
+type ContractAddresses struct {
+	Ethereum *EthereumContractAddresses `json:"Ethereum"`
+	Tezos    *TezosContractAddresses    `json:"Tezos"`
+}
+
+type EthereumContractAddresses struct {
+	Erc721  []string `json:"ERC721,omitempty"`
+	Erc1155 []string `json:"ERC1155,omitempty"`
 }
 
 type Identity struct {
@@ -110,6 +117,10 @@ type Provenance struct {
 }
 
 type Query struct {
+}
+
+type TezosContractAddresses struct {
+	Fa2 []string `json:"FA2,omitempty"`
 }
 
 type Token struct {

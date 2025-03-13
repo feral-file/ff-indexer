@@ -28,8 +28,8 @@ var NftEventStages = map[Stage]string{
 }
 
 const (
-	SeriesEventStageHandled = 0
-	SeriesEventStageInit    = 1
+	SeriesEventStageDone = 0
+	SeriesEventStageInit = 1
 )
 
 var SeriesEventStages = map[Stage]string{

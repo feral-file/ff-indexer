@@ -47,26 +47,26 @@ func (e *EventsEmitter) PushNftEvent(ctx context.Context, eventType, fromAddress
 	return nil
 }
 
-// PushSeriesEvent submits series events to event processor
-func (e *EventsEmitter) PushSeriesEvent(ctx context.Context, eventType, contractAddress, txID string, data *map[string]interface{}, eventIndex uint, txTime time.Time) error {
+// PushSeriesRegistryEvent submits series registry events to event processor
+func (e *EventsEmitter) PushSeriesRegistryEvent(ctx context.Context, eventType, contractAddress, txID string, data map[string]interface{}, eventIndex uint, txTime time.Time) error {
 	var sd *structpb.Struct
 	if data != nil {
-		nd, err := structpb.NewStruct(*data)
+		nd, err := structpb.NewStruct(data)
 		if err != nil {
 			return err
 		}
 		sd = nd
 	}
-	eventInput := processor.SeriesEventInput{
+	eventInput := processor.SeriesRegistryEventInput{
 		Type:       eventType,
 		Contract:   contractAddress,
 		Data:       sd,
-		TXID:       txID,
+		TxID:       txID,
 		EventIndex: uint64(eventIndex),
-		TXTime:     timestamppb.New(txTime),
+		TxTime:     timestamppb.New(txTime),
 	}
 
-	r, err := e.grpcClient.PushSeriesEvent(ctx, &eventInput)
+	r, err := e.grpcClient.PushSeriesRegistryEvent(ctx, &eventInput)
 	if err != nil {
 		return err
 	}

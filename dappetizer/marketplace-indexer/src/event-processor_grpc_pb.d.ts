@@ -11,7 +11,7 @@ import * as google_protobuf_struct_pb from "google-protobuf/google/protobuf/stru
 
 interface IEventProcessorService extends grpc.ServiceDefinition<grpc.UntypedServiceImplementation> {
     pushNftEvent: IEventProcessorService_IPushNftEvent;
-    pushSeriesEvent: IEventProcessorService_IPushSeriesEvent;
+    pushSeriesRegistryEvent: IEventProcessorService_IPushSeriesRegistryEvent;
 }
 
 interface IEventProcessorService_IPushNftEvent extends grpc.MethodDefinition<event_processor_pb.NftEventInput, event_processor_pb.EventOutput> {
@@ -23,12 +23,12 @@ interface IEventProcessorService_IPushNftEvent extends grpc.MethodDefinition<eve
     responseSerialize: grpc.serialize<event_processor_pb.EventOutput>;
     responseDeserialize: grpc.deserialize<event_processor_pb.EventOutput>;
 }
-interface IEventProcessorService_IPushSeriesEvent extends grpc.MethodDefinition<event_processor_pb.SeriesEventInput, event_processor_pb.EventOutput> {
-    path: "/EventProcessor/PushSeriesEvent";
+interface IEventProcessorService_IPushSeriesRegistryEvent extends grpc.MethodDefinition<event_processor_pb.SeriesRegistryEventInput, event_processor_pb.EventOutput> {
+    path: "/EventProcessor/PushSeriesRegistryEvent";
     requestStream: false;
     responseStream: false;
-    requestSerialize: grpc.serialize<event_processor_pb.SeriesEventInput>;
-    requestDeserialize: grpc.deserialize<event_processor_pb.SeriesEventInput>;
+    requestSerialize: grpc.serialize<event_processor_pb.SeriesRegistryEventInput>;
+    requestDeserialize: grpc.deserialize<event_processor_pb.SeriesRegistryEventInput>;
     responseSerialize: grpc.serialize<event_processor_pb.EventOutput>;
     responseDeserialize: grpc.deserialize<event_processor_pb.EventOutput>;
 }
@@ -37,16 +37,16 @@ export const EventProcessorService: IEventProcessorService;
 
 export interface IEventProcessorServer extends grpc.UntypedServiceImplementation {
     pushNftEvent: grpc.handleUnaryCall<event_processor_pb.NftEventInput, event_processor_pb.EventOutput>;
-    pushSeriesEvent: grpc.handleUnaryCall<event_processor_pb.SeriesEventInput, event_processor_pb.EventOutput>;
+    pushSeriesRegistryEvent: grpc.handleUnaryCall<event_processor_pb.SeriesRegistryEventInput, event_processor_pb.EventOutput>;
 }
 
 export interface IEventProcessorClient {
     pushNftEvent(request: event_processor_pb.NftEventInput, callback: (error: grpc.ServiceError | null, response: event_processor_pb.EventOutput) => void): grpc.ClientUnaryCall;
     pushNftEvent(request: event_processor_pb.NftEventInput, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: event_processor_pb.EventOutput) => void): grpc.ClientUnaryCall;
     pushNftEvent(request: event_processor_pb.NftEventInput, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: event_processor_pb.EventOutput) => void): grpc.ClientUnaryCall;
-    pushSeriesEvent(request: event_processor_pb.SeriesEventInput, callback: (error: grpc.ServiceError | null, response: event_processor_pb.EventOutput) => void): grpc.ClientUnaryCall;
-    pushSeriesEvent(request: event_processor_pb.SeriesEventInput, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: event_processor_pb.EventOutput) => void): grpc.ClientUnaryCall;
-    pushSeriesEvent(request: event_processor_pb.SeriesEventInput, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: event_processor_pb.EventOutput) => void): grpc.ClientUnaryCall;
+    pushSeriesRegistryEvent(request: event_processor_pb.SeriesRegistryEventInput, callback: (error: grpc.ServiceError | null, response: event_processor_pb.EventOutput) => void): grpc.ClientUnaryCall;
+    pushSeriesRegistryEvent(request: event_processor_pb.SeriesRegistryEventInput, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: event_processor_pb.EventOutput) => void): grpc.ClientUnaryCall;
+    pushSeriesRegistryEvent(request: event_processor_pb.SeriesRegistryEventInput, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: event_processor_pb.EventOutput) => void): grpc.ClientUnaryCall;
 }
 
 export class EventProcessorClient extends grpc.Client implements IEventProcessorClient {
@@ -54,7 +54,7 @@ export class EventProcessorClient extends grpc.Client implements IEventProcessor
     public pushNftEvent(request: event_processor_pb.NftEventInput, callback: (error: grpc.ServiceError | null, response: event_processor_pb.EventOutput) => void): grpc.ClientUnaryCall;
     public pushNftEvent(request: event_processor_pb.NftEventInput, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: event_processor_pb.EventOutput) => void): grpc.ClientUnaryCall;
     public pushNftEvent(request: event_processor_pb.NftEventInput, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: event_processor_pb.EventOutput) => void): grpc.ClientUnaryCall;
-    public pushSeriesEvent(request: event_processor_pb.SeriesEventInput, callback: (error: grpc.ServiceError | null, response: event_processor_pb.EventOutput) => void): grpc.ClientUnaryCall;
-    public pushSeriesEvent(request: event_processor_pb.SeriesEventInput, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: event_processor_pb.EventOutput) => void): grpc.ClientUnaryCall;
-    public pushSeriesEvent(request: event_processor_pb.SeriesEventInput, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: event_processor_pb.EventOutput) => void): grpc.ClientUnaryCall;
+    public pushSeriesRegistryEvent(request: event_processor_pb.SeriesRegistryEventInput, callback: (error: grpc.ServiceError | null, response: event_processor_pb.EventOutput) => void): grpc.ClientUnaryCall;
+    public pushSeriesRegistryEvent(request: event_processor_pb.SeriesRegistryEventInput, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: event_processor_pb.EventOutput) => void): grpc.ClientUnaryCall;
+    public pushSeriesRegistryEvent(request: event_processor_pb.SeriesRegistryEventInput, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: event_processor_pb.EventOutput) => void): grpc.ClientUnaryCall;
 }

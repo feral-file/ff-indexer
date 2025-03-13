@@ -158,22 +158,27 @@ func (r *Resolver) mapGraphQLBaseTokenInfo(t indexer.BaseTokenInfo) *model.BaseT
 
 func (r *Resolver) mapGraphQLCollection(c indexer.Collection) *model.Collection {
 	return &model.Collection{
-		ID:               c.ID,
-		ExternalID:       c.ExternalID,
-		Blockchain:       c.Blockchain,
-		Contracts:        c.Contracts,
-		Creator:          c.Creator,
-		Name:             c.Name,
-		Description:      c.Description,
-		ImageURL:         c.ImageURL,
-		Items:            int64(c.Items),
-		Source:           c.Source,
-		Published:        c.Published,
-		SourceURL:        c.SourceURL,
-		ProjectURL:       c.ProjectURL,
-		ThumbnailURL:     c.ThumbnailURL,
-		LastActivityTime: &c.LastActivityTime,
-		LastUpdatedTime:  &c.LastUpdatedTime,
-		CreatedAt:        &c.CreatedAt,
+		ID:          c.ID,
+		ExternalID:  c.ExternalID,
+		Creators:    c.Creators,
+		Name:        c.Name,
+		Description: c.Description,
+		Items:       int64(c.Items),
+		ImageURL:    c.ImageURL,
+		Contracts: &model.ContractAddresses{
+			Ethereum: &model.EthereumContractAddresses{
+				Erc721:  c.Contracts.Ethereum.ERC721,
+				Erc1155: c.Contracts.Ethereum.ERC1155,
+			},
+			Tezos: &model.TezosContractAddresses{
+				Fa2: c.Contracts.Tezos.FA2,
+			},
+		},
+		Source:          c.Source,
+		Published:       c.Published,
+		ExternalURL:     c.ExternalURL,
+		Metadata:        c.Metadata,
+		LastUpdatedTime: &c.LastUpdatedTime,
+		CreatedAt:       &c.CreatedAt,
 	}
 }

@@ -94,21 +94,21 @@ func (t *GRPCHandler) PushNftEvent(
 	return output, nil
 }
 
-// PushEvent handles PushEvent requests and save it to event store
-func (t *GRPCHandler) PushSeriesEvent(
+// PushSeriesRegistryEvent handles PushSeriesRegistryEvent requests and save it to event store
+func (t *GRPCHandler) PushSeriesRegistryEvent(
 	_ context.Context,
-	i *processor.SeriesEventInput,
+	i *processor.SeriesRegistryEventInput,
 ) (*processor.EventOutput, error) {
 	log.Debug("receive event input", zap.Any("input", i))
 
-	se := SeriesEvent{
+	se := SeriesRegistryEvent{
 		Type:       i.Type,
 		Contract:   i.Contract,
-		TXID:       i.TXID,
-		TXTime:     i.TXTime.AsTime(),
+		TxID:       i.TxID,
+		TxTime:     i.TxTime.AsTime(),
 		EventIndex: uint(i.EventIndex),
 		Stage:      SeriesEventStages[SeriesEventStageInit],
-		Status:     SeriesEventStatusCreated,
+		Status:     SeriesRegistryEventStatusCreated,
 	}
 	if i.Data != nil {
 		b, err := json.Marshal(i.Data.AsMap())
@@ -118,7 +118,7 @@ func (t *GRPCHandler) PushSeriesEvent(
 		se.Data = b
 	}
 
-	if err := t.queueProcessor.PushSeriesEvent(se); err != nil {
+	if err := t.queueProcessor.PushSeriesRegistryEvent(se); err != nil {
 		return nil, err
 	}
 

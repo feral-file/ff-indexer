@@ -6,6 +6,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"math/big"
 	"net/http"
 	"net/url"
@@ -256,4 +257,81 @@ func IsBurnAddress(address string, environment string) bool {
 		address == TezosBurnAddress ||
 		(environment == DevelopmentEnvironment && address == TestnetZeroAddress) ||
 		(environment == ProductionEnvironment && address == LivenetZeroAddress)
+}
+
+// ResolveIPFSURI converts an IPFS URI (ipfs://CID/path) to a HTTP URL using the specified gateway.
+// If the URI is already an HTTPS URL, it returns it unchanged. For IPFS URIs, it constructs
+// a URL in the format https://gateway/ipfs/CID/path to enable content retrieval through the gateway.
+func ResolveIPFSURI(gateway, uri string) string {
+	// If the URI is not an IPFS URI, return it as is
+	if !IsIPFSURI(uri) {
+		return uri
+	}
+
+	// Parse the URI
+	parsedURL, err := url.Parse(uri)
+	if err != nil {
+		return uri
+	}
+
+	// Clean the path and construct gateway URL
+	cid := parsedURL.Host // CID is typically the host in ipfs://CID/path
+	path := strings.TrimLeft(parsedURL.Path, "/")
+	gatewayPath := fmt.Sprintf("ipfs/%s", cid)
+	if path != "" {
+		gatewayPath = fmt.Sprintf("%s/%s", gatewayPath, path)
+	}
+
+	return fmt.Sprintf("https://%s/%s", gateway, gatewayPath)
+}
+
+// ReadFromURL reads the data from given URL within a timeout
+func ReadFromURL(url string, timeout time.Duration) ([]byte, error) {
+	client := &http.Client{
+		Timeout: timeout,
+	}
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("HTTP request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d for URL: %s", resp.StatusCode, url)
+	}
+
+	// Check content length to avoid extremely large responses
+	const maxContentLength = 10 * 1024 * 1024 // 10MB limit
+	if resp.ContentLength > maxContentLength {
+		return nil, fmt.Errorf("response too large: %d bytes", resp.ContentLength)
+	}
+
+	// Use LimitReader to prevent reading extremely large bodies
+	bodyReader := io.LimitReader(resp.Body, maxContentLength)
+	data, err := io.ReadAll(bodyReader)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if len(data) == 0 {
+		return nil, fmt.Errorf("empty response body from URL: %s", url)
+	}
+
+	return data, nil
+}
+
+// IsIPFSURI returns true if the URI is an IPFS URI
+func IsIPFSURI(uri string) bool {
+	return strings.HasPrefix(uri, "ipfs://")
+}
+
+// IsHTTPSURI returns true if the URI is an HTTPS URI
+func IsHTTPSURI(uri string) bool {
+	return strings.HasPrefix(uri, "https://")
 }

@@ -21,6 +21,7 @@ serviceConfig:
   tezos:
     tzktWsUrl: https://api.tzkt.io/v1/ws
     lastBlockKeyName: /autonomy/production/event-emitter/tezos/last-stop-block
+  seriesRegistryContract: "0xAe80f4DAB7Ee6B2f1D85ECcB0DE8675720930438"
 
 resources:
   limits:

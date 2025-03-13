@@ -28,15 +28,15 @@ function deserialize_NftEventInput(buffer_arg) {
   return event$processor_pb.NftEventInput.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
-function serialize_SeriesEventInput(arg) {
-  if (!(arg instanceof event$processor_pb.SeriesEventInput)) {
-    throw new Error('Expected argument of type SeriesEventInput');
+function serialize_SeriesRegistryEventInput(arg) {
+  if (!(arg instanceof event$processor_pb.SeriesRegistryEventInput)) {
+    throw new Error('Expected argument of type SeriesRegistryEventInput');
   }
   return Buffer.from(arg.serializeBinary());
 }
 
-function deserialize_SeriesEventInput(buffer_arg) {
-  return event$processor_pb.SeriesEventInput.deserializeBinary(new Uint8Array(buffer_arg));
+function deserialize_SeriesRegistryEventInput(buffer_arg) {
+  return event$processor_pb.SeriesRegistryEventInput.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
 
@@ -52,14 +52,14 @@ var EventProcessorService = exports.EventProcessorService = {
     responseSerialize: serialize_EventOutput,
     responseDeserialize: deserialize_EventOutput,
   },
-  pushSeriesEvent: {
-    path: '/EventProcessor/PushSeriesEvent',
+  pushSeriesRegistryEvent: {
+    path: '/EventProcessor/PushSeriesRegistryEvent',
     requestStream: false,
     responseStream: false,
-    requestType: event$processor_pb.SeriesEventInput,
+    requestType: event$processor_pb.SeriesRegistryEventInput,
     responseType: event$processor_pb.EventOutput,
-    requestSerialize: serialize_SeriesEventInput,
-    requestDeserialize: deserialize_SeriesEventInput,
+    requestSerialize: serialize_SeriesRegistryEventInput,
+    requestDeserialize: deserialize_SeriesRegistryEventInput,
     responseSerialize: serialize_EventOutput,
     responseDeserialize: deserialize_EventOutput,
   },

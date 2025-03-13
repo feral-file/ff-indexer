@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -44,42 +43,6 @@ func (s HexString) MarshalJSON() ([]byte, error) {
 type TezosTokenMetadata struct {
 	TokenID   string               `json:"token_id"`
 	TokenInfo map[string]HexString `json:"token_info"`
-}
-
-func (e *IndexEngine) GetObjktGalleriesByCreator(ctx context.Context, creator string, offset, limit int) ([]objkt.Gallery, error) {
-	sliceGallery, err := e.objkt.GetGalleries(ctx, creator, offset, limit)
-
-	if err != nil {
-		return nil, err
-	}
-
-	galleries := []objkt.Gallery{}
-	for _, c := range sliceGallery {
-		galleries = append(galleries, c.Gallery)
-	}
-
-	return galleries, nil
-}
-
-func (e *IndexEngine) GetObjktTokensByGalleryPK(ctx context.Context, galleryPK string, offset, limit int) ([]AssetUpdates, error) {
-	sliceGalleryToken, err := e.objkt.GetGalleryTokens(ctx, galleryPK, offset, limit)
-
-	if err != nil {
-		return nil, err
-	}
-
-	updates := []AssetUpdates{}
-	for _, c := range sliceGalleryToken {
-		assetUpdate, err := e.IndexTezosToken(ctx, c.FaContract, c.TokenID)
-
-		if err != nil {
-			return nil, err
-		}
-
-		updates = append(updates, *assetUpdate)
-	}
-
-	return updates, nil
 }
 
 func (e *IndexEngine) GetTezosTokenByOwner(owner string, lastTime time.Time, offset int) ([]tzkt.OwnedToken, error) {
@@ -549,51 +512,6 @@ func (e *IndexEngine) GetTezosTxTimestamp(_ context.Context, txHashString string
 	}
 
 	return detailedTransactions[0].Timestamp, nil
-}
-
-// IndexTezosCollectionByCreator indexes all collections created by a specific tezos address
-func (e *IndexEngine) IndexTezosCollectionByCreator(ctx context.Context, creator string, offset, limit int) ([]Collection, error) {
-	galleries, err := e.GetObjktGalleriesByCreator(ctx, creator, offset, limit)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Debug("retrieve collections for creator", zap.Any("galleries", galleries), zap.String("creator", creator))
-
-	collectionUpdates := make([]Collection, 0, len(galleries))
-
-	for _, c := range galleries {
-		objktHost := "objkt.com"
-		if e.environment == DevelopmentEnvironment {
-			objktHost = "ghostnet.objkt.com"
-		}
-
-		contracts := []string{}
-		for _, c := range c.Tokens {
-			contracts = append(contracts, c.FaContract)
-		}
-
-		update := Collection{
-			ID:               fmt.Sprint("objkt-", c.PK),
-			ExternalID:       strconv.FormatInt(c.PK, 10),
-			Blockchain:       utils.TezosBlockchain,
-			Creator:          creator,
-			Name:             c.Name,
-			Description:      c.Description,
-			ImageURL:         c.Logo,
-			Items:            c.Items,
-			Contracts:        contracts,
-			Source:           "objkt",
-			Published:        c.Published,
-			SourceURL:        fmt.Sprintf("https://%s/collections/%s/projects/%s", objktHost, c.Registry.Slug, c.Slug),
-			LastActivityTime: c.UpdatedAt.Time,
-			CreatedAt:        c.InsertedAt.Time,
-		}
-
-		collectionUpdates = append(collectionUpdates, update)
-	}
-
-	return collectionUpdates, nil
 }
 
 // GetTzktTransactionByID get tzkt transaction by transaction id

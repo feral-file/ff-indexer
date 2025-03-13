@@ -1,9 +1,8 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "nft-event-processor.fullname" . }}
-  labels:
-    {{- include "nft-event-processor.labels" . | nindent 4 }}
+  name: { { include "nft-event-processor.fullname" . } }
+  labels: { { - include "nft-event-processor.labels" . | nindent 4 } }
 data:
   config.yaml: |
     server:
@@ -52,6 +51,9 @@ data:
       preferred_gateways:
       {{- .Values.serviceConfig.preferred_gateways | toYaml | nindent 6 }}
 
+    contract: 
+      series_registry: {{ .Values.serviceConfig.seriesRegistryContract }}
+
   ethereum.yaml: |
     ethereum:
       ws_url:
@@ -63,13 +65,16 @@ data:
 
     log:
       level: debug
-    
+
     sentry:
       dsn:
 
     event_processor_server:
       network: tcp
       address: {{ .Values.serviceConfig.eventProcessorEndpoint }}
+
+    contract: 
+      series_registry: {{ .Values.serviceConfig.seriesRegistryContract }}
 
   tezos.yaml: |
     tzkt:

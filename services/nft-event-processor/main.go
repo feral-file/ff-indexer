@@ -94,6 +94,7 @@ func main() {
 
 	p := NewEventProcessor(
 		environment,
+		viper.GetString("contract.series_registry"),
 		viper.GetStringSlice("ipfs.preferred_gateways"),
 		checkInterval,
 		eventExpiryDuration,

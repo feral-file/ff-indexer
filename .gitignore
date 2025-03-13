@@ -13,3 +13,4 @@ postgres-data
 docker-compose*.yml
 data
 vendor/
+.DS_Store

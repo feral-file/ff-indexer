@@ -15,7 +15,7 @@ require (
 	github.com/bitmark-inc/autonomy-utils v0.0.5
 	github.com/bitmark-inc/bitmarkdClient v0.0.0-20250124093304-dff4260ef91f
 	github.com/bitmark-inc/config-loader v0.1.1
-	github.com/bitmark-inc/feralfile-exhibition-smart-contract/go-binding v0.0.0-20250220082151-3fe71bc8fea3
+	github.com/bitmark-inc/feralfile-exhibition-smart-contract/go-binding v0.0.0-20250312074550-d8a492a2ccfa
 	github.com/bitmark-inc/tzkt-go v0.0.15-0.20240717022029-4fb5a78da4aa
 	github.com/chromedp/chromedp v0.9.5
 	github.com/cloudflare/cloudflare-go v0.92.0

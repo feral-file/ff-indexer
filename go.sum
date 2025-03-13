@@ -123,8 +123,8 @@ github.com/bitmark-inc/certgen v0.1.1/go.mod h1:JY1k06tM8oAysx9OHhiGrZCFjGeuH/jT
 github.com/bitmark-inc/config-loader v0.1.1 h1:4pZ6tvZpwfjSg6obz3drFBI1Meoy601hwiB2bsESkyw=
 github.com/bitmark-inc/config-loader v0.1.1/go.mod h1:aEF3p3btZ2Mw445tkeOsM29AGyn0UcEefdhZGB0gXec=
 github.com/bitmark-inc/exitwithstatus v0.1.2/go.mod h1:CuoATnvJVpIJuW+IO17qNxUhkyumf2WKcijTwj7pt54=
-github.com/bitmark-inc/feralfile-exhibition-smart-contract/go-binding v0.0.0-20250220082151-3fe71bc8fea3 h1:m4gw3+QTrHw/n+UJgiVyt79xlksWGwJmePjwxOJwf50=
-github.com/bitmark-inc/feralfile-exhibition-smart-contract/go-binding v0.0.0-20250220082151-3fe71bc8fea3/go.mod h1:shvtsuJyQJnByXKqf9n/jpjL4++FSJCFjXR/08iBnFY=
+github.com/bitmark-inc/feralfile-exhibition-smart-contract/go-binding v0.0.0-20250312074550-d8a492a2ccfa h1:f4hCVccKWfg30ZRyhD1w078Jrem6lEpoGFfBL3wC1dg=
+github.com/bitmark-inc/feralfile-exhibition-smart-contract/go-binding v0.0.0-20250312074550-d8a492a2ccfa/go.mod h1:shvtsuJyQJnByXKqf9n/jpjL4++FSJCFjXR/08iBnFY=
 github.com/bitmark-inc/getoptions v0.1.1/go.mod h1:++zQVcw89sB6Lah2SJae420l+xKtRGkdKTxqLLeEhS4=
 github.com/bitmark-inc/go-argon2 v0.1.5/go.mod h1:K3gDyH7GzKOF9g2Lnc3q3PjHlvp2O6TlejcwpCfj5ts=
 github.com/bitmark-inc/go-utils v0.0.0-20220509034903-59f3369237d3 h1:Scw4jH0anUlMD//DkfujgkqxDCfL9bqKiyVmajTaJLQ=

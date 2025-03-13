@@ -19,17 +19,18 @@ import (
 )
 
 type EventProcessor struct {
-	environment          string
-	ipfsGateways         []string
-	defaultCheckInterval time.Duration
-	eventExpiryDuration  time.Duration
+	environment            string
+	seriesRegistryContract string
+	ipfsGateways           []string
+	defaultCheckInterval   time.Duration
+	eventExpiryDuration    time.Duration
 
 	grpcServer   *GRPCServer
 	eventQueue   *EventQueue
 	indexerGRPC  *indexerGRPCSDK.IndexerGRPCClient
 	worker       *cadence.WorkerClient
 	accountStore *storage.AccountInformationStorage
-	indexerStore *indexer.MongodbIndexerStore
+	indexerStore indexer.Store
 	notification *notificationSdk.Client
 	feedServer   *FeedClient
 	rpcClient    *ethclient.Client
@@ -37,6 +38,7 @@ type EventProcessor struct {
 
 func NewEventProcessor(
 	environment string,
+	seriesRegistryContract string,
 	ipfsGateways []string,
 	defaultCheckInterval time.Duration,
 	eventExpiryDuration time.Duration,
@@ -46,7 +48,7 @@ func NewEventProcessor(
 	indexerGRPC *indexerGRPCSDK.IndexerGRPCClient,
 	worker *cadence.WorkerClient,
 	accountStore *storage.AccountInformationStorage,
-	indexerStore *indexer.MongodbIndexerStore,
+	indexerStore indexer.Store,
 	notification *notificationSdk.Client,
 	feedServer *FeedClient,
 	rpcClient *ethclient.Client,
@@ -55,10 +57,11 @@ func NewEventProcessor(
 	grpcServer := NewGRPCServer(network, address, queue)
 
 	return &EventProcessor{
-		environment:          environment,
-		ipfsGateways:         ipfsGateways,
-		defaultCheckInterval: defaultCheckInterval,
-		eventExpiryDuration:  eventExpiryDuration,
+		environment:            environment,
+		seriesRegistryContract: seriesRegistryContract,
+		ipfsGateways:           ipfsGateways,
+		defaultCheckInterval:   defaultCheckInterval,
+		eventExpiryDuration:    eventExpiryDuration,
 
 		grpcServer:   grpcServer,
 		eventQueue:   queue,
@@ -90,8 +93,13 @@ func (e *EventProcessor) removeDeprecatedNftEvents() error {
 	return e.eventQueue.store.DeleteNftEvents(e.eventExpiryDuration)
 }
 
-// PruneDeprecatedNftEventsCronjob runs the cron job in a goroutine to remove expired archived events
-func (e *EventProcessor) PruneDeprecatedNftEventsCronjob() {
+// removeDeprecatedSeriesRegistryEvents removes expired archived series registry events
+func (e *EventProcessor) removeDeprecatedSeriesRegistryEvents() error {
+	return e.eventQueue.store.DeleteSeriesRegistryEvents(e.eventExpiryDuration)
+}
+
+// PruneDeprecatedEventsCronjob runs the cron job in a goroutine to remove expired events
+func (e *EventProcessor) PruneDeprecatedEventsCronjob() {
 	go func() {
 		for {
 			now := time.Now()
@@ -107,6 +115,10 @@ func (e *EventProcessor) PruneDeprecatedNftEventsCronjob() {
 			if err := e.removeDeprecatedNftEvents(); err != nil {
 				log.Error("error delete archived events", zap.Error(err))
 			}
+
+			if err := e.removeDeprecatedSeriesRegistryEvents(); err != nil {
+				log.Error("error delete archived series registry events", zap.Error(err))
+			}
 		}
 	}()
 }
@@ -116,7 +128,7 @@ func (e *EventProcessor) PruneDeprecatedNftEventsCronjob() {
 func (e *EventProcessor) Run(ctx context.Context) {
 	log.Info("start event processor")
 
-	e.PruneDeprecatedNftEventsCronjob()
+	e.PruneDeprecatedEventsCronjob()
 
 	e.ProcessEvents(ctx)
 
@@ -193,10 +205,10 @@ func (e *EventProcessor) StartNftEventWorker(ctx context.Context, currentStage, 
 	}()
 }
 
-type seriesEventProcessorFunc func(ctx context.Context, event SeriesEvent) error
+type seriesRegistryEventProcessorFunc func(ctx context.Context, event SeriesRegistryEvent) error
 
-func (e *EventProcessor) StartSeriesEventWorker(ctx context.Context, currentStage, nextStage Stage,
-	types []SeriesEventType, checkIntervalSecond, deferSecond int64, processor seriesEventProcessorFunc) {
+func (e *EventProcessor) StartSeriesRegistryEventWorker(ctx context.Context, currentStage, nextStage Stage,
+	types []SeriesRegistryEventType, checkIntervalSecond, deferSecond int64, processor seriesRegistryEventProcessorFunc) {
 
 	checkInterval := e.defaultCheckInterval
 	if checkIntervalSecond != 0 {
@@ -214,7 +226,7 @@ func (e *EventProcessor) StartSeriesEventWorker(ctx context.Context, currentStag
 
 				filters := []FilterOption{
 					Filter("type = ANY(?)", pq.Array(types)),
-					Filter("status = ANY(?)", pq.Array([]SeriesEventStatus{SeriesEventStatusCreated, SeriesEventStatusProcessing})),
+					Filter("status = ANY(?)", pq.Array([]SeriesRegistryEventStatus{SeriesRegistryEventStatusCreated, SeriesRegistryEventStatusProcessing})),
 					Filter("stage = ?", SeriesEventStages[currentStage]),
 				}
 
@@ -222,7 +234,7 @@ func (e *EventProcessor) StartSeriesEventWorker(ctx context.Context, currentStag
 					filters = append(filters, Filter("created_at < ?", time.Now().Add(-time.Duration(deferSecond)*time.Second)))
 				}
 
-				eventTx, err := e.eventQueue.GetSeriesEventTransaction(ctx, filters...)
+				eventTx, err := e.eventQueue.GetSeriesRegistryEventTransaction(ctx, filters...)
 				if err != nil {
 					if err == gorm.ErrRecordNotFound {
 						log.Info("No new events")
@@ -232,14 +244,14 @@ func (e *EventProcessor) StartSeriesEventWorker(ctx context.Context, currentStag
 					time.Sleep(checkInterval)
 					continue
 				}
-				e.logStartStage(eventTx.SeriesEvent.ID, currentStage)
-				if err := eventTx.UpdateSeriesEvent("", string(SeriesEventStatusProcessing)); err != nil {
+				e.logStartStage(eventTx.Event.ID, currentStage)
+				if err := eventTx.UpdateSeriesRegistryEvent("", string(SeriesRegistryEventStatusProcessing)); err != nil {
 					log.Error("fail to update series event status processing", zap.Error(err))
 					eventTx.Rollback()
 				}
-				if err := processor(ctx, eventTx.SeriesEvent); err != nil {
+				if err := processor(ctx, eventTx.Event); err != nil {
 					log.Error("stage processing failed", zap.Error(err))
-					if err := eventTx.UpdateSeriesEvent("", string(SeriesEventStatusFailed)); err != nil {
+					if err := eventTx.UpdateSeriesRegistryEvent("", string(SeriesRegistryEventStatusFailed)); err != nil {
 						log.Error("fail to update series event status failed", zap.Error(err))
 						eventTx.Rollback()
 					}
@@ -247,20 +259,20 @@ func (e *EventProcessor) StartSeriesEventWorker(ctx context.Context, currentStag
 				}
 
 				// stage starts from 1. stage zero means there is no next stage.
-				if nextStage == SeriesEventStageHandled {
-					if err := eventTx.HandledSeriesEvent(); err != nil {
+				if nextStage == SeriesEventStageDone {
+					if err := eventTx.UpdateSeriesRegistryEvent("", string(SeriesRegistryEventStatusProcessed)); err != nil {
 						log.Error("fail to set event to handled", zap.Error(err))
 						eventTx.Rollback()
 					}
 				} else {
-					if err := eventTx.UpdateSeriesEvent(NftEventStages[nextStage], ""); err != nil {
+					if err := eventTx.UpdateSeriesRegistryEvent(NftEventStages[nextStage], ""); err != nil {
 						log.Error("fail to update event", zap.Error(err))
 						eventTx.Rollback()
 					}
 				}
 
 				eventTx.Commit()
-				e.logEndStage(eventTx.SeriesEvent.ID, currentStage)
+				e.logEndStage(eventTx.Event.ID, currentStage)
 			}
 		}
 	}()
@@ -270,6 +282,10 @@ func (e *EventProcessor) StartSeriesEventWorker(ctx context.Context, currentStag
 func (e *EventProcessor) ProcessEvents(ctx context.Context) {
 	// run goroutines forever
 	log.Debug("start nft event processing goroutines")
+
+	//--------------------------------
+	//------NFT Event Processing------
+	//--------------------------------
 
 	// token update
 	e.RefreshTokenData(ctx)
@@ -296,13 +312,16 @@ func (e *EventProcessor) ProcessEvents(ctx context.Context) {
 	//stage 5: index token sale
 	e.IndexTokenSale(ctx)
 
+	//--------------------------------------
+	//---Series Registry Event Processing---
+	//--------------------------------------
+
 	log.Debug("start series event processing goroutines")
 
-	e.CreateSeriesCollection(ctx)
-	e.UpdateSeriesCollection(ctx)
-	e.DeleteSeriesCollection(ctx)
-	e.ArtistAddressUpdated(ctx)
-	e.CollaboratorConfirmed(ctx)
+	e.IndexCollection(ctx)
+	e.DeleteCollection(ctx)
+	e.ReplaceCollectionCreator(ctx)
+	e.UpdateCollectionCreators(ctx)
 }
 
 // GetAccountIDByAddress get account IDS by address

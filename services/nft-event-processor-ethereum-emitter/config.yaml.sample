@@ -11,3 +11,11 @@ event_processor_server:
 
 sentry:
   dsn:
+
+contract: 
+      series_registry: "0xDf0a1AD1E06bB2d70B590F73B1069A32f2B8Bc41"
+
+aws:
+  region: ap-northeast-1
+  access_key_id:
+  secret_access_key:

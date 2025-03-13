@@ -28,9 +28,10 @@ debug: true
 sentry:
   dsn:
 
-indexer_store:
-  db_uri:
-  db_name:
+indexer:
+  store:
+    db_uri:
+    db_name:
 
 cadence:
   host_port:
@@ -55,3 +56,14 @@ notification:
 
 indexer_grpc:
   endpoint: localhost:8888
+
+ipfs:
+  preferred_gateways:
+  - ipfs.bitmark.com
+  - ipfs.test.bitmark.com
+
+contract:
+  series_registry: "0xDf0a1AD1E06bB2d70B590F73B1069A32f2B8Bc41"
+
+ethereum:
+  rpc_url:

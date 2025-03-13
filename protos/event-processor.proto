@@ -7,7 +7,7 @@ import "google/protobuf/struct.proto";
 
 service EventProcessor {
   rpc PushNftEvent(NftEventInput) returns (EventOutput);
-  rpc PushSeriesEvent(SeriesEventInput) returns (EventOutput);
+  rpc PushSeriesRegistryEvent(SeriesRegistryEventInput) returns (EventOutput);
 }
 
 message NftEventInput {
@@ -22,12 +22,12 @@ message NftEventInput {
   uint64 EventIndex = 9;
 }
 
-message SeriesEventInput {
+message SeriesRegistryEventInput {
   string Type = 1;
   string Contract = 2;
   google.protobuf.Struct Data = 3;
-  string TXID = 4;
-  google.protobuf.Timestamp TXTime = 5;
+  string TxID = 4;
+  google.protobuf.Timestamp TxTime = 5;
   uint64 EventIndex = 6;
 }
 
