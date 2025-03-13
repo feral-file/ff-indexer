@@ -295,7 +295,7 @@ func (e *TezosEventsEmitter) processTokenEvent(ctx context.Context, event TokenE
 		zap.String("txTime", event.TxTime.String()),
 	)
 
-	if err := e.PushEvent(ctx, string(event.EventType), event.From, event.To,
+	if err := e.PushNftEvent(ctx, string(event.EventType), event.From, event.To,
 		event.ContractAddress, event.Blockchain, event.TokenID,
 		event.TxID, 0, event.TxTime); err != nil {
 		log.Error("gRPC request failed", zap.Error(err), log.SourceGRPC)

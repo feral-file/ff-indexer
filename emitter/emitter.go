@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
@@ -20,9 +21,9 @@ func New(grpcClient processor.EventProcessorClient) EventsEmitter {
 	}
 }
 
-// PushEvent submits events to event processor
-func (e *EventsEmitter) PushEvent(ctx context.Context, eventType, fromAddress, toAddress, contractAddress, blockchain, tokenID, txID string, eventIndex uint, txTime time.Time) error {
-	eventInput := processor.EventInput{
+// PushNftEvent submits nft events to event processor
+func (e *EventsEmitter) PushNftEvent(ctx context.Context, eventType, fromAddress, toAddress, contractAddress, blockchain, tokenID, txID string, eventIndex uint, txTime time.Time) error {
+	eventInput := processor.NftEventInput{
 		Type:       eventType,
 		Blockchain: blockchain,
 		Contract:   contractAddress,
@@ -34,7 +35,38 @@ func (e *EventsEmitter) PushEvent(ctx context.Context, eventType, fromAddress, t
 		TXTime:     timestamppb.New(txTime),
 	}
 
-	r, err := e.grpcClient.PushEvent(ctx, &eventInput)
+	r, err := e.grpcClient.PushNftEvent(ctx, &eventInput)
+	if err != nil {
+		return err
+	}
+
+	if r.Status != 200 {
+		return fmt.Errorf("gRPC response status not 200 ")
+	}
+
+	return nil
+}
+
+// PushSeriesRegistryEvent submits series registry events to event processor
+func (e *EventsEmitter) PushSeriesRegistryEvent(ctx context.Context, eventType, contractAddress, txID string, data map[string]interface{}, eventIndex uint, txTime time.Time) error {
+	var sd *structpb.Struct
+	if data != nil {
+		nd, err := structpb.NewStruct(data)
+		if err != nil {
+			return err
+		}
+		sd = nd
+	}
+	eventInput := processor.SeriesRegistryEventInput{
+		Type:       eventType,
+		Contract:   contractAddress,
+		Data:       sd,
+		TxID:       txID,
+		EventIndex: uint64(eventIndex),
+		TxTime:     timestamppb.New(txTime),
+	}
+
+	r, err := e.grpcClient.PushSeriesRegistryEvent(ctx, &eventInput)
 	if err != nil {
 		return err
 	}

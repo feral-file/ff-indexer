@@ -257,31 +257,3 @@ func (s *NFTIndexerServer) IndexHistory(c *gin.Context) {
 		"ok": 1,
 	})
 }
-
-func (s *NFTIndexerServer) IndexCollections(c *gin.Context) {
-	traceutils.SetHandlerTag(c, "IndexCollections")
-	var req struct {
-		Addresses []indexer.BlockchainAddress `json:"addresses"`
-	}
-
-	if err := c.Bind(&req); err != nil {
-		abortWithError(c, http.StatusBadRequest, "invalid parameters", err)
-		return
-	}
-
-	for _, addr := range req.Addresses {
-		address := addr.String()
-		blockchain := utils.GetBlockchainByAddress(address)
-
-		switch blockchain {
-		case utils.EthereumBlockchain:
-			indexerWorker.StartIndexETHCollectionWorkflow(c, s.cadenceWorker, "indexer", address)
-		case utils.TezosBlockchain:
-			indexerWorker.StartIndexTezosCollectionWorkflow(c, s.cadenceWorker, "indexer", address)
-		}
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"ok": 1,
-	})
-}

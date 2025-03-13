@@ -9,8 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	utils "github.com/bitmark-inc/autonomy-utils"
-	indexer "github.com/bitmark-inc/nft-indexer"
+	"github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"github.com/bitmark-inc/nft-indexer/services/nft-indexer/graph/model"
 	"github.com/ethereum/go-ethereum/common"
@@ -38,18 +37,7 @@ func (r *mutationResolver) IndexHistory(ctx context.Context, indexID string) (bo
 
 // IndexCollection is the resolver for the indexCollection field.
 func (r *mutationResolver) IndexCollection(ctx context.Context, creators []string) (bool, error) {
-	for _, creator := range creators {
-		blockchain := utils.GetBlockchainByAddress(creator)
-
-		switch blockchain {
-		case utils.EthereumBlockchain:
-			indexerWorker.StartIndexETHCollectionWorkflow(ctx, r.cadenceWorker, "indexer", creator)
-		case utils.TezosBlockchain:
-			indexerWorker.StartIndexTezosCollectionWorkflow(ctx, r.cadenceWorker, "indexer", creator)
-		}
-	}
-
-	return true, nil
+	panic(fmt.Errorf("not implemented: IndexCollection - indexCollection"))
 }
 
 // Tokens is the resolver for the tokens field.

@@ -29,11 +29,18 @@ serviceConfig:
   tezos:
     tzktWsUrl: https://api.ghostnet.tzkt.io/v1/ws
     lastBlockKeyName: /autonomy/development/event-processor-tezos-emitter/last-stop-block
+  preferred_gateways:
+  - ipfs.test.bitmark.com
+  - ipfs.bitmark.com
+  - nftstorage.link
+  - ipfs.nftstorage.link
+  - ipfs.io
   events:
     check_interval_seconds:
       token_updated: 1
     process_delay_seconds:
       token_updated: 0
+  seriesRegistryContract: "0xDf0a1AD1E06bB2d70B590F73B1069A32f2B8Bc41"
 
 imagePullSecrets: []
 nameOverride: ""

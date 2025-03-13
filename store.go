@@ -44,67 +44,52 @@ var ErrNoRecordUpdated = fmt.Errorf("no record updated")
 
 type Store interface {
 	Healthz(ctx context.Context) error
-
 	IndexAsset(ctx context.Context, id string, assetUpdates AssetUpdates) error
 	SwapToken(ctx context.Context, swapUpdate SwapUpdate) (string, error)
-
 	UpdateOwner(ctx context.Context, indexID, owner string, updatedAt time.Time) error
 	UpdateTokenProvenance(ctx context.Context, indexID string, provenances []Provenance) error
 	UpdateTokenOwners(ctx context.Context, indexID string, lastActivityTime time.Time, ownerBalances []OwnerBalance) error
 	PushProvenance(ctx context.Context, indexID string, lockedTime time.Time, provenance Provenance) error
-
 	FilterTokenIDsWithInconsistentProvenanceForOwner(ctx context.Context, indexIDs []string, owner string) ([]string, error)
-
 	GetTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]Token, error)
 	GetTokenByIndexID(ctx context.Context, indexID string) (*Token, error)
 	GetOwnedTokenIDsByOwner(ctx context.Context, owner string) ([]string, error)
-
 	GetDetailedTokens(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
 	GetDetailedTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, offset, size int64) ([]DetailedToken, error)
-
 	GetTokensByTextSearch(ctx context.Context, searchText string, offset, size int64) ([]DetailedToken, error)
-
 	GetIdentity(ctx context.Context, accountNumber string) (AccountIdentity, error)
 	GetIdentities(ctx context.Context, accountNumbers []string) (map[string]AccountIdentity, error)
 	IndexIdentity(ctx context.Context, identity AccountIdentity) error
-
 	IndexAccount(ctx context.Context, account Account) error
 	IndexAccountTokens(ctx context.Context, owner string, accountTokens []AccountToken) error
 	GetAccount(ctx context.Context, owner string) (Account, error)
 	UpdateAccountTokenOwners(ctx context.Context, indexID string, tokenBalances []OwnerBalance) error
 	IndexDemoTokens(ctx context.Context, owner string, indexIDs []string) error
 	DeleteDemoTokens(ctx context.Context, owner string) error
-
 	UpdateOwnerForFungibleToken(ctx context.Context, indexID string, lockedTime time.Time, to string, total int64) error
-
 	GetLatestActivityTimeByIndexIDs(ctx context.Context, indexIDs []string) (map[string]time.Time, error)
-
 	MarkAccountTokenChanged(ctx context.Context, indexIDs []string) error
-
 	GetDetailedTokensV2(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error)
 	GetDetailedAccountTokensByOwners(ctx context.Context, owner []string, filterParameter FilterParameter, lastUpdatedAt time.Time, sortBy string, offset, size int64) ([]DetailedTokenV2, error)
 	CountDetailedAccountTokensByOwner(ctx context.Context, owner string) (int64, error)
-
 	GetDetailedToken(ctx context.Context, indexID string, burnedIncluded bool) (DetailedToken, error)
 	GetTotalBalanceOfOwnerAccounts(ctx context.Context, addresses []string) (int, error)
-
 	GetNullProvenanceTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
-
 	GetOwnerAccountsByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
-
 	CheckAddressOwnTokenByCriteria(ctx context.Context, address string, criteria Criteria) (bool, error)
 	GetOwnersByBlockchainContracts(context.Context, map[string][]string) ([]string, error)
-
 	IndexCollection(ctx context.Context, collection Collection) error
 	IndexCollectionAsset(ctx context.Context, collectionID string, collectionAssets []CollectionAsset) error
+	DeleteCollection(ctx context.Context, collectionID string) error
+	ReplaceCollectionCreator(ctx context.Context, oldCreator, newCreator string) error
+	UpdateCollectionCreators(ctx context.Context, collectionID string, creators []string) error
 	DeleteDeprecatedCollectionAsset(ctx context.Context, collectionID, runID string) error
-
 	GetCollectionLastUpdatedTimeForCreator(ctx context.Context, creator string) (time.Time, error)
 	GetCollectionLastUpdatedTime(ctx context.Context, collectionID string) (time.Time, error)
 	GetCollectionByID(ctx context.Context, id string) (*Collection, error)
 	GetCollectionsByCreators(ctx context.Context, creators []string, offset, size int64) ([]Collection, error)
 	GetDetailedTokensByCollectionID(ctx context.Context, collectionID string, sortBy string, offset, size int64) ([]DetailedTokenV2, error)
-
+	FilterBurnedIndexIDs(ctx context.Context, indexIDs []string) ([]string, error)
 	WriteTimeSeriesData(
 		ctx context.Context,
 		records []GenericSalesTimeSeries,
@@ -628,6 +613,47 @@ func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParam
 	log.Debug("GetDetailedTokens End", zap.Duration("queryTime", time.Since(startTime)))
 
 	return tokens, nil
+}
+
+// FilterBurnedIndexIDs filter out burned tokens from provided list
+func (s *MongodbIndexerStore) FilterBurnedIndexIDs(ctx context.Context, indexIDs []string) ([]string, error) {
+	burnedTokens := make(map[string]struct{})
+
+	c, err := s.tokenCollection.Find(ctx, bson.M{
+		"indexID": bson.M{"$in": indexIDs},
+		"burned":  true,
+	},
+		options.Find().SetProjection(bson.M{"indexID": 1, "_id": 0}))
+	if err != nil {
+		return nil, err
+	}
+	defer c.Close(ctx)
+
+	for c.Next(ctx) {
+		var v struct {
+			IndexID string
+		}
+		if err := c.Decode(&v); err != nil {
+			return nil, err
+		}
+
+		burnedTokens[v.IndexID] = struct{}{}
+	}
+
+	// Filter out burned tokens from original list
+	filteredTokens := make([]string, 0, len(indexIDs))
+	for _, id := range indexIDs {
+		if _, burned := burnedTokens[id]; !burned {
+			filteredTokens = append(filteredTokens, id)
+		}
+	}
+
+	// Check for errors during cursor iteration
+	if err := c.Err(); err != nil {
+		return nil, err
+	}
+
+	return filteredTokens, nil
 }
 
 // UpdateOwner updates owner for a specific non-fungible token
@@ -1938,7 +1964,7 @@ func (s *MongodbIndexerStore) GetOwnersByBlockchainContracts(ctx context.Context
 	return owners, nil
 }
 
-// IndexCollection index collection & tokens
+// IndexCollection index new collection
 func (s *MongodbIndexerStore) IndexCollection(ctx context.Context, collection Collection) error {
 	if collection.LastUpdatedTime.IsZero() {
 		collection.LastUpdatedTime = time.Now()
@@ -1960,7 +1986,7 @@ func (s *MongodbIndexerStore) IndexCollection(ctx context.Context, collection Co
 	return nil
 }
 
-// IndexCollectionAsset index collection & tokens
+// IndexCollectionAsset index new collection tokens
 func (s *MongodbIndexerStore) IndexCollectionAsset(ctx context.Context, collectionID string, collectionAssets []CollectionAsset) error {
 	for _, c := range collectionAssets {
 		log.Debug("update collection asset", zap.String("asset", c.TokenIndexID), zap.Any("accountToken", c))
@@ -1995,6 +2021,78 @@ func (s *MongodbIndexerStore) DeleteDeprecatedCollectionAsset(ctx context.Contex
 		bson.M{"collectionID": collectionID, "runID": bson.M{"$ne": runID}},
 	)
 
+	return err
+}
+
+// DeleteCollection removes the collection and related assets
+func (s *MongodbIndexerStore) DeleteCollection(ctx context.Context, collectionID string) error {
+	// Start a session to ensure atomicity
+	session, err := s.mongoClient.StartSession()
+	if err != nil {
+		return err
+	}
+	defer session.EndSession(ctx)
+
+	// Run the delete operation in a transaction to ensure atomicity
+	_, err = session.WithTransaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
+		if _, err := s.collectionsCollection.DeleteOne(sessCtx,
+			bson.M{"id": collectionID},
+		); err != nil {
+			return nil, err
+		}
+
+		if _, err := s.collectionAssetsCollection.DeleteMany(sessCtx,
+			bson.M{"collectionID": collectionID},
+		); err != nil {
+			return nil, err
+		}
+
+		return nil, nil
+	})
+
+	return err
+}
+
+// ReplaceCollectionCreator updates all occurrences of oldCreator to newCreator
+// in the creators array of matching collections and updates the lastUpdatedTime.
+func (s *MongodbIndexerStore) ReplaceCollectionCreator(ctx context.Context, oldCreator, newCreator string) error {
+	// Define the filter to find documents where creators contains oldCreator
+	filter := bson.M{"creators": oldCreator}
+
+	// Define the update to replace oldCreator with newCreator in creators array
+	// and set lastUpdatedTime to current time
+	update := bson.M{
+		"$set": bson.M{
+			"creators.$[elem]": newCreator,
+			"lastUpdatedTime":  time.Now(),
+		},
+	}
+
+	// Define array filters to identify elements in creators array to update
+	opts := options.Update().SetArrayFilters(options.ArrayFilters{
+		Filters: []interface{}{
+			bson.M{"elem": oldCreator},
+		},
+	})
+
+	// Perform the update operation on all matching documents
+	_, err := s.collectionsCollection.UpdateMany(ctx, filter, update, opts)
+	return err
+}
+
+// UpdateCollectionCreators sync the creators to the creators array
+// of the collection identified by collectionID, if not already present, and updates lastUpdatedTime.
+func (s *MongodbIndexerStore) UpdateCollectionCreators(ctx context.Context, collectionID string, creators []string) error {
+	// Define the update operation
+	update := bson.M{
+		"$set": bson.M{
+			"creators":        creators,
+			"lastUpdatedTime": time.Now(),
+		},
+	}
+
+	// Perform the update on the collection with the specified ID
+	_, err := s.collectionsCollection.UpdateOne(ctx, bson.M{"id": collectionID}, update)
 	return err
 }
 
@@ -2070,7 +2168,7 @@ func (s *MongodbIndexerStore) GetCollectionByID(ctx context.Context, id string) 
 // GetCollectionsByOwners returns list of collections for owners
 func (s *MongodbIndexerStore) GetCollectionsByCreators(ctx context.Context, creators []string, offset, size int64) ([]Collection, error) {
 	filter := bson.M{
-		"creator": bson.M{"$in": creators},
+		"creators": bson.M{"$in": creators},
 	}
 	findOptions := options.Find().SetSort(bson.D{{Key: "lastActivityTime", Value: -1}, {Key: "_id", Value: -1}})
 

@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"net"
 
 	"go.uber.org/zap"
@@ -62,14 +63,14 @@ func NewGRPCHandler(queueProcessor *EventQueue) *GRPCHandler {
 	}
 }
 
-// PushEvent handles PushEvent requests and save it to event store
-func (t *GRPCHandler) PushEvent(
+// PushNftEvent handles PushNftEvent requests and save it to event store
+func (t *GRPCHandler) PushNftEvent(
 	_ context.Context,
-	i *processor.EventInput,
+	i *processor.NftEventInput,
 ) (*processor.EventOutput, error) {
 	log.Debug("receive event input", zap.Any("input", i))
 
-	if err := t.queueProcessor.PushEvent(NFTEvent{
+	if err := t.queueProcessor.PushNftEvent(NFTEvent{
 		Type:       i.Type,
 		Blockchain: i.Blockchain,
 		Contract:   i.Contract,
@@ -79,9 +80,45 @@ func (t *GRPCHandler) PushEvent(
 		TXID:       i.TXID,
 		TXTime:     i.TXTime.AsTime(),
 		EventIndex: uint(i.EventIndex),
-		Stage:      EventStages[1],
-		Status:     EventStatusCreated,
+		Stage:      NftEventStages[1],
+		Status:     NftEventStatusCreated,
 	}); err != nil {
+		return nil, err
+	}
+
+	output := &processor.EventOutput{
+		Result: "successfully",
+		Status: 200,
+	}
+
+	return output, nil
+}
+
+// PushSeriesRegistryEvent handles PushSeriesRegistryEvent requests and save it to event store
+func (t *GRPCHandler) PushSeriesRegistryEvent(
+	_ context.Context,
+	i *processor.SeriesRegistryEventInput,
+) (*processor.EventOutput, error) {
+	log.Debug("receive event input", zap.Any("input", i))
+
+	se := SeriesRegistryEvent{
+		Type:       i.Type,
+		Contract:   i.Contract,
+		TxID:       i.TxID,
+		TxTime:     i.TxTime.AsTime(),
+		EventIndex: uint(i.EventIndex),
+		Stage:      SeriesEventStages[SeriesRegistryEventStageInit],
+		Status:     SeriesRegistryEventStatusCreated,
+	}
+	if i.Data != nil {
+		b, err := json.Marshal(i.Data.AsMap())
+		if err != nil {
+			return nil, err
+		}
+		se.Data = b
+	}
+
+	if err := t.queueProcessor.PushSeriesRegistryEvent(se); err != nil {
 		return nil, err
 	}
 

@@ -6,7 +6,7 @@ import {
 } from '@tezos-dappetizer/indexer';
 
 import { EventProcessorClient } from './event-processor_grpc_pb'
-import { EventInput } from './event-processor_pb'
+import { NftEventInput } from './event-processor_pb'
 import * as grpc from "@grpc/grpc-js";
 import { Timestamp } from 'google-protobuf/google/protobuf/timestamp_pb';
 
@@ -49,7 +49,7 @@ async function grpcReportEvent(timestamp: Date, type: string, contract: string, 
     throw Error("grpc client is not initialized")
   }
 
-  let event = new EventInput()
+  let event = new NftEventInput()
   event.setBlockchain("tezos")
   event.setType(type)
   event.setContract(contract)
@@ -59,7 +59,7 @@ async function grpcReportEvent(timestamp: Date, type: string, contract: string, 
   event.setTxid(txID)
   event.setTxtime(Timestamp.fromDate(txTime))
   await new Promise((resolve, reject) => {
-    grpcClient.pushEvent(event, (error, response) => {
+    grpcClient.pushNftEvent(event, (error, response) => {
       if (error) {
         reject(error);
         return

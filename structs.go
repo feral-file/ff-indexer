@@ -268,31 +268,26 @@ type TotalBalance struct {
 }
 
 type Collection struct {
-	ID           string   `json:"id" bson:"id"`
-	ExternalID   string   `json:"externalID" bson:"externalID"`
-	Creator      string   `json:"creator" bson:"creator"`
-	Name         string   `json:"name" bson:"name"`
-	Description  string   `json:"description" bson:"description"`
-	Items        int      `json:"items" bson:"items"`
-	ImageURL     string   `json:"imageURL" bson:"imageURL"`
-	Blockchain   string   `json:"blockchain" bson:"blockchain"`
-	Contracts    []string `json:"contracts" bson:"contracts"`
-	Published    bool     `json:"published" bson:"published"`
-	Source       string   `json:"source" bson:"source"`
-	SourceURL    string   `json:"sourceURL" bson:"sourceURL"`
-	ProjectURL   string   `json:"projectURL" bson:"projectURL"`
-	ThumbnailURL string   `json:"thumbnailURL" bson:"thumbnailURL"`
+	ID          string                 `json:"id" bson:"id"`
+	ExternalID  string                 `json:"externalID" bson:"externalID"`
+	Creators    []string               `json:"creators" bson:"creators"`
+	Name        string                 `json:"name" bson:"name"`
+	Description string                 `json:"description" bson:"description"`
+	Items       int                    `json:"items" bson:"items"`
+	ImageURL    string                 `json:"imageURL" bson:"imageURL"`
+	Contracts   ContractAddresses      `json:"contracts" bson:"contracts"`
+	Published   bool                   `json:"published" bson:"published"`
+	Source      string                 `json:"source" bson:"source"`
+	ExternalURL string                 `json:"externalURL" bson:"externalURL"`
+	Metadata    map[string]interface{} `json:"metadata" bson:"metadata"`
 
-	LastUpdatedTime  time.Time `json:"lastUpdatedTime" bson:"lastUpdatedTime"`
-	LastActivityTime time.Time `json:"lastActivityTime" bson:"lastActivityTime"`
-	CreatedAt        time.Time `json:"createdAt" bson:"createdAt"`
+	LastUpdatedTime time.Time `json:"lastUpdatedTime" bson:"lastUpdatedTime"`
+	CreatedAt       time.Time `json:"createdAt" bson:"createdAt"`
 }
 
 type CollectionAsset struct {
-	CollectionID     string    `json:"collectionID" bson:"collectionID"`
-	TokenIndexID     string    `json:"tokenIndexID" bson:"tokenIndexID"`
-	Edition          int64     `json:"edition" bson:"edition"`
-	LastActivityTime time.Time `json:"lastActivityTime" bson:"lastActivityTime"`
+	CollectionID string `json:"collectionID" bson:"collectionID"`
+	TokenIndexID string `json:"tokenIndexID" bson:"tokenIndexID"`
 
 	RunID string `json:"-" bson:"runID"`
 }
@@ -319,4 +314,93 @@ type ExchangeRate struct {
 	Timestamp    time.Time `json:"timestamp" bson:"timestamp"`
 	Price        float64   `json:"price" bson:"price"`
 	CurrencyPair string    `json:"currencyPair" bson:"currencyPair"`
+}
+
+type SeriesMetadata struct {
+	Name            string                 `json:"name"`
+	Description     string                 `json:"description"`
+	Image           string                 `json:"image"`
+	ExternalURL     string                 `json:"external_url"`
+	Metadata        map[string]interface{} `json:"metadata"`
+	MetadataVersion string                 `json:"metadata_version"`
+}
+
+// ContractTokens maps contract addresses to their token IDs
+type ContractTokens map[string][]string
+
+// EthereumContracts holds Ethereum-specific contract types
+type EthereumContracts struct {
+	ERC721  ContractTokens `json:"erc721"`
+	ERC1155 ContractTokens `json:"erc1155"`
+}
+
+// TezosContracts holds Tezos-specific contract types
+type TezosContracts struct {
+	FA2 ContractTokens `json:"fa2"`
+}
+
+// TokenRegistry aggregates contracts across different blockchains
+type TokenRegistry struct {
+	Ethereum EthereumContracts `json:"ethereum"`
+	Tezos    TezosContracts    `json:"tezos"`
+}
+
+// ContractAddresses returns all contract addresses from ContractTokens
+func (ct ContractTokens) ContractAddresses() []string {
+	addresses := make([]string, 0, len(ct))
+	for addr := range ct {
+		addresses = append(addresses, addr)
+	}
+	return addresses
+}
+
+// ContractAddressMap returns a mapped representation of Ethereum contracts
+func (ec EthereumContracts) ContractAddressMap() EthereumContractAddresses {
+	return EthereumContractAddresses{
+		ERC721:  ec.ERC721.ContractAddresses(),
+		ERC1155: ec.ERC1155.ContractAddresses(),
+	}
+}
+
+// ContractAddressMap returns a mapped representation of Tezos contracts
+func (tc TezosContracts) ContractAddressMap() TezosContractAddresses {
+	return TezosContractAddresses{
+		FA2: tc.FA2.ContractAddresses(),
+	}
+}
+
+// AllContractAddresses returns a nested map of all contract addresses by blockchain
+func (tr TokenRegistry) AllContractAddresses() ContractAddresses {
+	return ContractAddresses{
+		Ethereum: tr.Ethereum.ContractAddressMap(),
+		Tezos:    tr.Tezos.ContractAddressMap(),
+	}
+}
+
+func (tr TokenRegistry) TotalSupply() int {
+	var totalSupply int
+	for _, tl := range tr.Ethereum.ERC721 {
+		totalSupply += len(tl)
+	}
+	for _, tl := range tr.Ethereum.ERC1155 {
+		totalSupply += len(tl)
+	}
+	for _, tl := range tr.Tezos.FA2 {
+		totalSupply += len(tl)
+	}
+	return totalSupply
+}
+
+type EthereumContractAddresses struct {
+	ERC721  []string `json:"erc721"`
+	ERC1155 []string `json:"erc1155"`
+}
+
+type TezosContractAddresses struct {
+	FA2 []string `json:"fa2"`
+}
+
+type ContractAddresses struct {
+	Ethereum EthereumContractAddresses `json:"ethereum"`
+	Tezos    TezosContractAddresses    `json:"tezos"`
 }

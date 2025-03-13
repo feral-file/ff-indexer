@@ -19,14 +19,16 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	EventProcessor_PushEvent_FullMethodName = "/EventProcessor/PushEvent"
+	EventProcessor_PushNftEvent_FullMethodName            = "/EventProcessor/PushNftEvent"
+	EventProcessor_PushSeriesRegistryEvent_FullMethodName = "/EventProcessor/PushSeriesRegistryEvent"
 )
 
 // EventProcessorClient is the client API for EventProcessor service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type EventProcessorClient interface {
-	PushEvent(ctx context.Context, in *EventInput, opts ...grpc.CallOption) (*EventOutput, error)
+	PushNftEvent(ctx context.Context, in *NftEventInput, opts ...grpc.CallOption) (*EventOutput, error)
+	PushSeriesRegistryEvent(ctx context.Context, in *SeriesRegistryEventInput, opts ...grpc.CallOption) (*EventOutput, error)
 }
 
 type eventProcessorClient struct {
@@ -37,9 +39,18 @@ func NewEventProcessorClient(cc grpc.ClientConnInterface) EventProcessorClient {
 	return &eventProcessorClient{cc}
 }
 
-func (c *eventProcessorClient) PushEvent(ctx context.Context, in *EventInput, opts ...grpc.CallOption) (*EventOutput, error) {
+func (c *eventProcessorClient) PushNftEvent(ctx context.Context, in *NftEventInput, opts ...grpc.CallOption) (*EventOutput, error) {
 	out := new(EventOutput)
-	err := c.cc.Invoke(ctx, EventProcessor_PushEvent_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, EventProcessor_PushNftEvent_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *eventProcessorClient) PushSeriesRegistryEvent(ctx context.Context, in *SeriesRegistryEventInput, opts ...grpc.CallOption) (*EventOutput, error) {
+	out := new(EventOutput)
+	err := c.cc.Invoke(ctx, EventProcessor_PushSeriesRegistryEvent_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +61,8 @@ func (c *eventProcessorClient) PushEvent(ctx context.Context, in *EventInput, op
 // All implementations must embed UnimplementedEventProcessorServer
 // for forward compatibility
 type EventProcessorServer interface {
-	PushEvent(context.Context, *EventInput) (*EventOutput, error)
+	PushNftEvent(context.Context, *NftEventInput) (*EventOutput, error)
+	PushSeriesRegistryEvent(context.Context, *SeriesRegistryEventInput) (*EventOutput, error)
 	mustEmbedUnimplementedEventProcessorServer()
 }
 
@@ -58,8 +70,11 @@ type EventProcessorServer interface {
 type UnimplementedEventProcessorServer struct {
 }
 
-func (UnimplementedEventProcessorServer) PushEvent(context.Context, *EventInput) (*EventOutput, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PushEvent not implemented")
+func (UnimplementedEventProcessorServer) PushNftEvent(context.Context, *NftEventInput) (*EventOutput, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PushNftEvent not implemented")
+}
+func (UnimplementedEventProcessorServer) PushSeriesRegistryEvent(context.Context, *SeriesRegistryEventInput) (*EventOutput, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PushSeriesRegistryEvent not implemented")
 }
 func (UnimplementedEventProcessorServer) mustEmbedUnimplementedEventProcessorServer() {}
 
@@ -74,20 +89,38 @@ func RegisterEventProcessorServer(s grpc.ServiceRegistrar, srv EventProcessorSer
 	s.RegisterService(&EventProcessor_ServiceDesc, srv)
 }
 
-func _EventProcessor_PushEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(EventInput)
+func _EventProcessor_PushNftEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NftEventInput)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(EventProcessorServer).PushEvent(ctx, in)
+		return srv.(EventProcessorServer).PushNftEvent(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: EventProcessor_PushEvent_FullMethodName,
+		FullMethod: EventProcessor_PushNftEvent_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EventProcessorServer).PushEvent(ctx, req.(*EventInput))
+		return srv.(EventProcessorServer).PushNftEvent(ctx, req.(*NftEventInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EventProcessor_PushSeriesRegistryEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SeriesRegistryEventInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EventProcessorServer).PushSeriesRegistryEvent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EventProcessor_PushSeriesRegistryEvent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EventProcessorServer).PushSeriesRegistryEvent(ctx, req.(*SeriesRegistryEventInput))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -100,8 +133,12 @@ var EventProcessor_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*EventProcessorServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "PushEvent",
-			Handler:    _EventProcessor_PushEvent_Handler,
+			MethodName: "PushNftEvent",
+			Handler:    _EventProcessor_PushNftEvent_Handler,
+		},
+		{
+			MethodName: "PushSeriesRegistryEvent",
+			Handler:    _EventProcessor_PushSeriesRegistryEvent_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

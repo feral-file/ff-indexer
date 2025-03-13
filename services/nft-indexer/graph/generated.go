@@ -85,23 +85,30 @@ type ComplexityRoot struct {
 	}
 
 	Collection struct {
-		Blockchain       func(childComplexity int) int
-		Contracts        func(childComplexity int) int
-		CreatedAt        func(childComplexity int) int
-		Creator          func(childComplexity int) int
-		Description      func(childComplexity int) int
-		ExternalID       func(childComplexity int) int
-		ID               func(childComplexity int) int
-		ImageURL         func(childComplexity int) int
-		Items            func(childComplexity int) int
-		LastActivityTime func(childComplexity int) int
-		LastUpdatedTime  func(childComplexity int) int
-		Name             func(childComplexity int) int
-		ProjectURL       func(childComplexity int) int
-		Published        func(childComplexity int) int
-		Source           func(childComplexity int) int
-		SourceURL        func(childComplexity int) int
-		ThumbnailURL     func(childComplexity int) int
+		Contracts       func(childComplexity int) int
+		CreatedAt       func(childComplexity int) int
+		Creators        func(childComplexity int) int
+		Description     func(childComplexity int) int
+		ExternalID      func(childComplexity int) int
+		ExternalURL     func(childComplexity int) int
+		ID              func(childComplexity int) int
+		ImageURL        func(childComplexity int) int
+		Items           func(childComplexity int) int
+		LastUpdatedTime func(childComplexity int) int
+		Metadata        func(childComplexity int) int
+		Name            func(childComplexity int) int
+		Published       func(childComplexity int) int
+		Source          func(childComplexity int) int
+	}
+
+	ContractAddresses struct {
+		Ethereum func(childComplexity int) int
+		Tezos    func(childComplexity int) int
+	}
+
+	EthereumContractAddresses struct {
+		Erc1155 func(childComplexity int) int
+		Erc721  func(childComplexity int) int
 	}
 
 	Identity struct {
@@ -159,6 +166,10 @@ type ComplexityRoot struct {
 		EthBlockTime func(childComplexity int, blockHash string) int
 		Identity     func(childComplexity int, account string) int
 		Tokens       func(childComplexity int, owners []string, ids []string, collectionID string, source string, lastUpdatedAt *time.Time, burnedIncluded bool, sortBy *string, offset int64, size int64) int
+	}
+
+	TezosContractAddresses struct {
+		Fa2 func(childComplexity int) int
 	}
 
 	Token struct {
@@ -348,13 +359,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.BlockTime.BlockTime(childComplexity), true
 
-	case "Collection.blockchain":
-		if e.complexity.Collection.Blockchain == nil {
-			break
-		}
-
-		return e.complexity.Collection.Blockchain(childComplexity), true
-
 	case "Collection.contracts":
 		if e.complexity.Collection.Contracts == nil {
 			break
@@ -369,12 +373,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Collection.CreatedAt(childComplexity), true
 
-	case "Collection.creator":
-		if e.complexity.Collection.Creator == nil {
+	case "Collection.creators":
+		if e.complexity.Collection.Creators == nil {
 			break
 		}
 
-		return e.complexity.Collection.Creator(childComplexity), true
+		return e.complexity.Collection.Creators(childComplexity), true
 
 	case "Collection.description":
 		if e.complexity.Collection.Description == nil {
@@ -389,6 +393,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Collection.ExternalID(childComplexity), true
+
+	case "Collection.externalURL":
+		if e.complexity.Collection.ExternalURL == nil {
+			break
+		}
+
+		return e.complexity.Collection.ExternalURL(childComplexity), true
 
 	case "Collection.id":
 		if e.complexity.Collection.ID == nil {
@@ -411,13 +422,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Collection.Items(childComplexity), true
 
-	case "Collection.lastActivityTime":
-		if e.complexity.Collection.LastActivityTime == nil {
-			break
-		}
-
-		return e.complexity.Collection.LastActivityTime(childComplexity), true
-
 	case "Collection.lastUpdatedTime":
 		if e.complexity.Collection.LastUpdatedTime == nil {
 			break
@@ -425,19 +429,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Collection.LastUpdatedTime(childComplexity), true
 
+	case "Collection.metadata":
+		if e.complexity.Collection.Metadata == nil {
+			break
+		}
+
+		return e.complexity.Collection.Metadata(childComplexity), true
+
 	case "Collection.name":
 		if e.complexity.Collection.Name == nil {
 			break
 		}
 
 		return e.complexity.Collection.Name(childComplexity), true
-
-	case "Collection.projectURL":
-		if e.complexity.Collection.ProjectURL == nil {
-			break
-		}
-
-		return e.complexity.Collection.ProjectURL(childComplexity), true
 
 	case "Collection.published":
 		if e.complexity.Collection.Published == nil {
@@ -453,19 +457,33 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Collection.Source(childComplexity), true
 
-	case "Collection.sourceURL":
-		if e.complexity.Collection.SourceURL == nil {
+	case "ContractAddresses.Ethereum":
+		if e.complexity.ContractAddresses.Ethereum == nil {
 			break
 		}
 
-		return e.complexity.Collection.SourceURL(childComplexity), true
+		return e.complexity.ContractAddresses.Ethereum(childComplexity), true
 
-	case "Collection.thumbnailURL":
-		if e.complexity.Collection.ThumbnailURL == nil {
+	case "ContractAddresses.Tezos":
+		if e.complexity.ContractAddresses.Tezos == nil {
 			break
 		}
 
-		return e.complexity.Collection.ThumbnailURL(childComplexity), true
+		return e.complexity.ContractAddresses.Tezos(childComplexity), true
+
+	case "EthereumContractAddresses.ERC1155":
+		if e.complexity.EthereumContractAddresses.Erc1155 == nil {
+			break
+		}
+
+		return e.complexity.EthereumContractAddresses.Erc1155(childComplexity), true
+
+	case "EthereumContractAddresses.ERC721":
+		if e.complexity.EthereumContractAddresses.Erc721 == nil {
+			break
+		}
+
+		return e.complexity.EthereumContractAddresses.Erc721(childComplexity), true
 
 	case "Identity.accountNumber":
 		if e.complexity.Identity.AccountNumber == nil {
@@ -774,6 +792,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Tokens(childComplexity, args["owners"].([]string), args["ids"].([]string), args["collectionID"].(string), args["source"].(string), args["lastUpdatedAt"].(*time.Time), args["burnedIncluded"].(bool), args["sortBy"].(*string), args["offset"].(int64), args["size"].(int64)), true
+
+	case "TezosContractAddresses.FA2":
+		if e.complexity.TezosContractAddresses.Fa2 == nil {
+			break
+		}
+
+		return e.complexity.TezosContractAddresses.Fa2(childComplexity), true
 
 	case "Token.asset":
 		if e.complexity.Token.Asset == nil {
@@ -2189,8 +2214,8 @@ func (ec *executionContext) fieldContext_Collection_externalID(ctx context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _Collection_creator(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Collection_creator(ctx, field)
+func (ec *executionContext) _Collection_creators(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Collection_creators(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -2203,24 +2228,21 @@ func (ec *executionContext) _Collection_creator(ctx context.Context, field graph
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Creator, nil
+		return obj.Creators, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.([]string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Collection_creator(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Collection_creators(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Collection",
 		Field:      field,
@@ -2409,50 +2431,6 @@ func (ec *executionContext) fieldContext_Collection_imageURL(ctx context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _Collection_blockchain(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Collection_blockchain(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Blockchain, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Collection_blockchain(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Collection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Collection_contracts(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Collection_contracts(ctx, field)
 	if err != nil {
@@ -2479,9 +2457,9 @@ func (ec *executionContext) _Collection_contracts(ctx context.Context, field gra
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]string)
+	res := resTmp.(*model.ContractAddresses)
 	fc.Result = res
-	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+	return ec.marshalNContractAddresses2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐContractAddresses(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Collection_contracts(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2491,7 +2469,13 @@ func (ec *executionContext) fieldContext_Collection_contracts(ctx context.Contex
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			switch field.Name {
+			case "Ethereum":
+				return ec.fieldContext_ContractAddresses_Ethereum(ctx, field)
+			case "Tezos":
+				return ec.fieldContext_ContractAddresses_Tezos(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ContractAddresses", field.Name)
 		},
 	}
 	return fc, nil
@@ -2585,8 +2569,8 @@ func (ec *executionContext) fieldContext_Collection_source(ctx context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Collection_sourceURL(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Collection_sourceURL(ctx, field)
+func (ec *executionContext) _Collection_externalURL(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Collection_externalURL(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -2599,7 +2583,7 @@ func (ec *executionContext) _Collection_sourceURL(ctx context.Context, field gra
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.SourceURL, nil
+		return obj.ExternalURL, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2616,7 +2600,7 @@ func (ec *executionContext) _Collection_sourceURL(ctx context.Context, field gra
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Collection_sourceURL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Collection_externalURL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Collection",
 		Field:      field,
@@ -2629,8 +2613,8 @@ func (ec *executionContext) fieldContext_Collection_sourceURL(ctx context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Collection_projectURL(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Collection_projectURL(ctx, field)
+func (ec *executionContext) _Collection_metadata(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Collection_metadata(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -2643,95 +2627,7 @@ func (ec *executionContext) _Collection_projectURL(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ProjectURL, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Collection_projectURL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Collection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Collection_thumbnailURL(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Collection_thumbnailURL(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ThumbnailURL, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Collection_thumbnailURL(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Collection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Collection_lastActivityTime(ctx context.Context, field graphql.CollectedField, obj *model.Collection) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Collection_lastActivityTime(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.LastActivityTime, nil
+		return obj.Metadata, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2740,19 +2636,19 @@ func (ec *executionContext) _Collection_lastActivityTime(ctx context.Context, fi
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*time.Time)
+	res := resTmp.(model.JSON)
 	fc.Result = res
-	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+	return ec.marshalOJSON2githubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐJSON(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Collection_lastActivityTime(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Collection_metadata(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Collection",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
+			return nil, errors.New("field of type JSON does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2835,6 +2731,186 @@ func (ec *executionContext) fieldContext_Collection_createdAt(ctx context.Contex
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ContractAddresses_Ethereum(ctx context.Context, field graphql.CollectedField, obj *model.ContractAddresses) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ContractAddresses_Ethereum(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Ethereum, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.EthereumContractAddresses)
+	fc.Result = res
+	return ec.marshalNEthereumContractAddresses2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐEthereumContractAddresses(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ContractAddresses_Ethereum(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ContractAddresses",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "ERC721":
+				return ec.fieldContext_EthereumContractAddresses_ERC721(ctx, field)
+			case "ERC1155":
+				return ec.fieldContext_EthereumContractAddresses_ERC1155(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EthereumContractAddresses", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ContractAddresses_Tezos(ctx context.Context, field graphql.CollectedField, obj *model.ContractAddresses) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ContractAddresses_Tezos(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Tezos, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.TezosContractAddresses)
+	fc.Result = res
+	return ec.marshalNTezosContractAddresses2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐTezosContractAddresses(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ContractAddresses_Tezos(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ContractAddresses",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "FA2":
+				return ec.fieldContext_TezosContractAddresses_FA2(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TezosContractAddresses", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EthereumContractAddresses_ERC721(ctx context.Context, field graphql.CollectedField, obj *model.EthereumContractAddresses) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_EthereumContractAddresses_ERC721(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Erc721, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_EthereumContractAddresses_ERC721(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EthereumContractAddresses",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EthereumContractAddresses_ERC1155(ctx context.Context, field graphql.CollectedField, obj *model.EthereumContractAddresses) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_EthereumContractAddresses_ERC1155(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Erc1155, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_EthereumContractAddresses_ERC1155(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EthereumContractAddresses",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -4615,8 +4691,8 @@ func (ec *executionContext) fieldContext_Query_collections(ctx context.Context, 
 				return ec.fieldContext_Collection_id(ctx, field)
 			case "externalID":
 				return ec.fieldContext_Collection_externalID(ctx, field)
-			case "creator":
-				return ec.fieldContext_Collection_creator(ctx, field)
+			case "creators":
+				return ec.fieldContext_Collection_creators(ctx, field)
 			case "name":
 				return ec.fieldContext_Collection_name(ctx, field)
 			case "description":
@@ -4625,22 +4701,16 @@ func (ec *executionContext) fieldContext_Query_collections(ctx context.Context, 
 				return ec.fieldContext_Collection_items(ctx, field)
 			case "imageURL":
 				return ec.fieldContext_Collection_imageURL(ctx, field)
-			case "blockchain":
-				return ec.fieldContext_Collection_blockchain(ctx, field)
 			case "contracts":
 				return ec.fieldContext_Collection_contracts(ctx, field)
 			case "published":
 				return ec.fieldContext_Collection_published(ctx, field)
 			case "source":
 				return ec.fieldContext_Collection_source(ctx, field)
-			case "sourceURL":
-				return ec.fieldContext_Collection_sourceURL(ctx, field)
-			case "projectURL":
-				return ec.fieldContext_Collection_projectURL(ctx, field)
-			case "thumbnailURL":
-				return ec.fieldContext_Collection_thumbnailURL(ctx, field)
-			case "lastActivityTime":
-				return ec.fieldContext_Collection_lastActivityTime(ctx, field)
+			case "externalURL":
+				return ec.fieldContext_Collection_externalURL(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Collection_metadata(ctx, field)
 			case "lastUpdatedTime":
 				return ec.fieldContext_Collection_lastUpdatedTime(ctx, field)
 			case "createdAt":
@@ -4703,8 +4773,8 @@ func (ec *executionContext) fieldContext_Query_collection(ctx context.Context, f
 				return ec.fieldContext_Collection_id(ctx, field)
 			case "externalID":
 				return ec.fieldContext_Collection_externalID(ctx, field)
-			case "creator":
-				return ec.fieldContext_Collection_creator(ctx, field)
+			case "creators":
+				return ec.fieldContext_Collection_creators(ctx, field)
 			case "name":
 				return ec.fieldContext_Collection_name(ctx, field)
 			case "description":
@@ -4713,22 +4783,16 @@ func (ec *executionContext) fieldContext_Query_collection(ctx context.Context, f
 				return ec.fieldContext_Collection_items(ctx, field)
 			case "imageURL":
 				return ec.fieldContext_Collection_imageURL(ctx, field)
-			case "blockchain":
-				return ec.fieldContext_Collection_blockchain(ctx, field)
 			case "contracts":
 				return ec.fieldContext_Collection_contracts(ctx, field)
 			case "published":
 				return ec.fieldContext_Collection_published(ctx, field)
 			case "source":
 				return ec.fieldContext_Collection_source(ctx, field)
-			case "sourceURL":
-				return ec.fieldContext_Collection_sourceURL(ctx, field)
-			case "projectURL":
-				return ec.fieldContext_Collection_projectURL(ctx, field)
-			case "thumbnailURL":
-				return ec.fieldContext_Collection_thumbnailURL(ctx, field)
-			case "lastActivityTime":
-				return ec.fieldContext_Collection_lastActivityTime(ctx, field)
+			case "externalURL":
+				return ec.fieldContext_Collection_externalURL(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Collection_metadata(ctx, field)
 			case "lastUpdatedTime":
 				return ec.fieldContext_Collection_lastUpdatedTime(ctx, field)
 			case "createdAt":
@@ -4875,6 +4939,47 @@ func (ec *executionContext) fieldContext_Query___schema(ctx context.Context, fie
 				return ec.fieldContext___Schema_directives(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Schema", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TezosContractAddresses_FA2(ctx context.Context, field graphql.CollectedField, obj *model.TezosContractAddresses) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_TezosContractAddresses_FA2(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Fa2, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_TezosContractAddresses_FA2(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TezosContractAddresses",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -8092,11 +8197,8 @@ func (ec *executionContext) _Collection(ctx context.Context, sel ast.SelectionSe
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "creator":
-			out.Values[i] = ec._Collection_creator(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
+		case "creators":
+			out.Values[i] = ec._Collection_creators(ctx, field, obj)
 		case "name":
 			out.Values[i] = ec._Collection_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -8117,11 +8219,6 @@ func (ec *executionContext) _Collection(ctx context.Context, sel ast.SelectionSe
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "blockchain":
-			out.Values[i] = ec._Collection_blockchain(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "contracts":
 			out.Values[i] = ec._Collection_contracts(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -8137,27 +8234,99 @@ func (ec *executionContext) _Collection(ctx context.Context, sel ast.SelectionSe
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "sourceURL":
-			out.Values[i] = ec._Collection_sourceURL(ctx, field, obj)
+		case "externalURL":
+			out.Values[i] = ec._Collection_externalURL(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "projectURL":
-			out.Values[i] = ec._Collection_projectURL(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "thumbnailURL":
-			out.Values[i] = ec._Collection_thumbnailURL(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "lastActivityTime":
-			out.Values[i] = ec._Collection_lastActivityTime(ctx, field, obj)
+		case "metadata":
+			out.Values[i] = ec._Collection_metadata(ctx, field, obj)
 		case "lastUpdatedTime":
 			out.Values[i] = ec._Collection_lastUpdatedTime(ctx, field, obj)
 		case "createdAt":
 			out.Values[i] = ec._Collection_createdAt(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var contractAddressesImplementors = []string{"ContractAddresses"}
+
+func (ec *executionContext) _ContractAddresses(ctx context.Context, sel ast.SelectionSet, obj *model.ContractAddresses) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, contractAddressesImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ContractAddresses")
+		case "Ethereum":
+			out.Values[i] = ec._ContractAddresses_Ethereum(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "Tezos":
+			out.Values[i] = ec._ContractAddresses_Tezos(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var ethereumContractAddressesImplementors = []string{"EthereumContractAddresses"}
+
+func (ec *executionContext) _EthereumContractAddresses(ctx context.Context, sel ast.SelectionSet, obj *model.EthereumContractAddresses) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, ethereumContractAddressesImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EthereumContractAddresses")
+		case "ERC721":
+			out.Values[i] = ec._EthereumContractAddresses_ERC721(ctx, field, obj)
+		case "ERC1155":
+			out.Values[i] = ec._EthereumContractAddresses_ERC1155(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8652,6 +8821,42 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___schema(ctx, field)
 			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var tezosContractAddressesImplementors = []string{"TezosContractAddresses"}
+
+func (ec *executionContext) _TezosContractAddresses(ctx context.Context, sel ast.SelectionSet, obj *model.TezosContractAddresses) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, tezosContractAddressesImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TezosContractAddresses")
+		case "FA2":
+			out.Values[i] = ec._TezosContractAddresses_FA2(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -9319,6 +9524,26 @@ func (ec *executionContext) marshalNCollection2ᚖgithubᚗcomᚋbitmarkᚑinc�
 	return ec._Collection(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNContractAddresses2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐContractAddresses(ctx context.Context, sel ast.SelectionSet, v *model.ContractAddresses) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ContractAddresses(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNEthereumContractAddresses2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐEthereumContractAddresses(ctx context.Context, sel ast.SelectionSet, v *model.EthereumContractAddresses) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._EthereumContractAddresses(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v interface{}) (float64, error) {
 	res, err := graphql.UnmarshalFloatContext(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -9468,6 +9693,16 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	}
 
 	return ret
+}
+
+func (ec *executionContext) marshalNTezosContractAddresses2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐTezosContractAddresses(ctx context.Context, sel ast.SelectionSet, v *model.TezosContractAddresses) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._TezosContractAddresses(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
@@ -9972,6 +10207,44 @@ func (ec *executionContext) marshalOOwner2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋn
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
 
 	for _, e := range ret {
 		if e == graphql.Null {

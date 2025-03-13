@@ -98,11 +98,6 @@ func main() {
 	// workflows
 	workflow.Register(worker.IndexETHTokenWorkflow)
 	workflow.Register(worker.IndexTezosTokenWorkflow)
-	workflow.Register(worker.IndexTezosCollectionWorkflow)
-	workflow.Register(worker.IndexETHCollectionWorkflow)
-	workflow.RegisterWithOptions(worker.IndexTokenWorkflow, workflow.RegisterOptions{
-		Name: "IndexTokenWorkflow",
-	})
 	workflow.RegisterWithOptions(worker.IndexEthereumTokenSaleInBlockRange, workflow.RegisterOptions{
 		Name: "IndexEthereumTokenSaleInBlockRange"})
 	workflow.RegisterWithOptions(worker.IndexEthereumTokenSale, workflow.RegisterOptions{
@@ -133,7 +128,6 @@ func main() {
 
 	// ethereum
 	activity.Register(worker.IndexETHTokenByOwner)
-	activity.Register(worker.IndexETHCollectionsByCreator)
 	activity.Register(worker.GetEthereumTxReceipt)
 	activity.Register(worker.GetEthereumTx)
 	activity.Register(worker.GetEthereumBlockHeaderHash)
@@ -143,7 +137,6 @@ func main() {
 
 	// tezos
 	activity.Register(worker.IndexTezosTokenByOwner)
-	activity.Register(worker.IndexTezosCollectionsByCreator)
 	activity.Register(worker.GetTezosTxHashFromTzktTransactionID)
 	activity.Register(worker.GetObjktSaleTransactionHashes)
 	activity.Register(worker.ParseTezosObjktTokenSale)

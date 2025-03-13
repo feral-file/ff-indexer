@@ -42,3 +42,9 @@ func (c *WorkerClient) StartWorkflow(ctx context.Context, clientName string,
 	options client.StartWorkflowOptions, workflowFunc interface{}, args ...interface{}) (*workflow.Execution, error) {
 	return c.clients[clientName].StartWorkflow(ctx, options, workflowFunc, args...)
 }
+
+// ExecuteWorkflow execute a workflow in a specific client
+func (c *WorkerClient) ExecuteWorkflow(ctx context.Context, clientName string,
+	options client.StartWorkflowOptions, workflowFunc interface{}, args ...interface{}) (client.WorkflowRun, error) {
+	return c.clients[clientName].ExecuteWorkflow(ctx, options, workflowFunc, args...)
+}
