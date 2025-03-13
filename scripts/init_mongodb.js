@@ -1,249 +1,288 @@
 db.createUser({
   user: 'nft_indexer',
   pwd: passwordPrompt(),
-  roles: [{
+  roles: [
+    {
       role: 'dbAdmin',
-      db: 'nft_indexer'
+      db: 'nft_indexer',
     },
     {
       role: 'readWrite',
-      db: 'nft_indexer'
-    }
-  ]
+      db: 'nft_indexer',
+    },
+  ],
 });
 
 db.createUser({
   user: 'cache',
   pwd: passwordPrompt(),
-  roles: [{
+  roles: [
+    {
       role: 'dbAdmin',
-      db: 'cache'
+      db: 'cache',
     },
     {
       role: 'readWrite',
-      db: 'cache'
-    }
-  ]
+      db: 'cache',
+    },
+  ],
 });
 
 // tokens index
+db.tokens.createIndex(
+  {
+    indexID: 1,
+  },
+  {
+    unique: true,
+    sparse: true,
+  }
+);
 db.tokens.createIndex({
-  indexID: 1
-}, {
-  unique: true,
-  sparse: true
+  id: 1,
 });
 db.tokens.createIndex({
-  id: 1
-}, );
+  owner: 1,
+});
 db.tokens.createIndex({
-  owner: 1
-}, );
+  owners: 1,
+});
 db.tokens.createIndex({
-  owners: 1
-}, );
+  ownersArray: 1,
+});
 db.tokens.createIndex({
-  ownersArray: 1
-}, );
+  blockchain: 1,
+});
 db.tokens.createIndex({
-  blockchain: 1
-}, );
+  assetID: 1,
+});
 db.tokens.createIndex({
-  assetID: 1
-}, );
+  lastRefreshedTime: 1,
+});
 db.tokens.createIndex({
-  lastRefreshedTime: 1
-}, );
+  lastRefreshedTime: -1,
+});
 db.tokens.createIndex({
-  lastRefreshedTime: -1
-}, );
+  contractAddress: 1,
+});
 db.tokens.createIndex({
-  contractAddress: 1
-}, );
-db.tokens.createIndex({
-  swapped: 1
-}, );
+  swapped: 1,
+});
 
 // assets index
 db.assets.createIndex({
-  id: 1
-}, );
+  id: 1,
+});
+db.assets.createIndex(
+  {
+    indexID: 1,
+  },
+  {
+    unique: true,
+    sparse: true,
+  }
+);
 db.assets.createIndex({
-  indexID: 1
-}, {
-  unique: true,
-  sparse: true
+  source: 1,
 });
 db.assets.createIndex({
-  "source": 1
+  thumbnailID: 1,
 });
 db.assets.createIndex({
-  "thumbnailID": 1
+  thumbnailLastCheck: 1,
 });
 db.assets.createIndex({
-  "thumbnailLastCheck": 1
+  thumbnailFailedReason: 1,
 });
 db.assets.createIndex({
-  "thumbnailFailedReason": 1
+  'projectMetadata.latest.source': 1,
 });
+db.assets.createIndexes([
+  {
+    'projectMetadata.latest.thumbnailURL': 1,
+  },
+  {
+    'projectMetadata.latest.galleryThumbnailURL': 1,
+  },
+  {
+    'projectMetadata.latest.previewURL': 1,
+  },
+]);
 db.assets.createIndex({
-  "projectMetadata.latest.source": 1
-});
-db.assets.createIndexes([{
-  "projectMetadata.latest.thumbnailURL": 1
-}, {
-  "projectMetadata.latest.galleryThumbnailURL": 1
-}, {
-  "projectMetadata.latest.previewURL": 1
-}]);
-db.assets.createIndex({
-  "projectMetadata.latest.lastUpdatedAt": 1
+  'projectMetadata.latest.lastUpdatedAt': 1,
 });
 
 // accounts index
-db.accounts.createIndex({
-  account: 1
-}, {
-  unique: true,
-  sparse: true
-});
-
-// account_tokens index
-db.account_tokens.createIndex({
-  indexID: 1,
-  ownerAccount: 1
-}, {
-  unique: true,
-  sparse: true
-});
-db.account_tokens.createIndexes([{
-  "ownerAccount": 1,
-  "lastActivityTime": -1
-}, {
-  "ownerAccount": 1
-}, {
-  "blockchain": 1
-}, {
-  "ownerAccount": 1,
-  "runID": 1
-}, {
-  "lastActivityTime": -1
-}, {
-  "lastRefreshedTime": -1
-}, {
-  "pendingTxs": 1
-}]);
-
-
-// identities index
-db.identities.createIndex({
-  accountNumber: 1,
-  blockchain: 1
-}, {
-  unique: true,
-  sparse: true
-});
-
-db.createView("token_assets", "tokens", [{
-    "$lookup": {
-      "from": "assets",
-      "localField": "assetID",
-      "foreignField": "id",
-      "as": "asset"
-    }
+db.accounts.createIndex(
+  {
+    account: 1,
   },
   {
-    "$unwind": "$asset"
-  },
-  {
-    "$lookup": {
-      "from": "asset_static_preview_url",
-      "localField": "assetID",
-      "foreignField": "assetID",
-      "as": "staticPreviewURL"
-    }
-  },
-  {
-    "$unwind": {
-      "path": "$staticPreviewURL",
-      "preserveNullAndEmptyArrays": true
-    }
-  },
-  {
-    "$addFields": {
-      "asset.metadata.project": "$asset.projectMetadata",
-      "asset.staticPreviewURLLandscape": "$staticPreviewURL.landscapeURL",
-      "asset.staticPreviewURLPortrait": "$staticPreviewURL.portraitURL"
-    }
-  },
-  {
-    "$project": {
-      "asset._id": 0,
-      "asset.projectMetadata": 0,
-      "ownersArray": 0,
-      "_id": 0,
-      "staticPreviewURL": 0
-    }
-  }
-]);
-
-db.collections.createIndexes([{
-  "creator": 1,
-  "lastActivityTime": -1
-}, {
-  "creator": 1
-}, {
-  "id": 1
-}, {
-  "lastActivityTime": -1
-}, {
-  "lastUpdatedTime": -1
-}]);
-
-
-db.collection_assets.createIndexes([{
-  "collectionID": 1
-}, {
-  "lastActivityTime": -1
-}, {
-  "edition": 1
-},{
-  "tokenIndexID" : 1
-}]);
-
-db.asset_static_preview_url.createIndex({
-  assetID: 1
-}, {
-  unique: true
-});
-
-// time series data for sales info
-db.createCollection(
-  "sales_time_series",
-  {
-    timeseries: {
-      timeField: "timestamp",
-      metaField: "metadata",
-      granularity: "seconds"
-    }
+    unique: true,
+    sparse: true,
   }
 );
 
-db.sales_time_series.createIndexes([
-  {"metadata.blockchain" : 1},
-  {"metadata.bundleTokenInfo.contractAddress" : 1},
-  {"metadata.bundleTokenInfo.tokenID" : 1},
-  {"metadata.bundleTokenInfo.buyerAddress" : 1},
-  {"metadata.bundleTokenInfo.sellerAddress" : 1},
-  {"metadata.marketplace" : 1},
-  {"metadata.saleType" : 1},
-  {"metadata.transactionIDs" : 1},
+// account_tokens index
+db.account_tokens.createIndex(
+  {
+    indexID: 1,
+    ownerAccount: 1,
+  },
+  {
+    unique: true,
+    sparse: true,
+  }
+);
+db.account_tokens.createIndexes([
+  {
+    ownerAccount: 1,
+    lastActivityTime: -1,
+  },
+  {
+    ownerAccount: 1,
+  },
+  {
+    blockchain: 1,
+  },
+  {
+    ownerAccount: 1,
+    runID: 1,
+  },
+  {
+    lastActivityTime: -1,
+  },
+  {
+    lastRefreshedTime: -1,
+  },
+  {
+    pendingTxs: 1,
+  },
 ]);
 
-db.createCollection("historical_exchange_rates");
-db.historical_exchange_rates.createIndex({
-  timestamp: 1,
-  currencyPair: 1
-}, {
-  unique: true,
+// identities index
+db.identities.createIndex(
+  {
+    accountNumber: 1,
+    blockchain: 1,
+  },
+  {
+    unique: true,
+    sparse: true,
+  }
+);
+
+db.createView('token_assets', 'tokens', [
+  {
+    $lookup: {
+      from: 'assets',
+      localField: 'assetID',
+      foreignField: 'id',
+      as: 'asset',
+    },
+  },
+  {
+    $unwind: '$asset',
+  },
+  {
+    $lookup: {
+      from: 'asset_static_preview_url',
+      localField: 'assetID',
+      foreignField: 'assetID',
+      as: 'staticPreviewURL',
+    },
+  },
+  {
+    $unwind: {
+      path: '$staticPreviewURL',
+      preserveNullAndEmptyArrays: true,
+    },
+  },
+  {
+    $addFields: {
+      'asset.metadata.project': '$asset.projectMetadata',
+      'asset.staticPreviewURLLandscape': '$staticPreviewURL.landscapeURL',
+      'asset.staticPreviewURLPortrait': '$staticPreviewURL.portraitURL',
+    },
+  },
+  {
+    $project: {
+      'asset._id': 0,
+      'asset.projectMetadata': 0,
+      ownersArray: 0,
+      _id: 0,
+      staticPreviewURL: 0,
+    },
+  },
+]);
+
+db.collections.createIndexes([
+  {
+    creators: 1,
+    lastActivityTime: -1,
+  },
+  {
+    creators: 1,
+  },
+  {
+    id: 1,
+  },
+  {
+    lastActivityTime: -1,
+  },
+  {
+    lastUpdatedTime: -1,
+  },
+]);
+
+db.collection_assets.createIndexes([
+  {
+    collectionID: 1,
+  },
+  {
+    lastActivityTime: -1,
+  },
+  {
+    tokenIndexID: 1,
+  },
+]);
+
+db.asset_static_preview_url.createIndex(
+  {
+    assetID: 1,
+  },
+  {
+    unique: true,
+  }
+);
+
+// time series data for sales info
+db.createCollection('sales_time_series', {
+  timeseries: {
+    timeField: 'timestamp',
+    metaField: 'metadata',
+    granularity: 'seconds',
+  },
 });
+
+db.sales_time_series.createIndexes([
+  { 'metadata.blockchain': 1 },
+  { 'metadata.bundleTokenInfo.contractAddress': 1 },
+  { 'metadata.bundleTokenInfo.tokenID': 1 },
+  { 'metadata.bundleTokenInfo.buyerAddress': 1 },
+  { 'metadata.bundleTokenInfo.sellerAddress': 1 },
+  { 'metadata.marketplace': 1 },
+  { 'metadata.saleType': 1 },
+  { 'metadata.transactionIDs': 1 },
+]);
+
+db.createCollection('historical_exchange_rates');
+db.historical_exchange_rates.createIndex(
+  {
+    timestamp: 1,
+    currencyPair: 1,
+  },
+  {
+    unique: true,
+  }
+);
