@@ -98,6 +98,9 @@ func main() {
 	// workflows
 	workflow.Register(worker.IndexETHTokenWorkflow)
 	workflow.Register(worker.IndexTezosTokenWorkflow)
+	workflow.RegisterWithOptions(worker.IndexTokenWorkflow, workflow.RegisterOptions{
+		Name: "IndexTokenWorkflow",
+	})
 	workflow.RegisterWithOptions(worker.IndexEthereumTokenSaleInBlockRange, workflow.RegisterOptions{
 		Name: "IndexEthereumTokenSaleInBlockRange"})
 	workflow.RegisterWithOptions(worker.IndexEthereumTokenSale, workflow.RegisterOptions{
