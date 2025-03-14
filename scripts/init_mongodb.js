@@ -240,6 +240,9 @@ db.collection_assets.createIndexes([
     collectionID: 1,
   },
   {
+    edition: 1,
+  },
+  {
     lastActivityTime: -1,
   },
   {

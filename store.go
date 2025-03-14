@@ -338,6 +338,8 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		}
 
 		tokenResult := s.tokenCollection.FindOne(ctx, bson.M{"indexID": token.IndexID})
+		edition := token.Edition
+		lastActivityTime := token.LastActivityTime
 		if err := tokenResult.Err(); err != nil {
 			if err == mongo.ErrNoDocuments {
 				// If a token is not found, insert a new token
@@ -345,7 +347,8 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 
 				if token.LastActivityTime.IsZero() {
 					// set LastActivityTime to default token minted time
-					token.LastActivityTime = token.MintedAt
+					lastActivityTime = token.MintedAt
+					token.LastActivityTime = lastActivityTime
 				}
 
 				if token.Owner != "" {
@@ -353,52 +356,73 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 					token.Owners = map[string]int64{token.Owner: 1}
 				}
 
+				// Insert token
 				_, err := s.tokenCollection.InsertOne(ctx, token)
 				if err != nil {
 					return err
 				}
-				continue
 			}
-
 			return err
-		}
-
-		var currentToken Token
-		if err := tokenResult.Decode(&currentToken); err != nil {
-			return err
-		}
-
-		if checkIfTokenNeedToUpdate(assetUpdates.Source, currentToken) {
-			log.Debug("token data need to update", zap.String("token_id", token.ID))
-
-			tokenUpdateSet := TokenUpdateSet{
-				Fungible:          token.Fungible,
-				Source:            token.Source,
-				AssetID:           id,
-				Edition:           token.Edition,
-				EditionName:       token.EditionName,
-				ContractAddress:   token.ContractAddress,
-				LastRefreshedTime: indexTime,
-			}
-
-			if currentToken.MintedAt.IsZero() && !token.MintedAt.IsZero() {
-				tokenUpdateSet.MintedAt = token.MintedAt
-			}
-
-			if !token.LastActivityTime.IsZero() {
-				tokenUpdateSet.LastActivityTime = token.LastActivityTime
-			}
-
-			tokenUpdate := bson.M{"$set": structs.Map(tokenUpdateSet)}
-
-			log.Debug("token data for updated", zap.String("token_id", token.ID), zap.Any("tokenUpdate", tokenUpdate))
-			r, err := s.tokenCollection.UpdateOne(ctx, bson.M{"indexID": token.IndexID}, tokenUpdate)
-			if err != nil {
+		} else {
+			// Parse the existing token
+			var currentToken Token
+			if err := tokenResult.Decode(&currentToken); err != nil {
 				return err
 			}
-			if r.MatchedCount == 0 {
-				log.Warn("token is not updated", zap.String("token_id", token.ID))
+			edition = currentToken.Edition
+			lastActivityTime = currentToken.LastActivityTime
+
+			// Check if token need to be updated
+			if checkIfTokenNeedToUpdate(assetUpdates.Source, currentToken) {
+				log.Debug("token data need to update", zap.String("token_id", token.ID))
+
+				tokenUpdateSet := TokenUpdateSet{
+					Fungible:          token.Fungible,
+					Source:            token.Source,
+					AssetID:           id,
+					Edition:           token.Edition,
+					EditionName:       token.EditionName,
+					ContractAddress:   token.ContractAddress,
+					LastRefreshedTime: indexTime,
+				}
+
+				if currentToken.MintedAt.IsZero() && !token.MintedAt.IsZero() {
+					tokenUpdateSet.MintedAt = token.MintedAt
+				}
+
+				if !token.LastActivityTime.IsZero() {
+					tokenUpdateSet.LastActivityTime = token.LastActivityTime
+				}
+
+				edition = tokenUpdateSet.Edition
+				if !tokenUpdateSet.LastActivityTime.IsZero() {
+					lastActivityTime = tokenUpdateSet.LastActivityTime
+				}
+
+				tokenUpdate := bson.M{"$set": structs.Map(tokenUpdateSet)}
+
+				log.Debug("token data for updated", zap.String("token_id", token.ID), zap.Any("tokenUpdate", tokenUpdate))
+				r, err := s.tokenCollection.UpdateOne(ctx, bson.M{"indexID": token.IndexID}, tokenUpdate)
+				if err != nil {
+					return err
+				}
+				if r.MatchedCount == 0 {
+					log.Warn("token is not updated", zap.String("token_id", token.ID))
+				}
 			}
+		}
+
+		// Update collection asset
+		_, err := s.collectionAssetsCollection.UpdateOne(
+			ctx,
+			bson.M{"tokenIndexID": token.IndexID},
+			bson.M{"$set": bson.M{
+				"lastActivityTime": lastActivityTime,
+				"edition":          edition,
+			}},
+		)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -2224,7 +2248,6 @@ func (s *MongodbIndexerStore) GetDetailedTokensByCollectionID(ctx context.Contex
 	}
 
 	var tokens []CollectionAsset
-
 	findOptions := options.Find().
 		SetSort(sort).
 		SetLimit(size).
