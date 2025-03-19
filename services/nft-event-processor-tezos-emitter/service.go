@@ -14,7 +14,6 @@ import (
 	"github.com/bitmark-inc/nft-indexer/emitter"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 	"github.com/bitmark-inc/tzkt-go"
-	"github.com/getsentry/sentry-go"
 	"github.com/philippseith/signalr"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -70,7 +69,6 @@ func (e *TezosEventsEmitter) Transfers(data json.RawMessage) {
 	err := json.Unmarshal(data, &res)
 	if err != nil {
 		log.Error(errors.New("fail to unmarshal transfers data"), zap.Error(err))
-		sentry.CaptureException(err)
 		return
 	}
 
@@ -99,7 +97,6 @@ func (e *TezosEventsEmitter) Bigmaps(data json.RawMessage) {
 	err := json.Unmarshal(data, &res)
 	if err != nil {
 		log.Error(errors.New("fail to unmarshal bigmaps data"), zap.Error(err))
-		sentry.CaptureException(err)
 		return
 	}
 
@@ -157,6 +154,8 @@ func (s *SignalrLogger) Log(keyVals ...interface{}) error {
 }
 
 func (e *TezosEventsEmitter) Run(ctx context.Context) {
+	log.InfoWithContext(ctx, "start tezos events emitter")
+
 	client, err := signalr.NewClient(ctx,
 		signalr.Logger(&SignalrLogger{ctx: ctx}, viper.GetBool("debug")),
 		signalr.MaximumReceiveMessageSize(maxMessageSize),
@@ -211,6 +210,8 @@ func (e *TezosEventsEmitter) Run(ctx context.Context) {
 }
 
 func (e *TezosEventsEmitter) processSinceLastStoppedLevel(ctx context.Context) {
+	log.InfoWithContext(ctx, "process logs since last stopped block")
+
 	lastStopLevel, err := e.parameterStore.GetString(ctx, e.lastBlockKeyName)
 	if err != nil {
 		log.ErrorWithContext(ctx, errors.New("failed to read last stop block from parameter store"), zap.Error(err), log.SourceTZKT)
@@ -227,6 +228,8 @@ func (e *TezosEventsEmitter) processSinceLastStoppedLevel(ctx context.Context) {
 }
 
 func (e *TezosEventsEmitter) fetchFromByLastStoppedLevel(fromLevel uint64) {
+	log.InfoWithContext(e.ctx, "fetch logs from last stopped level", zap.Uint64("fromLevel", fromLevel))
+
 	latestLevel, err := e.tzkt.GetLevelByTime(time.Now())
 	if err != nil {
 		log.ErrorWithContext(e.ctx, errors.New("failed to get lastest block level"), zap.Error(err), log.SourceTZKT)
@@ -288,7 +291,7 @@ func (e *TezosEventsEmitter) fetchTokenBigmapUpdateByLevel(level uint64) {
 }
 
 func (e *TezosEventsEmitter) processTokenEvent(event TokenEvent) {
-	log.Debug("received event on tezos",
+	log.InfoWithContext(e.ctx, "received event on tezos",
 		zap.String("eventType", string(event.EventType)),
 		zap.String("from", event.From),
 		zap.String("to", event.To),

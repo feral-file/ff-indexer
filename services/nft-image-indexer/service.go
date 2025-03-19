@@ -75,7 +75,7 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, dataChan <
 		go func() {
 			defer s.wg.Done()
 			for info := range dataChan {
-				log.Debug("start generating thumbnail cache for an asset", zap.String("indexID", info.ID))
+				log.InfoWithContext(ctx, "start generating thumbnail cache for an asset", zap.String("indexID", info.ID))
 
 				if _, err := s.db.CreateOrGetImage(ctx, info.ID); err != nil {
 					log.WarnWithContext(ctx, "fail to get or create image record", zap.Error(err))
@@ -104,7 +104,7 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, dataChan <
 					log.WarnWithContext(ctx, "fail to upload image", zap.String("id", info.ID), zap.Error(err))
 					continue
 				}
-				log.Debug("thumbnail image uploaded",
+				log.InfoWithContext(ctx, "thumbnail image uploaded",
 					zap.Duration("duration", time.Since(uploadImageStartTime)),
 					zap.String("id", info.ID))
 
@@ -128,7 +128,7 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, dataChan <
 
 				log.InfoWithContext(ctx, "thumbnail generating process finished", zap.String("indexID", info.ID))
 			}
-			log.Debug("ThumbnailWorker stopped")
+			log.InfoWithContext(ctx, "ThumbnailWorker stopped")
 		}()
 	}
 }
@@ -349,9 +349,9 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 				col, err := s.getCollectionWithoutThumbnailCached(ctx)
 				if err != nil {
 					if errors.Is(err, mongo.ErrNoDocuments) {
-						log.InfoWithContext(ctx, "No collection need to generate cache a thumbnail")
+						log.InfoWithContext(ctx, "no collection need to be processed")
 					} else {
-						log.WarnWithContext(ctx, "fail to get collection", zap.Error(err))
+						log.WarnWithContext(ctx, "fail to get collection that has no thumbnail cached", zap.Error(err))
 					}
 
 					if done := indexer.SleepWithContext(ctx, 15*time.Second); done {
@@ -359,7 +359,7 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 					}
 					continue
 				}
-				log.Debug("send collection to process", zap.String("id", col.ID))
+				log.InfoWithContext(ctx, "send collection image to process", zap.String("id", col.ID))
 				dataChan <- ThumbnailIndexInfo{
 					ID:       col.ID,
 					ImageURL: col.ImageURL,
@@ -377,9 +377,9 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 			asset, err := s.getAssetWithoutThumbnailCached(ctx)
 			if err != nil {
 				if errors.Is(err, mongo.ErrNoDocuments) {
-					log.InfoWithContext(ctx, "No token need to generate cache a thumbnail")
+					log.InfoWithContext(ctx, "no asset need to be processed")
 				} else {
-					log.WarnWithContext(ctx, "fail to get asset", zap.Error(err))
+					log.WarnWithContext(ctx, "fail to get asset that has no thumbnail cached", zap.Error(err))
 				}
 
 				if done := indexer.SleepWithContext(ctx, 15*time.Second); done {
@@ -387,7 +387,7 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 				}
 				continue
 			}
-			log.Debug("send asset to process", zap.String("indexID", asset.IndexID))
+			log.InfoWithContext(ctx, "send asset image to process", zap.String("indexID", asset.IndexID))
 			dataChan <- ThumbnailIndexInfo{
 				ID:       asset.IndexID,
 				ImageURL: asset.ProjectMetadata.Latest.ThumbnailURL,
@@ -398,7 +398,7 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 				Type: TypeAsset,
 			}
 		}
-		log.Debug("Thumbnail checker closed")
+		log.InfoWithContext(ctx, "thumbnail checker closed")
 	}()
 
 }

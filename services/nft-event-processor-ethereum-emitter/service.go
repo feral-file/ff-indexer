@@ -19,7 +19,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/getsentry/sentry-go"
 	"go.uber.org/zap"
 
 	seriesRegistry "github.com/bitmark-inc/feralfile-exhibition-smart-contract/go-binding/series-registry"
@@ -144,6 +143,8 @@ func (e *EthereumEventsEmitter) Watch(ctx context.Context) {
 }
 
 func (e *EthereumEventsEmitter) fetchLogsFromLastStoppedBlock(ctx context.Context, lastStopBlock uint64) {
+	log.InfoWithContext(ctx, "fetch logs from last stopped block", zap.Uint64("lastStopBlock", lastStopBlock))
+
 	latestBlock, err := e.wsClient.BlockNumber(ctx)
 	if err != nil {
 		log.ErrorWithContext(ctx, errors.New("failed to fetch latest block"), zap.Error(err), log.SourceETHClient)
@@ -200,6 +201,8 @@ func (e *EthereumEventsEmitter) fetchLogsFromLastStoppedBlock(ctx context.Contex
 }
 
 func (e *EthereumEventsEmitter) processLogsSinceLastStoppedBlock(ctx context.Context) {
+	log.InfoWithContext(ctx, "process logs since last stopped block")
+
 	lastStopBlock, err := e.parameterStore.GetString(ctx, e.lastBlockKeyName)
 	if err != nil {
 		log.ErrorWithContext(ctx, errors.New("failed to read last stop bloc from parameter store"), zap.Error(err), log.SourceETHClient)
@@ -214,6 +217,8 @@ func (e *EthereumEventsEmitter) processLogsSinceLastStoppedBlock(ctx context.Con
 }
 
 func (e *EthereumEventsEmitter) Run(ctx context.Context) {
+	log.InfoWithContext(ctx, "start ethereum events emitter")
+
 	e.processLogsSinceLastStoppedBlock(ctx)
 
 	go e.Watch(ctx)
@@ -223,7 +228,7 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 
 	go func() {
 		defer wg.Done()
-		log.Debug("start receiving nft transfer event log")
+		log.InfoWithContext(ctx, "start receiving nft transfer event log")
 		for eLog := range e.nftTransferLogChan {
 			e.processNftTransferLog(ctx, eLog)
 		}
@@ -231,7 +236,7 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 
 	go func() {
 		defer wg.Done()
-		log.Debug("start receiving series registry event log")
+		log.InfoWithContext(ctx, "start receiving series registry event log")
 		for eLog := range e.seriesRegistryLogChan {
 			e.processSeriesRegistryLog(ctx, eLog)
 		}
@@ -242,7 +247,7 @@ func (e *EthereumEventsEmitter) Run(ctx context.Context) {
 
 func (e *EthereumEventsEmitter) processNftTransferLog(ctx context.Context, eLog types.Log) {
 	paringStartTime := time.Now()
-	log.Debug("start processing ethereum log",
+	log.InfoWithContext(ctx, "start processing ethereum log",
 		zap.Any("txHash", eLog.TxHash),
 		zap.Uint("logIndex", eLog.Index),
 		zap.Time("time", paringStartTime))
@@ -269,11 +274,10 @@ func (e *EthereumEventsEmitter) processNftTransferLog(ctx context.Context, eLog 
 		txTime, err := indexer.GetETHBlockTime(ctx, e.cacheStore, e.wsClient, eLog.BlockHash)
 		if err != nil {
 			log.ErrorWithContext(ctx, errors.New("fail to get the block time"), zap.Error(err), log.SourceGRPC)
-			sentry.CaptureException(err)
 			return
 		}
 
-		log.Debug("receive transfer event on ethereum",
+		log.InfoWithContext(ctx, "receive transfer event on ethereum",
 			zap.String("from", fromAddress),
 			zap.String("to", toAddress),
 			zap.String("contractAddress", contractAddress),
@@ -292,7 +296,6 @@ func (e *EthereumEventsEmitter) processNftTransferLog(ctx context.Context, eLog 
 
 		if err := e.PushNftEvent(ctx, eventType, fromAddress, toAddress, contractAddress, utils.EthereumBlockchain, tokenIDHash.Big().Text(10), eLog.TxHash.Hex(), eLog.Index, txTime); err != nil {
 			log.ErrorWithContext(ctx, errors.New("gRPC request failed"), zap.Error(err), log.SourceGRPC)
-			sentry.CaptureException(err)
 			return
 		}
 	}
@@ -308,7 +311,7 @@ func (e *EthereumEventsEmitter) processNftTransferLog(ctx context.Context, eLog 
 
 func (e *EthereumEventsEmitter) processSeriesRegistryLog(ctx context.Context, eLog types.Log) {
 	paringStartTime := time.Now()
-	log.Debug("start processing series registry log",
+	log.InfoWithContext(ctx, "start processing series registry log",
 		zap.Any("txHash", eLog.TxHash),
 		zap.Uint("logIndex", eLog.Index),
 		zap.Time("time", paringStartTime))
@@ -324,7 +327,6 @@ func (e *EthereumEventsEmitter) processSeriesRegistryLog(ctx context.Context, eL
 	txTime, err := indexer.GetETHBlockTime(ctx, e.cacheStore, e.wsClient, eLog.BlockHash)
 	if err != nil {
 		log.ErrorWithContext(ctx, errors.New("fail to get the block time"), zap.Error(err), log.SourceGRPC)
-		sentry.CaptureException(err)
 		return
 	}
 
@@ -408,7 +410,7 @@ func (e *EthereumEventsEmitter) processSeriesRegistryLog(ctx context.Context, eL
 		return
 	}
 
-	log.Debug("receive series registry event on ethereum",
+	log.InfoWithContext(ctx, "receive series registry event on ethereum",
 		zap.String("contractAddress", contractAddress),
 		zap.String("eventType", eventType),
 		zap.Any("data", data),
@@ -419,7 +421,6 @@ func (e *EthereumEventsEmitter) processSeriesRegistryLog(ctx context.Context, eL
 
 	if err := e.PushSeriesRegistryEvent(ctx, eventType, contractAddress, eLog.TxHash.Hex(), data, eLog.Index, txTime); err != nil {
 		log.ErrorWithContext(ctx, errors.New("gRPC request failed"), zap.Error(err), log.SourceGRPC)
-		sentry.CaptureException(err)
 		return
 	}
 

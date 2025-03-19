@@ -1,10 +1,13 @@
 package traceutils
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httputil"
 
-	"github.com/getsentry/sentry-go"
+	"go.uber.org/zap"
+
+	log "github.com/bitmark-inc/autonomy-logger"
 )
 
 // DumpRequest is a alias to dump http requests to string. It sends an error to
@@ -12,7 +15,7 @@ import (
 func DumpRequest(req *http.Request) string {
 	dump, err := httputil.DumpRequest(req, true)
 	if err != nil {
-		sentry.CaptureException(err)
+		log.Error(errors.New("fail to dump request"), zap.Error(err))
 	}
 
 	return string(dump)
@@ -23,7 +26,7 @@ func DumpRequest(req *http.Request) string {
 func DumpResponse(resp *http.Response) string {
 	dump, err := httputil.DumpResponse(resp, true)
 	if err != nil {
-		sentry.CaptureException(err)
+		log.Error(errors.New("fail to dump response"), zap.Error(err))
 	}
 
 	return string(dump)
