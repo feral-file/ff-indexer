@@ -5,6 +5,7 @@ import (
 	"time"
 
 	log "github.com/bitmark-inc/autonomy-logger"
+	utils "github.com/bitmark-inc/autonomy-utils"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	indexerWorker "github.com/bitmark-inc/nft-indexer/background/worker"
 	"go.uber.org/zap"
@@ -267,6 +268,12 @@ func (e *EventProcessor) IndexTokenSale(ctx context.Context) {
 func (e *EventProcessor) indexTokenSale(ctx context.Context, event NFTEvent) error {
 	if event.Type != "transfer" {
 		log.InfoWithContext(ctx, "ignore non-transfer event", zap.String("type", event.Type))
+		return nil
+	}
+	if event.Blockchain == utils.TezosBlockchain &&
+		event.Contract != indexer.TezosOBJKTMarketplaceAddress &&
+		event.Contract != indexer.TezosOBJKTMarketplaceAddressV2 {
+		log.InfoWithContext(ctx, "ignore non-objkt sale event", zap.String("contract", event.Contract), zap.String("txID", event.TXID))
 		return nil
 	}
 

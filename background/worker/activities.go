@@ -810,7 +810,6 @@ func (w *NFTIndexerWorker) GetObjktSaleTransactionHashes(_ context.Context, last
 
 // GetTzktTransactionByID get tezos transaction hash by tzkt transaction id
 func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(ctx context.Context, hash string) (*TokenSale, error) {
-
 	txs, err := w.indexerEngine.GetTzktTransactionsByHash(hash)
 	if err != nil {
 		return nil, err
