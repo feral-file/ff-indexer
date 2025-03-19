@@ -362,8 +362,9 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 				if err != nil {
 					return err
 				}
+			} else {
+				return err
 			}
-			return err
 		} else {
 			// Parse the existing token
 			var currentToken Token
