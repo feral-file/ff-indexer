@@ -3,8 +3,10 @@ package worker
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
+	log "github.com/bitmark-inc/autonomy-logger"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/externals/coinbase"
 	"go.uber.org/cadence"
@@ -31,20 +33,17 @@ func (w *NFTIndexerWorker) CrawlHistoricalExchangeRate(
 	start int64,
 	end int64,
 ) error {
-	log := workflow.GetLogger(ctx)
-	log.Debug("start CrawlHistoricalExchangeRate")
+	logger := log.CadenceWorkflowLogger(ctx)
 
 	// Check if all currencyPairs is supported
 	for _, currencyPair := range currencyPairs {
 		if !indexer.SupportedCurrencyPairs[currencyPair] {
-			log.Error("unsupported currency pair", zap.String("currencyPair", currencyPair))
 			return nil
 		}
 	}
 
 	if start == 0 && end == 0 {
 		ao := workflow.ActivityOptions{
-
 			TaskList:               w.TaskListName,
 			ScheduleToStartTimeout: 10 * time.Minute,
 			StartToCloseTimeout:    time.Hour,
@@ -56,7 +55,7 @@ func (w *NFTIndexerWorker) CrawlHistoricalExchangeRate(
 			ctxac,
 			w.GetExchangeRateLastTime,
 		).Get(ctx, &lastTime); err != nil {
-			log.Error("Failed get exchange rate last time", zap.Error(err))
+			logger.Error("fail to get exchange rate last time", zap.Error(err), zap.String("currencyPairs", strings.Join(currencyPairs, ":")))
 			return err
 		}
 
@@ -65,7 +64,6 @@ func (w *NFTIndexerWorker) CrawlHistoricalExchangeRate(
 	}
 
 	if start >= end {
-		log.Error("Start must be before end")
 		return nil
 	}
 
@@ -110,7 +108,7 @@ func (w *NFTIndexerWorker) CrawlHistoricalExchangeRate(
 
 		for _, future := range futures {
 			if err := future.Get(ctx, nil); err != nil {
-				log.Error("Failed to crawl exchange rate", zap.Error(err))
+				logger.Error("fail to crawl exchange rate by currency pair", zap.Error(err))
 				return err
 			}
 		}
@@ -126,6 +124,7 @@ func (w *NFTIndexerWorker) CrawlExchangeRateByCurrencyPair(
 	start int64,
 	end int64,
 ) error {
+	logger := log.CadenceWorkflowLogger(ctx)
 	ao := workflow.ActivityOptions{
 		TaskList:               w.TaskListName,
 		ScheduleToStartTimeout: 5 * time.Minute,
@@ -136,9 +135,7 @@ func (w *NFTIndexerWorker) CrawlExchangeRateByCurrencyPair(
 			MaximumAttempts:    10,
 		},
 	}
-	log := workflow.GetLogger(ctx)
 	ctx = workflow.WithActivityOptions(ctx, ao)
-	log.Debug("start CrawlExchangeRateByCurrencyPair")
 
 	var rates []coinbase.HistoricalExchangeRate
 
@@ -149,7 +146,7 @@ func (w *NFTIndexerWorker) CrawlExchangeRateByCurrencyPair(
 		strconv.Itoa(granularity),
 		start,
 		end).Get(ctx, &rates); err != nil {
-		log.Error("Failed to crawl exchange rate", zap.Error(err))
+		logger.Error("fail to crawl exchange rate from coinbase", zap.Error(err), zap.String("currencyPair", currencyPair), zap.Int64("start", start), zap.Int64("end", end))
 		return err
 	}
 
@@ -161,7 +158,7 @@ func (w *NFTIndexerWorker) CrawlExchangeRateByCurrencyPair(
 		ctx,
 		w.WriteHistoricalExchangeRate,
 		rates).Get(ctx, nil); err != nil {
-		log.Error("Failed to write exchange rate", zap.Error(err))
+		logger.Error("fail to write historical exchange rate", zap.Error(err), zap.String("currencyPair", currencyPair), zap.Int64("start", start), zap.Int64("end", end))
 		return err
 	}
 

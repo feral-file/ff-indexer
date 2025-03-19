@@ -30,7 +30,6 @@ func screenshotSVGTags(url string) (*bytes.Buffer, error) {
 			if errors.Is(err, context.DeadlineExceeded) {
 				continue
 			}
-			log.Warn("fail to take screenshot", zap.Error(err))
 			return nil, ErrTakeScreenshot
 		}
 
@@ -42,7 +41,6 @@ func screenshotSVGTags(url string) (*bytes.Buffer, error) {
 	// fail back to fullscreen screenshot
 	buf, err := ScreenShoot(url, "")
 	if err != nil {
-		log.Warn("fail to take screenshot", zap.Error(err))
 		return nil, ErrTakeScreenshot
 	}
 

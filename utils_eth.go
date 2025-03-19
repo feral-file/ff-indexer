@@ -31,7 +31,7 @@ func GetETHBlockTime(ctx context.Context, store cache.Store, rpcClient *ethclien
 	blockTime := time.Unix(int64(block.Time()), 0)
 	err = store.Set(ctx, hash.Hex(), blockTime)
 	if err != nil {
-		log.Warn("failed to save cache data", zap.Error(err))
+		log.WarnWithContext(ctx, "failed to save cache data", zap.Error(err))
 	}
 
 	return blockTime, err

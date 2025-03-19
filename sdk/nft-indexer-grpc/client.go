@@ -38,7 +38,12 @@ func (i *IndexerGRPCClient) GetTokenByIndexID(ctx context.Context, indexID strin
 		return nil, err
 	}
 
-	return i.mapper.MapGrpcTokenToIndexerToken(token), nil
+	indexerToken, err := i.mapper.MapGrpcTokenToIndexerToken(token)
+	if err != nil {
+		return nil, err
+	}
+
+	return indexerToken, nil
 }
 
 // PushProvenance pushes provenance to indexer db

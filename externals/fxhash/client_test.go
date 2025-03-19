@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	if err := log.Initialize("debug", true, nil); err != nil {
+	if err := log.Initialize(true, nil); err != nil {
 		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
 	}
 }

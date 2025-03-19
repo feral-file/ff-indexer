@@ -30,7 +30,7 @@ func main() {
 	config.LoadConfig("NFT_INDEXER")
 
 	environment := viper.GetString("environment")
-	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug"), &sentry.ClientOptions{
+	if err := log.Initialize(viper.GetBool("debug"), &sentry.ClientOptions{
 		Dsn:         viper.GetString("sentry.dsn"),
 		Environment: environment,
 	}); err != nil {
@@ -76,7 +76,7 @@ func main() {
 
 	checkInterval, err := time.ParseDuration(viper.GetString("default_check_interval"))
 	if err != nil {
-		log.Warn("invalid check interval. set to default 10s",
+		log.WarnWithContext(ctx, "invalid check interval. set to default 10s",
 			zap.String("check_interval", viper.GetString("check_interval")), zap.Error(err))
 		checkInterval = DefaultCheckInterval
 	}

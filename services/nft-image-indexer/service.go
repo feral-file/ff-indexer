@@ -11,7 +11,6 @@ import (
 	log "github.com/bitmark-inc/autonomy-logger"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	imageStore "github.com/bitmark-inc/nft-indexer/services/nft-image-indexer/store"
-	"github.com/getsentry/sentry-go"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -79,7 +78,7 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, dataChan <
 				log.Debug("start generating thumbnail cache for an asset", zap.String("indexID", info.ID))
 
 				if _, err := s.db.CreateOrGetImage(ctx, info.ID); err != nil {
-					log.Error("fail to get or create image record", zap.Error(err))
+					log.WarnWithContext(ctx, "fail to get or create image record", zap.Error(err))
 					continue
 				}
 
@@ -91,19 +90,18 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, dataChan <
 					if uerr, ok := err.(imageStore.UnsupportedImageCachingError); ok {
 						// add failure to the asset
 						if uerr.Reason() == imageStore.ReasonBrokenImage {
-							log.Error("broken image",
+							log.WarnWithContext(ctx, "broken image",
 								zap.String("id", info.ID),
 								zap.String("type", string(info.Type)),
 								zap.String("thumbnailURL", info.ImageURL))
 						}
 
 						if err := s.markAssetThumbnailFailed(ctx, info.ID, uerr.Reason()); err != nil {
-							log.Error("add thumbnail failure was failed", zap.String("id", info.ID), zap.Error(err))
+							log.WarnWithContext(ctx, "add thumbnail failure was failed", zap.String("id", info.ID), zap.Error(err))
 						}
 					}
 
-					sentry.CaptureMessage("assetId: " + info.ID + " - " + err.Error())
-					log.Error("fail to upload image", zap.String("id", info.ID), zap.Error(err))
+					log.WarnWithContext(ctx, "fail to upload image", zap.String("id", info.ID), zap.Error(err))
 					continue
 				}
 				log.Debug("thumbnail image uploaded",
@@ -115,20 +113,20 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, dataChan <
 				switch info.Type {
 				case TypeAsset:
 					if err := s.updateAssetThumbnail(ctx, img.AssetID, img.ImageID); err != nil {
-						log.Error("fail to update token thumbnail back to indexer", zap.Error(err))
+						log.WarnWithContext(ctx, "fail to update token thumbnail back to indexer", zap.Error(err))
 						continue
 					}
 				case TypeCollection:
 					if err := s.updateCollectionThumbnail(ctx, img.AssetID, img.ImageID); err != nil {
-						log.Error("fail to update token thumbnail back to indexer", zap.Error(err))
+						log.WarnWithContext(ctx, "fail to update token thumbnail back to indexer", zap.Error(err))
 						continue
 					}
 				default:
-					log.Error("type is not supported", zap.Error(err))
+					log.WarnWithContext(ctx, "type is not supported", zap.Error(err))
 					continue
 				}
 
-				log.Info("thumbnail generating process finished", zap.String("indexID", info.ID))
+				log.InfoWithContext(ctx, "thumbnail generating process finished", zap.String("indexID", info.ID))
 			}
 			log.Debug("ThumbnailWorker stopped")
 		}()
@@ -253,13 +251,13 @@ func (s *NFTContentIndexer) updateAssetThumbnail(ctx context.Context, indexID, t
 		}}},
 	)
 	if err != nil {
-		log.Error("update asset thumbnail failed", zap.String("indexID", indexID), zap.Error(err))
+		log.WarnWithContext(ctx, "update asset thumbnail failed", zap.String("indexID", indexID), zap.Error(err))
 		return err
 	}
 
 	idSegments := strings.SplitN(indexID, "-", 2)
 	if len(idSegments) != 2 {
-		log.Error("invalid asset index id",
+		log.WarnWithContext(ctx, "invalid asset index id",
 			zap.String("indexID", indexID),
 			zap.Int("segments", len(idSegments)))
 		return fmt.Errorf("invalid asset index id")
@@ -270,6 +268,7 @@ func (s *NFTContentIndexer) updateAssetThumbnail(ctx context.Context, indexID, t
 		bson.M{"assetID": assetID},
 		options.Find().SetProjection(bson.M{"indexID": 1}))
 	if err != nil {
+		log.WarnWithContext(ctx, "fail to find token", zap.String("assetID", assetID), zap.Error(err))
 		return err
 	}
 
@@ -308,7 +307,7 @@ func (s *NFTContentIndexer) updateCollectionThumbnail(ctx context.Context, id, t
 		}}},
 	)
 	if err != nil {
-		log.Error("update collection thumbnail failed", zap.String("collectionID", id), zap.Error(err))
+		log.WarnWithContext(ctx, "update collection thumbnail failed", zap.String("collectionID", id), zap.Error(err))
 		return err
 	}
 
@@ -336,7 +335,7 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 
 		s.spawnThumbnailWorker(ctx, dataChan, 5)
 
-		log.Info("start the loop the get assets without thumbnail cached",
+		log.InfoWithContext(ctx, "start the loop the get assets without thumbnail cached",
 			zap.Duration("thumbnailCachePeriod", s.thumbnailCachePeriod),
 			zap.Duration("thumbnailCacheRetryInterval", s.thumbnailCacheRetryInterval))
 
@@ -350,9 +349,9 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 				col, err := s.getCollectionWithoutThumbnailCached(ctx)
 				if err != nil {
 					if errors.Is(err, mongo.ErrNoDocuments) {
-						log.Info("No collection need to generate cache a thumbnail")
+						log.InfoWithContext(ctx, "No collection need to generate cache a thumbnail")
 					} else {
-						log.Error("fail to get collection", zap.Error(err))
+						log.WarnWithContext(ctx, "fail to get collection", zap.Error(err))
 					}
 
 					if done := indexer.SleepWithContext(ctx, 15*time.Second); done {
@@ -378,9 +377,9 @@ func (s *NFTContentIndexer) checkThumbnail(ctx context.Context) {
 			asset, err := s.getAssetWithoutThumbnailCached(ctx)
 			if err != nil {
 				if errors.Is(err, mongo.ErrNoDocuments) {
-					log.Info("No token need to generate cache a thumbnail")
+					log.InfoWithContext(ctx, "No token need to generate cache a thumbnail")
 				} else {
-					log.Error("fail to get asset", zap.Error(err))
+					log.WarnWithContext(ctx, "fail to get asset", zap.Error(err))
 				}
 
 				if done := indexer.SleepWithContext(ctx, 15*time.Second); done {

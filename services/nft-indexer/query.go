@@ -205,13 +205,10 @@ func (s *NFTIndexerServer) refreshIdentity(accountNumber string) {
 	c := context.Background()
 	id, err := s.fetchIdentity(c, accountNumber)
 	if err != nil {
-		log.Error("fail to query account identity from blockchain", zap.Any("identity", id), zap.Error(err))
 		return
 	}
 
-	if err := s.indexerStore.IndexIdentity(c, *id); err != nil {
-		log.Error("fail to index identity to indexer store", zap.Any("identity", id), zap.Error(err))
-	}
+	s.indexerStore.IndexIdentity(c, *id)
 }
 
 // GetIdentity returns the identity of an given account by querying indexer store. If an identity is not existent,
@@ -223,7 +220,7 @@ func (s *NFTIndexerServer) GetIdentity(c *gin.Context) {
 
 	account, err := s.indexerStore.GetIdentity(c, accountNumber)
 	if err != nil {
-		log.Error("fail to get identity from indexer store", zap.Error(err))
+		log.ErrorWithContext(c, "fail to get identity from indexer store", zap.Error(err))
 	}
 
 	if account.AccountNumber != "" {
@@ -246,7 +243,7 @@ func (s *NFTIndexerServer) GetIdentity(c *gin.Context) {
 	}
 
 	if err := s.indexerStore.IndexIdentity(c, *id); err != nil {
-		log.Error("fail to index identity to indexer store", zap.Any("identity", id), zap.Error(err))
+		log.ErrorWithContext(c, "fail to index identity to indexer store", zap.Any("identity", id), zap.Error(err))
 	}
 
 	c.JSON(200, id)

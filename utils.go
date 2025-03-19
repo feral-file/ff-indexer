@@ -286,12 +286,12 @@ func ResolveIPFSURI(gateway, uri string) string {
 }
 
 // ReadFromURL reads the data from given URL within a timeout
-func ReadFromURL(url string, timeout time.Duration) ([]byte, error) {
+func ReadFromURL(ctx context.Context, url string, timeout time.Duration) ([]byte, error) {
 	client := &http.Client{
 		Timeout: timeout,
 	}
 
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

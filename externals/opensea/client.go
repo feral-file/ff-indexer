@@ -1,6 +1,7 @@
 package opensea
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -157,7 +158,6 @@ func (r *RateLimiter) Start() {
 			for range time.Tick(time.Second) {
 				for i := 0; i < r.rps; i++ {
 					if len(r.reqChan) < r.rps {
-						log.Debug("increase the request count")
 						r.reqChan <- struct{}{}
 					}
 				}
@@ -188,8 +188,8 @@ func (c *Client) Debug(debug bool) {
 	c.debug = debug
 }
 
-func (c *Client) makeRequest(method, url string, body io.Reader) (*http.Response, error) {
-	req, err := http.NewRequest(method, url, body)
+func (c *Client) makeRequest(ctx context.Context, method, url string, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, err
 	}
@@ -232,14 +232,14 @@ func (c *Client) makeRequest(method, url string, body io.Reader) (*http.Response
 }
 
 // RetrieveAsset returns the token information for a contract and a token id
-func (c *Client) RetrieveAsset(contract, tokenID string) (*DetailedAssetV2, error) {
+func (c *Client) RetrieveAsset(ctx context.Context, contract, tokenID string) (*DetailedAssetV2, error) {
 	u := url.URL{
 		Scheme: "https",
 		Host:   c.apiEndpoint,
 		Path:   fmt.Sprintf("/api/v2/chain/%s/contract/%s/nfts/%s", c.chain, contract, tokenID),
 	}
 
-	resp, err := c.makeRequest("GET", u.String(), nil)
+	resp, err := c.makeRequest(ctx, "GET", u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -250,16 +250,13 @@ func (c *Client) RetrieveAsset(contract, tokenID string) (*DetailedAssetV2, erro
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&assetResp); err != nil {
-		log.Error("fail to read opensea response", zap.Error(err),
-			log.SourceOpensea,
-			zap.String("resp_dump", traceutils.DumpResponse(resp)))
 		return nil, err
 	}
 
 	return &assetResp.Asset, nil
 }
 
-func (c *Client) RetrieveAssets(owner string, next string) (*AssetsResponse, error) {
+func (c *Client) RetrieveAssets(ctx context.Context, owner string, next string) (*AssetsResponse, error) {
 	// NOTE: query by offset is removed from the document but still support at this moment.
 	v := url.Values{
 		"limit": []string{QueryPageSize},
@@ -273,7 +270,7 @@ func (c *Client) RetrieveAssets(owner string, next string) (*AssetsResponse, err
 		RawQuery: v.Encode(),
 	}
 
-	resp, err := c.makeRequest("GET", u.String(), nil)
+	resp, err := c.makeRequest(ctx, "GET", u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -282,9 +279,6 @@ func (c *Client) RetrieveAssets(owner string, next string) (*AssetsResponse, err
 	var assetResp AssetsResponse
 
 	if err := json.NewDecoder(resp.Body).Decode(&assetResp); err != nil {
-		log.Error("fail to read opensea response", zap.Error(err),
-			log.SourceOpensea,
-			zap.String("resp_dump", traceutils.DumpResponse(resp)))
 		return nil, err
 	}
 

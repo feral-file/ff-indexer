@@ -34,7 +34,7 @@ func main() {
 	config.LoadConfig("NFT_INDEXER")
 
 	environment := viper.GetString("environment")
-	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug"), &sentry.ClientOptions{
+	if err := log.Initialize(viper.GetBool("debug"), &sentry.ClientOptions{
 		Dsn:         viper.GetString("sentry.dsn"),
 		Environment: environment,
 	}); err != nil {

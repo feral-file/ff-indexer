@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -13,7 +12,6 @@ import (
 	"github.com/bitmark-inc/nft-indexer/emitter"
 	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 	"github.com/bitmark-inc/tzkt-go"
-	"github.com/getsentry/sentry-go"
 	"github.com/philippseith/signalr"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -57,73 +55,14 @@ func NewTezosEventsEmitter(
 	}
 }
 
-// Transfers is a callback function for handling events from `transfers` channel
-// According to https://github.com/philippseith/signalr#client-side-go, we need to create a same name
-// function according to the server response channel. See https://api.tzkt.io/#section/SubscribeToTokenTransfers
-func (e *TezosEventsEmitter) Transfers(data json.RawMessage) {
-	var res TokenTransferResponse
-
-	err := json.Unmarshal(data, &res)
-	if err != nil {
-		log.Error("fail to unmarshal transfers data", zap.Error(err))
-		sentry.CaptureException(err)
-		return
-	}
-
-	if len(res.Data) == 0 {
-		return
-	}
-
-	if isFirstTransferEventOnConnected {
-		isFirstTransferEventOnConnected = false
-		if lastStoppedBlock > 0 {
-			e.fetchFromByLastStoppedLevel(lastStoppedBlock)
-		}
-	}
-
-	for _, t := range res.Data {
-		e.eventChan <- e.tokenTransferToEvent(t)
-	}
+type SignalrLogger struct {
+	ctx context.Context
 }
-
-// Bigmaps is a callback function for handling events from `bigmaps` channel
-// According to https://github.com/philippseith/signalr#client-side-go, we need to create a same name
-// function according to the server response channel. See https://api.tzkt.io/#section/SubscribeToBigMaps
-func (e *TezosEventsEmitter) Bigmaps(data json.RawMessage) {
-	var res BigmapUpdateResponse
-
-	err := json.Unmarshal(data, &res)
-	if err != nil {
-		log.Error("fail to unmarshal bigmaps data", zap.Error(err))
-		sentry.CaptureException(err)
-		return
-	}
-
-	if len(res.Data) == 0 {
-		return
-	}
-
-	if isFirstBigmapEventOnConnected {
-		isFirstBigmapEventOnConnected = false
-		if lastStoppedBlock > 0 {
-			e.fetchFromByLastStoppedLevel(lastStoppedBlock)
-		}
-	}
-
-	for _, t := range res.Data {
-		// ignore for mint/contract creation events
-		if t.Action != "add_key" && t.Action != "allocate" {
-			e.eventChan <- e.tokenMetadataUpdateToEvent(t)
-		}
-	}
-}
-
-type SignalrLogger struct{}
 
 func (s *SignalrLogger) Log(keyVals ...interface{}) error {
 	if len(keyVals)%2 != 0 {
 		// Suppose this should not happen
-		log.Warn("signalr log", zap.Any("keyVals", keyVals))
+		log.WarnWithContext(s.ctx, "signalr log", zap.Any("keyVals", keyVals))
 		return nil
 	}
 
@@ -144,7 +83,7 @@ func (s *SignalrLogger) Log(keyVals ...interface{}) error {
 	if signalrDebug {
 		log.Debug("signalr log", zapFields...)
 	} else {
-		log.Info("signalr log", zapFields...)
+		log.InfoWithContext(s.ctx, "signalr log", zapFields...)
 	}
 
 	return nil
@@ -152,7 +91,7 @@ func (s *SignalrLogger) Log(keyVals ...interface{}) error {
 
 func (e *TezosEventsEmitter) Run(ctx context.Context) {
 	client, err := signalr.NewClient(ctx,
-		signalr.Logger(&SignalrLogger{}, viper.GetBool("debug")),
+		signalr.Logger(&SignalrLogger{ctx: ctx}, viper.GetBool("debug")),
 		signalr.MaximumReceiveMessageSize(maxMessageSize),
 		signalr.WithConnector(func() (signalr.Connection, error) {
 			creationCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -162,7 +101,7 @@ func (e *TezosEventsEmitter) Run(ctx context.Context) {
 		}),
 		signalr.WithReceiver(e))
 	if err != nil {
-		log.Error("fail to create signalr client", zap.Error(err))
+		log.ErrorWithContext(ctx, "fail to create signalr client", zap.Error(err))
 		return
 	}
 
@@ -207,43 +146,41 @@ func (e *TezosEventsEmitter) Run(ctx context.Context) {
 func (e *TezosEventsEmitter) processSinceLastStoppedLevel(ctx context.Context) {
 	lastStopLevel, err := e.parameterStore.GetString(ctx, e.lastBlockKeyName)
 	if err != nil {
-		log.Error("failed to read last stop block from parameter store: ", zap.Error(err), log.SourceTZKT)
+		log.ErrorWithContext(ctx, "failed to read last stop block from parameter store: ", zap.Error(err), log.SourceTZKT)
 		return
 	}
 
 	fromLevel, err := strconv.ParseUint(lastStopLevel, 10, 64)
 	if err != nil {
-		log.Error("failed to parse last stop block: ", zap.Error(err), log.SourceTZKT)
+		log.ErrorWithContext(ctx, "failed to parse last stop block: ", zap.Error(err), log.SourceTZKT)
 		return
 	}
 
-	e.fetchFromByLastStoppedLevel(fromLevel)
+	e.fetchFromByLastStoppedLevel(ctx, fromLevel)
 }
 
-func (e *TezosEventsEmitter) fetchFromByLastStoppedLevel(fromLevel uint64) {
+func (e *TezosEventsEmitter) fetchFromByLastStoppedLevel(ctx context.Context, fromLevel uint64) {
 	latestLevel, err := e.tzkt.GetLevelByTime(time.Now())
 	if err != nil {
-		log.Error("failed to get lastest block level: ", zap.Error(err), log.SourceTZKT)
-		sentry.CaptureException(err)
+		log.ErrorWithContext(ctx, "failed to get lastest block level: ", zap.Error(err), log.SourceTZKT)
 		return
 	}
 
 	for i := fromLevel; i <= latestLevel; i++ {
-		e.fetchTokenTransfersByLevel(i)
-		e.fetchTokenBigmapUpdateByLevel(i)
+		e.fetchTokenTransfersByLevel(ctx, i)
+		e.fetchTokenBigmapUpdateByLevel(ctx, i)
 	}
 }
 
-func (e *TezosEventsEmitter) fetchTokenTransfersByLevel(level uint64) {
+func (e *TezosEventsEmitter) fetchTokenTransfersByLevel(ctx context.Context, level uint64) {
 	offset := 0
 	pageSize := 100
 
 	for {
 		transfers, err := e.tzkt.GetTokenTransfersByLevel(fmt.Sprintf("%d", level), offset, pageSize)
 		if err != nil {
-			log.Error("failed to fetch token transfer from level: ",
+			log.ErrorWithContext(ctx, "failed to fetch token transfer from level: ",
 				zap.Error(err), zap.Uint64("level", level), zap.Int("offset", offset), log.SourceTZKT)
-			sentry.CaptureException(err)
 			return
 		}
 
@@ -259,16 +196,15 @@ func (e *TezosEventsEmitter) fetchTokenTransfersByLevel(level uint64) {
 	}
 }
 
-func (e *TezosEventsEmitter) fetchTokenBigmapUpdateByLevel(level uint64) {
+func (e *TezosEventsEmitter) fetchTokenBigmapUpdateByLevel(ctx context.Context, level uint64) {
 	offset := 0
 	pageSize := 100
 
 	for {
 		updates, err := e.tzkt.GetTokenMetadataBigmapUpdatesByLevel(fmt.Sprintf("%d", level), offset, pageSize)
 		if err != nil {
-			log.Error("failed to fetch token metadata bigmap updates from level: ",
+			log.ErrorWithContext(ctx, "failed to fetch token metadata bigmap updates from level: ",
 				zap.Error(err), zap.Uint64("level", level), zap.Int("offset", offset), log.SourceTZKT)
-			sentry.CaptureException(err)
 			return
 		}
 
@@ -298,15 +234,14 @@ func (e *TezosEventsEmitter) processTokenEvent(ctx context.Context, event TokenE
 	if err := e.PushNftEvent(ctx, string(event.EventType), event.From, event.To,
 		event.ContractAddress, event.Blockchain, event.TokenID,
 		event.TxID, 0, event.TxTime); err != nil {
-		log.Error("gRPC request failed", zap.Error(err), log.SourceGRPC)
-		sentry.CaptureException(err)
+		log.ErrorWithContext(ctx, "gRPC request failed", zap.Error(err), log.SourceGRPC)
 		return
 	}
 
 	if event.Level > lastStoppedBlock {
 		lastStoppedBlock = event.Level
 		if err := e.parameterStore.PutString(ctx, e.lastBlockKeyName, strconv.FormatUint(lastStoppedBlock, 10)); err != nil {
-			log.Error("error put parameterStore", zap.Error(err), log.SourceGRPC)
+			log.ErrorWithContext(ctx, "error put parameterStore", zap.Error(err), log.SourceGRPC)
 			return
 		}
 	}

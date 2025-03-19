@@ -99,7 +99,7 @@ func (e *EventProcessor) removeDeprecatedSeriesRegistryEvents() error {
 }
 
 // PruneDeprecatedEventsCronjob runs the cron job in a goroutine to remove expired events
-func (e *EventProcessor) PruneDeprecatedEventsCronjob() {
+func (e *EventProcessor) PruneDeprecatedEventsCronjob(ctx context.Context) {
 	go func() {
 		for {
 			now := time.Now()
@@ -113,11 +113,11 @@ func (e *EventProcessor) PruneDeprecatedEventsCronjob() {
 
 			// Remove expired events
 			if err := e.removeDeprecatedNftEvents(); err != nil {
-				log.Error("error delete archived events", zap.Error(err))
+				log.ErrorWithContext(ctx, "error delete archived events", zap.Error(err))
 			}
 
 			if err := e.removeDeprecatedSeriesRegistryEvents(); err != nil {
-				log.Error("error delete archived series registry events", zap.Error(err))
+				log.ErrorWithContext(ctx, "error delete archived series registry events", zap.Error(err))
 			}
 		}
 	}()
@@ -126,14 +126,14 @@ func (e *EventProcessor) PruneDeprecatedEventsCronjob() {
 // Run starts event processor server. It spawns a queue processor in the
 // background routine and starts up a gRPC server to wait new events.
 func (e *EventProcessor) Run(ctx context.Context) {
-	log.Info("start event processor")
+	log.InfoWithContext(ctx, "start event processor")
 
-	e.PruneDeprecatedEventsCronjob()
+	e.PruneDeprecatedEventsCronjob(ctx)
 
 	e.ProcessEvents(ctx)
 
 	if err := e.grpcServer.Run(); err != nil {
-		log.Error("gRPC stopped with error", zap.Error(err))
+		log.ErrorWithContext(ctx, "gRPC stopped with error", zap.Error(err))
 	}
 }
 
@@ -151,10 +151,10 @@ func (e *EventProcessor) StartNftEventWorker(ctx context.Context, currentStage, 
 		for {
 			select {
 			case <-ctx.Done():
-				log.Info("process stopped")
+				log.InfoWithContext(ctx, "process stopped")
 				return
 			default:
-				e.logStageEvent(currentStage, "query event")
+				e.logStageEvent(ctx, currentStage, "query event")
 
 				filters := []FilterOption{
 					Filter("type = ANY(?)", pq.Array(types)),
@@ -169,18 +169,18 @@ func (e *EventProcessor) StartNftEventWorker(ctx context.Context, currentStage, 
 				eventTx, err := e.eventQueue.GetNftEventTransaction(ctx, filters...)
 				if err != nil {
 					if err == gorm.ErrRecordNotFound {
-						log.Info("No new events")
+						log.InfoWithContext(ctx, "No new events")
 					} else {
-						log.Error("Fail to get a event db transaction", zap.Error(err))
+						log.WarnWithContext(ctx, "Fail to get a event db transaction", zap.Error(err))
 					}
 					time.Sleep(checkInterval)
 					continue
 				}
-				e.logStartStage(eventTx.NftEvent.ID, currentStage)
+				e.logStartStage(ctx, eventTx.NftEvent.ID, currentStage)
 				if err := processor(ctx, eventTx.NftEvent); err != nil {
-					log.Error("stage processing failed", zap.Error(err))
+					log.ErrorWithContext(ctx, "stage processing failed", zap.Error(err))
 					if err := eventTx.UpdateNftEvent("", string(NftEventStatusFailed)); err != nil {
-						log.Error("fail to update event", zap.Error(err))
+						log.ErrorWithContext(ctx, "fail to update event", zap.Error(err))
 						eventTx.Rollback()
 					}
 				}
@@ -188,18 +188,18 @@ func (e *EventProcessor) StartNftEventWorker(ctx context.Context, currentStage, 
 				// stage starts from 1. stage zero means there is no next stage.
 				if nextStage == NftEventStageDone {
 					if err := eventTx.ArchiveNFTEvent(); err != nil {
-						log.Error("fail to archive event", zap.Error(err))
+						log.ErrorWithContext(ctx, "fail to archive event", zap.Error(err))
 						eventTx.Rollback()
 					}
 				} else {
 					if err := eventTx.UpdateNftEvent(NftEventStages[nextStage], ""); err != nil {
-						log.Error("fail to update event", zap.Error(err))
+						log.ErrorWithContext(ctx, "fail to update event", zap.Error(err))
 						eventTx.Rollback()
 					}
 				}
 
 				eventTx.Commit()
-				e.logEndStage(eventTx.NftEvent.ID, currentStage)
+				e.logEndStage(ctx, eventTx.NftEvent.ID, currentStage)
 			}
 		}
 	}()
@@ -219,10 +219,10 @@ func (e *EventProcessor) StartSeriesRegistryEventWorker(ctx context.Context, cur
 		for {
 			select {
 			case <-ctx.Done():
-				log.Info("process stopped")
+				log.InfoWithContext(ctx, "process stopped")
 				return
 			default:
-				e.logStageEvent(currentStage, "query event")
+				e.logStageEvent(ctx, currentStage, "query event")
 
 				filters := []FilterOption{
 					Filter("type = ANY(?)", pq.Array(types)),
@@ -237,22 +237,22 @@ func (e *EventProcessor) StartSeriesRegistryEventWorker(ctx context.Context, cur
 				eventTx, err := e.eventQueue.GetSeriesRegistryEventTransaction(ctx, filters...)
 				if err != nil {
 					if err == gorm.ErrRecordNotFound {
-						log.Info("No new events")
+						log.InfoWithContext(ctx, "No new events")
 					} else {
-						log.Error("Fail to get a event db transaction", zap.Error(err))
+						log.WarnWithContext(ctx, "Fail to get a event db transaction", zap.Error(err))
 					}
 					time.Sleep(checkInterval)
 					continue
 				}
-				e.logStartStage(eventTx.Event.ID, currentStage)
+				e.logStartStage(ctx, eventTx.Event.ID, currentStage)
 				if err := eventTx.UpdateSeriesRegistryEvent("", string(SeriesRegistryEventStatusProcessing)); err != nil {
-					log.Error("fail to update series event status processing", zap.Error(err))
+					log.ErrorWithContext(ctx, "fail to update series event status processing", zap.Error(err))
 					eventTx.Rollback()
 				}
 				if err := processor(ctx, eventTx.Event); err != nil {
-					log.Error("stage processing failed", zap.Error(err))
+					log.ErrorWithContext(ctx, "stage processing failed", zap.Error(err))
 					if err := eventTx.UpdateSeriesRegistryEvent("", string(SeriesRegistryEventStatusFailed)); err != nil {
-						log.Error("fail to update series event status failed", zap.Error(err))
+						log.ErrorWithContext(ctx, "fail to update series event status failed", zap.Error(err))
 						eventTx.Rollback()
 					}
 					continue
@@ -261,18 +261,18 @@ func (e *EventProcessor) StartSeriesRegistryEventWorker(ctx context.Context, cur
 				// stage starts from 1. stage zero means there is no next stage.
 				if nextStage == SeriesRegistryEventStageDone {
 					if err := eventTx.UpdateSeriesRegistryEvent("", string(SeriesRegistryEventStatusProcessed)); err != nil {
-						log.Error("fail to set event to handled", zap.Error(err))
+						log.ErrorWithContext(ctx, "fail to set event to handled", zap.Error(err))
 						eventTx.Rollback()
 					}
 				} else {
 					if err := eventTx.UpdateSeriesRegistryEvent(NftEventStages[nextStage], ""); err != nil {
-						log.Error("fail to update event", zap.Error(err))
+						log.ErrorWithContext(ctx, "fail to update event", zap.Error(err))
 						eventTx.Rollback()
 					}
 				}
 
 				eventTx.Commit()
-				e.logEndStage(eventTx.Event.ID, currentStage)
+				e.logEndStage(ctx, eventTx.Event.ID, currentStage)
 			}
 		}
 	}()

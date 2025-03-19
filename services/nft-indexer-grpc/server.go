@@ -91,13 +91,19 @@ func (i *IndexerServer) PushProvenance(ctx context.Context, in *pb.PushProvenanc
 		return &pb.EmptyMessage{}, err
 	}
 
-	provenance := i.mapper.MapGRPCProvenancesToIndexerProvenances([]*pb.Provenance{in.Provenance})[0]
+	provenances, err := i.mapper.MapGRPCProvenancesToIndexerProvenances([]*pb.Provenance{in.Provenance})
+	if err != nil {
+		return &pb.EmptyMessage{}, err
+	}
+	if len(provenances) == 0 {
+		return &pb.EmptyMessage{}, fmt.Errorf("invalid provenance")
+	}
 
 	err = i.indexerStore.PushProvenance(
 		ctx,
 		in.IndexID,
 		lockedTime,
-		provenance,
+		provenances[0],
 	)
 
 	if err != nil {

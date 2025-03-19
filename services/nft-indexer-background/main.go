@@ -37,7 +37,7 @@ func main() {
 	config.LoadConfig("NFT_INDEXER")
 
 	environment := viper.GetString("environment")
-	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug"), &sentry.ClientOptions{
+	if err := log.Initialize(viper.GetBool("debug"), &sentry.ClientOptions{
 		Dsn:         viper.GetString("sentry.dsn"),
 		Environment: environment,
 	}); err != nil {
@@ -137,6 +137,7 @@ func main() {
 	activity.Register(worker.GetEthereumBlockHeaderByNumber)
 	activity.Register(worker.GetEthereumInternalTxs)
 	activity.Register(worker.FilterEthereumNFTTxByEventLogs)
+	activity.Register(worker.ParseTokenSaleToGenericSalesTimeSeries)
 
 	// tezos
 	activity.Register(worker.IndexTezosTokenByOwner)
@@ -167,5 +168,5 @@ func main() {
 		panic(err)
 	}
 
-	cadence.StartWorker(log.DefaultLogger(), workerServiceClient, viper.GetString("cadence.domain"), indexerWorker.TaskListName)
+	cadence.StartWorker(log.Logger(), workerServiceClient, viper.GetString("cadence.domain"), indexerWorker.TaskListName)
 }

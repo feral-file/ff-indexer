@@ -6,11 +6,9 @@ import (
 	"encoding/json"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/structpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 
-	log "github.com/bitmark-inc/autonomy-logger"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	grpcIndexer "github.com/bitmark-inc/nft-indexer/services/nft-indexer-grpc/grpc/indexer"
 )
@@ -54,13 +52,13 @@ func (m *Mapper) MapGRPCTokenInforToIndexerTokenInfor(token []*grpcIndexer.BaseT
 }
 
 // MapGRPCProvenancesToIndexerProvenances maps grpc provenance to indexer provenance
-func (m *Mapper) MapGRPCProvenancesToIndexerProvenances(provenance []*grpcIndexer.Provenance) []indexer.Provenance {
+func (m *Mapper) MapGRPCProvenancesToIndexerProvenances(provenance []*grpcIndexer.Provenance) ([]indexer.Provenance, error) {
 	provenances := make([]indexer.Provenance, len(provenance))
 
 	for i, v := range provenance {
 		timestamp, err := ParseTime(v.Timestamp)
 		if err != nil {
-			log.Error("fail when parse provenance timestamp time", zap.Error(err))
+			return nil, err
 		}
 
 		provenances[i] = indexer.Provenance{
@@ -75,24 +73,29 @@ func (m *Mapper) MapGRPCProvenancesToIndexerProvenances(provenance []*grpcIndexe
 		}
 	}
 
-	return provenances
+	return provenances, nil
 }
 
 // MapGrpcTokenToIndexerToken maps grpc indexer token to indexer token
-func (m *Mapper) MapGrpcTokenToIndexerToken(tokenBuffer *grpcIndexer.Token) *indexer.Token {
+func (m *Mapper) MapGrpcTokenToIndexerToken(tokenBuffer *grpcIndexer.Token) (*indexer.Token, error) {
 	mintedAt, err := ParseTime(tokenBuffer.MintedAt)
 	if err != nil {
-		log.Error("fail when parse mintAt time", zap.Error(err))
+		return nil, err
 	}
 
 	lastActivityTime, err := ParseTime(tokenBuffer.LastRefreshedTime)
 	if err != nil {
-		log.Error("fail when parse lastActivityTime", zap.Error(err))
+		return nil, err
 	}
 
 	lastRefreshedTime, err := ParseTime(tokenBuffer.LastRefreshedTime)
 	if err != nil {
-		log.Error("fail when parse lastRefreshedTime", zap.Error(err))
+		return nil, err
+	}
+
+	provenances, err := m.MapGRPCProvenancesToIndexerProvenances(tokenBuffer.Provenances)
+	if err != nil {
+		return nil, err
 	}
 
 	return &indexer.Token{
@@ -120,10 +123,10 @@ func (m *Mapper) MapGrpcTokenToIndexerToken(tokenBuffer *grpcIndexer.Token) *ind
 		SwappedFrom:       &tokenBuffer.SwappedFrom,
 		SwappedTo:         &tokenBuffer.SwappedTo,
 		Burned:            tokenBuffer.Burned,
-		Provenances:       m.MapGRPCProvenancesToIndexerProvenances(tokenBuffer.Provenances),
+		Provenances:       provenances,
 		LastActivityTime:  lastActivityTime,
 		LastRefreshedTime: lastRefreshedTime,
-	}
+	}, nil
 }
 
 // MapIndexerTokenToGrpcToken maps indexer token to grpc indexer token
@@ -370,7 +373,13 @@ func (m *Mapper) MapGrpcDetailedTokenToIndexerDetailedToken(token *grpcIndexer.D
 	if err != nil {
 		return nil, err
 	}
+
 	latest, err := m.MapGrpcProjectMetadataToIndexerProjectMetadata(token.ProjectMetadata.Latest)
+	if err != nil {
+		return nil, err
+	}
+
+	indexerToken, err := m.MapGrpcTokenToIndexerToken(token.Token)
 	if err != nil {
 		return nil, err
 	}
@@ -378,7 +387,7 @@ func (m *Mapper) MapGrpcDetailedTokenToIndexerDetailedToken(token *grpcIndexer.D
 	attributes := m.MapGrpcAttributesToIndexerAttributes(token.Attributes)
 
 	return &indexer.DetailedToken{
-		Token:       *m.MapGrpcTokenToIndexerToken(token.Token),
+		Token:       *indexerToken,
 		ThumbnailID: token.ThumbnailID,
 		IPFSPinned:  token.IPFSPinned,
 		Attributes:  attributes,

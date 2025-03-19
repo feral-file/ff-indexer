@@ -74,7 +74,7 @@ func (e *IndexEngine) IndexTezosTokenByOwner(ctx context.Context, owner string, 
 
 		update, err := e.indexTezosToken(ctx, t.Token, owner, int64(t.Balance), t.LastTime)
 		if err != nil {
-			log.Error("fail to index a tezos token", zap.Error(err))
+			log.WarnWithContext(ctx, "fail to index a tezos token", zap.Error(err))
 			return nil, newLastTime, err
 		}
 
@@ -107,15 +107,7 @@ func (e *IndexEngine) IndexTezosToken(ctx context.Context, contract, tokenID str
 // searchMetadataFromIPFS searches token metadata from a list of preferred ipfs gateway
 func (e *IndexEngine) searchMetadataFromIPFS(ipfsURI string) (*tzkt.TokenMetadata, error) {
 	if strings.HasPrefix(ipfsURI, "https://") {
-		metadata, err := e.fetchMetadataByLink(ipfsURI)
-		if err != nil {
-			log.Error("fail to read token metadata from ipfs",
-				zap.Error(err), zap.String("ipfsURI", ipfsURI), log.SourceTZKT)
-		}
-
-		log.Debug("read token metadata from ipfs",
-			zap.String("uri", ipfsURI), log.SourceTZKT)
-		return metadata, nil
+		return e.fetchMetadataByLink(ipfsURI)
 	}
 
 	if !strings.HasPrefix(ipfsURI, "ipfs://") {
@@ -124,15 +116,7 @@ func (e *IndexEngine) searchMetadataFromIPFS(ipfsURI string) (*tzkt.TokenMetadat
 
 	for _, gateway := range e.ipfsGateways {
 		u := ipfsURLToGatewayURL(gateway, ipfsURI)
-		metadata, err := e.fetchMetadataByLink(u)
-		if err == nil {
-			log.Debug("read token metadata from ipfs",
-				zap.String("gateway", gateway), log.SourceTZKT)
-			return metadata, nil
-		}
-
-		log.Error("fail to read token metadata from ipfs",
-			zap.Error(err), zap.String("ipfsURI", ipfsURI), zap.String("gateway", gateway), log.SourceTZKT)
+		return e.fetchMetadataByLink(u)
 	}
 
 	return nil, fmt.Errorf("fail to get metadata from the preferred gateways")
@@ -202,12 +186,11 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 		if tzktToken.Metadata == nil || time.Since(lastActivityTime) < 14*24*time.Hour {
 			tokenMetadataURL, err := e.getTokenMetadataURL(tzktToken.Contract.Address, tzktToken.ID.String())
 			if err != nil {
-				log.Error("fail to get token metadata url from blockchain", zap.Error(err), log.SourceTZKT)
+				log.WarnWithContext(ctx, "fail to get token metadata url from blockchain", zap.Error(err), log.SourceTZKT)
 			} else {
 				metadata, err := e.searchMetadataFromIPFS(tokenMetadataURL)
 				if err != nil {
-					log.Error("fail to search token metadata from ipfs",
-						zap.String("tokenMetadataURL", tokenMetadataURL), zap.Error(err), log.SourceTZKT)
+					log.WarnWithContext(ctx, "fail to search token metadata from ipfs", zap.String("tokenMetadataURL", tokenMetadataURL), zap.Error(err), log.SourceTZKT)
 				} else {
 					metadataDetail.FromTZIP21TokenMetadata(*metadata)
 				}
@@ -242,7 +225,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 	} else { // development indexing process
 		tokenMetadataURL, err := e.getTokenMetadataURL(tzktToken.Contract.Address, tzktToken.ID.String())
 		if err != nil {
-			log.Error("fail to get token metadata url from blockchain", zap.Error(err), log.SourceTZKT)
+			log.WarnWithContext(ctx, "fail to get token metadata url from blockchain", zap.Error(err), log.SourceTZKT)
 		} else {
 			var metadata *tzkt.TokenMetadata
 			if gateway != DefaultIPFSGateway {
@@ -250,14 +233,14 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 				tokenMetadataURL = ipfsURLToGatewayURL(gateway, tokenMetadataURL)
 				metadata, err = e.fetchMetadataByLink(tokenMetadataURL)
 				if err != nil {
-					log.Error("fail to read token metadata from ipfs",
+					log.WarnWithContext(ctx, "fail to read token metadata from ipfs",
 						zap.Error(err), zap.String("gateway", gateway), log.SourceTZKT)
 				}
 			} else {
 				var err error
 				metadata, err = e.searchMetadataFromIPFS(tokenMetadataURL)
 				if err != nil {
-					log.Error("fail to search token metadata from ipfs",
+					log.WarnWithContext(ctx, "fail to search token metadata from ipfs",
 						zap.String("tokenMetadataURL", tokenMetadataURL), zap.Error(err), log.SourceTZKT)
 				}
 			}
@@ -308,7 +291,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			// fallback to objkt marketplace if the minter is not autonomy inhouse minter
 			objktToken, err := e.GetObjktToken(ctx, tzktToken.Contract.Address, tzktToken.ID.String())
 			if err != nil {
-				log.Error("fail to get token detail from objkt", zap.Error(err), log.SourceObjkt)
+				log.WarnWithContext(ctx, "fail to get token detail from objkt", zap.Error(err), log.SourceObjkt)
 			} else {
 				metadataDetail.FromObjkt(objktToken)
 			}
@@ -420,13 +403,6 @@ func (e *IndexEngine) IndexTezosTokenProvenance(contract, tokenID string) ([]Pro
 
 		tx, err := e.tzkt.GetTransaction(t.TransactionID)
 		if err != nil {
-			log.Error("fail to get transaction",
-				log.SourceTZKT,
-				zap.Error(err),
-				zap.String("blockchain", utils.TezosBlockchain),
-				zap.Uint64("txID", t.TransactionID),
-				zap.Any("transfer", t),
-			)
 			return nil, err
 		}
 

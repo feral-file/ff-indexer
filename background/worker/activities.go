@@ -14,10 +14,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 
-	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
 	indexer "github.com/bitmark-inc/nft-indexer"
 	"github.com/bitmark-inc/nft-indexer/contracts"
@@ -67,7 +66,6 @@ func (w *NFTIndexerWorker) GetOwnedERC721TokenIDByContract(_ context.Context, co
 
 // IndexETHTokenByOwner indexes ETH token data for an owner into the format of AssetUpdates
 func (w *NFTIndexerWorker) IndexETHTokenByOwner(ctx context.Context, owner string, next string) (string, error) {
-	log.Debug("IndexETHTokenByOwner", zap.String("owner", owner))
 	updates, next, err := w.indexerEngine.IndexETHTokenByOwner(ctx, owner, next)
 	if err != nil {
 		return "", err
@@ -112,10 +110,6 @@ func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, owner str
 	if isFirstPage {
 		delay := time.Minute
 		if account.LastUpdatedTime.Unix() > time.Now().Add(-delay).Unix() {
-			log.Debug("owner refresh too frequently",
-				zap.Int64("lastUpdatedTime", account.LastUpdatedTime.Unix()),
-				zap.Int64("now", time.Now().Add(-delay).Unix()),
-				zap.String("owner", account.Account))
 			return false, nil
 		}
 	}
@@ -266,7 +260,7 @@ type Bitmark struct {
 }
 
 // fetchBitmarkProvenance reads bitmark provenances through bitmark api
-func (w *NFTIndexerWorker) fetchBitmarkProvenance(bitmarkID string) ([]indexer.Provenance, error) {
+func (w *NFTIndexerWorker) fetchBitmarkProvenance(_ context.Context, bitmarkID string) ([]indexer.Provenance, error) {
 	provenanceResp, err := w.bitmarkdClient.GetBitmarkFullProvenance(bitmarkID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get bitmark provenance: %w", err)
@@ -372,8 +366,6 @@ func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID,
 		return nil, err
 	}
 
-	log.Debug("token provenance", zap.String("tokenID", hexID), zap.Any("logs", transferLogs))
-
 	totalTransferLogs := len(transferLogs)
 
 	provenances := make([]indexer.Provenance, 0, totalTransferLogs)
@@ -408,7 +400,7 @@ func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID,
 }
 
 // fetchTezosProvenance reads ethereum provenance through filterLogs
-func (w *NFTIndexerWorker) fetchTezosProvenance(tokenID, contractAddress string) ([]indexer.Provenance, error) {
+func (w *NFTIndexerWorker) fetchTezosProvenance(ctx context.Context, tokenID, contractAddress string) ([]indexer.Provenance, error) {
 	return w.indexerEngine.IndexTezosTokenProvenance(contractAddress, tokenID)
 }
 
@@ -416,31 +408,25 @@ func (w *NFTIndexerWorker) fetchTezosProvenance(tokenID, contractAddress string)
 func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs []string, delay time.Duration) error {
 	tokens, err := w.indexerStore.GetTokensByIndexIDs(ctx, indexIDs)
 	if err != nil {
-		log.Error("cannot find tokens in DB", zap.Any("indexIDs", indexIDs), zap.Error(err))
 		return err
 	}
 
 	for _, token := range tokens {
 		if delay > 0 {
 			if token.LastRefreshedTime.Unix() > time.Now().Add(-delay).Unix() {
-				log.Debug("provenance refresh too frequently", zap.String("indexID", token.IndexID))
 				continue
 			}
 		}
 
 		if token.Fungible {
-			log.Debug("ignore fungible token", zap.String("indexID", token.IndexID))
 			continue
 		}
-
-		log.Debug("start refresh token provenance updating flow", zap.String("indexID", token.IndexID))
 
 		totalProvenances := []indexer.Provenance{}
 		switch token.Blockchain {
 		case utils.BitmarkBlockchain:
-			provenance, err := w.fetchBitmarkProvenance(token.ID)
+			provenance, err := w.fetchBitmarkProvenance(ctx, token.ID)
 			if err != nil {
-				log.Error("cannot fetch bitmark provenance", zap.String("tokenID: ", token.ID), zap.Error(err))
 				return err
 			}
 
@@ -448,14 +434,12 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 		case utils.EthereumBlockchain:
 			provenance, err := w.fetchEthereumProvenance(ctx, token.ID, token.ContractAddress)
 			if err != nil {
-				log.Error("cannot fetch ethereum provenance", zap.String("contractAddress: ", token.ContractAddress), zap.String("tokenID: ", token.ID), zap.Error(err))
 				return err
 			}
 			totalProvenances = append(totalProvenances, provenance...)
 		case utils.TezosBlockchain:
 			lastActivityTime, err := w.indexerEngine.IndexTezosTokenLastActivityTime(token.ContractAddress, token.ID)
 			if err != nil {
-				log.Error("cannot fetch lastActivityTime", zap.String("contractAddress: ", token.ContractAddress), zap.String("tokenID: ", token.ID), zap.Error(err))
 				return err
 			}
 
@@ -466,13 +450,11 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 			if len(token.Provenances) != 0 &&
 				token.Provenances[0].Timestamp.Sub(token.LastActivityTime) == 0 &&
 				lastActivityTime.Sub(token.LastActivityTime) <= 0 {
-				log.Debug("no new updates since last check", zap.String("indexID", token.IndexID))
 				continue
 			}
 
-			provenance, err := w.fetchTezosProvenance(token.ID, token.ContractAddress)
+			provenance, err := w.fetchTezosProvenance(ctx, token.ID, token.ContractAddress)
 			if err != nil {
-				log.Error("cannot fetch tezos provenance", zap.String("contractAddress: ", token.ContractAddress), zap.String("tokenID: ", token.ID), zap.Error(err))
 				return err
 			}
 			totalProvenances = append(totalProvenances, provenance...)
@@ -482,9 +464,8 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 		for _, tokenInfo := range token.OriginTokenInfo {
 			switch tokenInfo.Blockchain {
 			case utils.BitmarkBlockchain:
-				provenance, err := w.fetchBitmarkProvenance(tokenInfo.ID)
+				provenance, err := w.fetchBitmarkProvenance(ctx, tokenInfo.ID)
 				if err != nil {
-					log.Error("cannot fetch bitmark provenance", zap.String("tokenID: ", tokenInfo.ID), zap.Error(err))
 					return err
 				}
 
@@ -492,14 +473,12 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 			case utils.EthereumBlockchain:
 				provenance, err := w.fetchEthereumProvenance(ctx, tokenInfo.ID, tokenInfo.ContractAddress)
 				if err != nil {
-					log.Error("cannot fetch ethereum provenance", zap.String("contractAddress: ", token.ContractAddress), zap.String("tokenID: ", token.ID), zap.Error(err))
 					return err
 				}
 				totalProvenances = append(totalProvenances, provenance...)
 			case utils.TezosBlockchain:
-				provenance, err := w.fetchTezosProvenance(tokenInfo.ID, tokenInfo.ContractAddress)
+				provenance, err := w.fetchTezosProvenance(ctx, tokenInfo.ID, tokenInfo.ContractAddress)
 				if err != nil {
-					log.Error("cannot fetch tezos provenance", zap.String("contractAddress: ", token.ContractAddress), zap.String("tokenID: ", token.ID), zap.Error(err))
 					return err
 				}
 				totalProvenances = append(totalProvenances, provenance...)
@@ -507,7 +486,6 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 		}
 
 		if err := w.indexerStore.UpdateTokenProvenance(ctx, token.IndexID, totalProvenances); err != nil {
-			log.Error("cannot update token provenance", zap.String("contractAddress: ", token.ContractAddress), zap.String("tokenID: ", token.ID), zap.Error(err))
 			return err
 		}
 
@@ -521,11 +499,8 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 			}
 
 			if err := w.indexerStore.UpdateAccountTokenOwners(ctx, token.IndexID, ownerBalance); err != nil {
-				log.Error("cannot update account token owners", zap.String("tokenID: ", token.IndexID), zap.Error(err))
 				return err
 			}
-
-			log.Debug("finish updating token owners")
 		}
 	}
 
@@ -536,13 +511,11 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs []string, delay time.Duration) error {
 	accountTokenLatestActivityTimes, err := w.indexerStore.GetLatestActivityTimeByIndexIDs(ctx, indexIDs)
 	if err != nil {
-		log.Error("fail to get tokens last activities", zap.Any("indexIDs", indexIDs), zap.Error(err))
 		return err
 	}
 
 	tokens, err := w.indexerStore.GetTokensByIndexIDs(ctx, indexIDs)
 	if err != nil {
-		log.Error("fail to get tokens", zap.Any("indexIDs", indexIDs), zap.Error(err))
 		return err
 	}
 
@@ -555,19 +528,13 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 		}
 
 		if token.LastRefreshedTime.Unix() > time.Now().Add(-delay).Unix() {
-			log.Debug("ownership refresh too frequently",
-				zap.Int64("lastRefresh", token.LastRefreshedTime.Unix()),
-				zap.Int64("now", time.Now().Add(-delay).Unix()),
-				zap.String("indexID", token.IndexID))
 			continue
 		}
 
 		if !token.Fungible {
-			log.Debug("ignore non-fungible token", zap.String("indexID", token.IndexID))
 			continue
 		}
 
-		log.Debug("start refresh token ownership updating flow", zap.String("indexID", token.IndexID))
 		var (
 			ownerBalances           []indexer.OwnerBalance
 			onChainLastActivityTime time.Time
@@ -577,43 +544,34 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 		case utils.EthereumBlockchain:
 			// update ethereum last activity time by daily manner for now since this is a costy action
 			if time.Since(token.LastActivityTime) <= 86400*time.Second && len(token.OwnersArray) != 0 {
-				log.Debug("no new updates since last check", zap.String("indexID", token.IndexID))
 				continue
 			}
 
-			log.Debug("fetch eth ownership for the token", zap.String("indexID", token.IndexID))
 			ownerBalances, err = w.indexerEngine.IndexETHTokenOwners(token.ContractAddress, token.ID)
 			if err != nil {
-				log.Error("fail to fetch ownership", zap.String("indexID", token.IndexID), zap.Error(err))
 				return err
 			}
 		case utils.TezosBlockchain:
 			onChainLastActivityTime, err = w.indexerEngine.IndexTezosTokenLastActivityTime(token.ContractAddress, token.ID)
 			if err != nil {
-				log.Error("fail to get lastActivityTime", zap.String("indexID", token.IndexID), zap.Error(err))
 				return err
 			}
 
 			if onChainLastActivityTime.Sub(tokenLastActivityTime) <= 0 {
-				log.Debug("no new updates since last check", zap.String("indexID", token.IndexID))
 				continue
 			}
 
-			log.Debug("fetch tezos ownership for the token", zap.String("indexID", token.IndexID))
 			ownerBalances, err = w.indexerEngine.IndexTezosTokenOwners(token.ContractAddress, token.ID)
 			if err != nil {
-				log.Error("fail to fetch ownership", zap.String("indexID", token.IndexID), zap.Error(err))
 				return err
 			}
 		}
 
 		if err := w.indexerStore.UpdateTokenOwners(ctx, token.IndexID, onChainLastActivityTime, ownerBalances); err != nil {
-			log.Error("fail to update token owners", zap.String("indexID", token.IndexID), zap.Any("owners", ownerBalances), zap.Error(err))
 			return err
 		}
 
 		if err := w.indexerStore.UpdateAccountTokenOwners(ctx, token.IndexID, ownerBalances); err != nil {
-			log.Error("fail to update account token owners", zap.String("indexID", token.IndexID), zap.Any("owners", ownerBalances), zap.Error(err))
 			return err
 		}
 	}
@@ -768,6 +726,51 @@ func (w *NFTIndexerWorker) FilterEthereumNFTTxByEventLogs(
 	return txs, nil
 }
 
+func (w *NFTIndexerWorker) ParseTokenSaleToGenericSalesTimeSeries(
+	ctx context.Context,
+	tokenSale TokenSale) (*indexer.GenericSalesTimeSeries, error) {
+	shares := make(map[string]string)
+	for address, share := range tokenSale.Shares {
+		shares[address] = share.String()
+	}
+
+	values := make(map[string]string)
+	values["price"] = tokenSale.Price.String()
+	values["platformFee"] = tokenSale.PlatformFee.String()
+	values["netRevenue"] = tokenSale.NetRevenue.String()
+	values["paymentAmount"] = tokenSale.PaymentAmount.String()
+	values["exchangeRate"] = "1"
+
+	bundleTokenInfo := []map[string]interface{}{}
+	for _, info := range tokenSale.BundleTokenInfo {
+		var tokenInfo map[string]interface{}
+		err := mapstructure.Decode(info, &tokenInfo)
+		if err != nil {
+			return nil, err
+		}
+		bundleTokenInfo = append(bundleTokenInfo, tokenInfo)
+	}
+
+	metadata := map[string]interface{}{
+		"blockchain":      tokenSale.Blockchain,
+		"marketplace":     tokenSale.Marketplace,
+		"paymentCurrency": tokenSale.Currency,
+		"paymentMethod":   "crypto",
+		"pricingCurrency": tokenSale.Currency,
+		"revenueCurrency": tokenSale.Currency,
+		"saleType":        "secondary",
+		"transactionIDs":  []string{tokenSale.TxID},
+		"bundleTokenInfo": bundleTokenInfo,
+	}
+
+	return &indexer.GenericSalesTimeSeries{
+		Timestamp: tokenSale.Timestamp.Format(time.RFC3339Nano),
+		Metadata:  metadata,
+		Shares:    shares,
+		Values:    values,
+	}, nil
+}
+
 // GetTezosTxHashFromTzktTransactionID get tezos hash from transaction ID
 func (w *NFTIndexerWorker) GetTezosTxHashFromTzktTransactionID(_ context.Context, id uint64) (*string, error) {
 	tx, err := w.indexerEngine.GetTzktTransactionByID(id)
@@ -806,14 +809,15 @@ func (w *NFTIndexerWorker) GetObjktSaleTransactionHashes(_ context.Context, last
 }
 
 // GetTzktTransactionByID get tezos transaction hash by tzkt transaction id
-func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash string) (*TokenSale, error) {
+func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(ctx context.Context, hash string) (*TokenSale, error) {
+
 	txs, err := w.indexerEngine.GetTzktTransactionsByHash(hash)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(txs) < 2 {
-		return nil, errInvalidObjktTx
+		return nil, errors.New("invalid objkt tx")
 	}
 
 	saleEntrypointMap := make(map[string]bool)
@@ -829,7 +833,6 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 	shares := make(map[string]*big.Int)
 	for _, tx := range txs {
 		if tx.Status != "applied" {
-			log.Error("ignored non-successful operation", zap.String("txHash", hash))
 			return nil, nil
 		}
 
@@ -846,11 +849,7 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 				if err != nil {
 					// We don't support sale operations contain coin transfer operations
 					// Any sale operations contain invalid "transfer" will be ignored
-					log.Error("invalid transfer transaction - not supported buying using token",
-						zap.String("txHash", hash),
-						zap.Error(err),
-					)
-					return nil, errUnsupportedTokenSale
+					return nil, errors.New("invalid transfer transaction - not supported buying using token")
 				}
 
 				for _, paramValue := range paramValues {
@@ -895,7 +894,7 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(_ context.Context, hash stri
 	}
 
 	if !isValidObjktSaleOperation {
-		return nil, errInvalidObjktTx
+		return nil, errors.New("invalid objkt tx")
 	}
 
 	if len(bundleTokenInfo) == 0 {

@@ -152,7 +152,8 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageReade
 			if imageExisted {
 				// remove the existent image before create a new one
 				if err := s.cloudflareAPI.DeleteImage(ctx, s.cloudflareAccountID, image.ImageID); err != nil {
-					log.Warn("fail to delete image cache",
+					log.WarnWithContext(ctx,
+						"fail to delete image cache",
 						zap.String("assetID", assetID), zap.Error(err))
 					return err
 				}
@@ -187,7 +188,7 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageReade
 		if imageSize > ImageSizeThreshold {
 			file, err = compressImage(file)
 			if err != nil {
-				log.Error("cannot compress the thumbnail with ffmpeg", zap.Error(err))
+				log.WarnWithContext(ctx, "cannot compress the thumbnail with ffmpeg", zap.Error(err))
 			}
 		}
 
@@ -238,10 +239,10 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageReade
 	// Clean up uploaded files when a transaction is failed.
 	// It can not 100% ensure the file is cleaned up due to service broken
 	if err != nil && cloudflareImageID != "" {
-		log.Warn("clean uploaded file due to rollback", zap.String("assetID", assetID))
+		log.WarnWithContext(ctx, "clean uploaded file due to rollback", zap.String("assetID", assetID))
 		err = s.cloudflareAPI.DeleteImage(ctx, s.cloudflareAccountID, cloudflareImageID)
 		if err != nil {
-			log.Warn("fail to clean uploaded file", zap.String("cloudflareImageID", cloudflareImageID))
+			log.WarnWithContext(ctx, "fail to clean uploaded file", zap.String("cloudflareImageID", cloudflareImageID))
 		}
 	}
 

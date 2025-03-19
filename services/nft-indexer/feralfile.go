@@ -58,7 +58,7 @@ func (s *NFTIndexerServer) IndexAsset(c *gin.Context) {
 		return
 	}
 
-	log.Info("start refresh null provenance tokens", zap.Any("tokenIDs", nullProvenanceIDs))
+	log.InfoWithContext(c, "start refresh null provenance tokens", zap.Any("tokenIDs", nullProvenanceIDs))
 	for _, nullProvenanceID := range nullProvenanceIDs {
 		go indexerWorker.StartRefreshTokenProvenanceWorkflow(c, s.cadenceWorker, "api-indexAsset", nullProvenanceID, 0)
 	}

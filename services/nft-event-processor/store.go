@@ -9,12 +9,9 @@ import (
 	"github.com/fatih/structs"
 	"github.com/jackc/pgconn"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-
-	log "github.com/bitmark-inc/autonomy-logger"
 )
 
 type NftEventType string
@@ -267,7 +264,6 @@ func (s *PostgresEventStore) CreateNftEvent(event NFTEvent) error {
 	var pgError *pgconn.PgError
 	if err != nil && errors.As(err, &pgError) {
 		if pgError.Code == "23505" { // Unique violation error code
-			log.Warn("duplicated event", zap.Error(err))
 			return nil
 		}
 	}
@@ -314,7 +310,6 @@ func (s *PostgresEventStore) CreateSeriesRegistryEvent(event SeriesRegistryEvent
 	var pgError *pgconn.PgError
 	if err != nil && errors.As(err, &pgError) {
 		if pgError.Code == "23505" { // Unique violation error code
-			log.Warn("duplicated event", zap.Error(err))
 			return nil
 		}
 	}

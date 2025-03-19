@@ -34,7 +34,7 @@ func (e *IndexEngine) IndexETHTokenByOwner(ctx context.Context, owner string, ne
 		return nil, "", nil
 	}
 
-	assets, err := e.opensea.RetrieveAssets(owner, next)
+	assets, err := e.opensea.RetrieveAssets(ctx, owner, next)
 	if err != nil {
 		return nil, "", err
 	}
@@ -43,21 +43,16 @@ func (e *IndexEngine) IndexETHTokenByOwner(ctx context.Context, owner string, ne
 
 	for _, a := range assets.NFTs {
 		balance := int64(1) // set default balance to 1 to reduce extra call to opensea
-		log.Debug("get token balance",
-			zap.String("contract", a.Contract),
-			zap.String("tokenID", a.Identifier),
-			zap.String("owner", owner),
-			zap.Int64("balance", balance))
 
-		detailedAsset, err := e.opensea.RetrieveAsset(a.Contract, a.Identifier)
+		detailedAsset, err := e.opensea.RetrieveAsset(ctx, a.Contract, a.Identifier)
 		if err != nil {
-			log.Error("fail to fetch detailed index token data", zap.Error(err))
+			log.WarnWithContext(ctx, "fail to fetch detailed index token data", zap.Error(err))
 			continue
 		}
 
 		update, err := e.indexETHToken(ctx, detailedAsset, owner, balance)
 		if err != nil {
-			log.Error("fail to index token data", zap.Error(err))
+			log.WarnWithContext(ctx, "fail to index token data", zap.Error(err))
 		}
 
 		if update != nil {
@@ -104,7 +99,7 @@ func (e *IndexEngine) getEthereumTokenBalanceOfOwner(_ context.Context, contract
 
 // IndexETHToken indexes an Ethereum token with a specific contract and ID
 func (e *IndexEngine) IndexETHToken(ctx context.Context, contract, tokenID string) (*AssetUpdates, error) {
-	a, err := e.opensea.RetrieveAsset(contract, tokenID)
+	a, err := e.opensea.RetrieveAsset(ctx, contract, tokenID)
 	if err != nil {
 		return nil, err
 	}

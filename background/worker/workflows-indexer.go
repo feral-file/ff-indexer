@@ -5,18 +5,17 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/getsentry/sentry-go"
 	"go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
 
+	log "github.com/bitmark-inc/autonomy-logger"
 	indexer "github.com/bitmark-inc/nft-indexer"
 )
 
 // IndexETHTokenWorkflow is a workflow to index and summarize ETH tokens for a owner.
 // The data now comes from OpenSea.
 func (w *NFTIndexerWorker) IndexETHTokenWorkflow(ctx workflow.Context, tokenOwner string, includeHistory bool) error {
-	log := workflow.GetLogger(ctx)
+	logger := log.CadenceWorkflowLogger(ctx)
 
 	if includeHistory {
 		defer w.refreshTokenProvenanceByOwnerDetachedWorkflow(ctx, "nft-indexer-background", tokenOwner)
@@ -24,10 +23,8 @@ func (w *NFTIndexerWorker) IndexETHTokenWorkflow(ctx workflow.Context, tokenOwne
 
 	ethTokenOwner := indexer.EthereumChecksumAddress(tokenOwner)
 	if ethTokenOwner == indexer.EthereumZeroAddress {
-		log.Warn("invalid ethereum token owner", zap.String("owner", tokenOwner))
-		var err = fmt.Errorf("invalid ethereum token owner")
-		sentry.CaptureException(err)
-		return err
+		logger.Error("invalid ethereum token owner", zap.String("tokenOwner", tokenOwner))
+		return fmt.Errorf("invalid ethereum token owner")
 	}
 
 	var next = ""
@@ -35,25 +32,23 @@ func (w *NFTIndexerWorker) IndexETHTokenWorkflow(ctx workflow.Context, tokenOwne
 		var nextPointer string
 
 		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx, ""), w.IndexETHTokenByOwner, ethTokenOwner, next).Get(ctx, &nextPointer); err != nil {
-			sentry.CaptureException(err)
+			logger.Error("fail to index ethereum token by owner", zap.Error(err), zap.String("tokenOwner", tokenOwner), zap.String("next", next))
 			return err
 		}
 
 		if nextPointer == "" {
-			log.Debug("[loop] no next tokens found from ethereum", zap.String("owner", ethTokenOwner))
 			break
 		}
 
 		next = nextPointer
 	}
 
-	log.Info("ETH tokens indexed", zap.String("owner", ethTokenOwner))
 	return nil
 }
 
 // IndexTezosTokenWorkflow is a workflow to index and summarized Tezos tokens for a owner
 func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOwner string, includeHistory bool) error {
-	log := workflow.GetLogger(ctx)
+	logger := log.CadenceWorkflowLogger(ctx)
 
 	if includeHistory {
 		defer w.refreshTokenProvenanceByOwnerDetachedWorkflow(ctx, "nft-indexer-background", tokenOwner)
@@ -64,23 +59,23 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 		var shouldContinue bool
 
 		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx, ""), w.IndexTezosTokenByOwner, tokenOwner, isFirstPage).Get(ctx, &shouldContinue); err != nil {
-			sentry.CaptureException(err)
+			logger.Error("fail to index tezos token by owner", zap.Error(err), zap.String("tokenOwner", tokenOwner), zap.Bool("isFirstPage", isFirstPage))
 			return err
 		}
 
 		if !shouldContinue {
-			log.Debug("[loop] no token found from tezos", zap.String("owner", tokenOwner))
 			break
 		}
 
 		isFirstPage = false
 	}
-	log.Info("TEZOS tokens indexed", zap.String("owner", tokenOwner))
 	return nil
 }
 
 // IndexTokenWorkflow is a workflow to index a single token
 func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contract, tokenID string, indexProvenance, indexPreview bool) error {
+	logger := log.CadenceWorkflowLogger(ctx)
+
 	ao := workflow.ActivityOptions{
 		TaskList:               w.TaskListName,
 		ScheduleToStartTimeout: 10 * time.Minute,
@@ -88,23 +83,22 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 	}
 
 	ctx = workflow.WithActivityOptions(ctx, ao)
-	log := workflow.GetLogger(ctx)
 
 	var update indexer.AssetUpdates
 	if err := workflow.ExecuteActivity(ctx, w.IndexToken, contract, tokenID).Get(ctx, &update); err != nil {
-		sentry.CaptureException(err)
+		logger.Error("fail to index token", zap.Error(err), zap.String("contract", contract), zap.String("tokenID", tokenID))
 		return err
 	}
 
 	if err := workflow.ExecuteActivity(ctx, w.IndexAsset, update).Get(ctx, nil); err != nil {
-		sentry.CaptureException(err)
+		logger.Error("fail to index asset", zap.Error(err), zap.String("contract", contract), zap.String("tokenID", tokenID))
 		return err
 	}
 
 	if owner != "" {
 		var balance int64
 		if err := workflow.ExecuteActivity(ctx, w.GetTokenBalanceOfOwner, contract, tokenID, owner).Get(ctx, &balance); err != nil {
-			sentry.CaptureException(err)
+			logger.Error("fail to get token balance of owner", zap.Error(err), zap.String("contract", contract), zap.String("tokenID", tokenID), zap.String("owner", owner))
 			return err
 		}
 
@@ -119,7 +113,7 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 			}}
 
 		if err := workflow.ExecuteActivity(ctx, w.IndexAccountTokens, owner, accountTokens).Get(ctx, nil); err != nil {
-			sentry.CaptureException(err)
+			logger.Error("fail to index account tokens", zap.Error(err), zap.String("owner", owner))
 			return err
 		}
 	}
@@ -127,57 +121,48 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 	if indexPreview && indexer.IsIPFSLink(update.ProjectMetadata.PreviewURL) {
 		switch update.ProjectMetadata.Medium {
 		case "video", "image":
-			log.Debug("start indexing preview for the token",
-				zap.String("medium", string(update.ProjectMetadata.Medium)),
-				zap.String("medium", update.ProjectMetadata.PreviewURL),
-				zap.String("indexID: ", tokenID))
 			if err := workflow.ExecuteActivity(ctx, w.CacheArtifact, update.ProjectMetadata.PreviewURL).Get(ctx, nil); err != nil {
-				sentry.CaptureException(err)
-				return fmt.Errorf("IndexTokenWorkflow-preview: %w", err)
+				logger.Error("fail to cache artifact", zap.Error(err), zap.String("url", update.ProjectMetadata.PreviewURL))
+				return err
 			}
 		default:
-			log.Debug("unsupported preview file", zap.String("medium", string(update.ProjectMetadata.Medium)), zap.String("indexID: ", tokenID))
+			// do nothing
 		}
 	}
 
 	indexID := update.Tokens[0].IndexID
 	if indexProvenance {
 		if update.Tokens[0].Fungible {
-			log.Debug("Start child workflow to update token ownership", zap.String("owner", owner), zap.String("indexID", indexID))
-
 			if err := workflow.ExecuteChildWorkflow(
 				ContextNamedRegularChildWorkflow(ctx, WorkflowIDIndexTokenOwnershipByIndexID("background-IndexTokenWorkflow", indexID), ProvenanceTaskListName),
 				w.RefreshTokenOwnershipWorkflow, []string{indexID}, 0,
 			).Get(ctx, nil); err != nil {
-				sentry.CaptureException(err)
+				logger.Error("fail to refresh token ownership", zap.Error(err), zap.String("indexID", indexID))
 				return err
 			}
 		} else {
-			log.Debug("Start child workflow to update token provenance", zap.String("owner", owner), zap.String("indexID", indexID))
-
 			if err := workflow.ExecuteChildWorkflow(
 				ContextNamedRegularChildWorkflow(ctx, WorkflowIDIndexTokenProvenanceByIndexID("background-IndexTokenWorkflow", indexID), ProvenanceTaskListName),
 				w.RefreshTokenProvenanceWorkflow, []string{indexID}, 0,
 			).Get(ctx, nil); err != nil {
-				sentry.CaptureException(err)
+				logger.Error("fail to refresh token provenance", zap.Error(err), zap.String("indexID", indexID))
 				return err
 			}
 		}
 	}
 
-	log.Debug("refresh timestamp for account tokens", zap.String("indexID", indexID))
 	if err := workflow.ExecuteActivity(ctx, w.MarkAccountTokenChanged, []string{indexID}).Get(ctx, nil); err != nil {
-		log.Error("fail to mark account tokens changed", zap.String("indexID", indexID), zap.Error(err))
+		logger.Error("fail to mark account token changed", zap.Error(err), zap.String("indexID", indexID))
 		return err
 	}
 
-	log.Info("token indexed", zap.String("owner", owner),
-		zap.String("contract", contract), zap.String("tokenID", tokenID))
 	return nil
 }
 
 // CacheIPFSArtifactWorkflow is a worlflow to cache an IPFS artifact
 func (w *NFTIndexerWorker) CacheIPFSArtifactWorkflow(ctx workflow.Context, fullDataLink string) error {
+	logger := log.CadenceWorkflowLogger(ctx)
+
 	ao := workflow.ActivityOptions{
 		TaskList:               w.TaskListName,
 		ScheduleToStartTimeout: 10 * time.Minute,
@@ -185,11 +170,8 @@ func (w *NFTIndexerWorker) CacheIPFSArtifactWorkflow(ctx workflow.Context, fullD
 	}
 
 	ctx = workflow.WithActivityOptions(ctx, ao)
-	log := workflow.GetLogger(ctx)
-
 	if err := workflow.ExecuteActivity(ctx, w.CacheArtifact, fullDataLink).Get(ctx, nil); err != nil {
-		// sentry.CaptureException(err)
-		log.Error("fail to cache IPFS data", zap.Error(err))
+		logger.Error("fail to cache artifact", zap.Error(err), zap.String("url", fullDataLink))
 		return err
 	}
 
@@ -203,6 +185,7 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSaleInBlockRange(
 	blkBatchSize uint64,
 	contractAddresses []string,
 	skipIndexed bool) error {
+	logger := log.CadenceWorkflowLogger(ctx)
 	ctx = ContextRegularActivity(ctx, w.TaskListName)
 
 	// TODO remove in the future
@@ -211,6 +194,7 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSaleInBlockRange(
 	}
 
 	if fromBlk > toBlk {
+		logger.Error("invalid block range", zap.Uint64("fromBlk", fromBlk), zap.Uint64("toBlk", toBlk))
 		return fmt.Errorf("invalid block range")
 	}
 	startBlk := fromBlk
@@ -218,11 +202,6 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSaleInBlockRange(
 	if endBlk > toBlk {
 		endBlk = toBlk
 	}
-
-	log.Info("index feral file ethereum token sale in block range",
-		zap.Uint64("startBlk", startBlk),
-		zap.Uint64("endBlk", endBlk),
-		zap.Strings("contractAddresses", contractAddresses))
 
 	// Query txs
 	txIDs := make([]string, 0)
@@ -233,6 +212,7 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSaleInBlockRange(
 		startBlk,
 		endBlk).
 		Get(ctx, &txIDs); err != nil {
+		logger.Error("fail to filter ethereum nft tx by event logs", zap.Error(err), zap.Uint64("fromBlk", fromBlk), zap.Uint64("toBlk", toBlk))
 		return err
 	}
 
@@ -252,6 +232,7 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSaleInBlockRange(
 
 	for _, future := range futures {
 		if err := future.Get(ctx, nil); err != nil {
+			logger.Error("fail to index ethereum token sale", zap.Error(err))
 			return err
 		}
 	}
@@ -276,10 +257,8 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSaleFromTime(
 	offset int,
 	batchSize int,
 	skipIndexed bool) error {
+	logger := log.CadenceWorkflowLogger(ctx)
 	ctx = ContextRegularActivity(ctx, w.TaskListName)
-
-	log.Info("index feral file tezos token sale from startTime",
-		zap.Time("startTime", startTime))
 
 	// Fetch tx hashes
 	hashes := make([]string, 0)
@@ -290,6 +269,7 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSaleFromTime(
 		offset,
 		batchSize).
 		Get(ctx, &hashes); err != nil {
+		logger.Error("fail to get objkt sale transaction hashes", zap.Error(err), zap.Time("startTime", startTime), zap.Int("offset", offset), zap.Int("batchSize", batchSize))
 		return err
 	}
 
@@ -315,19 +295,8 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSaleFromTime(
 
 	for _, future := range futures {
 		if err := future.Get(ctx, nil); err != nil {
-			switch err.(type) {
-			case *workflow.GenericError:
-				switch err.Error() {
-				case errUnsupportedTokenSale.Error(),
-					errInvalidObjktTx.Error(),
-					errTxFailed.Error():
-					continue
-				default:
-					return err
-				}
-			default:
-				return err
-			}
+			logger.Error("fail to index tezos objkt token sale", zap.Error(err))
+			return err
 		}
 	}
 

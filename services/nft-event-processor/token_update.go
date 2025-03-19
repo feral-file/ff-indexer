@@ -21,7 +21,7 @@ func (e *EventProcessor) refreshTokenData(ctx context.Context, event NFTEvent) e
 	token, err := e.indexerGRPC.GetTokenByIndexID(ctx, indexID)
 	if err != nil {
 		if grpcError, ok := status.FromError(err); !ok || grpcError.Message() != "token does not exist" {
-			log.Error("fail to query token from indexer", zap.Error(err))
+			log.ErrorWithContext(ctx, "fail to query token from indexer", zap.Error(err))
 			return err
 		}
 	}

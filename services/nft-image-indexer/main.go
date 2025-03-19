@@ -23,7 +23,7 @@ func main() {
 	defer cancel()
 
 	config.LoadConfig("NFT_INDEXER")
-	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug"), &sentry.ClientOptions{
+	if err := log.Initialize(viper.GetBool("debug"), &sentry.ClientOptions{
 		Dsn: viper.GetString("sentry.dsn"),
 	}); err != nil {
 		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
@@ -55,12 +55,12 @@ func main() {
 
 	thumbnailCachePeriod, err := time.ParseDuration(viper.GetString("thumbnail.cache_period"))
 	if err != nil {
-		log.Error("invalid duration. use default value 72h", zap.Error(err))
+		log.ErrorWithContext(ctx, "invalid duration. use default value 72h", zap.Error(err))
 		thumbnailCachePeriod = 72 * time.Hour
 	}
 	thumbnailCacheRetryInterval, err := time.ParseDuration(viper.GetString("thumbnail.cache_retry_interval"))
 	if err != nil {
-		log.Error("invalid duration. use default value 24h", zap.Error(err))
+		log.ErrorWithContext(ctx, "invalid duration. use default value 24h", zap.Error(err))
 		thumbnailCacheRetryInterval = 24 * time.Hour
 	}
 
@@ -73,5 +73,5 @@ func main() {
 		thumbnailCachePeriod, thumbnailCacheRetryInterval, viper.GetString("cloudflare.url_prefix"))
 	imageIndexer.Start(ctx)
 
-	log.Info("Content indexer terminated")
+	log.InfoWithContext(ctx, "Content indexer terminated")
 }

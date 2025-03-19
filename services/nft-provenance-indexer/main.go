@@ -37,7 +37,7 @@ func main() {
 	config.LoadConfig("NFT_INDEXER")
 
 	environment := viper.GetString("environment")
-	if err := log.Initialize(viper.GetString("log.level"), viper.GetBool("debug"), &sentry.ClientOptions{
+	if err := log.Initialize(viper.GetBool("debug"), &sentry.ClientOptions{
 		Dsn:         viper.GetString("sentry.dsn"),
 		Environment: environment,
 	}); err != nil {
@@ -109,5 +109,5 @@ func main() {
 	activity.Register(worker.MarkAccountTokenChanged)
 
 	workerServiceClient := cadence.BuildCadenceServiceClient(hostPort, indexerWorker.ClientName, CadenceService)
-	cadence.StartWorker(log.DefaultLogger(), workerServiceClient, viper.GetString("cadence.domain"), indexerWorker.ProvenanceTaskListName)
+	cadence.StartWorker(log.Logger(), workerServiceClient, viper.GetString("cadence.domain"), indexerWorker.ProvenanceTaskListName)
 }

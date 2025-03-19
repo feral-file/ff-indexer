@@ -7,16 +7,16 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"github.com/bitmark-inc/autonomy-logger"
-	"github.com/bitmark-inc/nft-indexer/traceutils"
+	log "github.com/bitmark-inc/autonomy-logger"
 )
 
 var ErrUnsupportedBlockchain = fmt.Errorf("unsupported blockchain")
 
 func abortWithError(c *gin.Context, code int, message string, traceErr error) {
-	log.Error(message, zap.Error(traceErr))
 	if code == http.StatusInternalServerError {
-		traceutils.CaptureException(c, traceErr)
+		log.ErrorWithContext(c, message, zap.Error(traceErr))
+	} else {
+		log.WarnWithContext(c, message, zap.Error(traceErr))
 	}
 
 	c.AbortWithStatusJSON(code, gin.H{

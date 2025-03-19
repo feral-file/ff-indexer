@@ -406,10 +406,7 @@ func (detail *AssetMetadataDetail) FromOpenseaAsset(a *opensea.DetailedAssetV2, 
 	assetURL := a.OpenseaURL
 	animationURL := a.AnimationURL
 
-	imageURL, err := OptimizedOpenseaImageURL(a.ImageURL)
-	if err != nil {
-		log.Warn("invalid opensea image url", zap.String("imageURL", a.ImageURL))
-	}
+	imageURL, _ := OptimizedOpenseaImageURL(a.ImageURL)
 
 	// fallback to project origin image url
 	if imageURL == "" {
@@ -718,12 +715,12 @@ func (e *IndexEngine) indexTokenFromFXHASH(ctx context.Context, fxhashObjectID s
 	metadataDetail.SetMedium(MediumSoftware)
 
 	if detail, err := e.fxhash.GetObjectDetail(ctx, fxhashObjectID); err != nil {
-		log.Error("fail to get token detail from fxhash", zap.Error(err), log.SourceFXHASH)
+		log.WarnWithContext(ctx, "fail to get token detail from fxhash", zap.Error(err), log.SourceFXHASH)
 	} else {
 		if !strings.Contains(detail.Metadata.ThumbnailURI, FxhashWaitingToBeSignedCID) {
 			metadataDetail.FromFxhashObject(detail)
 		} else {
-			log.Warn("ignore fxhash waiting to be sign metadata index")
+			log.WarnWithContext(ctx, "ignore fxhash waiting to be sign metadata index")
 		}
 		tokenDetail.MintedAt = detail.CreatedAt
 		tokenDetail.Edition = detail.Iteration

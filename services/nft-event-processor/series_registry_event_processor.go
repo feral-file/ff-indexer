@@ -52,7 +52,7 @@ func (e *EventProcessor) indexCollection(ctx context.Context, event SeriesRegist
 	}
 
 	// Read metadata
-	metadataBytes, err := e.ReadDataURI(metadataURI)
+	metadataBytes, err := e.ReadDataURI(ctx, metadataURI)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (e *EventProcessor) indexCollection(ctx context.Context, event SeriesRegist
 	}
 
 	// Read token data
-	tokenDataBytes, err := e.ReadDataURI(tokenDataURI)
+	tokenDataBytes, err := e.ReadDataURI(ctx, tokenDataURI)
 	if err != nil {
 		return err
 	}
@@ -350,14 +350,14 @@ func (e *EventProcessor) newSeriesRegistryContract(ec *ethclient.Client) (*serie
 }
 
 // ReadDataURI reads the data from the given URI
-func (e *EventProcessor) ReadDataURI(uri string) ([]byte, error) {
+func (e *EventProcessor) ReadDataURI(ctx context.Context, uri string) ([]byte, error) {
 	if !validDataURI(uri) {
 		return nil, errors.New("invalid data URI")
 	}
 
 	const timeout = 30 * time.Second
 	if indexer.IsHTTPSURI(uri) {
-		return indexer.ReadFromURL(uri, timeout)
+		return indexer.ReadFromURL(ctx, uri, timeout)
 	} else {
 		// If no gateways are configured, return error
 		if len(e.ipfsGateways) == 0 {
@@ -368,7 +368,7 @@ func (e *EventProcessor) ReadDataURI(uri string) ([]byte, error) {
 		var lastErr error
 		for _, gateway := range e.ipfsGateways {
 			gatewayURL := indexer.ResolveIPFSURI(gateway, uri)
-			data, err := indexer.ReadFromURL(gatewayURL, timeout)
+			data, err := indexer.ReadFromURL(ctx, gatewayURL, timeout)
 			if err == nil {
 				log.Debug("Successfully read data from IPFS gateway",
 					zap.String("gateway", gateway),
@@ -377,7 +377,8 @@ func (e *EventProcessor) ReadDataURI(uri string) ([]byte, error) {
 			}
 
 			lastErr = err
-			log.Warn("Failed to read data from IPFS gateway",
+			log.WarnWithContext(ctx,
+				"Failed to read data from IPFS gateway",
 				zap.Error(err),
 				zap.String("uri", uri),
 				zap.String("gateway", gateway))

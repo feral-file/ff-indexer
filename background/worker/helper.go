@@ -30,7 +30,7 @@ func StartIndexTokenWorkflow(c context.Context, client *cadence.WorkerClient, ow
 	workflow, err := client.StartWorkflow(c, ClientName, workflowContext,
 		w.IndexTokenWorkflow, owner, contract, tokenID, indexProvenance, indexPreview)
 	if err != nil {
-		log.Error("fail to start indexing workflow",
+		log.WarnWithContext(c, "fail to start indexing workflow",
 			zap.Error(err),
 			zap.String("owner", owner), zap.String("contract", contract), zap.String("token_id", tokenID))
 	} else {
@@ -57,7 +57,7 @@ func ExecuteIndexTokenWorkflow(c context.Context, client *cadence.WorkerClient, 
 	exec, err := client.ExecuteWorkflow(c, ClientName, workflowContext,
 		w.IndexTokenWorkflow, owner, contract, tokenID, indexProvenance, indexPreview)
 	if err != nil {
-		log.Error("fail to execute indexing workflow",
+		log.WarnWithContext(c, "fail to execute indexing workflow",
 			zap.Error(err),
 			zap.String("owner", owner), zap.String("contract", contract), zap.String("token_id", tokenID))
 		return nil, err
@@ -85,7 +85,7 @@ func StartIndexETHTokenWorkflow(c context.Context, client *cadence.WorkerClient,
 
 	workflow, err := client.StartWorkflow(c, ClientName, option, w.IndexETHTokenWorkflow, owner, includeHistory)
 	if err != nil {
-		log.Error("fail to start workflow to index token for owner", zap.Error(err), zap.String("caller", caller), zap.String("owner", owner))
+		log.WarnWithContext(c, "fail to start workflow to index token for owner", zap.Error(err), zap.String("caller", caller), zap.String("owner", owner))
 	} else {
 		log.Debug("start workflow for index ETH tokens from opensea for owner", zap.String("workflow_id", workflow.ID), zap.String("caller", caller), zap.String("owner", owner))
 	}
@@ -104,7 +104,7 @@ func StartIndexTezosTokenWorkflow(c context.Context, client *cadence.WorkerClien
 
 	workflow, err := client.StartWorkflow(c, ClientName, option, w.IndexTezosTokenWorkflow, owner, includeHistory)
 	if err != nil {
-		log.Error("fail to start workflow to index token for owner", zap.Error(err), zap.String("caller", caller), zap.String("owner", owner))
+		log.WarnWithContext(c, "fail to start workflow to index token for owner", zap.Error(err), zap.String("caller", caller), zap.String("owner", owner))
 	} else {
 		log.Debug("start workflow for index Tezos tokens from opensea for owner", zap.String("workflow_id", workflow.ID), zap.String("caller", caller), zap.String("owner", owner))
 	}
@@ -123,7 +123,7 @@ func StartRefreshTokenProvenanceByOwnerWorkflow(c context.Context, client *caden
 
 	workflow, err := client.StartWorkflow(c, ClientName, option, w.RefreshTokenProvenanceByOwnerWorkflow, owner)
 	if err != nil {
-		log.Error("fail to start workflow to index token for owner", zap.Error(err), zap.String("caller", caller), zap.String("owner", owner))
+		log.WarnWithContext(c, "fail to start workflow to index token for owner", zap.Error(err), zap.String("caller", caller), zap.String("owner", owner))
 	} else {
 		log.Debug("start workflow for index Tezos tokens from opensea for owner", zap.String("workflow_id", workflow.ID), zap.String("caller", caller), zap.String("owner", owner))
 	}
@@ -142,7 +142,7 @@ func StartRefreshTokenOwnershipWorkflow(c context.Context, client *cadence.Worke
 
 	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.RefreshTokenOwnershipWorkflow, []string{indexID}, delay)
 	if err != nil {
-		log.Error("fail to start refreshing ownership workflow", zap.Error(err), zap.String("caller", caller))
+		log.WarnWithContext(c, "fail to start refreshing ownership workflow", zap.Error(err), zap.String("caller", caller))
 	} else {
 		log.Debug("start workflow for refreshing ownership", zap.String("caller", caller), zap.String("workflow_id", workflow.ID))
 	}
@@ -166,7 +166,7 @@ func StartRefreshTokenProvenanceWorkflow(c context.Context, client *cadence.Work
 
 	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.RefreshTokenProvenanceWorkflow, []string{indexID}, delay)
 	if err != nil {
-		log.Error("fail to start refreshing provenance workflow", zap.Error(err), zap.String("caller", caller))
+		log.WarnWithContext(c, "fail to start refreshing provenance workflow", zap.Error(err), zap.String("caller", caller))
 	} else {
 		log.Debug("start workflow for refreshing provenance", zap.String("caller", caller), zap.String("workflow_id", workflow.ID))
 	}
@@ -203,7 +203,7 @@ func StartIndexingTokenSale(
 		if nil != err {
 			return err
 		}
-		log.Info("start workflow for indexing ethereum sale",
+		log.InfoWithContext(ctx, "start workflow for indexing ethereum sale",
 			zap.String("workflow_id", exec.ID),
 			zap.String("run_id", exec.RunID))
 	case utils.TezosBlockchain:
@@ -247,7 +247,7 @@ func StartIndexExchangeRateCronWorkflow(c context.Context, client *cadence.Worke
 		workflowContext, w.CrawlHistoricalExchangeRate, pairs, int64(0), int64(0)); err != nil {
 		_, isAlreadyStartedError := err.(*shared.WorkflowExecutionAlreadyStartedError)
 		if !isAlreadyStartedError {
-			log.Error("fail to start index exchange rate workflow", zap.Error(err))
+			log.ErrorWithContext(c, "fail to start index exchange rate workflow", zap.Error(err))
 			return err
 		}
 	}

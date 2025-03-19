@@ -3,13 +3,14 @@ package worker
 import (
 	"time"
 
+	log "github.com/bitmark-inc/autonomy-logger"
 	"go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
 )
 
 // refreshTokenProvenanceByOwnerDetachedWorkflow creates a detached workflow to trigger token provenance check
 func (w *NFTIndexerWorker) refreshTokenProvenanceByOwnerDetachedWorkflow(ctx workflow.Context, caller, owner string) {
-	log := workflow.GetLogger(ctx)
+	logger := log.CadenceWorkflowLogger(ctx)
 
 	cwo := ContextDetachedChildWorkflow(ctx, WorkflowIDRefreshTokenProvenanceByOwner(caller, owner), ProvenanceTaskListName)
 
@@ -17,33 +18,30 @@ func (w *NFTIndexerWorker) refreshTokenProvenanceByOwnerDetachedWorkflow(ctx wor
 	if err := workflow.
 		ExecuteChildWorkflow(cwo, w.RefreshTokenProvenanceByOwnerWorkflow, owner).
 		GetChildWorkflowExecution().Get(ctx, &cw); err != nil {
-		log.Error("fail to start workflow RefreshTokenProvenanceByOwnerWorkflow", zap.Error(err), zap.String("owner", owner))
+		logger.Warn("fail to refresh token provenance by owner", zap.Error(err))
 	}
-	log.Info("workflow RefreshTokenProvenanceByOwnerWorkflow started", zap.String("workflow_id", cw.ID), zap.String("owner", owner))
 }
 
 // RefreshTokenProvenanceByOwnerWorkflow is a workflow to refresh provenance for a specific owner
 func (w *NFTIndexerWorker) RefreshTokenProvenanceByOwnerWorkflow(ctx workflow.Context, owner string) error {
-	log := workflow.GetLogger(ctx)
+	logger := log.CadenceWorkflowLogger(ctx)
 
 	var ownedTokenIDs []string
-
 	if err := workflow.ExecuteActivity(
 		ContextRegularActivity(ctx, w.ProvenanceTaskListName),
 		w.GetOwnedTokenIDsByOwner, owner,
 	).Get(ctx, &ownedTokenIDs); err != nil {
-		log.Error("fail to refresh provenance for indexIDs", zap.Error(err), zap.String("owner", owner))
+		logger.Warn("fail to get owned token IDs by owner", zap.Error(err))
 	}
 
 	if err := workflow.ExecuteActivity(
 		ContextRegularActivity(ctx, w.ProvenanceTaskListName),
 		w.FilterTokenIDsWithInconsistentProvenanceForOwner, ownedTokenIDs, owner,
 	).Get(ctx, &ownedTokenIDs); err != nil {
-		log.Error("fail to refresh provenance for indexIDs", zap.Error(err), zap.String("owner", owner))
+		logger.Warn("fail to filter token IDs with inconsistent provenance for owner", zap.Error(err))
 	}
 
 	batchIndexingTokens := 25
-
 	for i := 0; i < len(ownedTokenIDs); i += batchIndexingTokens {
 		endIndex := i + batchIndexingTokens
 		if endIndex > len(ownedTokenIDs) {
@@ -54,7 +52,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenanceByOwnerWorkflow(ctx workflow.Co
 			ContextSlowChildWorkflow(ctx, ProvenanceTaskListName),
 			w.RefreshTokenProvenanceWorkflow, ownedTokenIDs[i:endIndex], 0,
 		).Get(ctx, nil); err != nil {
-			log.Error("fail to refresh provenance for indexIDs", zap.Error(err), zap.String("owner", owner))
+			logger.Error("fail to refresh token provenance", zap.Error(err))
 			return err
 		}
 	}
@@ -65,24 +63,12 @@ func (w *NFTIndexerWorker) RefreshTokenProvenanceByOwnerWorkflow(ctx workflow.Co
 // RefreshTokenProvenanceWorkflow is a workflow to refresh provenance for a specific token
 func (w *NFTIndexerWorker) RefreshTokenProvenanceWorkflow(ctx workflow.Context, indexIDs []string, delay time.Duration) error {
 	ao := workflow.ActivityOptions{
-
 		TaskList:               w.ProvenanceTaskListName,
 		ScheduleToStartTimeout: 10 * time.Minute,
 		StartToCloseTimeout:    time.Hour,
 	}
-
-	log := workflow.GetLogger(ctx)
-
 	ctx = workflow.WithActivityOptions(ctx, ao)
-
-	log.Debug("start RefreshTokenProvenanceWorkflow")
-
-	err := workflow.ExecuteActivity(ctx, w.RefreshTokenProvenance, indexIDs, delay).Get(ctx, nil)
-	if err != nil {
-		log.Error("fail to refresh provenance for indexIDs", zap.Error(err), zap.Any("indexIDs", indexIDs))
-	}
-
-	return err
+	return workflow.ExecuteActivity(ctx, w.RefreshTokenProvenance, indexIDs, delay).Get(ctx, nil)
 }
 
 // RefreshTokenOwnershipWorkflow is a workflow to refresh ownership for a specific token
@@ -92,17 +78,6 @@ func (w *NFTIndexerWorker) RefreshTokenOwnershipWorkflow(ctx workflow.Context, i
 		ScheduleToStartTimeout: 10 * time.Minute,
 		StartToCloseTimeout:    time.Hour,
 	}
-
-	log := workflow.GetLogger(ctx)
-
 	ctx = workflow.WithActivityOptions(ctx, ao)
-
-	log.Debug("start RefreshTokenOwnershipWorkflow")
-
-	err := workflow.ExecuteActivity(ctx, w.RefreshTokenOwnership, indexIDs, delay).Get(ctx, nil)
-	if err != nil {
-		log.Error("fail to refresh ownership for indexIDs", zap.Error(err), zap.Any("indexIDs", indexIDs))
-	}
-
-	return err
+	return workflow.ExecuteActivity(ctx, w.RefreshTokenOwnership, indexIDs, delay).Get(ctx, nil)
 }

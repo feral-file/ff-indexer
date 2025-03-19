@@ -17,7 +17,6 @@ import (
 	"github.com/bitmark-inc/nft-indexer/externals/etherscan"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 )
 
@@ -42,22 +41,6 @@ type TokenSale struct {
 	Shares          map[string]*big.Int `json:"shares"`
 }
 
-var (
-	errTxNotFound                       = errors.New("Tx not found")
-	errTxFailed                         = errors.New("Tx failed")
-	errUnknownTx                        = errors.New("Unknown tx")
-	errMultipleERC20Contracts           = errors.New("Multiple ERC20 contracts in the tx")
-	errMultipleTokenContracts           = errors.New("Multiple token contracts in the tx")
-	errERC1155TransferAmountNotOne      = errors.New("ERC1155 transfer amount isn't 1")
-	errERC1155TransferInvalidDataLength = errors.New("ERC1155 transfer invalid data length")
-	errERC1155TransferInvalidTokenID    = errors.New("ERC1155 transfer invalid token ID")
-	errUnsupportedTokenSale             = errors.New("Unsupported token sale")
-	errParseInternalTxVal               = errors.New("Fail to parse internal tx value")
-	errNoMarketContractInteractionTx    = errors.New("No market contract interaction transaction found")
-	errNoPaymentTx                      = errors.New("No payment transaction found")
-	errInvalidObjktTx                   = errors.New("invalid objkt transaction")
-)
-
 // IndexEthereumTokenSale is a workflow to index the sale of an Ethereum token
 func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 	ctx workflow.Context,
@@ -65,6 +48,7 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 	skipIndexed bool) error {
 	ctx = ContextRegularActivity(ctx, TaskListName)
 	ctx = ContextRegularChildWorkflow(ctx, TaskListName)
+	logger := log.CadenceWorkflowLogger(ctx)
 
 	if skipIndexed {
 		// Check if sale tx is indexed already
@@ -75,16 +59,14 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 			txID,
 			utils.EthereumBlockchain).
 			Get(ctx, &indexed); nil != err {
+			logger.Error("fail to check if sale tx is indexed", zap.Error(err))
 			return err
 		}
 
 		if indexed {
-			log.Info("skip tx already indexed", zap.String("txID", txID))
 			return nil
 		}
 	}
-
-	log.Info("start indexing token sale", zap.String("txID", txID))
 
 	// Parse tx
 	var tokenSale *TokenSale
@@ -93,42 +75,21 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 		w.ParseEthereumTokenSale,
 		txID).
 		Get(ctx, &tokenSale); nil != err {
-		switch err.(type) {
-		case *workflow.GenericError:
-			switch err.Error() {
-			case errNoMarketContractInteractionTx.Error():
-				// This mainly the normal token transfer
-			case
-				errTxNotFound.Error(),
-				errNoPaymentTx.Error(),
-				errParseInternalTxVal.Error(),
-				errUnknownTx.Error(),
-				errTxFailed.Error(),
-				errMultipleERC20Contracts.Error(),
-				errMultipleTokenContracts.Error(),
-				errERC1155TransferAmountNotOne.Error(),
-				errERC1155TransferInvalidDataLength.Error(),
-				errERC1155TransferInvalidTokenID.Error(),
-				errUnsupportedTokenSale.Error(),
-				errParseInternalTxVal.Error():
-				log.Warn("fail to parse token sale", zap.String("error", err.Error()))
-				return nil
-			default:
-				return err
-			}
-		default:
-			return err
-		}
+		logger.Error("fail to parse ethereum token sale", zap.Error(err))
+		return err
 	}
 	if nil == tokenSale {
-		log.Info("no token sale found in the tx", zap.String("txID", txID))
 		return nil
 	}
 
 	// Index token sale
-	saleTimeSeries, err := parseTokenSaleToGenericSalesTimeSeries(*tokenSale)
-	if err != nil {
-		log.Error("failed to parse token sale to generic sales time series", zap.Error(err))
+	var saleTimeSeries *indexer.GenericSalesTimeSeries
+	if err := workflow.ExecuteActivity(
+		ctx,
+		w.ParseTokenSaleToGenericSalesTimeSeries,
+		*tokenSale).
+		Get(ctx, &saleTimeSeries); err != nil {
+		logger.Error("fail to parse token sale to generic sales time series", zap.Error(err))
 		return err
 	}
 
@@ -138,11 +99,9 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 		w.WriteSaleTimeSeriesData,
 		data).
 		Get(ctx, nil); nil != err {
-		log.Error("fail to write time series data", zap.Error(err))
+		logger.Error("fail to write sale time series data", zap.Error(err))
 		return err
 	}
-
-	log.Info("token sale indexed", zap.String("txID", txID))
 
 	return nil
 }
@@ -150,8 +109,7 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 // ParseEthereumTokenSale is a workflow to parse the sale of an Ethereum token
 func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID string) (*TokenSale, error) {
 	ctx = ContextRegularActivity(ctx, TaskListName)
-
-	log.Info("start parsing token sale", zap.String("txID", txID))
+	logger := log.CadenceWorkflowLogger(ctx)
 
 	// Get tx receipt
 	var txReceipt *types.Receipt
@@ -160,13 +118,16 @@ func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID str
 		w.GetEthereumTxReceipt,
 		txID).
 		Get(ctx, &txReceipt); nil != err {
+		logger.Error("fail to get ethereum tx receipt", zap.Error(err), zap.String("txID", txID))
 		return nil, err
 	}
 	if nil == txReceipt {
-		return nil, errTxNotFound
+		logger.Warn("tx receipt is not found", zap.String("txID", txID))
+		return nil, nil
 	}
 	if txReceipt.Status == uint64(0) {
-		return nil, errTxFailed
+		logger.Warn("tx status is failed", zap.String("txID", txID))
+		return nil, nil
 	}
 
 	// Query tx
@@ -176,13 +137,15 @@ func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID str
 		w.GetEthereumTx,
 		txID).
 		Get(ctx, &tx); nil != err {
+		logger.Error("fail to get ethereum tx", zap.Error(err), zap.String("txID", txID))
 		return nil, err
 	}
 
 	// Tx to
 	txTo := tx.To()
 	if nil == txTo {
-		return nil, errUnknownTx
+		logger.Warn("tx to is not found", zap.String("txID", txID))
+		return nil, nil
 	}
 	txToHex := txTo.Hex()
 
@@ -197,12 +160,12 @@ func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID str
 
 	// The tx is a token sale if it's either paid by ETH or an ERC20 token
 	if currency == "ETH" && len(erc20Transfers) > 0 {
-		return nil, errUnknownTx
+		return nil, nil
 	}
 
 	// The tx should only includes one ERC20 contract interaction
 	if len(erc20Transfers) > 1 {
-		return nil, errMultipleERC20Contracts
+		return nil, nil
 	}
 
 	// Struct for internal token transfer data
@@ -235,14 +198,16 @@ func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID str
 			recipientAddrHex = common.HexToAddress(topic3.Hex()).Hex()
 
 			if len(data) != 64 { // 64 bytes for uint256 id and uint256 value
-				return nil, errERC1155TransferInvalidDataLength
+				logger.Warn("invalid ERC-1155 transfer single event data", zap.String("txID", txID))
+				return nil, nil
 			}
 
 			// Parse event data
 			tokenID := new(big.Int).SetBytes(data[:32])
 			value := new(big.Int).SetBytes(data[32:])
 			if value.Uint64() != 1 {
-				return nil, errERC1155TransferAmountNotOne
+				logger.Warn("invalid ERC-1155 transfer single event data", zap.String("txID", txID))
+				return nil, nil
 			}
 
 			tokenIDHex = hex.EncodeToString(tokenID.Bytes())
@@ -263,7 +228,8 @@ func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID str
 			return nil, err
 		}
 		if nil == token || token.Source != "feralfile" {
-			return nil, errUnsupportedTokenSale
+			logger.Warn("token is not found or not published by Feral File", zap.String("txID", txID))
+			return nil, nil
 		}
 
 		// If there are multiple transfers for the same token,
@@ -305,7 +271,9 @@ func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID str
 	if len(erc20Transfers) > 0 { // pay by ERC20 tokens
 		contractMap := viper.GetStringMapString("ethereum.erc20") // key is lower case
 		if len(contractMap) == 0 {
-			return nil, errors.New("Couldn't load the ERC20 contracts")
+			err := errors.New("couldn't load the ERC20 contracts")
+			logger.Error(err.Error(), zap.String("txID", txID))
+			return nil, err
 		}
 
 		// flatten ERC20 transfers
@@ -340,6 +308,7 @@ func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID str
 		w.GetEthereumInternalTxs,
 		txID).
 		Get(ctx, &itxs); nil != err {
+		logger.Error("fail to get ethereum internal txs", zap.Error(err))
 		return nil, err
 	}
 
@@ -353,7 +322,9 @@ func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID str
 			dstAddrHex := common.HexToAddress(itx.To).Hex()
 			val, ok := big.NewInt(0).SetString(itx.Value, 10)
 			if !ok {
-				return nil, errParseInternalTxVal
+				err := errors.New("fail to parse internal tx value")
+				logger.Error(err.Error(), zap.String("txID", txID))
+				return nil, err
 			}
 			transfer := payTransferData{
 				From:   srcAddrHex,
@@ -382,17 +353,17 @@ func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID str
 	}
 
 	if marketplace == "" {
-		return nil, errNoMarketContractInteractionTx
+		return nil, nil
 	}
 
 	if len(payTxs) == 0 {
-		return nil, errNoPaymentTx
+		return nil, nil
 	}
 
 	// Fee wallets
 	platformFeeWallets := viper.GetStringMapString("marketplace.fee_wallets") // key is lower case
 	if len(platformFeeWallets) == 0 {
-		return nil, errors.New("Couldn't load the platform fee wallets")
+		return nil, nil
 	}
 
 	shares := make(map[string]*big.Int)
@@ -443,10 +414,13 @@ func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID str
 		w.GetEthereumBlockHeaderHash,
 		txReceipt.BlockHash.Hex()).
 		Get(ctx, &blkHeader); nil != err {
+		logger.Error("fail to get ethereum block header hash", zap.Error(err), zap.String("txID", txID))
 		return nil, err
 	}
 	if nil == blkHeader {
-		return nil, errors.New("Block not found")
+		err := errors.New("block not found")
+		logger.Error(err.Error(), zap.String("txID", txID))
+		return nil, err
 	}
 
 	bundleTokenInfo := []TokenSaleInfo{}
@@ -500,6 +474,7 @@ func (w *NFTIndexerWorker) IndexTezosTokenSaleFromTzktTxID(
 	ctx workflow.Context,
 	id uint64) error {
 	ctx = ContextRegularActivity(ctx, TaskListName)
+	logger := log.CadenceWorkflowLogger(ctx)
 
 	var txHash *string
 	if err := workflow.ExecuteActivity(
@@ -507,10 +482,13 @@ func (w *NFTIndexerWorker) IndexTezosTokenSaleFromTzktTxID(
 		w.GetTezosTxHashFromTzktTransactionID,
 		id).
 		Get(ctx, &txHash); err != nil {
+		logger.Error("fail to get tezos tx hash from tzkt txid", zap.Error(err), zap.Uint64("id", id))
 		return err
 	}
 	if nil == txHash {
-		return errors.New("no tx hash found")
+		err := errors.New("no tx hash found")
+		logger.Error(err.Error(), zap.Uint64("id", id))
+		return err
 	}
 
 	workflowID := fmt.Sprintf("IndexTezosObjktTokenSale-%s", *txHash)
@@ -520,20 +498,8 @@ func (w *NFTIndexerWorker) IndexTezosTokenSaleFromTzktTxID(
 		w.IndexTezosObjktTokenSale,
 		txHash,
 		true).Get(ctx, nil); err != nil {
-		log.Error("fail to index tezos token sale", zap.Error(err))
-		switch err.(type) {
-		case *workflow.GenericError:
-			switch err.Error() {
-			case errUnsupportedTokenSale.Error(),
-				errInvalidObjktTx.Error(),
-				errTxFailed.Error():
-				return nil
-			default:
-				return err
-			}
-		default:
-			return err
-		}
+		logger.Error("fail to execute tezos objkt token sale", zap.Error(err), zap.String("txHash", *txHash))
+		return err
 	}
 
 	return nil
@@ -542,6 +508,7 @@ func (w *NFTIndexerWorker) IndexTezosTokenSaleFromTzktTxID(
 // IndexTezosObjktTokenSale is a workflow to index the sale of a Tezos objkt token
 func (w *NFTIndexerWorker) IndexTezosObjktTokenSale(ctx workflow.Context, txHash string, skipIndexed bool) error {
 	ctx = ContextRegularActivity(ctx, TaskListName)
+	logger := log.CadenceWorkflowLogger(ctx)
 
 	if skipIndexed {
 		// Check if sale tx is indexed already
@@ -552,16 +519,15 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSale(ctx workflow.Context, txHash
 			txHash,
 			utils.TezosBlockchain).
 			Get(ctx, &indexed); nil != err {
+			logger.Error("fail to check if sale tx is indexed", zap.Error(err), zap.String("txHash", txHash))
 			return err
 		}
 
 		if indexed {
-			log.Info("skip tx already indexed", zap.String("txID", txHash))
 			return nil
 		}
 	}
 
-	log.Info("start indexing tezos Objkt token sale", zap.String("txHash", txHash))
 	// Fetch & parse token sale by tx hashe
 	var tokenSale *TokenSale
 	if err := workflow.ExecuteActivity(
@@ -569,12 +535,11 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSale(ctx workflow.Context, txHash
 		w.ParseTezosObjktTokenSale,
 		txHash).
 		Get(ctx, &tokenSale); err != nil {
-		log.Error("fail to parse token sale", zap.String("error", err.Error()))
+		logger.Error("fail to parse tezos objkt token sale", zap.Error(err), zap.String("txHash", txHash))
 		return err
 	}
 
 	if nil == tokenSale {
-		log.Info("no token sale found in the tx", zap.String("txHash", txHash))
 		return nil
 	}
 
@@ -595,14 +560,19 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSale(ctx workflow.Context, txHash
 			return err
 		}
 		if nil == token || token.Source != "feralfile" {
-			return errUnsupportedTokenSale
+			logger.Warn("token is not found or not published by Feral File", zap.String("txHash", txHash))
+			return nil
 		}
 	}
 
 	// Index token sale
-	saleTimeSeries, err := parseTokenSaleToGenericSalesTimeSeries(*tokenSale)
-	if err != nil {
-		log.Error("failed to parse token sale to generic sales time series", zap.Error(err))
+	var saleTimeSeries *indexer.GenericSalesTimeSeries
+	if err := workflow.ExecuteActivity(
+		ctx,
+		w.ParseTokenSaleToGenericSalesTimeSeries,
+		*tokenSale).
+		Get(ctx, &saleTimeSeries); err != nil {
+		logger.Error("fail to parse token sale to generic sales time series", zap.Error(err), zap.String("txHash", txHash))
 		return err
 	}
 
@@ -612,54 +582,9 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSale(ctx workflow.Context, txHash
 		w.WriteSaleTimeSeriesData,
 		data).
 		Get(ctx, nil); nil != err {
-		log.Error("fail to write time series data", zap.Error(err))
+		logger.Error("fail to write sale time series data", zap.Error(err), zap.String("txHash", txHash))
 		return err
 	}
 
-	log.Info("token sale indexed", zap.String("txHash", txHash))
-
 	return nil
-}
-
-func parseTokenSaleToGenericSalesTimeSeries(tokenSale TokenSale) (*indexer.GenericSalesTimeSeries, error) {
-	shares := make(map[string]string)
-	for address, share := range tokenSale.Shares {
-		shares[address] = share.String()
-	}
-
-	values := make(map[string]string)
-	values["price"] = tokenSale.Price.String()
-	values["platformFee"] = tokenSale.PlatformFee.String()
-	values["netRevenue"] = tokenSale.NetRevenue.String()
-	values["paymentAmount"] = tokenSale.PaymentAmount.String()
-	values["exchangeRate"] = "1"
-
-	bundleTokenInfo := []map[string]interface{}{}
-	for _, info := range tokenSale.BundleTokenInfo {
-		var tokenInfo map[string]interface{}
-		err := mapstructure.Decode(info, &tokenInfo)
-		if err != nil {
-			return nil, err
-		}
-		bundleTokenInfo = append(bundleTokenInfo, tokenInfo)
-	}
-
-	metadata := map[string]interface{}{
-		"blockchain":      tokenSale.Blockchain,
-		"marketplace":     tokenSale.Marketplace,
-		"paymentCurrency": tokenSale.Currency,
-		"paymentMethod":   "crypto",
-		"pricingCurrency": tokenSale.Currency,
-		"revenueCurrency": tokenSale.Currency,
-		"saleType":        "secondary",
-		"transactionIDs":  []string{tokenSale.TxID},
-		"bundleTokenInfo": bundleTokenInfo,
-	}
-
-	return &indexer.GenericSalesTimeSeries{
-		Timestamp: tokenSale.Timestamp.Format(time.RFC3339Nano),
-		Metadata:  metadata,
-		Shares:    shares,
-		Values:    values,
-	}, nil
 }

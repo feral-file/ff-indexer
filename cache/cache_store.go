@@ -65,7 +65,7 @@ func (s *MongoDBCacheStore) Set(ctx context.Context, cacheKey string, value inte
 	}
 
 	if r.MatchedCount == 0 && r.UpsertedCount == 0 {
-		log.Warn("cache is not added or updated", zap.String("key", cacheKey))
+		log.WarnWithContext(ctx, "cache is not added or updated", zap.String("key", cacheKey))
 	}
 
 	return nil
