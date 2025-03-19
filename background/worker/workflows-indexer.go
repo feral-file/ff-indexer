@@ -23,8 +23,9 @@ func (w *NFTIndexerWorker) IndexETHTokenWorkflow(ctx workflow.Context, tokenOwne
 
 	ethTokenOwner := indexer.EthereumChecksumAddress(tokenOwner)
 	if ethTokenOwner == indexer.EthereumZeroAddress {
-		logger.Error("invalid ethereum token owner", zap.String("tokenOwner", tokenOwner))
-		return fmt.Errorf("invalid ethereum token owner")
+		err := errors.New("invalid ethereum token owner")
+		logger.Error(err, zap.String("tokenOwner", tokenOwner))
+		return err
 	}
 
 	var next = ""
@@ -32,7 +33,7 @@ func (w *NFTIndexerWorker) IndexETHTokenWorkflow(ctx workflow.Context, tokenOwne
 		var nextPointer string
 
 		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx, ""), w.IndexETHTokenByOwner, ethTokenOwner, next).Get(ctx, &nextPointer); err != nil {
-			logger.Error("fail to index ethereum token by owner", zap.Error(err), zap.String("tokenOwner", tokenOwner), zap.String("next", next))
+			logger.Error(errors.New("fail to index ethereum token by owner"), zap.Error(err), zap.String("tokenOwner", tokenOwner), zap.String("next", next))
 			return err
 		}
 
@@ -59,7 +60,7 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 		var shouldContinue bool
 
 		if err := workflow.ExecuteActivity(ContextRetryActivity(ctx, ""), w.IndexTezosTokenByOwner, tokenOwner, isFirstPage).Get(ctx, &shouldContinue); err != nil {
-			logger.Error("fail to index tezos token by owner", zap.Error(err), zap.String("tokenOwner", tokenOwner), zap.Bool("isFirstPage", isFirstPage))
+			logger.Error(errors.New("fail to index tezos token by owner"), zap.Error(err), zap.String("tokenOwner", tokenOwner), zap.Bool("isFirstPage", isFirstPage))
 			return err
 		}
 
@@ -86,19 +87,19 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 
 	var update indexer.AssetUpdates
 	if err := workflow.ExecuteActivity(ctx, w.IndexToken, contract, tokenID).Get(ctx, &update); err != nil {
-		logger.Error("fail to index token", zap.Error(err), zap.String("contract", contract), zap.String("tokenID", tokenID))
+		logger.Error(errors.New("fail to index token"), zap.Error(err), zap.String("contract", contract), zap.String("tokenID", tokenID))
 		return err
 	}
 
 	if err := workflow.ExecuteActivity(ctx, w.IndexAsset, update).Get(ctx, nil); err != nil {
-		logger.Error("fail to index asset", zap.Error(err), zap.String("contract", contract), zap.String("tokenID", tokenID))
+		logger.Error(errors.New("fail to index asset"), zap.Error(err), zap.String("contract", contract), zap.String("tokenID", tokenID))
 		return err
 	}
 
 	if owner != "" {
 		var balance int64
 		if err := workflow.ExecuteActivity(ctx, w.GetTokenBalanceOfOwner, contract, tokenID, owner).Get(ctx, &balance); err != nil {
-			logger.Error("fail to get token balance of owner", zap.Error(err), zap.String("contract", contract), zap.String("tokenID", tokenID), zap.String("owner", owner))
+			logger.Error(errors.New("fail to get token balance of owner"), zap.Error(err), zap.String("contract", contract), zap.String("tokenID", tokenID), zap.String("owner", owner))
 			return err
 		}
 
@@ -113,7 +114,7 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 			}}
 
 		if err := workflow.ExecuteActivity(ctx, w.IndexAccountTokens, owner, accountTokens).Get(ctx, nil); err != nil {
-			logger.Error("fail to index account tokens", zap.Error(err), zap.String("owner", owner))
+			logger.Error(errors.New("fail to index account tokens"), zap.Error(err), zap.String("owner", owner))
 			return err
 		}
 	}
@@ -122,7 +123,7 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 		switch update.ProjectMetadata.Medium {
 		case "video", "image":
 			if err := workflow.ExecuteActivity(ctx, w.CacheArtifact, update.ProjectMetadata.PreviewURL).Get(ctx, nil); err != nil {
-				logger.Error("fail to cache artifact", zap.Error(err), zap.String("url", update.ProjectMetadata.PreviewURL))
+				logger.Error(errors.New("fail to cache artifact"), zap.Error(err), zap.String("url", update.ProjectMetadata.PreviewURL))
 				return err
 			}
 		default:
@@ -137,7 +138,7 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 				ContextNamedRegularChildWorkflow(ctx, WorkflowIDIndexTokenOwnershipByIndexID("background-IndexTokenWorkflow", indexID), ProvenanceTaskListName),
 				w.RefreshTokenOwnershipWorkflow, []string{indexID}, 0,
 			).Get(ctx, nil); err != nil {
-				logger.Error("fail to refresh token ownership", zap.Error(err), zap.String("indexID", indexID))
+				logger.Error(errors.New("fail to refresh token ownership"), zap.Error(err), zap.String("indexID", indexID))
 				return err
 			}
 		} else {
@@ -145,14 +146,14 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 				ContextNamedRegularChildWorkflow(ctx, WorkflowIDIndexTokenProvenanceByIndexID("background-IndexTokenWorkflow", indexID), ProvenanceTaskListName),
 				w.RefreshTokenProvenanceWorkflow, []string{indexID}, 0,
 			).Get(ctx, nil); err != nil {
-				logger.Error("fail to refresh token provenance", zap.Error(err), zap.String("indexID", indexID))
+				logger.Error(errors.New("fail to refresh token provenance"), zap.Error(err), zap.String("indexID", indexID))
 				return err
 			}
 		}
 	}
 
 	if err := workflow.ExecuteActivity(ctx, w.MarkAccountTokenChanged, []string{indexID}).Get(ctx, nil); err != nil {
-		logger.Error("fail to mark account token changed", zap.Error(err), zap.String("indexID", indexID))
+		logger.Error(errors.New("fail to mark account token changed"), zap.Error(err), zap.String("indexID", indexID))
 		return err
 	}
 
@@ -171,7 +172,7 @@ func (w *NFTIndexerWorker) CacheIPFSArtifactWorkflow(ctx workflow.Context, fullD
 
 	ctx = workflow.WithActivityOptions(ctx, ao)
 	if err := workflow.ExecuteActivity(ctx, w.CacheArtifact, fullDataLink).Get(ctx, nil); err != nil {
-		logger.Error("fail to cache artifact", zap.Error(err), zap.String("url", fullDataLink))
+		logger.Error(errors.New("fail to cache artifact"), zap.Error(err), zap.String("url", fullDataLink))
 		return err
 	}
 
@@ -194,8 +195,9 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSaleInBlockRange(
 	}
 
 	if fromBlk > toBlk {
-		logger.Error("invalid block range", zap.Uint64("fromBlk", fromBlk), zap.Uint64("toBlk", toBlk))
-		return fmt.Errorf("invalid block range")
+		err := errors.New("invalid block range")
+		logger.Error(err, zap.Uint64("fromBlk", fromBlk), zap.Uint64("toBlk", toBlk))
+		return err
 	}
 	startBlk := fromBlk
 	endBlk := fromBlk + blkBatchSize
@@ -212,7 +214,7 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSaleInBlockRange(
 		startBlk,
 		endBlk).
 		Get(ctx, &txIDs); err != nil {
-		logger.Error("fail to filter ethereum nft tx by event logs", zap.Error(err), zap.Uint64("fromBlk", fromBlk), zap.Uint64("toBlk", toBlk))
+		logger.Error(errors.New("fail to filter ethereum nft tx by event logs"), zap.Error(err), zap.Uint64("fromBlk", fromBlk), zap.Uint64("toBlk", toBlk))
 		return err
 	}
 
@@ -232,7 +234,7 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSaleInBlockRange(
 
 	for _, future := range futures {
 		if err := future.Get(ctx, nil); err != nil {
-			logger.Error("fail to index ethereum token sale", zap.Error(err))
+			logger.Error(errors.New("fail to index ethereum token sale"), zap.Error(err))
 			return err
 		}
 	}
@@ -269,7 +271,7 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSaleFromTime(
 		offset,
 		batchSize).
 		Get(ctx, &hashes); err != nil {
-		logger.Error("fail to get objkt sale transaction hashes", zap.Error(err), zap.Time("startTime", startTime), zap.Int("offset", offset), zap.Int("batchSize", batchSize))
+		logger.Error(errors.New("fail to get objkt sale transaction hashes"), zap.Error(err), zap.Time("startTime", startTime), zap.Int("offset", offset), zap.Int("batchSize", batchSize))
 		return err
 	}
 
@@ -295,7 +297,7 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSaleFromTime(
 
 	for _, future := range futures {
 		if err := future.Get(ctx, nil); err != nil {
-			logger.Error("fail to index tezos objkt token sale", zap.Error(err))
+			logger.Error(errors.New("fail to index tezos objkt token sale"), zap.Error(err))
 			return err
 		}
 	}

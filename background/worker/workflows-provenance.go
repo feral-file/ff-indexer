@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"errors"
 	"time"
 
 	log "github.com/bitmark-inc/autonomy-logger"
@@ -52,7 +53,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenanceByOwnerWorkflow(ctx workflow.Co
 			ContextSlowChildWorkflow(ctx, ProvenanceTaskListName),
 			w.RefreshTokenProvenanceWorkflow, ownedTokenIDs[i:endIndex], 0,
 		).Get(ctx, nil); err != nil {
-			logger.Error("fail to refresh token provenance", zap.Error(err))
+			logger.Error(errors.New("fail to refresh token provenance"), zap.Error(err))
 			return err
 		}
 	}

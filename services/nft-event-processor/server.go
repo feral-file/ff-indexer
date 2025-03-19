@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/bitmark-inc/autonomy-account/storage"
@@ -113,11 +114,11 @@ func (e *EventProcessor) PruneDeprecatedEventsCronjob(ctx context.Context) {
 
 			// Remove expired events
 			if err := e.removeDeprecatedNftEvents(); err != nil {
-				log.ErrorWithContext(ctx, "error delete archived events", zap.Error(err))
+				log.ErrorWithContext(ctx, errors.New("error delete archived events"), zap.Error(err))
 			}
 
 			if err := e.removeDeprecatedSeriesRegistryEvents(); err != nil {
-				log.ErrorWithContext(ctx, "error delete archived series registry events", zap.Error(err))
+				log.ErrorWithContext(ctx, errors.New("error delete archived series registry events"), zap.Error(err))
 			}
 		}
 	}()
@@ -133,7 +134,7 @@ func (e *EventProcessor) Run(ctx context.Context) {
 	e.ProcessEvents(ctx)
 
 	if err := e.grpcServer.Run(); err != nil {
-		log.ErrorWithContext(ctx, "gRPC stopped with error", zap.Error(err))
+		log.ErrorWithContext(ctx, errors.New("gRPC stopped with error"), zap.Error(err))
 	}
 }
 
@@ -178,9 +179,9 @@ func (e *EventProcessor) StartNftEventWorker(ctx context.Context, currentStage, 
 				}
 				e.logStartStage(ctx, eventTx.NftEvent.ID, currentStage)
 				if err := processor(ctx, eventTx.NftEvent); err != nil {
-					log.ErrorWithContext(ctx, "stage processing failed", zap.Error(err))
+					log.ErrorWithContext(ctx, errors.New("stage processing failed"), zap.Error(err))
 					if err := eventTx.UpdateNftEvent("", string(NftEventStatusFailed)); err != nil {
-						log.ErrorWithContext(ctx, "fail to update event", zap.Error(err))
+						log.ErrorWithContext(ctx, errors.New("fail to update event"), zap.Error(err))
 						eventTx.Rollback()
 					}
 				}
@@ -188,12 +189,12 @@ func (e *EventProcessor) StartNftEventWorker(ctx context.Context, currentStage, 
 				// stage starts from 1. stage zero means there is no next stage.
 				if nextStage == NftEventStageDone {
 					if err := eventTx.ArchiveNFTEvent(); err != nil {
-						log.ErrorWithContext(ctx, "fail to archive event", zap.Error(err))
+						log.ErrorWithContext(ctx, errors.New("fail to archive event"), zap.Error(err))
 						eventTx.Rollback()
 					}
 				} else {
 					if err := eventTx.UpdateNftEvent(NftEventStages[nextStage], ""); err != nil {
-						log.ErrorWithContext(ctx, "fail to update event", zap.Error(err))
+						log.ErrorWithContext(ctx, errors.New("fail to update event"), zap.Error(err))
 						eventTx.Rollback()
 					}
 				}
@@ -246,13 +247,13 @@ func (e *EventProcessor) StartSeriesRegistryEventWorker(ctx context.Context, cur
 				}
 				e.logStartStage(ctx, eventTx.Event.ID, currentStage)
 				if err := eventTx.UpdateSeriesRegistryEvent("", string(SeriesRegistryEventStatusProcessing)); err != nil {
-					log.ErrorWithContext(ctx, "fail to update series event status processing", zap.Error(err))
+					log.ErrorWithContext(ctx, errors.New("fail to update series event status processing"), zap.Error(err))
 					eventTx.Rollback()
 				}
 				if err := processor(ctx, eventTx.Event); err != nil {
-					log.ErrorWithContext(ctx, "stage processing failed", zap.Error(err))
+					log.ErrorWithContext(ctx, errors.New("stage processing failed"), zap.Error(err))
 					if err := eventTx.UpdateSeriesRegistryEvent("", string(SeriesRegistryEventStatusFailed)); err != nil {
-						log.ErrorWithContext(ctx, "fail to update series event status failed", zap.Error(err))
+						log.ErrorWithContext(ctx, errors.New("fail to update series event status failed"), zap.Error(err))
 						eventTx.Rollback()
 					}
 					continue
@@ -261,12 +262,12 @@ func (e *EventProcessor) StartSeriesRegistryEventWorker(ctx context.Context, cur
 				// stage starts from 1. stage zero means there is no next stage.
 				if nextStage == SeriesRegistryEventStageDone {
 					if err := eventTx.UpdateSeriesRegistryEvent("", string(SeriesRegistryEventStatusProcessed)); err != nil {
-						log.ErrorWithContext(ctx, "fail to set event to handled", zap.Error(err))
+						log.ErrorWithContext(ctx, errors.New("fail to set event to handled"), zap.Error(err))
 						eventTx.Rollback()
 					}
 				} else {
 					if err := eventTx.UpdateSeriesRegistryEvent(NftEventStages[nextStage], ""); err != nil {
-						log.ErrorWithContext(ctx, "fail to update event", zap.Error(err))
+						log.ErrorWithContext(ctx, errors.New("fail to update event"), zap.Error(err))
 						eventTx.Rollback()
 					}
 				}

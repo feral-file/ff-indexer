@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -14,7 +15,7 @@ var ErrUnsupportedBlockchain = fmt.Errorf("unsupported blockchain")
 
 func abortWithError(c *gin.Context, code int, message string, traceErr error) {
 	if code == http.StatusInternalServerError {
-		log.ErrorWithContext(c, message, zap.Error(traceErr))
+		log.ErrorWithContext(c, errors.New(message), zap.Error(traceErr))
 	} else {
 		log.WarnWithContext(c, message, zap.Error(traceErr))
 	}

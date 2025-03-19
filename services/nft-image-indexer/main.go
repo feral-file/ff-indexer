@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -55,12 +56,12 @@ func main() {
 
 	thumbnailCachePeriod, err := time.ParseDuration(viper.GetString("thumbnail.cache_period"))
 	if err != nil {
-		log.ErrorWithContext(ctx, "invalid duration. use default value 72h", zap.Error(err))
+		log.ErrorWithContext(ctx, errors.New("invalid duration. use default value 72h"), zap.Error(err))
 		thumbnailCachePeriod = 72 * time.Hour
 	}
 	thumbnailCacheRetryInterval, err := time.ParseDuration(viper.GetString("thumbnail.cache_retry_interval"))
 	if err != nil {
-		log.ErrorWithContext(ctx, "invalid duration. use default value 24h", zap.Error(err))
+		log.ErrorWithContext(ctx, errors.New("invalid duration. use default value 24h"), zap.Error(err))
 		thumbnailCacheRetryInterval = 24 * time.Hour
 	}
 

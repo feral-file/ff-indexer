@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -21,7 +22,7 @@ func (e *EventProcessor) refreshTokenData(ctx context.Context, event NFTEvent) e
 	token, err := e.indexerGRPC.GetTokenByIndexID(ctx, indexID)
 	if err != nil {
 		if grpcError, ok := status.FromError(err); !ok || grpcError.Message() != "token does not exist" {
-			log.ErrorWithContext(ctx, "fail to query token from indexer", zap.Error(err))
+			log.ErrorWithContext(ctx, errors.New("fail to query token from indexer"), zap.Error(err))
 			return err
 		}
 	}

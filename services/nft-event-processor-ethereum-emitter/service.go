@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"strconv"
 	"sync"
@@ -89,7 +90,7 @@ func (e *EthereumEventsEmitter) Watch(ctx context.Context) {
 			// Block until an error occurs in the subscription or the context is canceled.
 			select {
 			case err = <-nftTransferSubscription.Err():
-				log.ErrorWithContext(ctx, "nft transfer subscription stopped with failure", zap.Error(err), log.SourceETHClient)
+				log.ErrorWithContext(ctx, errors.New("nft transfer subscription stopped with failure"), zap.Error(err), log.SourceETHClient)
 			case <-ctx.Done():
 				log.InfoWithContext(ctx, "context done: unsubscribing NFT transfer subscription")
 				nftTransferSubscription.Unsubscribe()
@@ -130,7 +131,7 @@ func (e *EthereumEventsEmitter) Watch(ctx context.Context) {
 			// Block until an error occurs in the subscription or the context is canceled.
 			select {
 			case err = <-seriesRegistrySubscription.Err():
-				log.ErrorWithContext(ctx, "series registry subscription stopped with failure", zap.Error(err), log.SourceETHClient)
+				log.ErrorWithContext(ctx, errors.New("series registry subscription stopped with failure"), zap.Error(err), log.SourceETHClient)
 			case <-ctx.Done():
 				log.InfoWithContext(ctx, "context done: unsubscribing series registry subscription")
 				seriesRegistrySubscription.Unsubscribe()
@@ -145,7 +146,7 @@ func (e *EthereumEventsEmitter) Watch(ctx context.Context) {
 func (e *EthereumEventsEmitter) fetchLogsFromLastStoppedBlock(ctx context.Context, lastStopBlock uint64) {
 	latestBlock, err := e.wsClient.BlockNumber(ctx)
 	if err != nil {
-		log.ErrorWithContext(ctx, "failed to fetch latest block: ", zap.Error(err), log.SourceETHClient)
+		log.ErrorWithContext(ctx, errors.New("failed to fetch latest block"), zap.Error(err), log.SourceETHClient)
 		return
 	}
 
@@ -162,7 +163,7 @@ func (e *EthereumEventsEmitter) fetchLogsFromLastStoppedBlock(ctx context.Contex
 		})
 
 		if err != nil {
-			log.ErrorWithContext(ctx, "failed to fetch nft transfer logs from las stopped block: ", zap.Uint64("blockNum", i), zap.Error(err), log.SourceETHClient)
+			log.ErrorWithContext(ctx, errors.New("failed to fetch nft transfer logs from las stopped block"), zap.Uint64("blockNum", i), zap.Error(err), log.SourceETHClient)
 			return
 		}
 
@@ -188,7 +189,7 @@ func (e *EthereumEventsEmitter) fetchLogsFromLastStoppedBlock(ctx context.Contex
 		})
 
 		if err != nil {
-			log.ErrorWithContext(ctx, "failed to fetch series registry logs from las stopped block: ", zap.Uint64("blockNum", i), zap.Error(err), log.SourceETHClient)
+			log.ErrorWithContext(ctx, errors.New("failed to fetch series registry logs from las stopped block"), zap.Uint64("blockNum", i), zap.Error(err), log.SourceETHClient)
 			return
 		}
 
@@ -201,11 +202,11 @@ func (e *EthereumEventsEmitter) fetchLogsFromLastStoppedBlock(ctx context.Contex
 func (e *EthereumEventsEmitter) processLogsSinceLastStoppedBlock(ctx context.Context) {
 	lastStopBlock, err := e.parameterStore.GetString(ctx, e.lastBlockKeyName)
 	if err != nil {
-		log.ErrorWithContext(ctx, "failed to read last stop bloc from parameter store: ", zap.Error(err), log.SourceETHClient)
+		log.ErrorWithContext(ctx, errors.New("failed to read last stop bloc from parameter store"), zap.Error(err), log.SourceETHClient)
 	} else {
 		fromBlock, err := strconv.ParseUint(lastStopBlock, 10, 64)
 		if err != nil {
-			log.ErrorWithContext(ctx, "failed to parse last stop block: ", zap.Error(err), log.SourceETHClient)
+			log.ErrorWithContext(ctx, errors.New("failed to parse last stop block"), zap.Error(err), log.SourceETHClient)
 		} else {
 			e.fetchLogsFromLastStoppedBlock(ctx, fromBlock)
 		}
@@ -261,13 +262,13 @@ func (e *EthereumEventsEmitter) processNftTransferLog(ctx context.Context, eLog 
 			toAddress = indexer.EthereumChecksumAddress(eLog.Topics[3].Hex())
 			tokenIDHash = common.BytesToHash(eLog.Data[0:32])
 		default:
-			log.ErrorWithContext(ctx, "unsupported event")
+			log.ErrorWithContext(ctx, errors.New("unsupported event"))
 			return
 		}
 
 		txTime, err := indexer.GetETHBlockTime(ctx, e.cacheStore, e.wsClient, eLog.BlockHash)
 		if err != nil {
-			log.ErrorWithContext(ctx, "fail to get the block time", zap.Error(err), log.SourceGRPC)
+			log.ErrorWithContext(ctx, errors.New("fail to get the block time"), zap.Error(err), log.SourceGRPC)
 			sentry.CaptureException(err)
 			return
 		}
@@ -290,7 +291,7 @@ func (e *EthereumEventsEmitter) processNftTransferLog(ctx context.Context, eLog 
 		}
 
 		if err := e.PushNftEvent(ctx, eventType, fromAddress, toAddress, contractAddress, utils.EthereumBlockchain, tokenIDHash.Big().Text(10), eLog.TxHash.Hex(), eLog.Index, txTime); err != nil {
-			log.ErrorWithContext(ctx, "gRPC request failed", zap.Error(err), log.SourceGRPC)
+			log.ErrorWithContext(ctx, errors.New("gRPC request failed"), zap.Error(err), log.SourceGRPC)
 			sentry.CaptureException(err)
 			return
 		}
@@ -299,7 +300,7 @@ func (e *EthereumEventsEmitter) processNftTransferLog(ctx context.Context, eLog 
 	if eLog.BlockNumber > currentLastStoppedBlock {
 		currentLastStoppedBlock = eLog.BlockNumber
 		if err := e.parameterStore.PutString(ctx, e.lastBlockKeyName, strconv.FormatUint(currentLastStoppedBlock, 10)); err != nil {
-			log.ErrorWithContext(ctx, "error put parameterStore", zap.Error(err), log.SourceGRPC)
+			log.ErrorWithContext(ctx, errors.New("error put parameterStore"), zap.Error(err), log.SourceGRPC)
 			return
 		}
 	}
@@ -314,7 +315,7 @@ func (e *EthereumEventsEmitter) processSeriesRegistryLog(ctx context.Context, eL
 
 	contract, err := seriesRegistry.NewSeriesRegistry(common.HexToAddress(e.seriesRegistryContract), e.wsClient)
 	if err != nil {
-		log.ErrorWithContext(ctx, err.Error())
+		log.ErrorWithContext(ctx, errors.New("fail to create series registry contract instance"), zap.Error(err))
 		return
 	}
 
@@ -322,7 +323,7 @@ func (e *EthereumEventsEmitter) processSeriesRegistryLog(ctx context.Context, eL
 
 	txTime, err := indexer.GetETHBlockTime(ctx, e.cacheStore, e.wsClient, eLog.BlockHash)
 	if err != nil {
-		log.ErrorWithContext(ctx, "fail to get the block time", zap.Error(err), log.SourceGRPC)
+		log.ErrorWithContext(ctx, errors.New("fail to get the block time"), zap.Error(err), log.SourceGRPC)
 		sentry.CaptureException(err)
 		return
 	}
@@ -334,7 +335,7 @@ func (e *EthereumEventsEmitter) processSeriesRegistryLog(ctx context.Context, eL
 		eventType = "register_series"
 		ev, err := contract.ParseRegisterSeries(eLog)
 		if err != nil {
-			log.ErrorWithContext(ctx, err.Error())
+			log.ErrorWithContext(ctx, errors.New("fail to parse register series event"), zap.Error(err))
 			return
 		}
 		data = map[string]interface{}{
@@ -344,7 +345,7 @@ func (e *EthereumEventsEmitter) processSeriesRegistryLog(ctx context.Context, eL
 		eventType = "update_series"
 		ev, err := contract.ParseUpdateSeries(eLog)
 		if err != nil {
-			log.ErrorWithContext(ctx, err.Error())
+			log.ErrorWithContext(ctx, errors.New("fail to parse update series event"), zap.Error(err))
 			return
 		}
 		data = map[string]interface{}{
@@ -354,7 +355,7 @@ func (e *EthereumEventsEmitter) processSeriesRegistryLog(ctx context.Context, eL
 		eventType = "delete_series"
 		ev, err := contract.ParseDeleteSeries(eLog)
 		if err != nil {
-			log.ErrorWithContext(ctx, err.Error())
+			log.ErrorWithContext(ctx, errors.New("fail to parse delete series event"), zap.Error(err))
 			return
 		}
 		data = map[string]interface{}{
@@ -364,7 +365,7 @@ func (e *EthereumEventsEmitter) processSeriesRegistryLog(ctx context.Context, eL
 		eventType = "update_artist_address"
 		ev, err := contract.ParseUpdateArtistAddress(eLog)
 		if err != nil {
-			log.ErrorWithContext(ctx, err.Error())
+			log.ErrorWithContext(ctx, errors.New("fail to parse update artist address event"), zap.Error(err))
 			return
 		}
 		data = map[string]interface{}{
@@ -375,7 +376,7 @@ func (e *EthereumEventsEmitter) processSeriesRegistryLog(ctx context.Context, eL
 		eventType = "opt_in_collaboration"
 		ev, err := contract.ParseOptInCollaboration(eLog)
 		if err != nil {
-			log.ErrorWithContext(ctx, err.Error())
+			log.ErrorWithContext(ctx, errors.New("fail to parse opt in collaboration event"), zap.Error(err))
 			return
 		}
 		data = map[string]interface{}{
@@ -385,7 +386,7 @@ func (e *EthereumEventsEmitter) processSeriesRegistryLog(ctx context.Context, eL
 		eventType = "opt_out_series"
 		ev, err := contract.ParseOptOutSeries(eLog)
 		if err != nil {
-			log.ErrorWithContext(ctx, err.Error())
+			log.ErrorWithContext(ctx, errors.New("fail to parse opt out series event"), zap.Error(err))
 			return
 		}
 		data = map[string]interface{}{
@@ -395,7 +396,7 @@ func (e *EthereumEventsEmitter) processSeriesRegistryLog(ctx context.Context, eL
 		eventType = "assign_series"
 		ev, err := contract.ParseAssignSeries(eLog)
 		if err != nil {
-			log.ErrorWithContext(ctx, err.Error())
+			log.ErrorWithContext(ctx, errors.New("fail to parse assign series event"), zap.Error(err))
 			return
 		}
 		data = map[string]interface{}{
@@ -403,7 +404,7 @@ func (e *EthereumEventsEmitter) processSeriesRegistryLog(ctx context.Context, eL
 			"new_address": ev.AssigneeAddress.Hex(),
 		}
 	default:
-		log.ErrorWithContext(ctx, "unsupported event")
+		log.ErrorWithContext(ctx, errors.New("unsupported event"))
 		return
 	}
 
@@ -417,7 +418,7 @@ func (e *EthereumEventsEmitter) processSeriesRegistryLog(ctx context.Context, eL
 	)
 
 	if err := e.PushSeriesRegistryEvent(ctx, eventType, contractAddress, eLog.TxHash.Hex(), data, eLog.Index, txTime); err != nil {
-		log.ErrorWithContext(ctx, "gRPC request failed", zap.Error(err), log.SourceGRPC)
+		log.ErrorWithContext(ctx, errors.New("gRPC request failed"), zap.Error(err), log.SourceGRPC)
 		sentry.CaptureException(err)
 		return
 	}
@@ -425,7 +426,7 @@ func (e *EthereumEventsEmitter) processSeriesRegistryLog(ctx context.Context, eL
 	if eLog.BlockNumber > currentLastStoppedBlock {
 		currentLastStoppedBlock = eLog.BlockNumber
 		if err := e.parameterStore.PutString(ctx, e.lastBlockKeyName, strconv.FormatUint(currentLastStoppedBlock, 10)); err != nil {
-			log.ErrorWithContext(ctx, "error put parameterStore", zap.Error(err), log.SourceGRPC)
+			log.ErrorWithContext(ctx, errors.New("error put parameterStore"), zap.Error(err), log.SourceGRPC)
 			return
 		}
 	}

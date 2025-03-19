@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -247,7 +248,7 @@ func StartIndexExchangeRateCronWorkflow(c context.Context, client *cadence.Worke
 		workflowContext, w.CrawlHistoricalExchangeRate, pairs, int64(0), int64(0)); err != nil {
 		_, isAlreadyStartedError := err.(*shared.WorkflowExecutionAlreadyStartedError)
 		if !isAlreadyStartedError {
-			log.ErrorWithContext(c, "fail to start index exchange rate workflow", zap.Error(err))
+			log.ErrorWithContext(c, errors.New("fail to start index exchange rate workflow"), zap.Error(err))
 			return err
 		}
 	}

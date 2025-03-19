@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -508,7 +509,7 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 	})
 
 	if err != nil {
-		log.ErrorWithContext(ctx, "swap token transaction failed",
+		log.ErrorWithContext(ctx, errors.New("swap token transaction failed"),
 			zap.String("originalTokenIndexID", originalTokenIndexID),
 			zap.String("newTokenIndexID", newTokenIndexID),
 			zap.Error(err))
@@ -1303,7 +1304,7 @@ func (s *MongodbIndexerStore) IndexAccountTokens(ctx context.Context, owner stri
 				log.WarnWithContext(ctx, "account token is in a future state", zap.String("indexID", accountToken.IndexID))
 				continue
 			}
-			log.ErrorWithContext(ctx, "cannot index account token", zap.String("indexID", accountToken.IndexID), zap.String("owner", owner), zap.Error(err))
+			log.ErrorWithContext(ctx, errors.New("cannot index account token"), zap.String("indexID", accountToken.IndexID), zap.String("owner", owner), zap.Error(err))
 			return err
 		}
 		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
@@ -1400,7 +1401,7 @@ func (s *MongodbIndexerStore) UpdateAccountTokenOwners(ctx context.Context, inde
 			options.Update().SetUpsert(true),
 		)
 		if err != nil {
-			log.ErrorWithContext(ctx, "could not update balance ", zap.String("indexID", indexID), zap.String("owner", ownerBalance.Address), zap.Error(err))
+			log.ErrorWithContext(ctx, errors.New("could not update balance "), zap.String("indexID", indexID), zap.String("owner", ownerBalance.Address), zap.Error(err))
 			continue
 		}
 
@@ -1448,12 +1449,12 @@ func (s *MongodbIndexerStore) IndexDemoTokens(ctx context.Context, owner string,
 				token.OwnersArray = []string{owner}
 				token.Owners[owner] = 1
 				if _, err := s.tokenCollection.InsertOne(ctx, token); err != nil {
-					log.ErrorWithContext(ctx, "error while inserting demo tokens", zap.String("indexID", demoIndexID), zap.Error(err))
+					log.ErrorWithContext(ctx, errors.New("error while inserting demo tokens"), zap.String("indexID", demoIndexID), zap.Error(err))
 					return err
 				}
 				log.Debug("demo token is indexed", zap.String("indexID", demoIndexID))
 			} else {
-				log.ErrorWithContext(ctx, "error while finding demoIndexID in the database", zap.String("demoIndexID", demoIndexID), zap.Error(err))
+				log.ErrorWithContext(ctx, errors.New("error while finding demoIndexID in the database"), zap.String("demoIndexID", demoIndexID), zap.Error(err))
 				return err
 			}
 		} else {
@@ -1554,7 +1555,7 @@ func (s *MongodbIndexerStore) MarkAccountTokenChanged(ctx context.Context, index
 	})
 
 	if err != nil {
-		log.ErrorWithContext(ctx, "cannot update account tokens", zap.Error(err), zap.Any("indexIDs", indexIDs))
+		log.ErrorWithContext(ctx, errors.New("cannot update account tokens"), zap.Error(err), zap.Any("indexIDs", indexIDs))
 	}
 
 	return err
@@ -2027,7 +2028,7 @@ func (s *MongodbIndexerStore) IndexCollectionAsset(ctx context.Context, collecti
 				log.WarnWithContext(ctx, "collection token is in a future state", zap.String("indexID", c.TokenIndexID))
 				continue
 			}
-			log.ErrorWithContext(ctx, "cannot index collection token", zap.String("indexID", c.TokenIndexID), zap.String("collectionID", collectionID), zap.Error(err))
+			log.ErrorWithContext(ctx, errors.New("cannot index collection token"), zap.String("indexID", c.TokenIndexID), zap.String("collectionID", collectionID), zap.Error(err))
 			return err
 		}
 		if r.MatchedCount == 0 && r.UpsertedCount == 0 {
@@ -2297,7 +2298,7 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 	for _, r := range records {
 		timestamp, err := time.Parse(time.RFC3339Nano, r.Timestamp)
 		if nil != err {
-			log.ErrorWithContext(ctx, "error parsing timestamp",
+			log.ErrorWithContext(ctx, errors.New("error parsing timestamp"),
 				zap.String("timestamp", r.Timestamp),
 				zap.Error(err),
 			)
@@ -2434,7 +2435,7 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 
 		result, err := s.salesTimeSeriesCollection.DeleteMany(ctx, filter)
 		if err != nil {
-			log.ErrorWithContext(ctx, "error deleting documents",
+			log.ErrorWithContext(ctx, errors.New("error deleting documents"),
 				zap.String("uniqueID", uniqueID),
 				zap.Error(err))
 			return err
@@ -2455,7 +2456,7 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 	if len(inserts) > 0 {
 		_, err := s.salesTimeSeriesCollection.InsertMany(ctx, inserts)
 		if err != nil {
-			log.ErrorWithContext(ctx, "error inserting documents", zap.Error(err))
+			log.ErrorWithContext(ctx, errors.New("error inserting documents"), zap.Error(err))
 			return err
 		}
 	}
@@ -2480,7 +2481,7 @@ func (s *MongodbIndexerStore) WriteHistoricalExchangeRate(ctx context.Context, r
 	if len(operations) > 0 {
 		_, err := s.historicalExchangeRatesCollection.BulkWrite(ctx, operations)
 		if err != nil {
-			log.ErrorWithContext(ctx, "error in bulk write operation", zap.Error(err))
+			log.ErrorWithContext(ctx, errors.New("error in bulk write operation"), zap.Error(err))
 			return err
 		}
 	}

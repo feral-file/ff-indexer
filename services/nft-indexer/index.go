@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -70,7 +71,7 @@ func (s *NFTIndexerServer) startIndexWorkflow(c context.Context, owner, blockcha
 
 	workflow, err := s.cadenceWorker.StartWorkflow(c, indexerWorker.ClientName, workflowContext, workflowFunc, owner, false)
 	if err != nil {
-		log.ErrorWithContext(c, "fail to start indexing workflow", zap.Error(err), zap.String("owner", owner), zap.String("blockchain", blockchain))
+		log.ErrorWithContext(c, errors.New("fail to start indexing workflow"), zap.Error(err), zap.String("owner", owner), zap.String("blockchain", blockchain))
 	} else {
 		log.InfoWithContext(c, "start workflow for indexing tokens", zap.String("owner", owner), zap.String("blockchain", blockchain), zap.String("workflow_id", workflow.ID))
 	}

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -68,7 +69,7 @@ func (e *TezosEventsEmitter) Transfers(data json.RawMessage) {
 
 	err := json.Unmarshal(data, &res)
 	if err != nil {
-		log.Error("fail to unmarshal transfers data", zap.Error(err))
+		log.Error(errors.New("fail to unmarshal transfers data"), zap.Error(err))
 		sentry.CaptureException(err)
 		return
 	}
@@ -97,7 +98,7 @@ func (e *TezosEventsEmitter) Bigmaps(data json.RawMessage) {
 
 	err := json.Unmarshal(data, &res)
 	if err != nil {
-		log.Error("fail to unmarshal bigmaps data", zap.Error(err))
+		log.Error(errors.New("fail to unmarshal bigmaps data"), zap.Error(err))
 		sentry.CaptureException(err)
 		return
 	}
@@ -167,7 +168,7 @@ func (e *TezosEventsEmitter) Run(ctx context.Context) {
 		}),
 		signalr.WithReceiver(e))
 	if err != nil {
-		log.ErrorWithContext(ctx, "fail to create signalr client", zap.Error(err))
+		log.ErrorWithContext(ctx, errors.New("fail to create signalr client"), zap.Error(err))
 		return
 	}
 
@@ -212,13 +213,13 @@ func (e *TezosEventsEmitter) Run(ctx context.Context) {
 func (e *TezosEventsEmitter) processSinceLastStoppedLevel(ctx context.Context) {
 	lastStopLevel, err := e.parameterStore.GetString(ctx, e.lastBlockKeyName)
 	if err != nil {
-		log.ErrorWithContext(ctx, "failed to read last stop block from parameter store: ", zap.Error(err), log.SourceTZKT)
+		log.ErrorWithContext(ctx, errors.New("failed to read last stop block from parameter store"), zap.Error(err), log.SourceTZKT)
 		return
 	}
 
 	fromLevel, err := strconv.ParseUint(lastStopLevel, 10, 64)
 	if err != nil {
-		log.ErrorWithContext(ctx, "failed to parse last stop block: ", zap.Error(err), log.SourceTZKT)
+		log.ErrorWithContext(ctx, errors.New("failed to parse last stop block"), zap.Error(err), log.SourceTZKT)
 		return
 	}
 
@@ -228,7 +229,7 @@ func (e *TezosEventsEmitter) processSinceLastStoppedLevel(ctx context.Context) {
 func (e *TezosEventsEmitter) fetchFromByLastStoppedLevel(fromLevel uint64) {
 	latestLevel, err := e.tzkt.GetLevelByTime(time.Now())
 	if err != nil {
-		log.ErrorWithContext(e.ctx, "failed to get lastest block level: ", zap.Error(err), log.SourceTZKT)
+		log.ErrorWithContext(e.ctx, errors.New("failed to get lastest block level"), zap.Error(err), log.SourceTZKT)
 		return
 	}
 
@@ -245,7 +246,7 @@ func (e *TezosEventsEmitter) fetchTokenTransfersByLevel(level uint64) {
 	for {
 		transfers, err := e.tzkt.GetTokenTransfersByLevel(fmt.Sprintf("%d", level), offset, pageSize)
 		if err != nil {
-			log.ErrorWithContext(e.ctx, "failed to fetch token transfer from level: ",
+			log.ErrorWithContext(e.ctx, errors.New("failed to fetch token transfer from level"),
 				zap.Error(err), zap.Uint64("level", level), zap.Int("offset", offset), log.SourceTZKT)
 			return
 		}
@@ -269,7 +270,7 @@ func (e *TezosEventsEmitter) fetchTokenBigmapUpdateByLevel(level uint64) {
 	for {
 		updates, err := e.tzkt.GetTokenMetadataBigmapUpdatesByLevel(fmt.Sprintf("%d", level), offset, pageSize)
 		if err != nil {
-			log.ErrorWithContext(e.ctx, "failed to fetch token metadata bigmap updates from level: ",
+			log.ErrorWithContext(e.ctx, errors.New("failed to fetch token metadata bigmap updates from level"),
 				zap.Error(err), zap.Uint64("level", level), zap.Int("offset", offset), log.SourceTZKT)
 			return
 		}
@@ -300,14 +301,14 @@ func (e *TezosEventsEmitter) processTokenEvent(event TokenEvent) {
 	if err := e.PushNftEvent(e.ctx, string(event.EventType), event.From, event.To,
 		event.ContractAddress, event.Blockchain, event.TokenID,
 		event.TxID, 0, event.TxTime); err != nil {
-		log.ErrorWithContext(e.ctx, "gRPC request failed", zap.Error(err), log.SourceGRPC)
+		log.ErrorWithContext(e.ctx, errors.New("gRPC request failed"), zap.Error(err), log.SourceGRPC)
 		return
 	}
 
 	if event.Level > lastStoppedBlock {
 		lastStoppedBlock = event.Level
 		if err := e.parameterStore.PutString(e.ctx, e.lastBlockKeyName, strconv.FormatUint(lastStoppedBlock, 10)); err != nil {
-			log.ErrorWithContext(e.ctx, "error put parameterStore", zap.Error(err), log.SourceGRPC)
+			log.ErrorWithContext(e.ctx, errors.New("error put parameterStore"), zap.Error(err), log.SourceGRPC)
 			return
 		}
 	}

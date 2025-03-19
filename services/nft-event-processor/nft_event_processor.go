@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	log "github.com/bitmark-inc/autonomy-logger"
@@ -26,7 +27,7 @@ func (e *EventProcessor) updateLatestOwner(ctx context.Context, event NFTEvent) 
 		token, err := e.indexerGRPC.GetTokenByIndexID(ctx, indexID)
 		if err != nil {
 			if grpcError, ok := status.FromError(err); !ok || grpcError.Message() != "token does not exist" {
-				log.ErrorWithContext(ctx, "fail to query token from indexer", zap.Error(err))
+				log.ErrorWithContext(ctx, errors.New("fail to query token from indexer"), zap.Error(err))
 				return err
 			}
 		}
@@ -44,11 +45,11 @@ func (e *EventProcessor) updateLatestOwner(ctx context.Context, event NFTEvent) 
 				})
 
 				if err != nil {
-					log.ErrorWithContext(ctx, "fail to push provenance", zap.Error(err))
+					log.ErrorWithContext(ctx, errors.New("fail to push provenance"), zap.Error(err))
 
 					err = e.indexerGRPC.UpdateOwner(ctx, indexID, to, event.CreatedAt)
 					if err != nil {
-						log.ErrorWithContext(ctx, "fail to update owner", zap.Error(err))
+						log.ErrorWithContext(ctx, errors.New("fail to update owner"), zap.Error(err))
 						return err
 					}
 				}
@@ -63,7 +64,7 @@ func (e *EventProcessor) updateLatestOwner(ctx context.Context, event NFTEvent) 
 				}
 
 				if err := e.indexerGRPC.IndexAccountTokens(ctx, to, []indexer.AccountToken{accountToken}); err != nil {
-					log.ErrorWithContext(ctx, "fail to index account token", zap.Error(err))
+					log.ErrorWithContext(ctx, errors.New("fail to index account token"), zap.Error(err))
 					return err
 				}
 			} else {
@@ -105,7 +106,7 @@ func (e *EventProcessor) updateOwnerAndProvenance(ctx context.Context, event NFT
 	// FIXME: Switch to account server GRPC
 	accounts, err := e.accountStore.GetAccountIDByAddress(to)
 	if err != nil {
-		log.ErrorWithContext(ctx, "fail to check accounts by address", zap.Error(err))
+		log.ErrorWithContext(ctx, errors.New("fail to check accounts by address"), zap.Error(err))
 		return err
 	}
 
@@ -113,7 +114,7 @@ func (e *EventProcessor) updateOwnerAndProvenance(ctx context.Context, event NFT
 	token, err := e.indexerGRPC.GetTokenByIndexID(ctx, indexID)
 	if err != nil {
 		if grpcError, ok := status.FromError(err); !ok || grpcError.Message() != "token does not exist" {
-			log.ErrorWithContext(ctx, "fail to query token from indexer", zap.Error(err))
+			log.ErrorWithContext(ctx, errors.New("fail to query token from indexer"), zap.Error(err))
 			return err
 		}
 	}
@@ -140,13 +141,13 @@ func (e *EventProcessor) updateOwnerAndProvenance(ctx context.Context, event NFT
 				}
 
 				if err := e.indexerGRPC.IndexAccountTokens(ctx, to, []indexer.AccountToken{accountToken}); err != nil {
-					log.ErrorWithContext(ctx, "cannot index a new account_token", zap.Error(err), zap.String("indexID", indexID), zap.String("owner", to))
+					log.ErrorWithContext(ctx, errors.New("cannot index a new account_token"), zap.Error(err), zap.String("indexID", indexID), zap.String("owner", to))
 					return err
 				}
 			}
 
 			if err := e.indexerGRPC.UpdateOwner(ctx, indexID, to, event.CreatedAt); err != nil {
-				log.ErrorWithContext(ctx, "fail to update the token ownership",
+				log.ErrorWithContext(ctx, errors.New("fail to update the token ownership"),
 					zap.String("indexID", indexID), zap.Error(err),
 					zap.String("from", from), zap.String("to", to))
 			}
@@ -192,7 +193,7 @@ func (e *EventProcessor) notifyChangeTokenOwner(ctx context.Context, event NFTEv
 
 	accounts, err := e.accountStore.GetAccountIDByAddress(to)
 	if err != nil {
-		log.ErrorWithContext(ctx, "fail to check accounts by address", zap.Error(err))
+		log.ErrorWithContext(ctx, errors.New("fail to check accounts by address"), zap.Error(err))
 		return err
 	}
 	indexID := indexer.TokenIndexID(blockchain, contract, tokenID)
@@ -200,7 +201,7 @@ func (e *EventProcessor) notifyChangeTokenOwner(ctx context.Context, event NFTEv
 	for _, accountID := range accounts {
 		if err := e.notifyChangeOwner(accountID, to, indexID); err != nil {
 			log.ErrorWithContext(ctx,
-				"failed to send change owner notification",
+				errors.New("failed to send change owner notification"),
 				zap.Error(err),
 				zap.String("chain", blockchain),
 				zap.String("contract", contract),
@@ -283,7 +284,7 @@ func (e *EventProcessor) indexTokenSale(ctx context.Context, event NFTEvent) err
 		event.Blockchain,
 		event.TXID)
 	if nil != err {
-		log.ErrorWithContext(ctx, "fail to start indexing token sale", zap.Error(err))
+		log.ErrorWithContext(ctx, errors.New("fail to start indexing token sale"), zap.Error(err))
 	}
 
 	return nil

@@ -59,7 +59,7 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 			txID,
 			utils.EthereumBlockchain).
 			Get(ctx, &indexed); nil != err {
-			logger.Error("fail to check if sale tx is indexed", zap.Error(err))
+			logger.Error(errors.New("fail to check if sale tx is indexed"), zap.Error(err))
 			return err
 		}
 
@@ -75,7 +75,7 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 		w.ParseEthereumTokenSale,
 		txID).
 		Get(ctx, &tokenSale); nil != err {
-		logger.Error("fail to parse ethereum token sale", zap.Error(err))
+		logger.Error(errors.New("fail to parse ethereum token sale"), zap.Error(err))
 		return err
 	}
 	if nil == tokenSale {
@@ -89,7 +89,7 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 		w.ParseTokenSaleToGenericSalesTimeSeries,
 		*tokenSale).
 		Get(ctx, &saleTimeSeries); err != nil {
-		logger.Error("fail to parse token sale to generic sales time series", zap.Error(err))
+		logger.Error(errors.New("fail to parse token sale to generic sales time series"), zap.Error(err))
 		return err
 	}
 
@@ -99,7 +99,7 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 		w.WriteSaleTimeSeriesData,
 		data).
 		Get(ctx, nil); nil != err {
-		logger.Error("fail to write sale time series data", zap.Error(err))
+		logger.Error(errors.New("fail to write sale time series data"), zap.Error(err))
 		return err
 	}
 
@@ -118,7 +118,7 @@ func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID str
 		w.GetEthereumTxReceipt,
 		txID).
 		Get(ctx, &txReceipt); nil != err {
-		logger.Error("fail to get ethereum tx receipt", zap.Error(err), zap.String("txID", txID))
+		logger.Error(errors.New("fail to get ethereum tx receipt"), zap.Error(err), zap.String("txID", txID))
 		return nil, err
 	}
 	if nil == txReceipt {
@@ -137,7 +137,7 @@ func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID str
 		w.GetEthereumTx,
 		txID).
 		Get(ctx, &tx); nil != err {
-		logger.Error("fail to get ethereum tx", zap.Error(err), zap.String("txID", txID))
+		logger.Error(errors.New("fail to get ethereum tx"), zap.Error(err), zap.String("txID", txID))
 		return nil, err
 	}
 
@@ -272,7 +272,7 @@ func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID str
 		contractMap := viper.GetStringMapString("ethereum.erc20") // key is lower case
 		if len(contractMap) == 0 {
 			err := errors.New("couldn't load the ERC20 contracts")
-			logger.Error(err.Error(), zap.String("txID", txID))
+			logger.Error(err, zap.String("txID", txID))
 			return nil, err
 		}
 
@@ -308,7 +308,7 @@ func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID str
 		w.GetEthereumInternalTxs,
 		txID).
 		Get(ctx, &itxs); nil != err {
-		logger.Error("fail to get ethereum internal txs", zap.Error(err))
+		logger.Error(errors.New("fail to get ethereum internal txs"), zap.Error(err))
 		return nil, err
 	}
 
@@ -323,7 +323,7 @@ func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID str
 			val, ok := big.NewInt(0).SetString(itx.Value, 10)
 			if !ok {
 				err := errors.New("fail to parse internal tx value")
-				logger.Error(err.Error(), zap.String("txID", txID))
+				logger.Error(err, zap.String("txID", txID))
 				return nil, err
 			}
 			transfer := payTransferData{
@@ -414,12 +414,12 @@ func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID str
 		w.GetEthereumBlockHeaderHash,
 		txReceipt.BlockHash.Hex()).
 		Get(ctx, &blkHeader); nil != err {
-		logger.Error("fail to get ethereum block header hash", zap.Error(err), zap.String("txID", txID))
+		logger.Error(errors.New("fail to get ethereum block header hash"), zap.Error(err), zap.String("txID", txID))
 		return nil, err
 	}
 	if nil == blkHeader {
 		err := errors.New("block not found")
-		logger.Error(err.Error(), zap.String("txID", txID))
+		logger.Error(err, zap.String("txID", txID))
 		return nil, err
 	}
 
@@ -482,12 +482,12 @@ func (w *NFTIndexerWorker) IndexTezosTokenSaleFromTzktTxID(
 		w.GetTezosTxHashFromTzktTransactionID,
 		id).
 		Get(ctx, &txHash); err != nil {
-		logger.Error("fail to get tezos tx hash from tzkt txid", zap.Error(err), zap.Uint64("id", id))
+		logger.Error(errors.New("fail to get tezos tx hash from tzkt txid"), zap.Error(err), zap.Uint64("id", id))
 		return err
 	}
 	if nil == txHash {
 		err := errors.New("no tx hash found")
-		logger.Error(err.Error(), zap.Uint64("id", id))
+		logger.Error(err, zap.Uint64("id", id))
 		return err
 	}
 
@@ -498,7 +498,7 @@ func (w *NFTIndexerWorker) IndexTezosTokenSaleFromTzktTxID(
 		w.IndexTezosObjktTokenSale,
 		txHash,
 		true).Get(ctx, nil); err != nil {
-		logger.Error("fail to execute tezos objkt token sale", zap.Error(err), zap.String("txHash", *txHash))
+		logger.Error(errors.New("fail to execute tezos objkt token sale"), zap.Error(err), zap.String("txHash", *txHash))
 		return err
 	}
 
@@ -519,7 +519,7 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSale(ctx workflow.Context, txHash
 			txHash,
 			utils.TezosBlockchain).
 			Get(ctx, &indexed); nil != err {
-			logger.Error("fail to check if sale tx is indexed", zap.Error(err), zap.String("txHash", txHash))
+			logger.Error(errors.New("fail to check if sale tx is indexed"), zap.Error(err), zap.String("txHash", txHash))
 			return err
 		}
 
@@ -535,7 +535,7 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSale(ctx workflow.Context, txHash
 		w.ParseTezosObjktTokenSale,
 		txHash).
 		Get(ctx, &tokenSale); err != nil {
-		logger.Error("fail to parse tezos objkt token sale", zap.Error(err), zap.String("txHash", txHash))
+		logger.Error(errors.New("fail to parse tezos objkt token sale"), zap.Error(err), zap.String("txHash", txHash))
 		return err
 	}
 
@@ -572,7 +572,7 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSale(ctx workflow.Context, txHash
 		w.ParseTokenSaleToGenericSalesTimeSeries,
 		*tokenSale).
 		Get(ctx, &saleTimeSeries); err != nil {
-		logger.Error("fail to parse token sale to generic sales time series", zap.Error(err), zap.String("txHash", txHash))
+		logger.Error(errors.New("fail to parse token sale to generic sales time series"), zap.Error(err), zap.String("txHash", txHash))
 		return err
 	}
 
@@ -582,7 +582,7 @@ func (w *NFTIndexerWorker) IndexTezosObjktTokenSale(ctx workflow.Context, txHash
 		w.WriteSaleTimeSeriesData,
 		data).
 		Get(ctx, nil); nil != err {
-		logger.Error("fail to write sale time series data", zap.Error(err), zap.String("txHash", txHash))
+		logger.Error(errors.New("fail to write sale time series data"), zap.Error(err), zap.String("txHash", txHash))
 		return err
 	}
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -220,7 +221,7 @@ func (s *NFTIndexerServer) GetIdentity(c *gin.Context) {
 
 	account, err := s.indexerStore.GetIdentity(c, accountNumber)
 	if err != nil {
-		log.ErrorWithContext(c, "fail to get identity from indexer store", zap.Error(err))
+		log.ErrorWithContext(c, errors.New("fail to get identity from indexer store"), zap.Error(err))
 	}
 
 	if account.AccountNumber != "" {
@@ -243,7 +244,7 @@ func (s *NFTIndexerServer) GetIdentity(c *gin.Context) {
 	}
 
 	if err := s.indexerStore.IndexIdentity(c, *id); err != nil {
-		log.ErrorWithContext(c, "fail to index identity to indexer store", zap.Any("identity", id), zap.Error(err))
+		log.ErrorWithContext(c, errors.New("fail to index identity to indexer store"), zap.Any("identity", id), zap.Error(err))
 	}
 
 	c.JSON(200, id)

@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -55,7 +56,7 @@ func (w *NFTIndexerWorker) CrawlHistoricalExchangeRate(
 			ctxac,
 			w.GetExchangeRateLastTime,
 		).Get(ctx, &lastTime); err != nil {
-			logger.Error("fail to get exchange rate last time", zap.Error(err), zap.String("currencyPairs", strings.Join(currencyPairs, ":")))
+			logger.Error(errors.New("fail to get exchange rate last time"), zap.Error(err), zap.String("currencyPairs", strings.Join(currencyPairs, ":")))
 			return err
 		}
 
@@ -108,7 +109,7 @@ func (w *NFTIndexerWorker) CrawlHistoricalExchangeRate(
 
 		for _, future := range futures {
 			if err := future.Get(ctx, nil); err != nil {
-				logger.Error("fail to crawl exchange rate by currency pair", zap.Error(err))
+				logger.Error(errors.New("fail to crawl exchange rate by currency pair"), zap.Error(err))
 				return err
 			}
 		}
@@ -146,7 +147,7 @@ func (w *NFTIndexerWorker) CrawlExchangeRateByCurrencyPair(
 		strconv.Itoa(granularity),
 		start,
 		end).Get(ctx, &rates); err != nil {
-		logger.Error("fail to crawl exchange rate from coinbase", zap.Error(err), zap.String("currencyPair", currencyPair), zap.Int64("start", start), zap.Int64("end", end))
+		logger.Error(errors.New("fail to crawl exchange rate from coinbase"), zap.Error(err), zap.String("currencyPair", currencyPair), zap.Int64("start", start), zap.Int64("end", end))
 		return err
 	}
 
@@ -158,7 +159,7 @@ func (w *NFTIndexerWorker) CrawlExchangeRateByCurrencyPair(
 		ctx,
 		w.WriteHistoricalExchangeRate,
 		rates).Get(ctx, nil); err != nil {
-		logger.Error("fail to write historical exchange rate", zap.Error(err), zap.String("currencyPair", currencyPair), zap.Int64("start", start), zap.Int64("end", end))
+		logger.Error(errors.New("fail to write historical exchange rate"), zap.Error(err), zap.String("currencyPair", currencyPair), zap.Int64("start", start), zap.Int64("end", end))
 		return err
 	}
 
