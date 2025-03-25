@@ -2726,9 +2726,7 @@ func (s *MongodbIndexerStore) UpdateAssetConfiguration(
 
 	// Create update document with only non-nil fields
 	updateFields := bson.M{}
-	for key, value := range configMap {
-		updateFields[fmt.Sprintf("attributes.configuration.%s", key)] = value
-	}
+	flattenMap(configMap, "attributes.configuration", updateFields)
 
 	// If no fields to update, just return early
 	if len(updateFields) == 0 {

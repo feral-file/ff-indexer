@@ -18,6 +18,7 @@ import (
 	utils "github.com/bitmark-inc/autonomy-utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/fatih/structs"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func EthereumChecksumAddress(address string) string {
@@ -334,4 +335,19 @@ func IsIPFSURI(uri string) bool {
 // IsHTTPSURI returns true if the URI is an HTTPS URI
 func IsHTTPSURI(uri string) bool {
 	return strings.HasPrefix(uri, "https://")
+}
+
+// flattenMap recursively processes nested maps to create dot notation paths for MongoDB
+func flattenMap(input map[string]interface{}, prefix string, result bson.M) {
+	for k, v := range input {
+		key := prefix + "." + k
+
+		// If value is a nested map, process it recursively
+		if nestedMap, ok := v.(map[string]interface{}); ok {
+			flattenMap(nestedMap, key, result)
+		} else {
+			// Otherwise add the value with the full path
+			result[key] = v
+		}
+	}
 }
