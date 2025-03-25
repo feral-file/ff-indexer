@@ -58,7 +58,7 @@ type IndexerClient interface {
 	GetSaleTimeSeries(ctx context.Context, in *SaleTimeSeriesFilter, opts ...grpc.CallOption) (*SaleTimeSeriesListResponse, error)
 	GetSaleRevenues(ctx context.Context, in *SaleTimeSeriesFilter, opts ...grpc.CallOption) (*SaleRevenuesResponse, error)
 	GetHistoricalExchangeRate(ctx context.Context, in *HistoricalExchangeRateFilter, opts ...grpc.CallOption) (*ExchangeRateResponse, error)
-	UpdateAssetConfiguration(ctx context.Context, in *UpdateAssetConfigurationRequest, opts ...grpc.CallOption) (*EmptyMessage, error)
+	UpdateAssetsConfiguration(ctx context.Context, in *UpdateAssetConfigurationRequest, opts ...grpc.CallOption) (*EmptyMessage, error)
 }
 
 type indexerClient struct {
@@ -213,7 +213,7 @@ func (c *indexerClient) GetHistoricalExchangeRate(ctx context.Context, in *Histo
 	return out, nil
 }
 
-func (c *indexerClient) UpdateAssetConfiguration(ctx context.Context, in *UpdateAssetConfigurationRequest, opts ...grpc.CallOption) (*EmptyMessage, error) {
+func (c *indexerClient) UpdateAssetsConfiguration(ctx context.Context, in *UpdateAssetConfigurationRequest, opts ...grpc.CallOption) (*EmptyMessage, error) {
 	out := new(EmptyMessage)
 	err := c.cc.Invoke(ctx, Indexer_UpdateAssetConfiguration_FullMethodName, in, out, opts...)
 	if err != nil {

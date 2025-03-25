@@ -312,6 +312,6 @@ message GetDetailedTokenRequest {
 }
 
 message UpdateAssetConfigurationRequest {
-  string indexID = 1;
+  repeated string indexIDs = 1;
   AssetConfiguration configuration = 2;
 }

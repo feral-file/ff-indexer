@@ -313,7 +313,7 @@ func (i *IndexerServer) UpdateAssetConfiguration(ctx context.Context, in *pb.Upd
 	configuration := i.mapper.MapGrpcAssetConfigurationToIndexerAssetConfiguration(in.Configuration)
 	modifiedCount, err := i.indexerStore.UpdateAssetConfiguration(
 		ctx,
-		in.IndexID,
+		in.IndexIDs,
 		configuration,
 	)
 	if err != nil {

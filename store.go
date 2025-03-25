@@ -102,7 +102,7 @@ type Store interface {
 	WriteHistoricalExchangeRate(ctx context.Context, exchangeRate []coinbase.HistoricalExchangeRate) error
 	GetHistoricalExchangeRate(ctx context.Context, filter HistoricalExchangeRateFilter) (ExchangeRate, error)
 	GetExchangeRateLastTime(ctx context.Context) (time.Time, error)
-	UpdateAssetConfiguration(ctx context.Context, indexID string, configuration *AssetConfiguration) (int64, error)
+	UpdateAssetConfiguration(ctx context.Context, indexIDs []string, configuration *AssetConfiguration) (int64, error)
 }
 
 type FilterParameter struct {
@@ -2707,7 +2707,7 @@ func (s *MongodbIndexerStore) GetExchangeRateLastTime(ctx context.Context) (time
 
 func (s *MongodbIndexerStore) UpdateAssetConfiguration(
 	ctx context.Context,
-	indexID string,
+	indexIDs []string,
 	configuration *AssetConfiguration) (int64, error) {
 	if nil == configuration {
 		return 0, errors.New("configuration is nil")
@@ -2733,9 +2733,9 @@ func (s *MongodbIndexerStore) UpdateAssetConfiguration(
 		return 0, nil
 	}
 
-	r, err := s.assetCollection.UpdateOne(
+	r, err := s.assetCollection.UpdateMany(
 		ctx,
-		bson.M{"indexID": indexID},
+		bson.M{"indexID": bson.M{"$in": indexIDs}},
 		bson.M{"$set": updateFields},
 	)
 	return r.ModifiedCount, err
