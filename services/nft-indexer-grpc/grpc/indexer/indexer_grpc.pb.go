@@ -35,6 +35,7 @@ const (
 	Indexer_GetSaleTimeSeries_FullMethodName              = "/indexer.Indexer/GetSaleTimeSeries"
 	Indexer_GetSaleRevenues_FullMethodName                = "/indexer.Indexer/GetSaleRevenues"
 	Indexer_GetHistoricalExchangeRate_FullMethodName      = "/indexer.Indexer/GetHistoricalExchangeRate"
+	Indexer_UpdateAssetConfiguration_FullMethodName       = "/indexer.Indexer/UpdateAssetConfiguration"
 )
 
 // IndexerClient is the client API for Indexer service.
@@ -57,6 +58,7 @@ type IndexerClient interface {
 	GetSaleTimeSeries(ctx context.Context, in *SaleTimeSeriesFilter, opts ...grpc.CallOption) (*SaleTimeSeriesListResponse, error)
 	GetSaleRevenues(ctx context.Context, in *SaleTimeSeriesFilter, opts ...grpc.CallOption) (*SaleRevenuesResponse, error)
 	GetHistoricalExchangeRate(ctx context.Context, in *HistoricalExchangeRateFilter, opts ...grpc.CallOption) (*ExchangeRateResponse, error)
+	UpdateAssetConfiguration(ctx context.Context, in *UpdateAssetConfigurationRequest, opts ...grpc.CallOption) (*EmptyMessage, error)
 }
 
 type indexerClient struct {
@@ -211,6 +213,15 @@ func (c *indexerClient) GetHistoricalExchangeRate(ctx context.Context, in *Histo
 	return out, nil
 }
 
+func (c *indexerClient) UpdateAssetConfiguration(ctx context.Context, in *UpdateAssetConfigurationRequest, opts ...grpc.CallOption) (*EmptyMessage, error) {
+	out := new(EmptyMessage)
+	err := c.cc.Invoke(ctx, Indexer_UpdateAssetConfiguration_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // IndexerServer is the server API for Indexer service.
 // All implementations must embed UnimplementedIndexerServer
 // for forward compatibility
@@ -231,6 +242,7 @@ type IndexerServer interface {
 	GetSaleTimeSeries(context.Context, *SaleTimeSeriesFilter) (*SaleTimeSeriesListResponse, error)
 	GetSaleRevenues(context.Context, *SaleTimeSeriesFilter) (*SaleRevenuesResponse, error)
 	GetHistoricalExchangeRate(context.Context, *HistoricalExchangeRateFilter) (*ExchangeRateResponse, error)
+	UpdateAssetConfiguration(context.Context, *UpdateAssetConfigurationRequest) (*EmptyMessage, error)
 	mustEmbedUnimplementedIndexerServer()
 }
 
@@ -285,6 +297,9 @@ func (UnimplementedIndexerServer) GetSaleRevenues(context.Context, *SaleTimeSeri
 }
 func (UnimplementedIndexerServer) GetHistoricalExchangeRate(context.Context, *HistoricalExchangeRateFilter) (*ExchangeRateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetHistoricalExchangeRate not implemented")
+}
+func (UnimplementedIndexerServer) UpdateAssetConfiguration(context.Context, *UpdateAssetConfigurationRequest) (*EmptyMessage, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateAssetConfiguration not implemented")
 }
 func (UnimplementedIndexerServer) mustEmbedUnimplementedIndexerServer() {}
 
@@ -587,6 +602,24 @@ func _Indexer_GetHistoricalExchangeRate_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Indexer_UpdateAssetConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateAssetConfigurationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IndexerServer).UpdateAssetConfiguration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Indexer_UpdateAssetConfiguration_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IndexerServer).UpdateAssetConfiguration(ctx, req.(*UpdateAssetConfigurationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Indexer_ServiceDesc is the grpc.ServiceDesc for Indexer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -657,6 +690,10 @@ var Indexer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetHistoricalExchangeRate",
 			Handler:    _Indexer_GetHistoricalExchangeRate_Handler,
+		},
+		{
+			MethodName: "UpdateAssetConfiguration",
+			Handler:    _Indexer_UpdateAssetConfiguration_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

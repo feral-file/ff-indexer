@@ -34,12 +34,12 @@ func ParseTime(timeString string) (time.Time, error) {
 	return timestamp, nil
 }
 
-// MapGRPCTokenInforToIndexerTokenInfor maps grpc token info to indexer token info
-func (m *Mapper) MapGRPCTokenInforToIndexerTokenInfor(token []*grpcIndexer.BaseTokenInfo) []indexer.BaseTokenInfo {
-	baseTokenInfors := make([]indexer.BaseTokenInfo, len(token))
+// MapGRPCTokenInfoToIndexerTokenInfo maps grpc token info to indexer token info
+func (m *Mapper) MapGRPCTokenInfoToIndexerTokenInfo(token []*grpcIndexer.BaseTokenInfo) []indexer.BaseTokenInfo {
+	ti := make([]indexer.BaseTokenInfo, len(token))
 
 	for i, v := range token {
-		baseTokenInfors[i] = indexer.BaseTokenInfo{
+		ti[i] = indexer.BaseTokenInfo{
 			ID:              v.ID,
 			Blockchain:      v.Blockchain,
 			Fungible:        v.Fungible,
@@ -48,7 +48,7 @@ func (m *Mapper) MapGRPCTokenInforToIndexerTokenInfor(token []*grpcIndexer.BaseT
 		}
 	}
 
-	return baseTokenInfors
+	return ti
 }
 
 // MapGRPCProvenancesToIndexerProvenances maps grpc provenance to indexer provenance
@@ -114,7 +114,7 @@ func (m *Mapper) MapGrpcTokenToIndexerToken(tokenBuffer *grpcIndexer.Token) (*in
 		Owners:          tokenBuffer.Owners,
 		OwnersArray:     tokenBuffer.OwnersArray,
 		AssetID:         tokenBuffer.AssetID,
-		OriginTokenInfo: m.MapGRPCTokenInforToIndexerTokenInfor(tokenBuffer.OriginTokenInfo),
+		OriginTokenInfo: m.MapGRPCTokenInfoToIndexerTokenInfo(tokenBuffer.OriginTokenInfo),
 		IsDemo:          tokenBuffer.IsDemo,
 
 		IndexID:           tokenBuffer.IndexID,
@@ -145,7 +145,7 @@ func (m *Mapper) MapIndexerTokenToGrpcToken(token *indexer.Token) *grpcIndexer.T
 		Owners:            token.Owners,
 		OwnersArray:       token.OwnersArray,
 		AssetID:           token.AssetID,
-		OriginTokenInfo:   m.MapIndexerTokenInforToGRPCTokenInfor(token.OriginTokenInfo),
+		OriginTokenInfo:   m.MapIndexerTokenInfoToGRPCTokenInfo(token.OriginTokenInfo),
 		IsDemo:            token.IsDemo,
 		IndexID:           token.IndexID,
 		Source:            token.Source,
@@ -159,12 +159,12 @@ func (m *Mapper) MapIndexerTokenToGrpcToken(token *indexer.Token) *grpcIndexer.T
 	}
 }
 
-// MapIndexerTokenInforToGRPCTokenInfor maps indexer token info to grpc token info
-func (m *Mapper) MapIndexerTokenInforToGRPCTokenInfor(token []indexer.BaseTokenInfo) []*grpcIndexer.BaseTokenInfo {
-	GRPCBaseTokenInfors := make([]*grpcIndexer.BaseTokenInfo, len(token))
+// MapIndexerTokenInfoToGRPCTokenInfo maps indexer token info to grpc token info
+func (m *Mapper) MapIndexerTokenInfoToGRPCTokenInfo(token []indexer.BaseTokenInfo) []*grpcIndexer.BaseTokenInfo {
+	gti := make([]*grpcIndexer.BaseTokenInfo, len(token))
 
 	for i, v := range token {
-		GRPCBaseTokenInfors[i] = &grpcIndexer.BaseTokenInfo{
+		gti[i] = &grpcIndexer.BaseTokenInfo{
 			ID:              v.ID,
 			Blockchain:      v.Blockchain,
 			Fungible:        v.Fungible,
@@ -173,15 +173,15 @@ func (m *Mapper) MapIndexerTokenInforToGRPCTokenInfor(token []indexer.BaseTokenI
 		}
 	}
 
-	return GRPCBaseTokenInfors
+	return gti
 }
 
 // MapIndexerProvenancesToGRPCProvenances maps indexer provenance to grpc provenance
 func (m *Mapper) MapIndexerProvenancesToGRPCProvenances(provenance []indexer.Provenance) []*grpcIndexer.Provenance {
-	GRPCProvenances := make([]*grpcIndexer.Provenance, len(provenance))
+	gtp := make([]*grpcIndexer.Provenance, len(provenance))
 
 	for i, v := range provenance {
-		GRPCProvenances[i] = &grpcIndexer.Provenance{
+		gtp[i] = &grpcIndexer.Provenance{
 			FormerOwner: DerefString(v.FormerOwner),
 			Type:        v.Type,
 			Owner:       v.Owner,
@@ -193,7 +193,7 @@ func (m *Mapper) MapIndexerProvenancesToGRPCProvenances(provenance []indexer.Pro
 		}
 	}
 
-	return GRPCProvenances
+	return gtp
 }
 
 func ConvertTimeStringsToTimes(timeStrings []string) ([]time.Time, error) {
@@ -262,15 +262,64 @@ func (m *Mapper) MapGRPCAccountTokensToIndexerAccountTokens(accountTokens []*grp
 
 // MapIndexerAttributesToGRPCAttributes maps indexer attributes to grpc attributes
 func (m *Mapper) MapIndexerAttributesToGRPCAttributes(attributes *indexer.AssetAttributes) *grpcIndexer.AssetAttributes {
-	var GRPCattributes *grpcIndexer.AssetAttributes
-
 	if attributes == nil {
-		GRPCattributes = nil
-	} else {
-		GRPCattributes = &grpcIndexer.AssetAttributes{Scrollable: attributes.Scrollable}
+		return nil
 	}
 
-	return GRPCattributes
+	c := attributes.Configuration
+	if c == nil {
+		return &grpcIndexer.AssetAttributes{}
+	}
+
+	var display *grpcIndexer.DisplayConfiguration
+	var interaction *grpcIndexer.InteractionConfiguration
+
+	d := c.Display
+	if d != nil {
+		display = &grpcIndexer.DisplayConfiguration{
+			Scaling:         d.Scaling,
+			BackgroundColor: d.BackgroundColor,
+			Margin:          d.Margin,
+			AutoPlay:        d.AutoPlay,
+			Looping:         d.Looping,
+			DisableOverride: d.DisableOverride,
+		}
+	}
+
+	i := c.Interaction
+	if i != nil {
+		var mouse *grpcIndexer.MouseConfiguration
+		var keyboard *grpcIndexer.KeyboardConfiguration
+
+		m := i.Mouse
+		if m != nil {
+			mouse = &grpcIndexer.MouseConfiguration{
+				Clickable:  m.Clickable,
+				Hoverable:  m.Hoverable,
+				Draggable:  m.Draggable,
+				Scrollable: m.Scrollable,
+			}
+		}
+
+		k := i.Keyboard
+		if k != nil {
+			keyboard = &grpcIndexer.KeyboardConfiguration{
+				Keys: k.Keys,
+			}
+		}
+
+		interaction = &grpcIndexer.InteractionConfiguration{
+			Mouse:    mouse,
+			Keyboard: keyboard,
+		}
+	}
+
+	return &grpcIndexer.AssetAttributes{
+		Configuration: &grpcIndexer.AssetConfiguration{
+			Display:     display,
+			Interaction: interaction,
+		},
+	}
 }
 
 // MapIndexerProjectMetadataToGRPCProjectMetadata maps indexer project metadata to grpc project metadata
@@ -385,7 +434,6 @@ func (m *Mapper) MapGrpcDetailedTokenToIndexerDetailedToken(token *grpcIndexer.D
 	}
 
 	attributes := m.MapGrpcAttributesToIndexerAttributes(token.Attributes)
-
 	return &indexer.DetailedToken{
 		Token:       *indexerToken,
 		ThumbnailID: token.ThumbnailID,
@@ -404,8 +452,119 @@ func (m *Mapper) MapGrpcAttributesToIndexerAttributes(attributes *grpcIndexer.As
 		return nil
 	}
 
+	configuration := m.MapGrpcAssetConfigurationToIndexerAssetConfiguration(attributes.Configuration)
 	return &indexer.AssetAttributes{
-		Scrollable: attributes.Scrollable,
+		Configuration: configuration,
+	}
+}
+
+// MapGrpcAssetConfigurationToIndexerAssetConfiguration maps grpc asset configuration to indexer asset configuration
+func (m *Mapper) MapGrpcAssetConfigurationToIndexerAssetConfiguration(configuration *grpcIndexer.AssetConfiguration) *indexer.AssetConfiguration {
+	if configuration == nil {
+		return nil
+	}
+
+	var display *indexer.DisplayConfiguration
+	var interaction *indexer.InteractiveConfiguration
+
+	gd := configuration.Display
+	if gd != nil {
+		display = &indexer.DisplayConfiguration{
+			Scaling:         gd.Scaling,
+			BackgroundColor: gd.BackgroundColor,
+			Margin:          gd.Margin,
+			AutoPlay:        gd.AutoPlay,
+			Looping:         gd.Looping,
+			DisableOverride: gd.DisableOverride,
+		}
+	}
+
+	gi := configuration.Interaction
+	if gi != nil {
+		var mouse *indexer.MouseConfiguration
+		var keyboard *indexer.KeyboardConfiguration
+
+		gm := gi.Mouse
+		if gm != nil {
+			mouse = &indexer.MouseConfiguration{
+				Clickable:  gm.Clickable,
+				Hoverable:  gm.Hoverable,
+				Draggable:  gm.Draggable,
+				Scrollable: gm.Scrollable,
+			}
+		}
+
+		gk := gi.Keyboard
+		if gk != nil {
+			keyboard = &indexer.KeyboardConfiguration{
+				Keys: gk.Keys,
+			}
+		}
+
+		interaction = &indexer.InteractiveConfiguration{
+			Mouse:    mouse,
+			Keyboard: keyboard,
+		}
+	}
+
+	return &indexer.AssetConfiguration{
+		Display:     display,
+		Interaction: interaction,
+	}
+}
+
+// MapIndexerAssetConfigurationToGrpcAssetConfiguration maps indexer asset configuration to grpc asset configuration
+func (m *Mapper) MapIndexerAssetConfigurationToGrpcAssetConfiguration(configuration *indexer.AssetConfiguration) *grpcIndexer.AssetConfiguration {
+	if configuration == nil {
+		return nil
+	}
+
+	var display *grpcIndexer.DisplayConfiguration
+	var interaction *grpcIndexer.InteractionConfiguration
+
+	d := configuration.Display
+	if d != nil {
+		display = &grpcIndexer.DisplayConfiguration{
+			Scaling:         d.Scaling,
+			BackgroundColor: d.BackgroundColor,
+			Margin:          d.Margin,
+			AutoPlay:        d.AutoPlay,
+			Looping:         d.Looping,
+			DisableOverride: d.DisableOverride,
+		}
+	}
+
+	i := configuration.Interaction
+	if i != nil {
+		var mouse *grpcIndexer.MouseConfiguration
+		var keyboard *grpcIndexer.KeyboardConfiguration
+
+		m := i.Mouse
+		if m != nil {
+			mouse = &grpcIndexer.MouseConfiguration{
+				Clickable:  m.Clickable,
+				Hoverable:  m.Hoverable,
+				Draggable:  m.Draggable,
+				Scrollable: m.Scrollable,
+			}
+		}
+
+		k := i.Keyboard
+		if k != nil {
+			keyboard = &grpcIndexer.KeyboardConfiguration{
+				Keys: k.Keys,
+			}
+		}
+
+		interaction = &grpcIndexer.InteractionConfiguration{
+			Mouse:    mouse,
+			Keyboard: keyboard,
+		}
+	}
+
+	return &grpcIndexer.AssetConfiguration{
+		Display:     display,
+		Interaction: interaction,
 	}
 }
 

@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -101,6 +102,7 @@ type Store interface {
 	WriteHistoricalExchangeRate(ctx context.Context, exchangeRate []coinbase.HistoricalExchangeRate) error
 	GetHistoricalExchangeRate(ctx context.Context, filter HistoricalExchangeRateFilter) (ExchangeRate, error)
 	GetExchangeRateLastTime(ctx context.Context) (time.Time, error)
+	UpdateAssetConfiguration(ctx context.Context, indexID string, configuration *AssetConfiguration) error
 }
 
 type FilterParameter struct {
@@ -2701,4 +2703,42 @@ func (s *MongodbIndexerStore) GetExchangeRateLastTime(ctx context.Context) (time
 	}
 
 	return rate.Timestamp, nil
+}
+
+func (s *MongodbIndexerStore) UpdateAssetConfiguration(
+	ctx context.Context,
+	indexID string,
+	configuration *AssetConfiguration) error {
+	if nil == configuration {
+		return errors.New("configuration is nil")
+	}
+
+	// Convert to JSON and back to map to utilize omitempty tag
+	jsonBytes, err := json.Marshal(configuration)
+	if err != nil {
+		return err
+	}
+
+	var configMap map[string]interface{}
+	if err := json.Unmarshal(jsonBytes, &configMap); err != nil {
+		return err
+	}
+
+	// Create update document with only non-nil fields
+	updateFields := bson.M{}
+	for key, value := range configMap {
+		updateFields[fmt.Sprintf("attributes.configuration.%s", key)] = value
+	}
+
+	// If no fields to update, just return early
+	if len(updateFields) == 0 {
+		return nil
+	}
+
+	_, err = s.assetCollection.UpdateOne(
+		ctx,
+		bson.M{"indexID": indexID},
+		bson.M{"$set": updateFields},
+	)
+	return err
 }

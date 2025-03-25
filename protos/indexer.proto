@@ -8,27 +8,21 @@ option go_package = "./grpc/indexer";
 service Indexer {
   rpc GetTokenByIndexID(IndexID) returns (Token);
   rpc PushProvenance(PushProvenanceRequest) returns (EmptyMessage);
-
   rpc UpdateOwner(UpdateOwnerRequest) returns (EmptyMessage);
   rpc UpdateOwnerForFungibleToken(UpdateOwnerForFungibleTokenRequest) returns (EmptyMessage);
   rpc IndexAccountTokens(IndexAccountTokensRequest) returns (EmptyMessage);
-
   rpc GetDetailedToken(GetDetailedTokenRequest) returns (DetailedToken);
   rpc GetTotalBalanceOfOwnerAccounts(Addresses) returns (TotalBalance);
   rpc GetOwnerAccountsByIndexIDs(IndexIDs) returns (Addresses);
-
   rpc CheckAddressOwnTokenByCriteria(CheckAddressOwnTokenByCriteriaRequest) returns (CheckAddressOwnTokenByCriteriaResponse);
-
   rpc GetOwnersByBlockchainContracts(GetOwnersByBlockchainContractsRequest) returns (Addresses);
-
   rpc GetETHBlockTime(GetETHBlockTimeRequest) returns (BlockTime);
-
   rpc GetIdentity(Address) returns (AccountIdentity);
-
   rpc SendTimeSeriesData(SaleTimeSeriesRecords) returns(EmptyMessage);
   rpc GetSaleTimeSeries(SaleTimeSeriesFilter) returns (SaleTimeSeriesListResponse);
   rpc GetSaleRevenues(SaleTimeSeriesFilter) returns (SaleRevenuesResponse);
   rpc GetHistoricalExchangeRate(HistoricalExchangeRateFilter) returns (ExchangeRateResponse);
+  rpc UpdateAssetConfiguration(UpdateAssetConfigurationRequest) returns(EmptyMessage);
 }
 
 message CheckAddressOwnTokenByCriteriaResponse {
@@ -73,8 +67,38 @@ message DetailedToken {
   VersionedProjectMetadata ProjectMetadata = 5;
 }
 
+message DisplayConfiguration {
+  string Scaling = 1;
+  string BackgroundColor = 2;
+  int64 Margin = 3;
+  bool AutoPlay = 4; 
+  bool Looping = 5; 
+  bool DisableOverride = 6;
+}
+
+message MouseConfiguration {
+  bool Clickable = 1;
+  bool Scrollable = 2; 
+  bool Draggable = 3;
+  bool Hoverable = 4;
+}
+
+message KeyboardConfiguration {
+  repeated string Keys = 1;
+}
+
+message InteractionConfiguration {
+  MouseConfiguration Mouse = 1;
+  KeyboardConfiguration Keyboard = 2;
+}
+
+message AssetConfiguration {
+  DisplayConfiguration Display = 1;
+  InteractionConfiguration Interaction = 2; 
+}
+
 message AssetAttributes {
-  bool Scrollable = 1;
+  AssetConfiguration Configuration = 1;
 }
 
 message VersionedProjectMetadata {
@@ -285,4 +309,9 @@ message ExchangeRateResponse {
 message GetDetailedTokenRequest {
   string IndexID = 1;
   bool BurnedIncluded = 2;
+}
+
+message UpdateAssetConfigurationRequest {
+  string indexID = 1;
+  AssetConfiguration configuration = 2;
 }

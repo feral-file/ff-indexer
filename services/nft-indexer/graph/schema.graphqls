@@ -3,173 +3,203 @@
 # https://gqlgen.com/getting-started/
 
 type Token {
-	id: String!
-	blockchain: String!
-	fungible: Boolean!
-	contractType: String!
-	contractAddress: String!
+  id: String!
+  blockchain: String!
+  fungible: Boolean!
+  contractType: String!
+  contractAddress: String!
 
-	edition: Int64!
-	editionName: String!
-	mintAt: Time
-	mintedAt: Time
-	balance: Int64!
-	owner: String!
-	owners: [Owner!]
-	originTokenInfo: [BaseTokenInfo!]
+  edition: Int64!
+  editionName: String!
+  mintAt: Time
+  mintedAt: Time
+  balance: Int64!
+  owner: String!
+  owners: [Owner!]
+  originTokenInfo: [BaseTokenInfo!]
 
-	indexID: String!
-	source: String!
-	swapped: Boolean!
-	burned: Boolean!
-	provenance: [Provenance!]!
-	lastActivityTime: Time
-	lastRefreshedTime: Time
-	asset: Asset!
+  indexID: String!
+  source: String!
+  swapped: Boolean!
+  burned: Boolean!
+  provenance: [Provenance!]!
+  lastActivityTime: Time
+  lastRefreshedTime: Time
+  asset: Asset!
 }
 
 type BaseTokenInfo {
-	id: String!
-	blockchain: String!
-	fungible: Boolean!
-	contractType: String!
-	contractAddress: String!
+  id: String!
+  blockchain: String!
+  fungible: Boolean!
+  contractType: String!
+  contractAddress: String!
 }
 
 type Owner {
-	address: String!
-	balance: Int64!
+  address: String!
+  balance: Int64!
 }
 
 type Provenance {
-	type: String!
-	owner: String!
-	blockchain: String!
-	blockNumber: Int64
-	timestamp: Time
-	txID: String!
-	txURL: String!
+  type: String!
+  owner: String!
+  blockchain: String!
+  blockNumber: Int64
+  timestamp: Time
+  txID: String!
+  txURL: String!
+}
+
+type DisplayConfiguration {
+  scaling: String!
+  backgroundColor: String!
+  margin: Int64!
+  autoPlay: Boolean!
+  looping: Boolean!
+  disableOverride: Boolean!
+}
+
+type MouseConfiguration {
+  clickable: Boolean!
+  scrollable: Boolean!
+  draggable: Boolean!
+  hoverable: Boolean!
+}
+
+type KeyboardConfiguration {
+  keys: [String!]
+}
+
+type InteractiveConfiguration {
+  mouse: MouseConfiguration!
+  keyboard: KeyboardConfiguration!
+}
+
+type AssetConfiguration {
+  display: DisplayConfiguration!
+  interaction: InteractiveConfiguration!
 }
 
 type AssetAttributes {
-	scrollable: Boolean!
+  configuration: AssetConfiguration!
 }
 
 type Asset {
-	indexID: String!
-	thumbnailID: String!
-	lastRefreshedTime: Time
-	attributes: AssetAttributes
-	metadata: AssetMetadata!
-	staticPreviewURLLandscape: String
-	staticPreviewURLPortrait: String
+  indexID: String!
+  thumbnailID: String!
+  lastRefreshedTime: Time
+  attributes: AssetAttributes
+  metadata: AssetMetadata!
+  staticPreviewURLLandscape: String
+  staticPreviewURLPortrait: String
 }
 
 type AssetMetadata {
-	project: VersionedProjectMetadata!
+  project: VersionedProjectMetadata!
 }
 
 type VersionedProjectMetadata {
-	origin: ProjectMetadata!
-	latest: ProjectMetadata!
+  origin: ProjectMetadata!
+  latest: ProjectMetadata!
 }
 
 type ProjectMetadata {
-	artistID: String!
-	artistName: String!
-	artistURL: String!
-	artists: [Artist!]!
-	assetID: String!
-	title: String!
-	description: String!
-	mimeType: String!
-	medium: String!
-	maxEdition: Int64!
-	baseCurrency: String!
-	basePrice: Float!
-	source: String!
-	sourceURL: String!
-	previewURL: String!
-	thumbnailURL: String!
-	galleryThumbnailURL: String!
-	assetData: String!
-	assetURL: String!
-	artworkMetadata: JSON
+  artistID: String!
+  artistName: String!
+  artistURL: String!
+  artists: [Artist!]!
+  assetID: String!
+  title: String!
+  description: String!
+  mimeType: String!
+  medium: String!
+  maxEdition: Int64!
+  baseCurrency: String!
+  basePrice: Float!
+  source: String!
+  sourceURL: String!
+  previewURL: String!
+  thumbnailURL: String!
+  galleryThumbnailURL: String!
+  assetData: String!
+  assetURL: String!
+  artworkMetadata: JSON
 }
 
 type Artist {
-	id: String!
-	name: String!
-	url: String!
+  id: String!
+  name: String!
+  url: String!
 }
 
 type Identity {
-	accountNumber: String!
-	blockchain: String!
-	name: String!
+  accountNumber: String!
+  blockchain: String!
+  name: String!
 }
 
 type BlockTime {
-	blockTime: Time!
+  blockTime: Time!
 }
 
 type EthereumContractAddresses {
-	ERC721: [String!]
-	ERC1155: [String!]
+  ERC721: [String!]
+  ERC1155: [String!]
 }
 
 type TezosContractAddresses {
-	FA2: [String!]
+  FA2: [String!]
 }
 
 type ContractAddresses {
-	Ethereum: EthereumContractAddresses!
-	Tezos: TezosContractAddresses!
+  Ethereum: EthereumContractAddresses!
+  Tezos: TezosContractAddresses!
 }
 
 type Collection {
-	id: String!
-	externalID: String!
-	creators: [String!]
-	name: String!
-	description: String!
-	items: Int64!
-	imageURL: String!
-	contracts: ContractAddresses!
-	published: Boolean!
-	source: String!
-	externalURL: String!
-	metadata: JSON
+  id: String!
+  externalID: String!
+  creators: [String!]
+  name: String!
+  description: String!
+  items: Int64!
+  imageURL: String!
+  contracts: ContractAddresses!
+  published: Boolean!
+  source: String!
+  externalURL: String!
+  metadata: JSON
 
-	lastUpdatedTime: Time
-	createdAt: Time
+  lastUpdatedTime: Time
+  createdAt: Time
 }
 
 type Query {
-	tokens(
-		owners: [String!]! = []
-		ids: [String!]! = []
-		collectionID: String! = ""
-		source: String! = ""
-		lastUpdatedAt: Time
-		burnedIncluded: Boolean! = false
-		sortBy: String
-		offset: Int64! = 0
-		size: Int64! = 50
-	): [Token!]!
-	identity(account: String!): Identity
-	ethBlockTime(blockHash: String!): BlockTime
-	collections(
-		creators: [String!]! = []
-		offset: Int64! = 0
-		size: Int64! = 50
-	): [Collection!]!
-	collection(id: String!): Collection
+  tokens(
+    owners: [String!]! = []
+    ids: [String!]! = []
+    collectionID: String! = ""
+    source: String! = ""
+    lastUpdatedAt: Time
+    burnedIncluded: Boolean! = false
+    sortBy: String
+    offset: Int64! = 0
+    size: Int64! = 50
+  ): [Token!]!
+  identity(account: String!): Identity
+  ethBlockTime(blockHash: String!): BlockTime
+  collections(
+    creators: [String!]! = []
+    offset: Int64! = 0
+    size: Int64! = 50
+  ): [Collection!]!
+  collection(id: String!): Collection
 }
 
 type Mutation {
-	indexHistory(indexID: String!): Boolean!
-	indexCollection(creators: [String!]!): Boolean!
+  indexHistory(indexID: String!): Boolean!
+  indexCollection(creators: [String!]!): Boolean!
 }
 
 scalar Time

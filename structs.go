@@ -92,9 +92,33 @@ type Token struct {
 	LastActivityTime  time.Time    `json:"lastActivityTime" bson:"lastActivityTime"`
 	LastRefreshedTime time.Time    `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
 }
-
+type DisplayConfiguration struct {
+	Scaling         string `json:"scaling" bson:"scaling"`                 // fit|fill
+	BackgroundColor string `json:"backgroundColor" bson:"backgroundColor"` // #000000
+	Margin          int64  `json:"margin" bson:"margin"`                   // 0
+	AutoPlay        bool   `json:"autoPlay" bson:"autoPlay"`               // true|false
+	Looping         bool   `json:"looping" bson:"looping"`                 // true|false
+	DisableOverride bool   `json:"disableOverride" bson:"disableOverride"` // true|false
+}
+type MouseConfiguration struct {
+	Clickable  bool `json:"clickable" bson:"clickable"`   // true|false
+	Scrollable bool `json:"scrollable" bson:"scrollable"` // true|false
+	Draggable  bool `json:"draggable" bson:"draggable"`   // true|false
+	Hoverable  bool `json:"hoverable" bson:"hoverable"`   // true|false
+}
+type KeyboardConfiguration struct {
+	Keys []string `json:"keys" bson:"keys"` // ["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"]
+}
+type InteractiveConfiguration struct {
+	Mouse    *MouseConfiguration    `json:"mouse,omitempty" bson:"mouse,omitempty"`
+	Keyboard *KeyboardConfiguration `json:"keyboard,omitempty" bson:"keyboard,omitempty"`
+}
+type AssetConfiguration struct {
+	Display     *DisplayConfiguration     `json:"display,omitempty" bson:"display,omitempty"`
+	Interaction *InteractiveConfiguration `json:"interaction,omitempty" bson:"interaction,omitempty"`
+}
 type AssetAttributes struct {
-	Scrollable bool `json:"scrollable" bson:"scrollable"`
+	Configuration *AssetConfiguration `json:"configuration,omitempty" bson:"configuration,omitempty"`
 }
 
 type ProjectMetadata struct {

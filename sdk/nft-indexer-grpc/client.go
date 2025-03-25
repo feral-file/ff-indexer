@@ -265,3 +265,13 @@ func (i *IndexerGRPCClient) GetExchangeRate(
 
 	return indexerExchangeRate, nil
 }
+
+func (i *IndexerGRPCClient) UpdateAssetConfiguration(ctx context.Context, indexID string, configuration *indexer.AssetConfiguration) error {
+	_, err := i.client.UpdateAssetConfiguration(ctx,
+		&pb.UpdateAssetConfigurationRequest{
+			IndexID:       indexID,
+			Configuration: i.mapper.MapIndexerAssetConfigurationToGrpcAssetConfiguration(configuration),
+		})
+
+	return err
+}

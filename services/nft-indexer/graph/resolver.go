@@ -35,11 +35,6 @@ func (r *Resolver) mapGraphQLToken(t indexer.DetailedTokenV2) *model.Token {
 		originalTokenInfo = append(originalTokenInfo, r.mapGraphQLBaseTokenInfo(t))
 	}
 
-	var attributes model.AssetAttributes
-	if t.Asset.Attributes != nil {
-		attributes = model.AssetAttributes{Scrollable: t.Asset.Attributes.Scrollable}
-	}
-
 	var owners []*model.Owner
 	for address, balance := range t.Owners {
 		owners = append(owners, &model.Owner{
@@ -69,20 +64,77 @@ func (r *Resolver) mapGraphQLToken(t indexer.DetailedTokenV2) *model.Token {
 		Provenance:        provenances,
 		LastActivityTime:  &t.LastActivityTime,
 		LastRefreshedTime: &t.LastRefreshedTime,
-		Asset: &model.Asset{
-			IndexID:           t.Asset.IndexID,
-			ThumbnailID:       t.Asset.ThumbnailID,
-			LastRefreshedTime: &t.Asset.LastRefreshedTime,
-			Attributes:        &attributes,
-			Metadata: &model.AssetMetadata{
-				Project: &model.VersionedProjectMetadata{
-					Origin: r.mapGraphQLProjectMetadata(t.Asset.Metadata.Project.Origin),
-					Latest: r.mapGraphQLProjectMetadata(t.Asset.Metadata.Project.Latest),
+		Asset:             r.mapGraphQLAsset(t.Asset),
+	}
+}
+
+func (r *Resolver) mapGraphQLAsset(a indexer.AssetV2) *model.Asset {
+	var attributes *model.AssetAttributes
+	if a.Attributes != nil {
+		if a.Attributes.Configuration != nil {
+			var gd *model.DisplayConfiguration
+			d := a.Attributes.Configuration.Display
+			if d != nil {
+				gd = &model.DisplayConfiguration{
+					Scaling:         d.Scaling,
+					BackgroundColor: d.BackgroundColor,
+					Margin:          d.Margin,
+					AutoPlay:        d.AutoPlay,
+					Looping:         d.Looping,
+					DisableOverride: d.DisableOverride,
+				}
+			}
+
+			var gi *model.InteractiveConfiguration
+			i := a.Attributes.Configuration.Interaction
+			if i != nil {
+				var gm *model.MouseConfiguration
+				m := i.Mouse
+				if m != nil {
+					gm = &model.MouseConfiguration{
+						Clickable:  m.Clickable,
+						Scrollable: m.Scrollable,
+						Draggable:  m.Draggable,
+						Hoverable:  m.Hoverable,
+					}
+				}
+
+				var gk *model.KeyboardConfiguration
+				k := i.Keyboard
+				if k != nil {
+					gk = &model.KeyboardConfiguration{
+						Keys: k.Keys,
+					}
+				}
+
+				gi = &model.InteractiveConfiguration{
+					Mouse:    gm,
+					Keyboard: gk,
+				}
+			}
+
+			attributes = &model.AssetAttributes{
+				Configuration: &model.AssetConfiguration{
+					Display:     gd,
+					Interaction: gi,
 				},
+			}
+		}
+	}
+
+	return &model.Asset{
+		IndexID:           a.IndexID,
+		ThumbnailID:       a.ThumbnailID,
+		LastRefreshedTime: &a.LastRefreshedTime,
+		Attributes:        attributes,
+		Metadata: &model.AssetMetadata{
+			Project: &model.VersionedProjectMetadata{
+				Origin: r.mapGraphQLProjectMetadata(a.Metadata.Project.Origin),
+				Latest: r.mapGraphQLProjectMetadata(a.Metadata.Project.Latest),
 			},
-			StaticPreviewURLLandscape: t.Asset.StaticPreviewURLLandscape,
-			StaticPreviewURLPortrait:  t.Asset.StaticPreviewURLPortrait,
 		},
+		StaticPreviewURLLandscape: a.StaticPreviewURLLandscape,
+		StaticPreviewURLPortrait:  a.StaticPreviewURLPortrait,
 	}
 }
 

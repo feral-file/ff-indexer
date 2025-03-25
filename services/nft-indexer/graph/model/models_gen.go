@@ -23,7 +23,12 @@ type Asset struct {
 }
 
 type AssetAttributes struct {
-	Scrollable bool `json:"scrollable"`
+	Configuration *AssetConfiguration `json:"configuration"`
+}
+
+type AssetConfiguration struct {
+	Display     *DisplayConfiguration     `json:"display"`
+	Interaction *InteractiveConfiguration `json:"interaction"`
 }
 
 type AssetMetadata struct {
@@ -64,6 +69,15 @@ type ContractAddresses struct {
 	Tezos    *TezosContractAddresses    `json:"Tezos"`
 }
 
+type DisplayConfiguration struct {
+	Scaling         string `json:"scaling"`
+	BackgroundColor string `json:"backgroundColor"`
+	Margin          int64  `json:"margin"`
+	AutoPlay        bool   `json:"autoPlay"`
+	Looping         bool   `json:"looping"`
+	DisableOverride bool   `json:"disableOverride"`
+}
+
 type EthereumContractAddresses struct {
 	Erc721  []string `json:"ERC721,omitempty"`
 	Erc1155 []string `json:"ERC1155,omitempty"`
@@ -73,6 +87,22 @@ type Identity struct {
 	AccountNumber string `json:"accountNumber"`
 	Blockchain    string `json:"blockchain"`
 	Name          string `json:"name"`
+}
+
+type InteractiveConfiguration struct {
+	Mouse    *MouseConfiguration    `json:"mouse"`
+	Keyboard *KeyboardConfiguration `json:"keyboard"`
+}
+
+type KeyboardConfiguration struct {
+	Keys []string `json:"keys,omitempty"`
+}
+
+type MouseConfiguration struct {
+	Clickable  bool `json:"clickable"`
+	Scrollable bool `json:"scrollable"`
+	Draggable  bool `json:"draggable"`
+	Hoverable  bool `json:"hoverable"`
 }
 
 type Mutation struct {
