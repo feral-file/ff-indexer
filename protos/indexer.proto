@@ -22,7 +22,7 @@ service Indexer {
   rpc GetSaleTimeSeries(SaleTimeSeriesFilter) returns (SaleTimeSeriesListResponse);
   rpc GetSaleRevenues(SaleTimeSeriesFilter) returns (SaleRevenuesResponse);
   rpc GetHistoricalExchangeRate(HistoricalExchangeRateFilter) returns (ExchangeRateResponse);
-  rpc UpdateAssetConfiguration(UpdateAssetConfigurationRequest) returns(EmptyMessage);
+  rpc UpdateAssetsConfiguration(UpdateAssetsConfigurationRequest) returns(EmptyMessage);
 }
 
 message CheckAddressOwnTokenByCriteriaResponse {
@@ -67,34 +67,17 @@ message DetailedToken {
   VersionedProjectMetadata ProjectMetadata = 5;
 }
 
-message DisplayConfiguration {
+message AssetConfiguration {
   string Scaling = 1;
   string BackgroundColor = 2;
-  int64 Margin = 3;
-  bool AutoPlay = 4; 
-  bool Looping = 5; 
-  bool DisableOverride = 6;
-}
-
-message MouseConfiguration {
-  bool Clickable = 1;
-  bool Scrollable = 2; 
-  bool Draggable = 3;
-  bool Hoverable = 4;
-}
-
-message KeyboardConfiguration {
-  repeated string Keys = 1;
-}
-
-message InteractionConfiguration {
-  MouseConfiguration Mouse = 1;
-  KeyboardConfiguration Keyboard = 2;
-}
-
-message AssetConfiguration {
-  DisplayConfiguration Display = 1;
-  InteractionConfiguration Interaction = 2; 
+  double MarginLeft = 3;
+  double MarginRight = 4;
+  double MarginBottom = 5;
+  double MarginTop = 6;
+  bool AutoPlay = 7; 
+  bool Looping = 8; 
+  bool Interactable = 9;
+  bool Overridable = 10; 
 }
 
 message AssetAttributes {
@@ -311,7 +294,7 @@ message GetDetailedTokenRequest {
   bool BurnedIncluded = 2;
 }
 
-message UpdateAssetConfigurationRequest {
+message UpdateAssetsConfigurationRequest {
   repeated string indexIDs = 1;
   AssetConfiguration configuration = 2;
 }

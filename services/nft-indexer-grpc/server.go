@@ -309,9 +309,9 @@ func (i *IndexerServer) GetHistoricalExchangeRate(ctx context.Context, filter *p
 	return i.mapper.MapToExchangeRateResponse(result)
 }
 
-func (i *IndexerServer) UpdateAssetConfiguration(ctx context.Context, in *pb.UpdateAssetConfigurationRequest) (*pb.EmptyMessage, error) {
+func (i *IndexerServer) UpdateAssetsConfiguration(ctx context.Context, in *pb.UpdateAssetsConfigurationRequest) (*pb.EmptyMessage, error) {
 	configuration := i.mapper.MapGrpcAssetConfigurationToIndexerAssetConfiguration(in.Configuration)
-	modifiedCount, err := i.indexerStore.UpdateAssetConfiguration(
+	modifiedCount, err := i.indexerStore.UpdateAssetsConfiguration(
 		ctx,
 		in.IndexIDs,
 		configuration,

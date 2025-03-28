@@ -92,30 +92,17 @@ type Token struct {
 	LastActivityTime  time.Time    `json:"lastActivityTime" bson:"lastActivityTime"`
 	LastRefreshedTime time.Time    `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
 }
-type DisplayConfiguration struct {
-	Scaling         string `json:"scaling" bson:"scaling"`                 // fit|fill
-	BackgroundColor string `json:"backgroundColor" bson:"backgroundColor"` // #000000
-	Margin          int64  `json:"margin" bson:"margin"`                   // 0
-	AutoPlay        bool   `json:"autoPlay" bson:"autoPlay"`               // true|false
-	Looping         bool   `json:"looping" bson:"looping"`                 // true|false
-	DisableOverride bool   `json:"disableOverride" bson:"disableOverride"` // true|false
-}
-type MouseConfiguration struct {
-	Clickable  bool `json:"clickable" bson:"clickable"`   // true|false
-	Scrollable bool `json:"scrollable" bson:"scrollable"` // true|false
-	Draggable  bool `json:"draggable" bson:"draggable"`   // true|false
-	Hoverable  bool `json:"hoverable" bson:"hoverable"`   // true|false
-}
-type KeyboardConfiguration struct {
-	Keys []string `json:"keys" bson:"keys"` // ["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"]
-}
-type InteractiveConfiguration struct {
-	Mouse    *MouseConfiguration    `json:"mouse,omitempty" bson:"mouse,omitempty"`
-	Keyboard *KeyboardConfiguration `json:"keyboard,omitempty" bson:"keyboard,omitempty"`
-}
 type AssetConfiguration struct {
-	Display     *DisplayConfiguration     `json:"display,omitempty" bson:"display,omitempty"`
-	Interaction *InteractiveConfiguration `json:"interaction,omitempty" bson:"interaction,omitempty"`
+	Scaling         string  `json:"scaling" bson:"scaling"`                 // fit|fill
+	BackgroundColor string  `json:"backgroundColor" bson:"backgroundColor"` // #000000
+	MarginLeft      float64 `json:"marginLeft" bson:"marginLeft"`           // 0.1
+	MarginRight     float64 `json:"marginRight" bson:"marginRight"`         // 0.1
+	MarginTop       float64 `json:"marginTop" bson:"marginTop"`             // 0.1
+	MarginBottom    float64 `json:"marginBottom" bson:"marginBottom"`       // 0.1
+	AutoPlay        bool    `json:"autoPlay" bson:"autoPlay"`               // true|false
+	Looping         bool    `json:"looping" bson:"looping"`                 // true|false
+	Interactable    bool    `json:"interactable" bson:"interactable"`       // true|false
+	Overridable     bool    `json:"overridable" bson:"overridable"`         // true|false
 }
 type AssetAttributes struct {
 	Configuration *AssetConfiguration `json:"configuration,omitempty" bson:"configuration,omitempty"`

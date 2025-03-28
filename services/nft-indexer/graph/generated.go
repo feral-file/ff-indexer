@@ -69,8 +69,16 @@ type ComplexityRoot struct {
 	}
 
 	AssetConfiguration struct {
-		Display     func(childComplexity int) int
-		Interaction func(childComplexity int) int
+		AutoPlay        func(childComplexity int) int
+		BackgroundColor func(childComplexity int) int
+		Interactable    func(childComplexity int) int
+		Looping         func(childComplexity int) int
+		MarginBottom    func(childComplexity int) int
+		MarginLeft      func(childComplexity int) int
+		MarginRight     func(childComplexity int) int
+		MarginTop       func(childComplexity int) int
+		Overridable     func(childComplexity int) int
+		Scaling         func(childComplexity int) int
 	}
 
 	AssetMetadata struct {
@@ -111,15 +119,6 @@ type ComplexityRoot struct {
 		Tezos    func(childComplexity int) int
 	}
 
-	DisplayConfiguration struct {
-		AutoPlay        func(childComplexity int) int
-		BackgroundColor func(childComplexity int) int
-		DisableOverride func(childComplexity int) int
-		Looping         func(childComplexity int) int
-		Margin          func(childComplexity int) int
-		Scaling         func(childComplexity int) int
-	}
-
 	EthereumContractAddresses struct {
 		Erc1155 func(childComplexity int) int
 		Erc721  func(childComplexity int) int
@@ -129,22 +128,6 @@ type ComplexityRoot struct {
 		AccountNumber func(childComplexity int) int
 		Blockchain    func(childComplexity int) int
 		Name          func(childComplexity int) int
-	}
-
-	InteractiveConfiguration struct {
-		Keyboard func(childComplexity int) int
-		Mouse    func(childComplexity int) int
-	}
-
-	KeyboardConfiguration struct {
-		Keys func(childComplexity int) int
-	}
-
-	MouseConfiguration struct {
-		Clickable  func(childComplexity int) int
-		Draggable  func(childComplexity int) int
-		Hoverable  func(childComplexity int) int
-		Scrollable func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -340,19 +323,75 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.AssetAttributes.Configuration(childComplexity), true
 
-	case "AssetConfiguration.display":
-		if e.complexity.AssetConfiguration.Display == nil {
+	case "AssetConfiguration.autoPlay":
+		if e.complexity.AssetConfiguration.AutoPlay == nil {
 			break
 		}
 
-		return e.complexity.AssetConfiguration.Display(childComplexity), true
+		return e.complexity.AssetConfiguration.AutoPlay(childComplexity), true
 
-	case "AssetConfiguration.interaction":
-		if e.complexity.AssetConfiguration.Interaction == nil {
+	case "AssetConfiguration.backgroundColor":
+		if e.complexity.AssetConfiguration.BackgroundColor == nil {
 			break
 		}
 
-		return e.complexity.AssetConfiguration.Interaction(childComplexity), true
+		return e.complexity.AssetConfiguration.BackgroundColor(childComplexity), true
+
+	case "AssetConfiguration.interactable":
+		if e.complexity.AssetConfiguration.Interactable == nil {
+			break
+		}
+
+		return e.complexity.AssetConfiguration.Interactable(childComplexity), true
+
+	case "AssetConfiguration.looping":
+		if e.complexity.AssetConfiguration.Looping == nil {
+			break
+		}
+
+		return e.complexity.AssetConfiguration.Looping(childComplexity), true
+
+	case "AssetConfiguration.marginBottom":
+		if e.complexity.AssetConfiguration.MarginBottom == nil {
+			break
+		}
+
+		return e.complexity.AssetConfiguration.MarginBottom(childComplexity), true
+
+	case "AssetConfiguration.marginLeft":
+		if e.complexity.AssetConfiguration.MarginLeft == nil {
+			break
+		}
+
+		return e.complexity.AssetConfiguration.MarginLeft(childComplexity), true
+
+	case "AssetConfiguration.marginRight":
+		if e.complexity.AssetConfiguration.MarginRight == nil {
+			break
+		}
+
+		return e.complexity.AssetConfiguration.MarginRight(childComplexity), true
+
+	case "AssetConfiguration.marginTop":
+		if e.complexity.AssetConfiguration.MarginTop == nil {
+			break
+		}
+
+		return e.complexity.AssetConfiguration.MarginTop(childComplexity), true
+
+	case "AssetConfiguration.overridable":
+		if e.complexity.AssetConfiguration.Overridable == nil {
+			break
+		}
+
+		return e.complexity.AssetConfiguration.Overridable(childComplexity), true
+
+	case "AssetConfiguration.scaling":
+		if e.complexity.AssetConfiguration.Scaling == nil {
+			break
+		}
+
+		return e.complexity.AssetConfiguration.Scaling(childComplexity), true
 
 	case "AssetMetadata.project":
 		if e.complexity.AssetMetadata.Project == nil {
@@ -515,48 +554,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ContractAddresses.Tezos(childComplexity), true
 
-	case "DisplayConfiguration.autoPlay":
-		if e.complexity.DisplayConfiguration.AutoPlay == nil {
-			break
-		}
-
-		return e.complexity.DisplayConfiguration.AutoPlay(childComplexity), true
-
-	case "DisplayConfiguration.backgroundColor":
-		if e.complexity.DisplayConfiguration.BackgroundColor == nil {
-			break
-		}
-
-		return e.complexity.DisplayConfiguration.BackgroundColor(childComplexity), true
-
-	case "DisplayConfiguration.disableOverride":
-		if e.complexity.DisplayConfiguration.DisableOverride == nil {
-			break
-		}
-
-		return e.complexity.DisplayConfiguration.DisableOverride(childComplexity), true
-
-	case "DisplayConfiguration.looping":
-		if e.complexity.DisplayConfiguration.Looping == nil {
-			break
-		}
-
-		return e.complexity.DisplayConfiguration.Looping(childComplexity), true
-
-	case "DisplayConfiguration.margin":
-		if e.complexity.DisplayConfiguration.Margin == nil {
-			break
-		}
-
-		return e.complexity.DisplayConfiguration.Margin(childComplexity), true
-
-	case "DisplayConfiguration.scaling":
-		if e.complexity.DisplayConfiguration.Scaling == nil {
-			break
-		}
-
-		return e.complexity.DisplayConfiguration.Scaling(childComplexity), true
-
 	case "EthereumContractAddresses.ERC1155":
 		if e.complexity.EthereumContractAddresses.Erc1155 == nil {
 			break
@@ -591,55 +588,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Identity.Name(childComplexity), true
-
-	case "InteractiveConfiguration.keyboard":
-		if e.complexity.InteractiveConfiguration.Keyboard == nil {
-			break
-		}
-
-		return e.complexity.InteractiveConfiguration.Keyboard(childComplexity), true
-
-	case "InteractiveConfiguration.mouse":
-		if e.complexity.InteractiveConfiguration.Mouse == nil {
-			break
-		}
-
-		return e.complexity.InteractiveConfiguration.Mouse(childComplexity), true
-
-	case "KeyboardConfiguration.keys":
-		if e.complexity.KeyboardConfiguration.Keys == nil {
-			break
-		}
-
-		return e.complexity.KeyboardConfiguration.Keys(childComplexity), true
-
-	case "MouseConfiguration.clickable":
-		if e.complexity.MouseConfiguration.Clickable == nil {
-			break
-		}
-
-		return e.complexity.MouseConfiguration.Clickable(childComplexity), true
-
-	case "MouseConfiguration.draggable":
-		if e.complexity.MouseConfiguration.Draggable == nil {
-			break
-		}
-
-		return e.complexity.MouseConfiguration.Draggable(childComplexity), true
-
-	case "MouseConfiguration.hoverable":
-		if e.complexity.MouseConfiguration.Hoverable == nil {
-			break
-		}
-
-		return e.complexity.MouseConfiguration.Hoverable(childComplexity), true
-
-	case "MouseConfiguration.scrollable":
-		if e.complexity.MouseConfiguration.Scrollable == nil {
-			break
-		}
-
-		return e.complexity.MouseConfiguration.Scrollable(childComplexity), true
 
 	case "Mutation.indexCollection":
 		if e.complexity.Mutation.IndexCollection == nil {
@@ -1942,10 +1890,26 @@ func (ec *executionContext) fieldContext_AssetAttributes_configuration(ctx conte
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "display":
-				return ec.fieldContext_AssetConfiguration_display(ctx, field)
-			case "interaction":
-				return ec.fieldContext_AssetConfiguration_interaction(ctx, field)
+			case "scaling":
+				return ec.fieldContext_AssetConfiguration_scaling(ctx, field)
+			case "backgroundColor":
+				return ec.fieldContext_AssetConfiguration_backgroundColor(ctx, field)
+			case "marginLeft":
+				return ec.fieldContext_AssetConfiguration_marginLeft(ctx, field)
+			case "marginRight":
+				return ec.fieldContext_AssetConfiguration_marginRight(ctx, field)
+			case "marginTop":
+				return ec.fieldContext_AssetConfiguration_marginTop(ctx, field)
+			case "marginBottom":
+				return ec.fieldContext_AssetConfiguration_marginBottom(ctx, field)
+			case "autoPlay":
+				return ec.fieldContext_AssetConfiguration_autoPlay(ctx, field)
+			case "looping":
+				return ec.fieldContext_AssetConfiguration_looping(ctx, field)
+			case "interactable":
+				return ec.fieldContext_AssetConfiguration_interactable(ctx, field)
+			case "overridable":
+				return ec.fieldContext_AssetConfiguration_overridable(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AssetConfiguration", field.Name)
 		},
@@ -1953,8 +1917,8 @@ func (ec *executionContext) fieldContext_AssetAttributes_configuration(ctx conte
 	return fc, nil
 }
 
-func (ec *executionContext) _AssetConfiguration_display(ctx context.Context, field graphql.CollectedField, obj *model.AssetConfiguration) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AssetConfiguration_display(ctx, field)
+func (ec *executionContext) _AssetConfiguration_scaling(ctx context.Context, field graphql.CollectedField, obj *model.AssetConfiguration) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AssetConfiguration_scaling(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1967,7 +1931,7 @@ func (ec *executionContext) _AssetConfiguration_display(ctx context.Context, fie
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Display, nil
+		return obj.Scaling, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1979,40 +1943,26 @@ func (ec *executionContext) _AssetConfiguration_display(ctx context.Context, fie
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.DisplayConfiguration)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNDisplayConfiguration2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐDisplayConfiguration(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_AssetConfiguration_display(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_AssetConfiguration_scaling(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "AssetConfiguration",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "scaling":
-				return ec.fieldContext_DisplayConfiguration_scaling(ctx, field)
-			case "backgroundColor":
-				return ec.fieldContext_DisplayConfiguration_backgroundColor(ctx, field)
-			case "margin":
-				return ec.fieldContext_DisplayConfiguration_margin(ctx, field)
-			case "autoPlay":
-				return ec.fieldContext_DisplayConfiguration_autoPlay(ctx, field)
-			case "looping":
-				return ec.fieldContext_DisplayConfiguration_looping(ctx, field)
-			case "disableOverride":
-				return ec.fieldContext_DisplayConfiguration_disableOverride(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type DisplayConfiguration", field.Name)
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _AssetConfiguration_interaction(ctx context.Context, field graphql.CollectedField, obj *model.AssetConfiguration) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AssetConfiguration_interaction(ctx, field)
+func (ec *executionContext) _AssetConfiguration_backgroundColor(ctx context.Context, field graphql.CollectedField, obj *model.AssetConfiguration) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AssetConfiguration_backgroundColor(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -2025,7 +1975,7 @@ func (ec *executionContext) _AssetConfiguration_interaction(ctx context.Context,
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Interaction, nil
+		return obj.BackgroundColor, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2037,25 +1987,371 @@ func (ec *executionContext) _AssetConfiguration_interaction(ctx context.Context,
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.InteractiveConfiguration)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInteractiveConfiguration2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐInteractiveConfiguration(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_AssetConfiguration_interaction(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_AssetConfiguration_backgroundColor(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "AssetConfiguration",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "mouse":
-				return ec.fieldContext_InteractiveConfiguration_mouse(ctx, field)
-			case "keyboard":
-				return ec.fieldContext_InteractiveConfiguration_keyboard(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type InteractiveConfiguration", field.Name)
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AssetConfiguration_marginLeft(ctx context.Context, field graphql.CollectedField, obj *model.AssetConfiguration) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AssetConfiguration_marginLeft(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.MarginLeft, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AssetConfiguration_marginLeft(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AssetConfiguration",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AssetConfiguration_marginRight(ctx context.Context, field graphql.CollectedField, obj *model.AssetConfiguration) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AssetConfiguration_marginRight(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.MarginRight, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AssetConfiguration_marginRight(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AssetConfiguration",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AssetConfiguration_marginTop(ctx context.Context, field graphql.CollectedField, obj *model.AssetConfiguration) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AssetConfiguration_marginTop(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.MarginTop, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AssetConfiguration_marginTop(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AssetConfiguration",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AssetConfiguration_marginBottom(ctx context.Context, field graphql.CollectedField, obj *model.AssetConfiguration) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AssetConfiguration_marginBottom(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.MarginBottom, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AssetConfiguration_marginBottom(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AssetConfiguration",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AssetConfiguration_autoPlay(ctx context.Context, field graphql.CollectedField, obj *model.AssetConfiguration) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AssetConfiguration_autoPlay(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AutoPlay, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AssetConfiguration_autoPlay(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AssetConfiguration",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AssetConfiguration_looping(ctx context.Context, field graphql.CollectedField, obj *model.AssetConfiguration) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AssetConfiguration_looping(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Looping, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AssetConfiguration_looping(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AssetConfiguration",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AssetConfiguration_interactable(ctx context.Context, field graphql.CollectedField, obj *model.AssetConfiguration) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AssetConfiguration_interactable(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Interactable, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AssetConfiguration_interactable(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AssetConfiguration",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AssetConfiguration_overridable(ctx context.Context, field graphql.CollectedField, obj *model.AssetConfiguration) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AssetConfiguration_overridable(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Overridable, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AssetConfiguration_overridable(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AssetConfiguration",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3083,270 +3379,6 @@ func (ec *executionContext) fieldContext_ContractAddresses_Tezos(ctx context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _DisplayConfiguration_scaling(ctx context.Context, field graphql.CollectedField, obj *model.DisplayConfiguration) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_DisplayConfiguration_scaling(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Scaling, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_DisplayConfiguration_scaling(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DisplayConfiguration",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DisplayConfiguration_backgroundColor(ctx context.Context, field graphql.CollectedField, obj *model.DisplayConfiguration) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_DisplayConfiguration_backgroundColor(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.BackgroundColor, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_DisplayConfiguration_backgroundColor(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DisplayConfiguration",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DisplayConfiguration_margin(ctx context.Context, field graphql.CollectedField, obj *model.DisplayConfiguration) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_DisplayConfiguration_margin(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Margin, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int64)
-	fc.Result = res
-	return ec.marshalNInt642int64(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_DisplayConfiguration_margin(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DisplayConfiguration",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int64 does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DisplayConfiguration_autoPlay(ctx context.Context, field graphql.CollectedField, obj *model.DisplayConfiguration) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_DisplayConfiguration_autoPlay(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.AutoPlay, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_DisplayConfiguration_autoPlay(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DisplayConfiguration",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DisplayConfiguration_looping(ctx context.Context, field graphql.CollectedField, obj *model.DisplayConfiguration) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_DisplayConfiguration_looping(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Looping, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_DisplayConfiguration_looping(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DisplayConfiguration",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DisplayConfiguration_disableOverride(ctx context.Context, field graphql.CollectedField, obj *model.DisplayConfiguration) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_DisplayConfiguration_disableOverride(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.DisableOverride, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_DisplayConfiguration_disableOverride(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DisplayConfiguration",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _EthereumContractAddresses_ERC721(ctx context.Context, field graphql.CollectedField, obj *model.EthereumContractAddresses) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_EthereumContractAddresses_ERC721(ctx, field)
 	if err != nil {
@@ -3556,325 +3588,6 @@ func (ec *executionContext) fieldContext_Identity_name(ctx context.Context, fiel
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _InteractiveConfiguration_mouse(ctx context.Context, field graphql.CollectedField, obj *model.InteractiveConfiguration) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_InteractiveConfiguration_mouse(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Mouse, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.MouseConfiguration)
-	fc.Result = res
-	return ec.marshalNMouseConfiguration2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐMouseConfiguration(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_InteractiveConfiguration_mouse(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InteractiveConfiguration",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "clickable":
-				return ec.fieldContext_MouseConfiguration_clickable(ctx, field)
-			case "scrollable":
-				return ec.fieldContext_MouseConfiguration_scrollable(ctx, field)
-			case "draggable":
-				return ec.fieldContext_MouseConfiguration_draggable(ctx, field)
-			case "hoverable":
-				return ec.fieldContext_MouseConfiguration_hoverable(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type MouseConfiguration", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _InteractiveConfiguration_keyboard(ctx context.Context, field graphql.CollectedField, obj *model.InteractiveConfiguration) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_InteractiveConfiguration_keyboard(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Keyboard, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.KeyboardConfiguration)
-	fc.Result = res
-	return ec.marshalNKeyboardConfiguration2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐKeyboardConfiguration(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_InteractiveConfiguration_keyboard(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InteractiveConfiguration",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "keys":
-				return ec.fieldContext_KeyboardConfiguration_keys(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type KeyboardConfiguration", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _KeyboardConfiguration_keys(ctx context.Context, field graphql.CollectedField, obj *model.KeyboardConfiguration) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_KeyboardConfiguration_keys(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Keys, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]string)
-	fc.Result = res
-	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_KeyboardConfiguration_keys(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "KeyboardConfiguration",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _MouseConfiguration_clickable(ctx context.Context, field graphql.CollectedField, obj *model.MouseConfiguration) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_MouseConfiguration_clickable(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Clickable, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_MouseConfiguration_clickable(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "MouseConfiguration",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _MouseConfiguration_scrollable(ctx context.Context, field graphql.CollectedField, obj *model.MouseConfiguration) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_MouseConfiguration_scrollable(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Scrollable, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_MouseConfiguration_scrollable(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "MouseConfiguration",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _MouseConfiguration_draggable(ctx context.Context, field graphql.CollectedField, obj *model.MouseConfiguration) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_MouseConfiguration_draggable(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Draggable, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_MouseConfiguration_draggable(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "MouseConfiguration",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _MouseConfiguration_hoverable(ctx context.Context, field graphql.CollectedField, obj *model.MouseConfiguration) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_MouseConfiguration_hoverable(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Hoverable, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_MouseConfiguration_hoverable(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "MouseConfiguration",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -8882,13 +8595,53 @@ func (ec *executionContext) _AssetConfiguration(ctx context.Context, sel ast.Sel
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("AssetConfiguration")
-		case "display":
-			out.Values[i] = ec._AssetConfiguration_display(ctx, field, obj)
+		case "scaling":
+			out.Values[i] = ec._AssetConfiguration_scaling(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "interaction":
-			out.Values[i] = ec._AssetConfiguration_interaction(ctx, field, obj)
+		case "backgroundColor":
+			out.Values[i] = ec._AssetConfiguration_backgroundColor(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "marginLeft":
+			out.Values[i] = ec._AssetConfiguration_marginLeft(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "marginRight":
+			out.Values[i] = ec._AssetConfiguration_marginRight(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "marginTop":
+			out.Values[i] = ec._AssetConfiguration_marginTop(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "marginBottom":
+			out.Values[i] = ec._AssetConfiguration_marginBottom(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "autoPlay":
+			out.Values[i] = ec._AssetConfiguration_autoPlay(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "looping":
+			out.Values[i] = ec._AssetConfiguration_looping(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "interactable":
+			out.Values[i] = ec._AssetConfiguration_interactable(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "overridable":
+			out.Values[i] = ec._AssetConfiguration_overridable(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -9188,70 +8941,6 @@ func (ec *executionContext) _ContractAddresses(ctx context.Context, sel ast.Sele
 	return out
 }
 
-var displayConfigurationImplementors = []string{"DisplayConfiguration"}
-
-func (ec *executionContext) _DisplayConfiguration(ctx context.Context, sel ast.SelectionSet, obj *model.DisplayConfiguration) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, displayConfigurationImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("DisplayConfiguration")
-		case "scaling":
-			out.Values[i] = ec._DisplayConfiguration_scaling(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "backgroundColor":
-			out.Values[i] = ec._DisplayConfiguration_backgroundColor(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "margin":
-			out.Values[i] = ec._DisplayConfiguration_margin(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "autoPlay":
-			out.Values[i] = ec._DisplayConfiguration_autoPlay(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "looping":
-			out.Values[i] = ec._DisplayConfiguration_looping(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "disableOverride":
-			out.Values[i] = ec._DisplayConfiguration_disableOverride(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var ethereumContractAddressesImplementors = []string{"EthereumContractAddresses"}
 
 func (ec *executionContext) _EthereumContractAddresses(ctx context.Context, sel ast.SelectionSet, obj *model.EthereumContractAddresses) graphql.Marshaler {
@@ -9313,140 +9002,6 @@ func (ec *executionContext) _Identity(ctx context.Context, sel ast.SelectionSet,
 			}
 		case "name":
 			out.Values[i] = ec._Identity_name(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var interactiveConfigurationImplementors = []string{"InteractiveConfiguration"}
-
-func (ec *executionContext) _InteractiveConfiguration(ctx context.Context, sel ast.SelectionSet, obj *model.InteractiveConfiguration) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, interactiveConfigurationImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("InteractiveConfiguration")
-		case "mouse":
-			out.Values[i] = ec._InteractiveConfiguration_mouse(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "keyboard":
-			out.Values[i] = ec._InteractiveConfiguration_keyboard(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var keyboardConfigurationImplementors = []string{"KeyboardConfiguration"}
-
-func (ec *executionContext) _KeyboardConfiguration(ctx context.Context, sel ast.SelectionSet, obj *model.KeyboardConfiguration) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, keyboardConfigurationImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("KeyboardConfiguration")
-		case "keys":
-			out.Values[i] = ec._KeyboardConfiguration_keys(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var mouseConfigurationImplementors = []string{"MouseConfiguration"}
-
-func (ec *executionContext) _MouseConfiguration(ctx context.Context, sel ast.SelectionSet, obj *model.MouseConfiguration) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, mouseConfigurationImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("MouseConfiguration")
-		case "clickable":
-			out.Values[i] = ec._MouseConfiguration_clickable(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "scrollable":
-			out.Values[i] = ec._MouseConfiguration_scrollable(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "draggable":
-			out.Values[i] = ec._MouseConfiguration_draggable(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "hoverable":
-			out.Values[i] = ec._MouseConfiguration_hoverable(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -10618,16 +10173,6 @@ func (ec *executionContext) marshalNContractAddresses2ᚖgithubᚗcomᚋbitmark�
 	return ec._ContractAddresses(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNDisplayConfiguration2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐDisplayConfiguration(ctx context.Context, sel ast.SelectionSet, v *model.DisplayConfiguration) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._DisplayConfiguration(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalNEthereumContractAddresses2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐEthereumContractAddresses(ctx context.Context, sel ast.SelectionSet, v *model.EthereumContractAddresses) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -10666,36 +10211,6 @@ func (ec *executionContext) marshalNInt642int64(ctx context.Context, sel ast.Sel
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) marshalNInteractiveConfiguration2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐInteractiveConfiguration(ctx context.Context, sel ast.SelectionSet, v *model.InteractiveConfiguration) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._InteractiveConfiguration(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNKeyboardConfiguration2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐKeyboardConfiguration(ctx context.Context, sel ast.SelectionSet, v *model.KeyboardConfiguration) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._KeyboardConfiguration(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNMouseConfiguration2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐMouseConfiguration(ctx context.Context, sel ast.SelectionSet, v *model.MouseConfiguration) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._MouseConfiguration(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNOwner2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐOwner(ctx context.Context, sel ast.SelectionSet, v *model.Owner) graphql.Marshaler {

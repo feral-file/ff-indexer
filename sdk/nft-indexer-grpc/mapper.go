@@ -266,59 +266,19 @@ func (m *Mapper) MapIndexerAttributesToGRPCAttributes(attributes *indexer.AssetA
 		return nil
 	}
 
-	c := attributes.Configuration
-	if c == nil {
-		return &grpcIndexer.AssetAttributes{}
-	}
-
-	var display *grpcIndexer.DisplayConfiguration
-	var interaction *grpcIndexer.InteractionConfiguration
-
-	d := c.Display
-	if d != nil {
-		display = &grpcIndexer.DisplayConfiguration{
-			Scaling:         d.Scaling,
-			BackgroundColor: d.BackgroundColor,
-			Margin:          d.Margin,
-			AutoPlay:        d.AutoPlay,
-			Looping:         d.Looping,
-			DisableOverride: d.DisableOverride,
-		}
-	}
-
-	i := c.Interaction
-	if i != nil {
-		var mouse *grpcIndexer.MouseConfiguration
-		var keyboard *grpcIndexer.KeyboardConfiguration
-
-		m := i.Mouse
-		if m != nil {
-			mouse = &grpcIndexer.MouseConfiguration{
-				Clickable:  m.Clickable,
-				Hoverable:  m.Hoverable,
-				Draggable:  m.Draggable,
-				Scrollable: m.Scrollable,
-			}
-		}
-
-		k := i.Keyboard
-		if k != nil {
-			keyboard = &grpcIndexer.KeyboardConfiguration{
-				Keys: k.Keys,
-			}
-		}
-
-		interaction = &grpcIndexer.InteractionConfiguration{
-			Mouse:    mouse,
-			Keyboard: keyboard,
-		}
-	}
-
 	return &grpcIndexer.AssetAttributes{
-		Configuration: &grpcIndexer.AssetConfiguration{
-			Display:     display,
-			Interaction: interaction,
-		},
+		Configuration: m.MapIndexerAssetConfigurationToGrpcAssetConfiguration(attributes.Configuration),
+	}
+}
+
+// MapGrpcAttributesToIndexerAttributes maps grpc attributes to indexer attributes
+func (m *Mapper) MapGrpcAttributesToIndexerAttributes(attributes *grpcIndexer.AssetAttributes) *indexer.AssetAttributes {
+	if attributes == nil {
+		return nil
+	}
+
+	return &indexer.AssetAttributes{
+		Configuration: m.MapGrpcAssetConfigurationToIndexerAssetConfiguration(attributes.Configuration),
 	}
 }
 
@@ -446,70 +406,23 @@ func (m *Mapper) MapGrpcDetailedTokenToIndexerDetailedToken(token *grpcIndexer.D
 	}, nil
 }
 
-// MapGrpcAttributesToIndexerAttributes maps grpc attributes to indexer attributes
-func (m *Mapper) MapGrpcAttributesToIndexerAttributes(attributes *grpcIndexer.AssetAttributes) *indexer.AssetAttributes {
-	if attributes == nil {
-		return nil
-	}
-
-	configuration := m.MapGrpcAssetConfigurationToIndexerAssetConfiguration(attributes.Configuration)
-	return &indexer.AssetAttributes{
-		Configuration: configuration,
-	}
-}
-
 // MapGrpcAssetConfigurationToIndexerAssetConfiguration maps grpc asset configuration to indexer asset configuration
 func (m *Mapper) MapGrpcAssetConfigurationToIndexerAssetConfiguration(configuration *grpcIndexer.AssetConfiguration) *indexer.AssetConfiguration {
 	if configuration == nil {
 		return nil
 	}
 
-	var display *indexer.DisplayConfiguration
-	var interaction *indexer.InteractiveConfiguration
-
-	gd := configuration.Display
-	if gd != nil {
-		display = &indexer.DisplayConfiguration{
-			Scaling:         gd.Scaling,
-			BackgroundColor: gd.BackgroundColor,
-			Margin:          gd.Margin,
-			AutoPlay:        gd.AutoPlay,
-			Looping:         gd.Looping,
-			DisableOverride: gd.DisableOverride,
-		}
-	}
-
-	gi := configuration.Interaction
-	if gi != nil {
-		var mouse *indexer.MouseConfiguration
-		var keyboard *indexer.KeyboardConfiguration
-
-		gm := gi.Mouse
-		if gm != nil {
-			mouse = &indexer.MouseConfiguration{
-				Clickable:  gm.Clickable,
-				Hoverable:  gm.Hoverable,
-				Draggable:  gm.Draggable,
-				Scrollable: gm.Scrollable,
-			}
-		}
-
-		gk := gi.Keyboard
-		if gk != nil {
-			keyboard = &indexer.KeyboardConfiguration{
-				Keys: gk.Keys,
-			}
-		}
-
-		interaction = &indexer.InteractiveConfiguration{
-			Mouse:    mouse,
-			Keyboard: keyboard,
-		}
-	}
-
 	return &indexer.AssetConfiguration{
-		Display:     display,
-		Interaction: interaction,
+		Scaling:         configuration.Scaling,
+		BackgroundColor: configuration.BackgroundColor,
+		MarginLeft:      configuration.MarginLeft,
+		MarginRight:     configuration.MarginRight,
+		MarginTop:       configuration.MarginTop,
+		MarginBottom:    configuration.MarginBottom,
+		AutoPlay:        configuration.AutoPlay,
+		Looping:         configuration.Looping,
+		Interactable:    configuration.Interactable,
+		Overridable:     configuration.Overridable,
 	}
 }
 
@@ -519,52 +432,17 @@ func (m *Mapper) MapIndexerAssetConfigurationToGrpcAssetConfiguration(configurat
 		return nil
 	}
 
-	var display *grpcIndexer.DisplayConfiguration
-	var interaction *grpcIndexer.InteractionConfiguration
-
-	d := configuration.Display
-	if d != nil {
-		display = &grpcIndexer.DisplayConfiguration{
-			Scaling:         d.Scaling,
-			BackgroundColor: d.BackgroundColor,
-			Margin:          d.Margin,
-			AutoPlay:        d.AutoPlay,
-			Looping:         d.Looping,
-			DisableOverride: d.DisableOverride,
-		}
-	}
-
-	i := configuration.Interaction
-	if i != nil {
-		var mouse *grpcIndexer.MouseConfiguration
-		var keyboard *grpcIndexer.KeyboardConfiguration
-
-		m := i.Mouse
-		if m != nil {
-			mouse = &grpcIndexer.MouseConfiguration{
-				Clickable:  m.Clickable,
-				Hoverable:  m.Hoverable,
-				Draggable:  m.Draggable,
-				Scrollable: m.Scrollable,
-			}
-		}
-
-		k := i.Keyboard
-		if k != nil {
-			keyboard = &grpcIndexer.KeyboardConfiguration{
-				Keys: k.Keys,
-			}
-		}
-
-		interaction = &grpcIndexer.InteractionConfiguration{
-			Mouse:    mouse,
-			Keyboard: keyboard,
-		}
-	}
-
 	return &grpcIndexer.AssetConfiguration{
-		Display:     display,
-		Interaction: interaction,
+		Scaling:         configuration.Scaling,
+		BackgroundColor: configuration.BackgroundColor,
+		MarginLeft:      configuration.MarginLeft,
+		MarginRight:     configuration.MarginRight,
+		MarginTop:       configuration.MarginTop,
+		MarginBottom:    configuration.MarginBottom,
+		AutoPlay:        configuration.AutoPlay,
+		Looping:         configuration.Looping,
+		Interactable:    configuration.Interactable,
+		Overridable:     configuration.Overridable,
 	}
 }
 

@@ -35,7 +35,7 @@ const (
 	Indexer_GetSaleTimeSeries_FullMethodName              = "/indexer.Indexer/GetSaleTimeSeries"
 	Indexer_GetSaleRevenues_FullMethodName                = "/indexer.Indexer/GetSaleRevenues"
 	Indexer_GetHistoricalExchangeRate_FullMethodName      = "/indexer.Indexer/GetHistoricalExchangeRate"
-	Indexer_UpdateAssetConfiguration_FullMethodName       = "/indexer.Indexer/UpdateAssetConfiguration"
+	Indexer_UpdateAssetsConfiguration_FullMethodName      = "/indexer.Indexer/UpdateAssetsConfiguration"
 )
 
 // IndexerClient is the client API for Indexer service.
@@ -58,7 +58,7 @@ type IndexerClient interface {
 	GetSaleTimeSeries(ctx context.Context, in *SaleTimeSeriesFilter, opts ...grpc.CallOption) (*SaleTimeSeriesListResponse, error)
 	GetSaleRevenues(ctx context.Context, in *SaleTimeSeriesFilter, opts ...grpc.CallOption) (*SaleRevenuesResponse, error)
 	GetHistoricalExchangeRate(ctx context.Context, in *HistoricalExchangeRateFilter, opts ...grpc.CallOption) (*ExchangeRateResponse, error)
-	UpdateAssetsConfiguration(ctx context.Context, in *UpdateAssetConfigurationRequest, opts ...grpc.CallOption) (*EmptyMessage, error)
+	UpdateAssetsConfiguration(ctx context.Context, in *UpdateAssetsConfigurationRequest, opts ...grpc.CallOption) (*EmptyMessage, error)
 }
 
 type indexerClient struct {
@@ -213,9 +213,9 @@ func (c *indexerClient) GetHistoricalExchangeRate(ctx context.Context, in *Histo
 	return out, nil
 }
 
-func (c *indexerClient) UpdateAssetsConfiguration(ctx context.Context, in *UpdateAssetConfigurationRequest, opts ...grpc.CallOption) (*EmptyMessage, error) {
+func (c *indexerClient) UpdateAssetsConfiguration(ctx context.Context, in *UpdateAssetsConfigurationRequest, opts ...grpc.CallOption) (*EmptyMessage, error) {
 	out := new(EmptyMessage)
-	err := c.cc.Invoke(ctx, Indexer_UpdateAssetConfiguration_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, Indexer_UpdateAssetsConfiguration_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +242,7 @@ type IndexerServer interface {
 	GetSaleTimeSeries(context.Context, *SaleTimeSeriesFilter) (*SaleTimeSeriesListResponse, error)
 	GetSaleRevenues(context.Context, *SaleTimeSeriesFilter) (*SaleRevenuesResponse, error)
 	GetHistoricalExchangeRate(context.Context, *HistoricalExchangeRateFilter) (*ExchangeRateResponse, error)
-	UpdateAssetConfiguration(context.Context, *UpdateAssetConfigurationRequest) (*EmptyMessage, error)
+	UpdateAssetsConfiguration(context.Context, *UpdateAssetsConfigurationRequest) (*EmptyMessage, error)
 	mustEmbedUnimplementedIndexerServer()
 }
 
@@ -298,8 +298,8 @@ func (UnimplementedIndexerServer) GetSaleRevenues(context.Context, *SaleTimeSeri
 func (UnimplementedIndexerServer) GetHistoricalExchangeRate(context.Context, *HistoricalExchangeRateFilter) (*ExchangeRateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetHistoricalExchangeRate not implemented")
 }
-func (UnimplementedIndexerServer) UpdateAssetConfiguration(context.Context, *UpdateAssetConfigurationRequest) (*EmptyMessage, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateAssetConfiguration not implemented")
+func (UnimplementedIndexerServer) UpdateAssetsConfiguration(context.Context, *UpdateAssetsConfigurationRequest) (*EmptyMessage, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateAssetsConfiguration not implemented")
 }
 func (UnimplementedIndexerServer) mustEmbedUnimplementedIndexerServer() {}
 
@@ -602,20 +602,20 @@ func _Indexer_GetHistoricalExchangeRate_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Indexer_UpdateAssetConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateAssetConfigurationRequest)
+func _Indexer_UpdateAssetsConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateAssetsConfigurationRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(IndexerServer).UpdateAssetConfiguration(ctx, in)
+		return srv.(IndexerServer).UpdateAssetsConfiguration(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Indexer_UpdateAssetConfiguration_FullMethodName,
+		FullMethod: Indexer_UpdateAssetsConfiguration_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IndexerServer).UpdateAssetConfiguration(ctx, req.(*UpdateAssetConfigurationRequest))
+		return srv.(IndexerServer).UpdateAssetsConfiguration(ctx, req.(*UpdateAssetsConfigurationRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -692,8 +692,8 @@ var Indexer_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Indexer_GetHistoricalExchangeRate_Handler,
 		},
 		{
-			MethodName: "UpdateAssetConfiguration",
-			Handler:    _Indexer_UpdateAssetConfiguration_Handler,
+			MethodName: "UpdateAssetsConfiguration",
+			Handler:    _Indexer_UpdateAssetsConfiguration_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

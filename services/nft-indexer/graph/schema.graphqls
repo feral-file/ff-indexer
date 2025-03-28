@@ -51,34 +51,17 @@ type Provenance {
   txURL: String!
 }
 
-type DisplayConfiguration {
+type AssetConfiguration {
   scaling: String!
   backgroundColor: String!
-  margin: Int64!
+  marginLeft: Float!
+  marginRight: Float!
+  marginTop: Float!
+  marginBottom: Float!
   autoPlay: Boolean!
   looping: Boolean!
-  disableOverride: Boolean!
-}
-
-type MouseConfiguration {
-  clickable: Boolean!
-  scrollable: Boolean!
-  draggable: Boolean!
-  hoverable: Boolean!
-}
-
-type KeyboardConfiguration {
-  keys: [String!]
-}
-
-type InteractiveConfiguration {
-  mouse: MouseConfiguration!
-  keyboard: KeyboardConfiguration!
-}
-
-type AssetConfiguration {
-  display: DisplayConfiguration!
-  interaction: InteractiveConfiguration!
+  interactable: Boolean!
+  overridable: Boolean!
 }
 
 type AssetAttributes {
