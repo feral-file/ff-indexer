@@ -23,6 +23,7 @@ service Indexer {
   rpc GetSaleRevenues(SaleTimeSeriesFilter) returns (SaleRevenuesResponse);
   rpc GetHistoricalExchangeRate(HistoricalExchangeRateFilter) returns (ExchangeRateResponse);
   rpc UpdateAssetsConfiguration(UpdateAssetsConfigurationRequest) returns(EmptyMessage);
+  rpc CheckAssetCreator(CheckAssetCreatorRequest) returns (CheckAssetCreatorResponse);
 }
 
 message CheckAddressOwnTokenByCriteriaResponse {
@@ -297,4 +298,13 @@ message GetDetailedTokenRequest {
 message UpdateAssetsConfigurationRequest {
   repeated string indexIDs = 1;
   AssetConfiguration configuration = 2;
+}
+
+message CheckAssetCreatorRequest {
+  repeated string IndexIDs = 1;
+  repeated string CreatorAddresses = 2;
+}
+
+message CheckAssetCreatorResponse {
+  bool result = 1;
 }

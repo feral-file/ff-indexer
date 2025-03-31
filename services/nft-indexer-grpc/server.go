@@ -326,3 +326,11 @@ func (i *IndexerServer) UpdateAssetsConfiguration(ctx context.Context, in *pb.Up
 
 	return &pb.EmptyMessage{}, nil
 }
+
+func (i *IndexerServer) CheckAssetCreator(ctx context.Context, request *pb.CheckAssetCreatorRequest) (*pb.CheckAssetCreatorResponse, error) {
+	result, err := i.indexerStore.CheckAssetCreator(ctx, request.IndexIDs, request.CreatorAddresses)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.CheckAssetCreatorResponse{Result: result}, nil
+}

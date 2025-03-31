@@ -36,6 +36,7 @@ const (
 	Indexer_GetSaleRevenues_FullMethodName                = "/indexer.Indexer/GetSaleRevenues"
 	Indexer_GetHistoricalExchangeRate_FullMethodName      = "/indexer.Indexer/GetHistoricalExchangeRate"
 	Indexer_UpdateAssetsConfiguration_FullMethodName      = "/indexer.Indexer/UpdateAssetsConfiguration"
+	Indexer_CheckAssetCreator_FullMethodName              = "/indexer.Indexer/CheckAssetCreator"
 )
 
 // IndexerClient is the client API for Indexer service.
@@ -59,6 +60,7 @@ type IndexerClient interface {
 	GetSaleRevenues(ctx context.Context, in *SaleTimeSeriesFilter, opts ...grpc.CallOption) (*SaleRevenuesResponse, error)
 	GetHistoricalExchangeRate(ctx context.Context, in *HistoricalExchangeRateFilter, opts ...grpc.CallOption) (*ExchangeRateResponse, error)
 	UpdateAssetsConfiguration(ctx context.Context, in *UpdateAssetsConfigurationRequest, opts ...grpc.CallOption) (*EmptyMessage, error)
+	CheckAssetCreator(ctx context.Context, in *CheckAssetCreatorRequest, opts ...grpc.CallOption) (*CheckAssetCreatorResponse, error)
 }
 
 type indexerClient struct {
@@ -222,6 +224,15 @@ func (c *indexerClient) UpdateAssetsConfiguration(ctx context.Context, in *Updat
 	return out, nil
 }
 
+func (c *indexerClient) CheckAssetCreator(ctx context.Context, in *CheckAssetCreatorRequest, opts ...grpc.CallOption) (*CheckAssetCreatorResponse, error) {
+	out := new(CheckAssetCreatorResponse)
+	err := c.cc.Invoke(ctx, Indexer_CheckAssetCreator_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // IndexerServer is the server API for Indexer service.
 // All implementations must embed UnimplementedIndexerServer
 // for forward compatibility
@@ -243,6 +254,7 @@ type IndexerServer interface {
 	GetSaleRevenues(context.Context, *SaleTimeSeriesFilter) (*SaleRevenuesResponse, error)
 	GetHistoricalExchangeRate(context.Context, *HistoricalExchangeRateFilter) (*ExchangeRateResponse, error)
 	UpdateAssetsConfiguration(context.Context, *UpdateAssetsConfigurationRequest) (*EmptyMessage, error)
+	CheckAssetCreator(context.Context, *CheckAssetCreatorRequest) (*CheckAssetCreatorResponse, error)
 	mustEmbedUnimplementedIndexerServer()
 }
 
@@ -300,6 +312,9 @@ func (UnimplementedIndexerServer) GetHistoricalExchangeRate(context.Context, *Hi
 }
 func (UnimplementedIndexerServer) UpdateAssetsConfiguration(context.Context, *UpdateAssetsConfigurationRequest) (*EmptyMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateAssetsConfiguration not implemented")
+}
+func (UnimplementedIndexerServer) CheckAssetCreator(context.Context, *CheckAssetCreatorRequest) (*CheckAssetCreatorResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckAssetCreator not implemented")
 }
 func (UnimplementedIndexerServer) mustEmbedUnimplementedIndexerServer() {}
 
@@ -620,6 +635,24 @@ func _Indexer_UpdateAssetsConfiguration_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Indexer_CheckAssetCreator_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckAssetCreatorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IndexerServer).CheckAssetCreator(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Indexer_CheckAssetCreator_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IndexerServer).CheckAssetCreator(ctx, req.(*CheckAssetCreatorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Indexer_ServiceDesc is the grpc.ServiceDesc for Indexer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -694,6 +727,10 @@ var Indexer_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateAssetsConfiguration",
 			Handler:    _Indexer_UpdateAssetsConfiguration_Handler,
+		},
+		{
+			MethodName: "CheckAssetCreator",
+			Handler:    _Indexer_CheckAssetCreator_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

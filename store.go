@@ -103,6 +103,7 @@ type Store interface {
 	GetHistoricalExchangeRate(ctx context.Context, filter HistoricalExchangeRateFilter) (ExchangeRate, error)
 	GetExchangeRateLastTime(ctx context.Context) (time.Time, error)
 	UpdateAssetsConfiguration(ctx context.Context, indexIDs []string, configuration *AssetConfiguration) (int64, error)
+	CheckAssetCreator(ctx context.Context, indexIDs []string, creatorAddresses []string) (bool, error)
 }
 
 type FilterParameter struct {
@@ -2739,4 +2740,20 @@ func (s *MongodbIndexerStore) UpdateAssetsConfiguration(
 		bson.M{"$set": updateFields},
 	)
 	return r.ModifiedCount, err
+}
+
+func (s *MongodbIndexerStore) CheckAssetCreator(
+	ctx context.Context,
+	indexIDs []string,
+	creatorAddresses []string) (bool, error) {
+	filters := bson.M{
+		"indexID":                          bson.M{"$in": indexIDs},
+		"metadata.project.latest.artistID": bson.M{"$in": creatorAddresses},
+	}
+
+	count, err := s.assetCollection.CountDocuments(ctx, filters)
+	if err != nil {
+		return false, err
+	}
+	return count == int64(len(indexIDs)), nil
 }

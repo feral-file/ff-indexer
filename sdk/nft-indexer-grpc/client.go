@@ -275,3 +275,16 @@ func (i *IndexerGRPCClient) UpdateAssetsConfiguration(ctx context.Context, index
 
 	return err
 }
+
+func (i *IndexerGRPCClient) CheckAssetCreator(ctx context.Context, indexIDs []string, creatorAddresses []string) (bool, error) {
+	res, err := i.client.CheckAssetCreator(ctx, &pb.CheckAssetCreatorRequest{
+		IndexIDs:         indexIDs,
+		CreatorAddresses: creatorAddresses,
+	})
+
+	if err != nil {
+		return false, err
+	}
+
+	return res.Result, nil
+}
