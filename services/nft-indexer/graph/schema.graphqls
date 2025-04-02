@@ -52,6 +52,7 @@ type Provenance {
 }
 
 type AssetConfiguration {
+  orientation: String!
   scaling: String!
   backgroundColor: String!
   marginLeft: Float!

@@ -413,6 +413,7 @@ func (m *Mapper) MapGrpcAssetConfigurationToIndexerAssetConfiguration(configurat
 	}
 
 	return &indexer.AssetConfiguration{
+		Orientation:     configuration.Orientation,
 		Scaling:         configuration.Scaling,
 		BackgroundColor: configuration.BackgroundColor,
 		MarginLeft:      configuration.MarginLeft,
@@ -433,6 +434,7 @@ func (m *Mapper) MapIndexerAssetConfigurationToGrpcAssetConfiguration(configurat
 	}
 
 	return &grpcIndexer.AssetConfiguration{
+		Orientation:     configuration.Orientation,
 		Scaling:         configuration.Scaling,
 		BackgroundColor: configuration.BackgroundColor,
 		MarginLeft:      configuration.MarginLeft,

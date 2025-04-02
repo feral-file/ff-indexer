@@ -27,6 +27,7 @@ type AssetAttributes struct {
 }
 
 type AssetConfiguration struct {
+	Orientation     string  `json:"orientation"`
 	Scaling         string  `json:"scaling"`
 	BackgroundColor string  `json:"backgroundColor"`
 	MarginLeft      float64 `json:"marginLeft"`
