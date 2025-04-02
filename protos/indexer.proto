@@ -301,7 +301,7 @@ message UpdateAssetsConfigurationRequest {
 }
 
 message CheckAssetCreatorRequest {
-  repeated string IndexIDs = 1;
+  repeated string IDs = 1;
   repeated string CreatorAddresses = 2;
 }
 
