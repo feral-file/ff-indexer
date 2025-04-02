@@ -296,7 +296,7 @@ message GetDetailedTokenRequest {
 }
 
 message UpdateAssetsConfigurationRequest {
-  repeated string indexIDs = 1;
+  repeated string IDs = 1;
   AssetConfiguration configuration = 2;
 }
 
