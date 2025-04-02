@@ -2739,7 +2739,7 @@ func (s *MongodbIndexerStore) UpdateAssetsConfiguration(
 		bson.M{"id": bson.M{"$in": IDs}},
 		bson.M{"$set": updateFields},
 	)
-	return r.ModifiedCount, err
+	return r.MatchedCount, err
 }
 
 func (s *MongodbIndexerStore) CheckAssetCreator(
