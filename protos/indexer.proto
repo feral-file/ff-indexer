@@ -69,17 +69,16 @@ message DetailedToken {
 }
 
 message AssetConfiguration {
-  string Orientation = 1;
-  string Scaling = 2;
-  string BackgroundColor = 3;
-  double MarginLeft = 4;
-  double MarginRight = 5;
-  double MarginBottom = 6;
-  double MarginTop = 7;
-  bool AutoPlay = 8; 
-  bool Looping = 9; 
-  bool Interactable = 10;
-  bool Overridable = 11; 
+  string Scaling = 1;
+  string BackgroundColor = 2;
+  double MarginLeft = 3;
+  double MarginRight = 4;
+  double MarginBottom = 5;
+  double MarginTop = 6;
+  bool AutoPlay = 7; 
+  bool Looping = 8; 
+  bool Interactable = 9;
+  bool Overridable = 10; 
 }
 
 message AssetAttributes {

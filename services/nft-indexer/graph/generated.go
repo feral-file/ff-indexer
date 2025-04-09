@@ -66,6 +66,7 @@ type ComplexityRoot struct {
 
 	AssetAttributes struct {
 		Configuration func(childComplexity int) int
+		Scrollable    func(childComplexity int) int
 	}
 
 	AssetConfiguration struct {
@@ -77,7 +78,6 @@ type ComplexityRoot struct {
 		MarginLeft      func(childComplexity int) int
 		MarginRight     func(childComplexity int) int
 		MarginTop       func(childComplexity int) int
-		Orientation     func(childComplexity int) int
 		Overridable     func(childComplexity int) int
 		Scaling         func(childComplexity int) int
 	}
@@ -324,6 +324,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.AssetAttributes.Configuration(childComplexity), true
 
+	case "AssetAttributes.scrollable":
+		if e.complexity.AssetAttributes.Scrollable == nil {
+			break
+		}
+
+		return e.complexity.AssetAttributes.Scrollable(childComplexity), true
+
 	case "AssetConfiguration.autoPlay":
 		if e.complexity.AssetConfiguration.AutoPlay == nil {
 			break
@@ -379,13 +386,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AssetConfiguration.MarginTop(childComplexity), true
-
-	case "AssetConfiguration.orientation":
-		if e.complexity.AssetConfiguration.Orientation == nil {
-			break
-		}
-
-		return e.complexity.AssetConfiguration.Orientation(childComplexity), true
 
 	case "AssetConfiguration.overridable":
 		if e.complexity.AssetConfiguration.Overridable == nil {
@@ -1722,6 +1722,8 @@ func (ec *executionContext) fieldContext_Asset_attributes(ctx context.Context, f
 			switch field.Name {
 			case "configuration":
 				return ec.fieldContext_AssetAttributes_configuration(ctx, field)
+			case "scrollable":
+				return ec.fieldContext_AssetAttributes_scrollable(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AssetAttributes", field.Name)
 		},
@@ -1898,8 +1900,6 @@ func (ec *executionContext) fieldContext_AssetAttributes_configuration(ctx conte
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "orientation":
-				return ec.fieldContext_AssetConfiguration_orientation(ctx, field)
 			case "scaling":
 				return ec.fieldContext_AssetConfiguration_scaling(ctx, field)
 			case "backgroundColor":
@@ -1927,8 +1927,8 @@ func (ec *executionContext) fieldContext_AssetAttributes_configuration(ctx conte
 	return fc, nil
 }
 
-func (ec *executionContext) _AssetConfiguration_orientation(ctx context.Context, field graphql.CollectedField, obj *model.AssetConfiguration) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AssetConfiguration_orientation(ctx, field)
+func (ec *executionContext) _AssetAttributes_scrollable(ctx context.Context, field graphql.CollectedField, obj *model.AssetAttributes) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AssetAttributes_scrollable(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1941,7 +1941,7 @@ func (ec *executionContext) _AssetConfiguration_orientation(ctx context.Context,
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Orientation, nil
+		return obj.Scrollable, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1953,19 +1953,19 @@ func (ec *executionContext) _AssetConfiguration_orientation(ctx context.Context,
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(bool)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_AssetConfiguration_orientation(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_AssetAttributes_scrollable(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "AssetConfiguration",
+		Object:     "AssetAttributes",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -8615,6 +8615,11 @@ func (ec *executionContext) _AssetAttributes(ctx context.Context, sel ast.Select
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "scrollable":
+			out.Values[i] = ec._AssetAttributes_scrollable(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8649,11 +8654,6 @@ func (ec *executionContext) _AssetConfiguration(ctx context.Context, sel ast.Sel
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("AssetConfiguration")
-		case "orientation":
-			out.Values[i] = ec._AssetConfiguration_orientation(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "scaling":
 			out.Values[i] = ec._AssetConfiguration_scaling(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

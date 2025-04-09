@@ -74,7 +74,6 @@ func (r *Resolver) mapGraphQLAsset(a indexer.AssetV2) *model.Asset {
 		c := a.Attributes.Configuration
 		attributes = &model.AssetAttributes{
 			Configuration: &model.AssetConfiguration{
-				Orientation:     c.Orientation,
 				Scaling:         c.Scaling,
 				BackgroundColor: c.BackgroundColor,
 				MarginLeft:      c.MarginLeft,

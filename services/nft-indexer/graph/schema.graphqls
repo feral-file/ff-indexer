@@ -52,7 +52,6 @@ type Provenance {
 }
 
 type AssetConfiguration {
-  orientation: String!
   scaling: String!
   backgroundColor: String!
   marginLeft: Float!
@@ -67,6 +66,7 @@ type AssetConfiguration {
 
 type AssetAttributes {
   configuration: AssetConfiguration!
+  scrollable: Boolean!
 }
 
 type Asset {

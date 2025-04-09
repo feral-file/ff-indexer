@@ -24,10 +24,10 @@ type Asset struct {
 
 type AssetAttributes struct {
 	Configuration *AssetConfiguration `json:"configuration"`
+	Scrollable    bool                `json:"scrollable"`
 }
 
 type AssetConfiguration struct {
-	Orientation     string  `json:"orientation"`
 	Scaling         string  `json:"scaling"`
 	BackgroundColor string  `json:"backgroundColor"`
 	MarginLeft      float64 `json:"marginLeft"`

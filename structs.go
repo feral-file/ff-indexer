@@ -93,7 +93,6 @@ type Token struct {
 	LastRefreshedTime time.Time    `json:"lastRefreshedTime" bson:"lastRefreshedTime"`
 }
 type AssetConfiguration struct {
-	Orientation     string  `json:"orientation" bson:"orientation"`         // landscape|portrait
 	Scaling         string  `json:"scaling" bson:"scaling"`                 // fit|fill
 	BackgroundColor string  `json:"backgroundColor" bson:"backgroundColor"` // #000000
 	MarginLeft      float64 `json:"marginLeft" bson:"marginLeft"`           // 0.1
