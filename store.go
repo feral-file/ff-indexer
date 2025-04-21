@@ -509,6 +509,25 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 			return nil, ErrNoRecordUpdated
 		}
 
+		// Update account tokens
+		_, err = s.accountTokenCollection.UpdateMany(sessCtx,
+			bson.M{"indexID": originalTokenIndexID},
+			bson.M{"$set": bson.M{
+				"indexID":           newTokenIndexID,
+				"lastRefreshedTime": time.Now(),
+				"lastActivityTime":  time.Now(),
+			}})
+		if err != nil && !mongo.IsDuplicateKeyError(err) {
+			return nil, err
+		}
+
+		// Clean up any remaining tokens with the old indexID that couldn't be updated
+		_, err = s.accountTokenCollection.DeleteMany(sessCtx,
+			bson.M{"indexID": originalTokenIndexID})
+		if err != nil {
+			return nil, err
+		}
+
 		return nil, nil
 	})
 
@@ -521,15 +540,6 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 	}
 
 	log.Debug("swap token transaction", zap.Any("transaction_result", result))
-
-	// Update account tokens
-	_, err = s.accountTokenCollection.UpdateMany(ctx,
-		bson.M{"indexID": originalTokenIndexID},
-		bson.M{"$set": bson.M{
-			"indexID":           newTokenIndexID,
-			"lastRefreshedTime": time.Now(),
-			"lastActivityTime":  time.Now(),
-		}})
 
 	return newTokenIndexID, err
 }
