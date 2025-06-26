@@ -406,11 +406,15 @@ func (detail *AssetMetadataDetail) FromOpenseaAsset(a *opensea.DetailedAssetV2, 
 	assetURL := a.OpenseaURL
 	animationURL := a.AnimationURL
 
-	imageURL, _ := OptimizedOpenseaImageURL(a.ImageURL)
+	rawImageURL := a.ImageURL
+	if a.DisplayImageURL != "" {
+		rawImageURL = a.DisplayImageURL
+	}
+	imageURL, _ := OptimizedOpenseaImageURL(rawImageURL)
 
 	// fallback to project origin image url
 	if imageURL == "" {
-		imageURL = a.ImageURL
+		imageURL = rawImageURL
 	}
 
 	if source == sourceFxHash {

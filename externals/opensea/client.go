@@ -65,22 +65,23 @@ type AssetsResponse struct {
 }
 
 type DetailedAssetV2 struct {
-	Identifier    string  `json:"identifier"`
-	Collection    string  `json:"collection"`
-	Contract      string  `json:"contract"`
-	TokenStandard string  `json:"token_standard"`
-	Name          string  `json:"name"`
-	Description   string  `json:"description"`
-	ImageURL      string  `json:"image_url"`
-	MetadataURL   string  `json:"metadata_url"`
-	AnimationURL  string  `json:"animation_url"`
-	OpenseaURL    string  `json:"opensea_url"`
-	CreatedAt     Time    `json:"created_at"`
-	UpdatedAt     Time    `json:"updated_at"`
-	Owners        []Owner `json:"owners"`
-	Creator       string  `json:"creator"`
-	IsDisabled    bool    `json:"is_disabled"`
-	IsNsfw        bool    `json:"is_nsfw"`
+	Identifier      string  `json:"identifier"`
+	Collection      string  `json:"collection"`
+	Contract        string  `json:"contract"`
+	TokenStandard   string  `json:"token_standard"`
+	Name            string  `json:"name"`
+	Description     string  `json:"description"`
+	ImageURL        string  `json:"image_url"`
+	MetadataURL     string  `json:"metadata_url"`
+	DisplayImageURL string  `json:"display_image_url"`
+	AnimationURL    string  `json:"display_animation_url"`
+	OpenseaURL      string  `json:"opensea_url"`
+	CreatedAt       Time    `json:"created_at"`
+	UpdatedAt       Time    `json:"updated_at"`
+	Owners          []Owner `json:"owners"`
+	Creator         string  `json:"creator"`
+	IsDisabled      bool    `json:"is_disabled"`
+	IsNsfw          bool    `json:"is_nsfw"`
 }
 
 type Owner struct {
