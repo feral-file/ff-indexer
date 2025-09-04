@@ -40,6 +40,10 @@ serviceConfig:
   etherscan_url: https://api-sepolia.etherscan.io/api
   bitmarkd:
     rpc_conn: node-d1.test.bitmark.com:12130
+  meilisearch:
+    endpoint: http://54.198.167.179:7700
+    indexName: nft-indexer-development
+    indexKeyPrefix: ""
 
 imagePullSecrets: []
 nameOverride: ""

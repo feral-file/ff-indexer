@@ -25,6 +25,10 @@ serviceConfig:
     tezos: testnet
     ethereum: sepolia
     bitmark: testnet
+  meilisearch:
+    endpoint: http://meilisearch.meilisearch.svc.cluster.local:7700
+    indexName: nft-tokens
+    indexKeyPrefix: ""
   preferred_gateways:
   - ipfs.test.bitmark.com
   - ipfs.bitmark.com

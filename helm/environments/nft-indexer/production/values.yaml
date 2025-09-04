@@ -37,6 +37,10 @@ serviceConfig:
   - ipfs.io
   bitmarkd:
     rpc_conn: bitmarkd-nodes.bitmark.com:2130
+  meilisearch:
+    endpoint: https://search.feralfile.com
+    indexName: nft-indexer
+    indexKeyPrefix: ""
 
 imagePullSecrets: []
 nameOverride: ""
