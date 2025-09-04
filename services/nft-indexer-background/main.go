@@ -102,7 +102,9 @@ func main() {
 		Name: "IndexTokenWorkflow",
 	})
 	// Meilisearch workflows
-	workflow.Register(worker.StreamTokensToMeilisearchWorkflow)
+	workflow.RegisterWithOptions(worker.StreamTokensToMeilisearchWorkflow, workflow.RegisterOptions{
+		Name: "StreamTokensToMeilisearchWorkflow",
+	})
 	workflow.Register(worker.ProcessTokenBatchToMeilisearchWorkflow)
 	workflow.Register(worker.ProcessAllTokensBatchToMeilisearchWorkflow)
 	workflow.Register(worker.RefreshTokensInMeilisearchWorkflow)
