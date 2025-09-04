@@ -328,6 +328,16 @@ jobs:
         kubeconfig: ${{ secrets.DEVELOPMENT_KUBECONFIG_V2 }}
       id: set-kubectl-context
   
+    - name: Setup Helm
+      uses: azure/setup-helm@v4
+      with:
+        version: v3.14.4
+
+    - name: Setup Helmfile
+      uses: mamezou-tech/setup-helmfile@v1.2.0
+      with:
+        helmfile-version: v0.156.0
+
     - name: Deploy
       env:
         GITHUB_SHA: ${{ github.sha }}
