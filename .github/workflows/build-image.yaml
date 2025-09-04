@@ -49,7 +49,7 @@ jobs:
   
   build-indexer-background:
     name: Build Indexer Background Image
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -83,7 +83,7 @@ jobs:
 
   build-indexer-grpc:
     name: Build Indexer GRPC Image
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout
@@ -120,7 +120,7 @@ jobs:
           
   build-indexer-provenance:
     name: Build Indexer Provenance Image
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout
@@ -157,7 +157,7 @@ jobs:
 
   build-indexer-image-indexer:
     name: Build Indexer Image Indexer Image
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout
@@ -194,7 +194,7 @@ jobs:
 
   build-indexer-event-processor:
     name: Build Event Processor Image
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout
@@ -231,7 +231,7 @@ jobs:
 
   build-indexer-event-processor-ethereum-emitter:
     name: Build Event Processor Ethereum Emitter Image
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout
@@ -268,7 +268,7 @@ jobs:
           
   build-indexer-event-processor-tezos-emitter:
     name: Build Event Processor Tezos Emitter Image
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout
