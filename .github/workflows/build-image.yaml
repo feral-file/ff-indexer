@@ -11,7 +11,7 @@ name: Build Images
 jobs:
   build-indexer-api:
     name: Build Indexer API Image
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout
