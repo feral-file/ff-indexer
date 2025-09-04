@@ -104,6 +104,7 @@ func main() {
 	// Meilisearch workflows
 	workflow.Register(worker.StreamTokensToMeilisearchWorkflow)
 	workflow.Register(worker.ProcessTokenBatchToMeilisearchWorkflow)
+	workflow.Register(worker.ProcessAllTokensBatchToMeilisearchWorkflow)
 	workflow.Register(worker.RefreshTokensInMeilisearchWorkflow)
 	workflow.Register(worker.DeleteBurnedTokensFromMeilisearchWorkflow)
 	workflow.RegisterWithOptions(worker.IndexEthereumTokenSaleInBlockRange, workflow.RegisterOptions{

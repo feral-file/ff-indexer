@@ -1739,21 +1739,33 @@ func (s *MongodbIndexerStore) GetDetailedTokensV2(ctx context.Context, filterPar
 // getDetailedTokensV2InView returns detail tokens from mongodb custom view
 func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error) {
 	tokens := []DetailedTokenV2{}
-	match := bson.M{"indexID": bson.M{"$in": filterParameter.IDs}}
-	if !filterParameter.BurnedIncluded {
-		match["burned"] = bson.M{"$ne": true}
+	var pipelines []bson.M
+	if len(filterParameter.IDs) > 0 {
+		match := bson.M{"indexID": bson.M{"$in": filterParameter.IDs}}
+		if !filterParameter.BurnedIncluded {
+			match["burned"] = bson.M{"$ne": true}
+		}
+		pipelines = []bson.M{
+			{"$match": match},
+			{"$addFields": bson.M{"__order": bson.M{"$indexOfArray": bson.A{filterParameter.IDs, "$indexID"}}}},
+			{"$sort": bson.M{"__order": 1}},
+		}
+		if filterParameter.Source != "" {
+			pipelines = append(pipelines, bson.M{"$match": bson.M{"asset.source": filterParameter.Source}})
+		}
+	} else {
+		match := bson.M{}
+		if !filterParameter.BurnedIncluded {
+			match["burned"] = bson.M{"$ne": true}
+		}
+		if filterParameter.Source != "" {
+			match["asset.source"] = filterParameter.Source
+		}
+		if len(match) > 0 {
+			pipelines = append(pipelines, bson.M{"$match": match})
+		}
+		pipelines = append(pipelines, bson.M{"$sort": bson.D{{Key: "lastRefreshedTime", Value: -1}, {Key: "_id", Value: -1}}})
 	}
-
-	pipelines := []bson.M{
-		{"$match": match},
-		{"$addFields": bson.M{"__order": bson.M{"$indexOfArray": bson.A{filterParameter.IDs, "$indexID"}}}},
-		{"$sort": bson.M{"__order": 1}},
-	}
-
-	if filterParameter.Source != "" {
-		pipelines = append(pipelines, bson.M{"$match": bson.M{"asset.source": filterParameter.Source}})
-	}
-
 	pipelines = append(pipelines,
 		bson.M{"$skip": offset},
 		bson.M{"$limit": size},

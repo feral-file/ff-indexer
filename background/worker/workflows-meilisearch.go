@@ -39,13 +39,18 @@ func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Contex
 
 	// Step 2: Get total count of tokens for progress tracking
 	var totalTokenCount int64
-	if err := workflow.ExecuteActivity(
-		ContextRegularActivity(ctx, w.TaskListName),
-		w.CountTokensForAddresses,
-		request.Addresses,
-	).Get(ctx, &totalTokenCount); err != nil {
-		logger.Error(errors.New("failed to count tokens"), zap.Error(err))
-		return nil, err
+	if len(request.Addresses) > 0 {
+		if err := workflow.ExecuteActivity(
+			ContextRegularActivity(ctx, w.TaskListName),
+			w.CountTokensForAddresses,
+			request.Addresses,
+		).Get(ctx, &totalTokenCount); err != nil {
+			logger.Error(errors.New("failed to count tokens"), zap.Error(err))
+			return nil, err
+		}
+	} else {
+		// Unknown upfront; we will stream all tokens without a pre-count
+		totalTokenCount = 1
 	}
 
 	logger.Info("Total tokens to process", zap.Int64("totalTokens", totalTokenCount))
@@ -65,7 +70,8 @@ func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Contex
 	futures := make([]workflow.Future, 0)
 	processedTokens := int64(0)
 
-	for offset := int64(0); offset < totalTokenCount; offset += batchSize {
+	startOffset := request.StartOffset
+	for offset := startOffset; offset < totalTokenCount; offset += batchSize {
 		// Limit concurrency by waiting for some futures to complete
 		if len(futures) >= maxConcurrency {
 			// Wait for the first batch to complete
@@ -81,6 +87,10 @@ func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Contex
 			} else {
 				result.BatchResults = append(result.BatchResults, batchResult)
 				result.TotalTokensIndexed += batchResult.DocumentCount
+				// If streaming all tokens and an empty batch is observed, stop iterating
+				if len(request.Addresses) == 0 && batchResult.DocumentCount == 0 {
+					break
+				}
 			}
 
 			// Remove the completed future
@@ -89,15 +99,26 @@ func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Contex
 
 		// Start a new child workflow for this batch
 		childWorkflowID := fmt.Sprintf("meilisearch-batch-%d-%d", offset, time.Now().UnixNano())
-		future := workflow.ExecuteChildWorkflow(
-			ContextNamedRegularChildWorkflow(ctx, childWorkflowID, w.TaskListName),
-			w.ProcessTokenBatchToMeilisearchWorkflow,
-			request.Addresses,
-			request.Config,
-			offset,
-			batchSize,
-			request.LastUpdatedAfter,
-		)
+		var future workflow.Future
+		if len(request.Addresses) > 0 {
+			future = workflow.ExecuteChildWorkflow(
+				ContextNamedRegularChildWorkflow(ctx, childWorkflowID, w.TaskListName),
+				w.ProcessTokenBatchToMeilisearchWorkflow,
+				request.Addresses,
+				request.Config,
+				offset,
+				batchSize,
+				request.LastUpdatedAfter,
+			)
+		} else {
+			future = workflow.ExecuteChildWorkflow(
+				ContextNamedRegularChildWorkflow(ctx, childWorkflowID, w.TaskListName),
+				w.ProcessAllTokensBatchToMeilisearchWorkflow,
+				request.Config,
+				offset,
+				batchSize,
+			)
+		}
 
 		futures = append(futures, future)
 		processedTokens += batchSize
@@ -122,6 +143,21 @@ func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Contex
 		} else {
 			result.BatchResults = append(result.BatchResults, batchResult)
 			result.TotalTokensIndexed += batchResult.DocumentCount
+		}
+	}
+
+	// Continue-as-new if we are streaming all tokens and more work likely remains
+	if len(request.Addresses) == 0 {
+		// Determine nextOffset based on last scheduled offset
+		nextOffset := startOffset + ((int64(len(result.BatchResults)) + 1) * batchSize)
+		if nextOffset < processedTokens+startOffset { // basic guard
+			nextOffset = processedTokens + startOffset
+		}
+		if nextOffset-startOffset > 0 && (result.TotalTokensIndexed > 0 || result.TotalTokensErrored > 0) {
+			logger.Info("Continuing as new for next page",
+				zap.Int64("nextOffset", nextOffset))
+			request.StartOffset = nextOffset
+			return nil, workflow.NewContinueAsNewError(ctx, w.StreamTokensToMeilisearchWorkflow, request)
 		}
 	}
 
@@ -375,4 +411,107 @@ func (w *NFTIndexerWorker) DeleteBurnedTokensFromMeilisearchWorkflow(
 		zap.Int("tokensDeleted", result.TotalTokensIndexed))
 
 	return result, nil
+}
+
+// ProcessAllTokensBatchToMeilisearchWorkflow processes a batch of all tokens (no address filter)
+func (w *NFTIndexerWorker) ProcessAllTokensBatchToMeilisearchWorkflow(
+	ctx workflow.Context,
+	config MeilisearchStreamConfig,
+	offset, size int64,
+) (MeilisearchBatchResult, error) {
+	logger := log.CadenceWorkflowLogger(ctx)
+
+	logger.Info("Processing all-tokens batch",
+		zap.Int64("offset", offset),
+		zap.Int64("size", size))
+
+	// Get tokens for the batch using the view-based method
+	var tokens []indexer.DetailedTokenV2
+	if err := workflow.ExecuteActivity(
+		ContextRegularActivity(ctx, w.TaskListName),
+		w.GetDetailedTokensV2,
+		indexer.FilterParameter{BurnedIncluded: false},
+		offset,
+		size,
+	).Get(ctx, &tokens); err != nil {
+		logger.Error(errors.New("failed to get tokens for all batch"), zap.Error(err))
+		return MeilisearchBatchResult{
+			BatchID:       fmt.Sprintf("failed-all-batch-%d-%d", offset, time.Now().UnixNano()),
+			DocumentCount: 0,
+			Success:       false,
+			Error:         err.Error(),
+			ProcessedAt:   time.Now(),
+		}, err
+	}
+
+	if len(tokens) == 0 {
+		return MeilisearchBatchResult{
+			BatchID:       fmt.Sprintf("empty-all-batch-%d-%d", offset, time.Now().UnixNano()),
+			DocumentCount: 0,
+			Success:       true,
+			ProcessedAt:   time.Now(),
+		}, nil
+	}
+
+	// Filter out tokens owned by burn address or marked burned
+	filtered := make([]indexer.DetailedTokenV2, 0, len(tokens))
+	for _, t := range tokens {
+		if t.Burned {
+			continue
+		}
+		if !t.Fungible && indexer.IsBurnAddress(t.Owner, w.Environment) {
+			continue
+		}
+		filtered = append(filtered, t)
+	}
+
+	// Index in sub-batches
+	subBatchSize := 50
+	futures := make([]workflow.Future, 0)
+	for i := 0; i < len(filtered); i += subBatchSize {
+		end := i + subBatchSize
+		if end > len(filtered) {
+			end = len(filtered)
+		}
+		subBatch := filtered[i:end]
+		future := workflow.ExecuteActivity(
+			ContextRegularActivity(ctx, w.TaskListName),
+			w.BatchIndexTokensToMeilisearch,
+			subBatch,
+			false,
+		)
+		futures = append(futures, future)
+	}
+
+	var combinedResult MeilisearchBatchResult
+	combinedResult.BatchID = fmt.Sprintf("all-batch-%d-%d", offset, time.Now().UnixNano())
+	combinedResult.Success = true
+	combinedResult.ProcessedAt = time.Now()
+
+	for i, future := range futures {
+		var subResult MeilisearchBatchResult
+		if err := future.Get(ctx, &subResult); err != nil {
+			logger.Error(errors.New("sub-batch processing failed"),
+				zap.Error(err),
+				zap.Int("subBatchIndex", i))
+			combinedResult.Success = false
+			if combinedResult.Error == "" {
+				combinedResult.Error = err.Error()
+			} else {
+				combinedResult.Error += "; " + err.Error()
+			}
+		} else {
+			combinedResult.DocumentCount += subResult.DocumentCount
+			if subResult.TaskUID > 0 {
+				combinedResult.TaskUID = subResult.TaskUID
+			}
+		}
+	}
+
+	logger.Info("All-tokens batch processing completed",
+		zap.String("batchID", combinedResult.BatchID),
+		zap.Int("documentCount", combinedResult.DocumentCount),
+		zap.Bool("success", combinedResult.Success))
+
+	return combinedResult, nil
 }

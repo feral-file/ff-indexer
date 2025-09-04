@@ -63,6 +63,7 @@ type MeilisearchStreamRequest struct {
 	FilterByBlockchains []string                `json:"filterByBlockchains"`
 	FilterByContracts   []string                `json:"filterByContracts"`
 	LastUpdatedAfter    *time.Time              `json:"lastUpdatedAfter"`
+	StartOffset         int64                   `json:"startOffset,omitempty"`
 }
 
 type MeilisearchStreamResult struct {
