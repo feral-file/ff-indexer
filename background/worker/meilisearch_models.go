@@ -84,12 +84,9 @@ func toMeilisearchDocument(token indexer.DetailedTokenV2) MeilisearchTokenDocume
 		Medium:            string(token.Asset.Metadata.Project.Latest.Medium),
 		MimeType:          token.Asset.Metadata.Project.Latest.MIMEType,
 		Source:            token.Asset.Metadata.Project.Latest.Source,
-		Edition:           token.Edition,
-		EditionName:       token.EditionName,
 		MintedAt:          token.MintedAt,
 		LastActivityTime:  token.LastActivityTime,
 		LastRefreshedTime: token.LastRefreshedTime,
-		IndexedAt:         time.Now(),
 		FullToken:         token,
 	}
 	return doc
