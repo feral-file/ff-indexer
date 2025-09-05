@@ -273,6 +273,12 @@ func (w *NFTIndexerWorker) CountTokensForAddresses(ctx context.Context, addresse
 	return totalCount, nil
 }
 
+// GetDetailedTokensV2 activity wrapper for getting detailed tokens
+func (w *NFTIndexerWorker) GetDetailedTokensV2(ctx context.Context, filterParameter indexer.FilterParameter, offset, size int64) ([]indexer.DetailedTokenV2, error) {
+	// Resilience and retry logic is handled at the store level
+	return w.indexerStore.GetDetailedTokensV2(ctx, filterParameter, offset, size)
+}
+
 // DeleteBurnedTokensFromMeilisearch removes burned tokens from Meilisearch
 func (w *NFTIndexerWorker) DeleteBurnedTokensFromMeilisearch(ctx context.Context, indexIDs []string) (*MeilisearchBatchResult, error) {
 	if len(indexIDs) == 0 {

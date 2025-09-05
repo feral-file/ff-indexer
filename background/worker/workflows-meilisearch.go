@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -396,11 +395,6 @@ func (w *NFTIndexerWorker) RefreshTokensInMeilisearchWorkflow(
 		zap.Int("totalIndexed", result.TotalTokensIndexed))
 
 	return result, nil
-}
-
-// GetDetailedTokensV2 activity wrapper for getting detailed tokens
-func (w *NFTIndexerWorker) GetDetailedTokensV2(ctx context.Context, filterParameter indexer.FilterParameter, offset, size int64) ([]indexer.DetailedTokenV2, error) {
-	return w.indexerStore.GetDetailedTokensV2(ctx, filterParameter, offset, size)
 }
 
 // DeleteBurnedTokensFromMeilisearchWorkflow removes burned tokens from Meilisearch
