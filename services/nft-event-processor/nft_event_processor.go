@@ -152,6 +152,8 @@ func (e *EventProcessor) updateOwnerAndProvenance(ctx context.Context, event NFT
 					zap.String("from", from), zap.String("to", to))
 			}
 			indexerWorker.StartRefreshTokenProvenanceWorkflow(ctx, e.worker, "processor", indexID, 0)
+			// Also update Meilisearch ownership for non-fungible token
+			indexerWorker.StartRefreshTokenOwnershipWorkflow(ctx, e.worker, "processor", indexID, 0)
 		}
 	} else {
 		// index the new token since it is a new token send to our watched user
