@@ -70,14 +70,15 @@ func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Contex
 	processedTokens := int64(0)
 
 	startOffset := request.StartOffset
-	runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
+	_ = workflow.GetInfo(ctx).WorkflowExecution.RunID
+	parentWorkflowID := workflow.GetInfo(ctx).WorkflowExecution.ID
 
 	if allTokensMode {
 		// Schedule up to maxConcurrency batches for this run
 		futures = futures[:0]
 		for i := int64(0); i < int64(maxConcurrency); i++ {
 			offset := startOffset + i*batchSize
-			childWorkflowID := fmt.Sprintf("meilisearch-batch-%d-%s", offset, runID)
+			childWorkflowID := fmt.Sprintf("meilisearch-batch-%d-%s", offset, parentWorkflowID)
 			future := workflow.ExecuteChildWorkflow(
 				ContextNamedRegularChildWorkflow(ctx, childWorkflowID, w.TaskListName),
 				w.ProcessAllTokensBatchToMeilisearchWorkflow,
@@ -154,7 +155,7 @@ func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Contex
 		}
 
 		// Start a new child workflow for this batch
-		childWorkflowID := fmt.Sprintf("meilisearch-batch-%d-%s", offset, runID)
+		childWorkflowID := fmt.Sprintf("meilisearch-batch-%d-%s", offset, parentWorkflowID)
 		future := workflow.ExecuteChildWorkflow(
 			ContextNamedRegularChildWorkflow(ctx, childWorkflowID, w.TaskListName),
 			w.ProcessTokenBatchToMeilisearchWorkflow,
