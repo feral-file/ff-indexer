@@ -1771,7 +1771,11 @@ func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, fil
 		bson.M{"$limit": size},
 	)
 
-	cursor, err := s.tokenAssetCollection.Aggregate(ctx, pipelines)
+	// Use SecondaryPreferred read preference to allow reading from secondary when primary is unavailable
+	// Create collection with secondary preferred read preference
+	collectionOpts := options.Collection().SetReadPreference(readpref.SecondaryPreferred())
+	collection := s.tokenAssetCollection.Database().Collection(s.tokenAssetCollection.Name(), collectionOpts)
+	cursor, err := collection.Aggregate(ctx, pipelines)
 
 	if err != nil {
 		return nil, err
