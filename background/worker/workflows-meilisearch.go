@@ -70,15 +70,15 @@ func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Contex
 	processedTokens := int64(0)
 
 	startOffset := request.StartOffset
-	_ = workflow.GetInfo(ctx).WorkflowExecution.RunID
-	parentWorkflowID := workflow.GetInfo(ctx).WorkflowExecution.ID
+	workflowInfo := workflow.GetInfo(ctx)
+	runID := workflowInfo.WorkflowExecution.RunID
 
 	if allTokensMode {
 		// Schedule up to maxConcurrency batches for this run
 		futures = futures[:0]
 		for i := int64(0); i < int64(maxConcurrency); i++ {
 			offset := startOffset + i*batchSize
-			childWorkflowID := fmt.Sprintf("meilisearch-batch-%d-%s", offset, parentWorkflowID)
+			childWorkflowID := fmt.Sprintf("meilisearch-batch-%d-%s", offset, runID)
 			future := workflow.ExecuteChildWorkflow(
 				ContextNamedRegularChildWorkflow(ctx, childWorkflowID, w.TaskListName),
 				w.ProcessAllTokensBatchToMeilisearchWorkflow,
@@ -155,7 +155,7 @@ func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Contex
 		}
 
 		// Start a new child workflow for this batch
-		childWorkflowID := fmt.Sprintf("meilisearch-batch-%d-%s", offset, parentWorkflowID)
+		childWorkflowID := fmt.Sprintf("meilisearch-batch-%d-%s", offset, runID)
 		future := workflow.ExecuteChildWorkflow(
 			ContextNamedRegularChildWorkflow(ctx, childWorkflowID, w.TaskListName),
 			w.ProcessTokenBatchToMeilisearchWorkflow,
@@ -232,8 +232,9 @@ func (w *NFTIndexerWorker) ProcessTokenBatchToMeilisearchWorkflow(
 		size,
 	).Get(ctx, &tokens); err != nil {
 		logger.Error(errors.New("failed to get tokens for batch"), zap.Error(err))
+		runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
 		return MeilisearchBatchResult{
-			BatchID:       fmt.Sprintf("failed-batch-%d-%s", offset, workflow.GetInfo(ctx).WorkflowExecution.RunID),
+			BatchID:       fmt.Sprintf("failed-batch-%d-%s", offset, runID),
 			DocumentCount: 0,
 			Success:       false,
 			Error:         err.Error(),
@@ -242,8 +243,9 @@ func (w *NFTIndexerWorker) ProcessTokenBatchToMeilisearchWorkflow(
 	}
 
 	if len(tokens) == 0 {
+		runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
 		return MeilisearchBatchResult{
-			BatchID:       fmt.Sprintf("empty-batch-%d-%s", offset, workflow.GetInfo(ctx).WorkflowExecution.RunID),
+			BatchID:       fmt.Sprintf("empty-batch-%d-%s", offset, runID),
 			DocumentCount: 0,
 			Success:       true,
 			ProcessedAt:   workflow.Now(ctx),
@@ -285,7 +287,8 @@ func (w *NFTIndexerWorker) ProcessTokenBatchToMeilisearchWorkflow(
 
 	// Collect results from all sub-batches
 	var combinedResult MeilisearchBatchResult
-	combinedResult.BatchID = fmt.Sprintf("batch-%d-%s", offset, workflow.GetInfo(ctx).WorkflowExecution.RunID)
+	runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
+	combinedResult.BatchID = fmt.Sprintf("batch-%d-%s", offset, runID)
 	combinedResult.Success = true
 	combinedResult.ProcessedAt = workflow.Now(ctx)
 
@@ -464,8 +467,9 @@ func (w *NFTIndexerWorker) ProcessAllTokensBatchToMeilisearchWorkflow(
 		size,
 	).Get(ctx, &tokens); err != nil {
 		logger.Error(errors.New("failed to get tokens for all batch"), zap.Error(err))
+		runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
 		return MeilisearchBatchResult{
-			BatchID:       fmt.Sprintf("failed-all-batch-%d-%s", offset, workflow.GetInfo(ctx).WorkflowExecution.RunID),
+			BatchID:       fmt.Sprintf("failed-all-batch-%d-%s", offset, runID),
 			DocumentCount: 0,
 			Success:       false,
 			Error:         err.Error(),
@@ -474,8 +478,9 @@ func (w *NFTIndexerWorker) ProcessAllTokensBatchToMeilisearchWorkflow(
 	}
 
 	if len(tokens) == 0 {
+		runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
 		return MeilisearchBatchResult{
-			BatchID:       fmt.Sprintf("empty-all-batch-%d-%s", offset, workflow.GetInfo(ctx).WorkflowExecution.RunID),
+			BatchID:       fmt.Sprintf("empty-all-batch-%d-%s", offset, runID),
 			DocumentCount: 0,
 			Success:       true,
 			ProcessedAt:   workflow.Now(ctx),
@@ -513,7 +518,8 @@ func (w *NFTIndexerWorker) ProcessAllTokensBatchToMeilisearchWorkflow(
 	}
 
 	var combinedResult MeilisearchBatchResult
-	combinedResult.BatchID = fmt.Sprintf("all-batch-%d-%s", offset, workflow.GetInfo(ctx).WorkflowExecution.RunID)
+	runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
+	combinedResult.BatchID = fmt.Sprintf("all-batch-%d-%s", offset, runID)
 	combinedResult.Success = true
 	combinedResult.ProcessedAt = workflow.Now(ctx)
 
