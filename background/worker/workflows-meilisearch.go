@@ -16,7 +16,7 @@ import (
 // StreamTokensToMeilisearchWorkflow is the main parent workflow for streaming tokens to Meilisearch
 func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Context, request MeilisearchStreamRequest) (*MeilisearchStreamResult, error) {
 	logger := log.CadenceWorkflowLogger(ctx)
-	startTime := time.Now()
+	startTime := workflow.Now(ctx)
 
 	logger.Info("Starting Meilisearch streaming workflow",
 		zap.Int("addressCount", len(request.Addresses)),
@@ -70,13 +70,14 @@ func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Contex
 	processedTokens := int64(0)
 
 	startOffset := request.StartOffset
+	runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
 
 	if allTokensMode {
 		// Schedule up to maxConcurrency batches for this run
 		futures = futures[:0]
 		for i := int64(0); i < int64(maxConcurrency); i++ {
 			offset := startOffset + i*batchSize
-			childWorkflowID := fmt.Sprintf("meilisearch-batch-%d-%d", offset, time.Now().UnixNano())
+			childWorkflowID := fmt.Sprintf("meilisearch-batch-%d-%s", offset, runID)
 			future := workflow.ExecuteChildWorkflow(
 				ContextNamedRegularChildWorkflow(ctx, childWorkflowID, w.TaskListName),
 				w.ProcessAllTokensBatchToMeilisearchWorkflow,
@@ -95,7 +96,7 @@ func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Contex
 				logger.Error(errors.New("batch processing failed"), zap.Error(err))
 				result.Errors = append(result.Errors, MeilisearchStreamError{
 					Error:     err.Error(),
-					Timestamp: time.Now(),
+					Timestamp: workflow.Now(ctx),
 					Retryable: true,
 				})
 				result.TotalTokensErrored += batchResult.DocumentCount
@@ -111,14 +112,13 @@ func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Contex
 		// If all batches are empty, finish; otherwise continue-as-new to next page
 		if emptyBatches == len(futures) {
 			result.TotalTokensProcessed = int(processedTokens)
-			result.ProcessingTime = time.Since(startTime)
+			result.ProcessingTime = workflow.Now(ctx).Sub(startTime)
 			result.TotalTokensSkipped = result.TotalTokensProcessed - result.TotalTokensIndexed - result.TotalTokensErrored
 			logger.Info("Meilisearch streaming workflow completed (all tokens mode, done)",
 				zap.Int("totalProcessed", result.TotalTokensProcessed),
 				zap.Int("totalIndexed", result.TotalTokensIndexed),
 				zap.Int("totalErrored", result.TotalTokensErrored),
-				zap.Int("totalSkipped", result.TotalTokensSkipped),
-				zap.Duration("processingTime", result.ProcessingTime))
+				zap.Int("totalSkipped", result.TotalTokensSkipped))
 			return result, nil
 		}
 
@@ -140,7 +140,7 @@ func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Contex
 				logger.Error(errors.New("batch processing failed"), zap.Error(err))
 				result.Errors = append(result.Errors, MeilisearchStreamError{
 					Error:     err.Error(),
-					Timestamp: time.Now(),
+					Timestamp: workflow.Now(ctx),
 					Retryable: true,
 				})
 				result.TotalTokensErrored += batchResult.DocumentCount
@@ -154,7 +154,7 @@ func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Contex
 		}
 
 		// Start a new child workflow for this batch
-		childWorkflowID := fmt.Sprintf("meilisearch-batch-%d-%d", offset, time.Now().UnixNano())
+		childWorkflowID := fmt.Sprintf("meilisearch-batch-%d-%s", offset, runID)
 		future := workflow.ExecuteChildWorkflow(
 			ContextNamedRegularChildWorkflow(ctx, childWorkflowID, w.TaskListName),
 			w.ProcessTokenBatchToMeilisearchWorkflow,
@@ -181,7 +181,7 @@ func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Contex
 			logger.Error(errors.New("batch processing failed"), zap.Error(err))
 			result.Errors = append(result.Errors, MeilisearchStreamError{
 				Error:     err.Error(),
-				Timestamp: time.Now(),
+				Timestamp: workflow.Now(ctx),
 				Retryable: true,
 			})
 			result.TotalTokensErrored += batchResult.DocumentCount
@@ -193,15 +193,14 @@ func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Contex
 
 	// Calculate final statistics
 	result.TotalTokensProcessed = int(totalTokenCount)
-	result.ProcessingTime = time.Since(startTime)
+	result.ProcessingTime = workflow.Now(ctx).Sub(startTime)
 	result.TotalTokensSkipped = result.TotalTokensProcessed - result.TotalTokensIndexed - result.TotalTokensErrored
 
 	logger.Info("Meilisearch streaming workflow completed",
 		zap.Int("totalProcessed", result.TotalTokensProcessed),
 		zap.Int("totalIndexed", result.TotalTokensIndexed),
 		zap.Int("totalErrored", result.TotalTokensErrored),
-		zap.Int("totalSkipped", result.TotalTokensSkipped),
-		zap.Duration("processingTime", result.ProcessingTime))
+		zap.Int("totalSkipped", result.TotalTokensSkipped))
 
 	return result, nil
 }
@@ -233,20 +232,20 @@ func (w *NFTIndexerWorker) ProcessTokenBatchToMeilisearchWorkflow(
 	).Get(ctx, &tokens); err != nil {
 		logger.Error(errors.New("failed to get tokens for batch"), zap.Error(err))
 		return MeilisearchBatchResult{
-			BatchID:       fmt.Sprintf("failed-batch-%d-%d", offset, time.Now().UnixNano()),
+			BatchID:       fmt.Sprintf("failed-batch-%d-%s", offset, workflow.GetInfo(ctx).WorkflowExecution.RunID),
 			DocumentCount: 0,
 			Success:       false,
 			Error:         err.Error(),
-			ProcessedAt:   time.Now(),
+			ProcessedAt:   workflow.Now(ctx),
 		}, err
 	}
 
 	if len(tokens) == 0 {
 		return MeilisearchBatchResult{
-			BatchID:       fmt.Sprintf("empty-batch-%d-%d", offset, time.Now().UnixNano()),
+			BatchID:       fmt.Sprintf("empty-batch-%d-%s", offset, workflow.GetInfo(ctx).WorkflowExecution.RunID),
 			DocumentCount: 0,
 			Success:       true,
-			ProcessedAt:   time.Now(),
+			ProcessedAt:   workflow.Now(ctx),
 		}, nil
 	}
 
@@ -285,9 +284,9 @@ func (w *NFTIndexerWorker) ProcessTokenBatchToMeilisearchWorkflow(
 
 	// Collect results from all sub-batches
 	var combinedResult MeilisearchBatchResult
-	combinedResult.BatchID = fmt.Sprintf("batch-%d-%d", offset, time.Now().UnixNano())
+	combinedResult.BatchID = fmt.Sprintf("batch-%d-%s", offset, workflow.GetInfo(ctx).WorkflowExecution.RunID)
 	combinedResult.Success = true
-	combinedResult.ProcessedAt = time.Now()
+	combinedResult.ProcessedAt = workflow.Now(ctx)
 
 	for i, future := range futures {
 		var subResult MeilisearchBatchResult
@@ -323,7 +322,7 @@ func (w *NFTIndexerWorker) RefreshTokensInMeilisearchWorkflow(
 	indexIDs []string,
 ) (*MeilisearchStreamResult, error) {
 	logger := log.CadenceWorkflowLogger(ctx)
-	startTime := time.Now()
+	startTime := workflow.Now(ctx)
 
 	logger.Info("Starting token refresh in Meilisearch",
 		zap.Int("tokenCount", len(indexIDs)))
@@ -356,7 +355,7 @@ func (w *NFTIndexerWorker) RefreshTokensInMeilisearchWorkflow(
 			logger.Error(errors.New("failed to get detailed tokens"), zap.Error(err))
 			result.Errors = append(result.Errors, MeilisearchStreamError{
 				Error:     err.Error(),
-				Timestamp: time.Now(),
+				Timestamp: workflow.Now(ctx),
 				Retryable: true,
 			})
 			continue
@@ -374,7 +373,7 @@ func (w *NFTIndexerWorker) RefreshTokensInMeilisearchWorkflow(
 			logger.Error(errors.New("failed to index batch to Meilisearch"), zap.Error(err))
 			result.Errors = append(result.Errors, MeilisearchStreamError{
 				Error:     err.Error(),
-				Timestamp: time.Now(),
+				Timestamp: workflow.Now(ctx),
 				Retryable: true,
 			})
 			result.TotalTokensErrored += len(batchIndexIDs)
@@ -385,13 +384,12 @@ func (w *NFTIndexerWorker) RefreshTokensInMeilisearchWorkflow(
 	}
 
 	result.TotalTokensProcessed = len(indexIDs)
-	result.ProcessingTime = time.Since(startTime)
+	result.ProcessingTime = workflow.Now(ctx).Sub(startTime)
 	result.TotalTokensSkipped = result.TotalTokensProcessed - result.TotalTokensIndexed - result.TotalTokensErrored
 
 	logger.Info("Token refresh completed",
 		zap.Int("totalProcessed", result.TotalTokensProcessed),
-		zap.Int("totalIndexed", result.TotalTokensIndexed),
-		zap.Duration("processingTime", result.ProcessingTime))
+		zap.Int("totalIndexed", result.TotalTokensIndexed))
 
 	return result, nil
 }
@@ -407,7 +405,7 @@ func (w *NFTIndexerWorker) DeleteBurnedTokensFromMeilisearchWorkflow(
 	indexIDs []string,
 ) (*MeilisearchStreamResult, error) {
 	logger := log.CadenceWorkflowLogger(ctx)
-	startTime := time.Now()
+	startTime := workflow.Now(ctx)
 
 	logger.Info("Starting burned token cleanup in Meilisearch",
 		zap.Int("tokenCount", len(indexIDs)))
@@ -426,7 +424,7 @@ func (w *NFTIndexerWorker) DeleteBurnedTokensFromMeilisearchWorkflow(
 			logger.Error(errors.New("failed to delete burned tokens"), zap.Error(err))
 			result.Errors = append(result.Errors, MeilisearchStreamError{
 				Error:     err.Error(),
-				Timestamp: time.Now(),
+				Timestamp: workflow.Now(ctx),
 				Retryable: true,
 			})
 		} else {
@@ -435,7 +433,7 @@ func (w *NFTIndexerWorker) DeleteBurnedTokensFromMeilisearchWorkflow(
 		}
 	}
 
-	result.ProcessingTime = time.Since(startTime)
+	result.ProcessingTime = workflow.Now(ctx).Sub(startTime)
 	logger.Info("Burned token cleanup completed",
 		zap.Duration("processingTime", result.ProcessingTime),
 		zap.Int("tokensDeleted", result.TotalTokensIndexed))
@@ -466,20 +464,20 @@ func (w *NFTIndexerWorker) ProcessAllTokensBatchToMeilisearchWorkflow(
 	).Get(ctx, &tokens); err != nil {
 		logger.Error(errors.New("failed to get tokens for all batch"), zap.Error(err))
 		return MeilisearchBatchResult{
-			BatchID:       fmt.Sprintf("failed-all-batch-%d-%d", offset, time.Now().UnixNano()),
+			BatchID:       fmt.Sprintf("failed-all-batch-%d-%s", offset, workflow.GetInfo(ctx).WorkflowExecution.RunID),
 			DocumentCount: 0,
 			Success:       false,
 			Error:         err.Error(),
-			ProcessedAt:   time.Now(),
+			ProcessedAt:   workflow.Now(ctx),
 		}, err
 	}
 
 	if len(tokens) == 0 {
 		return MeilisearchBatchResult{
-			BatchID:       fmt.Sprintf("empty-all-batch-%d-%d", offset, time.Now().UnixNano()),
+			BatchID:       fmt.Sprintf("empty-all-batch-%d-%s", offset, workflow.GetInfo(ctx).WorkflowExecution.RunID),
 			DocumentCount: 0,
 			Success:       true,
-			ProcessedAt:   time.Now(),
+			ProcessedAt:   workflow.Now(ctx),
 		}, nil
 	}
 
@@ -514,9 +512,9 @@ func (w *NFTIndexerWorker) ProcessAllTokensBatchToMeilisearchWorkflow(
 	}
 
 	var combinedResult MeilisearchBatchResult
-	combinedResult.BatchID = fmt.Sprintf("all-batch-%d-%d", offset, time.Now().UnixNano())
+	combinedResult.BatchID = fmt.Sprintf("all-batch-%d-%s", offset, workflow.GetInfo(ctx).WorkflowExecution.RunID)
 	combinedResult.Success = true
-	combinedResult.ProcessedAt = time.Now()
+	combinedResult.ProcessedAt = workflow.Now(ctx)
 
 	for i, future := range futures {
 		var subResult MeilisearchBatchResult
