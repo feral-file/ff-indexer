@@ -44,6 +44,23 @@ func (w *NFTIndexerWorker) IndexETHTokenWorkflow(ctx workflow.Context, tokenOwne
 		next = nextPointer
 	}
 
+	// Stream all tokens for this owner to Meilisearch at the end
+	meiliReq := MeilisearchStreamRequest{
+		Addresses: []string{ethTokenOwner},
+		Config: MeilisearchStreamConfig{
+			BatchSize:      100,
+			MaxConcurrency: 5,
+			UpdateExisting: true,
+		},
+	}
+	if err := workflow.ExecuteChildWorkflow(
+		ContextRegularChildWorkflow(ctx, w.TaskListName),
+		w.StreamTokensToMeilisearchWorkflow,
+		meiliReq,
+	).Get(ctx, nil); err != nil {
+		logger.Warn("fail to stream tokens to Meilisearch (ETH)", zap.Error(err))
+	}
+
 	return nil
 }
 
@@ -70,6 +87,23 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 
 		isFirstPage = false
 	}
+	// Stream all tokens for this owner to Meilisearch at the end
+	meiliReq := MeilisearchStreamRequest{
+		Addresses: []string{tokenOwner},
+		Config: MeilisearchStreamConfig{
+			BatchSize:      100,
+			MaxConcurrency: 5,
+			UpdateExisting: true,
+		},
+	}
+	if err := workflow.ExecuteChildWorkflow(
+		ContextRegularChildWorkflow(ctx, w.TaskListName),
+		w.StreamTokensToMeilisearchWorkflow,
+		meiliReq,
+	).Get(ctx, nil); err != nil {
+		logger.Warn("fail to stream tokens to Meilisearch (Tezos)", zap.Error(err))
+	}
+
 	return nil
 }
 
