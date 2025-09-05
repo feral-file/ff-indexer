@@ -1691,49 +1691,15 @@ func (s *MongodbIndexerStore) CountDetailedAccountTokensByOwner(ctx context.Cont
 	return s.accountTokenCollection.CountDocuments(ctx, filter)
 }
 
-// GetDetailedTokensV2 returns a list of tokens information based on ids with resilience
+// GetDetailedTokensV2 returns a list of tokens information based on ids
 func (s *MongodbIndexerStore) GetDetailedTokensV2(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error) {
-	maxRetries := 3
-	baseDelay := time.Second
-
-	for attempt := 1; attempt <= maxRetries; attempt++ {
-		tokens, err := s.getDetailedTokensV2WithRetry(ctx, filterParameter, offset, size, attempt)
-
-		if err == nil {
-			return tokens, nil
-		}
-
-		// Check if it's a MongoDB read preference error that should be retried
-		if strings.Contains(err.Error(), "FailedToSatisfyReadPreference") && attempt < maxRetries {
-			delay := time.Duration(attempt) * baseDelay
-			log.Warn("GetDetailedTokensV2 failed with read preference error, retrying",
-				zap.Int("attempt", attempt),
-				zap.Int("maxRetries", maxRetries),
-				zap.Duration("retryDelay", delay),
-				zap.Error(err))
-
-			time.Sleep(delay)
-			continue
-		}
-
-		// For non-retryable errors or max retries reached, return the error
-		return nil, err
-	}
-
-	return nil, fmt.Errorf("GetDetailedTokensV2 failed after %d attempts", maxRetries)
-}
-
-// getDetailedTokensV2WithRetry is the original GetDetailedTokensV2 logic
-func (s *MongodbIndexerStore) getDetailedTokensV2WithRetry(ctx context.Context, filterParameter FilterParameter, offset, size int64, attempt int) ([]DetailedTokenV2, error) {
 	tokens := []DetailedTokenV2{}
 
 	log.Debug("GetDetailedTokensV2",
 		zap.Any("filterParameter", filterParameter),
 		zap.Int64("offset", offset),
-		zap.Int64("size", size),
-		zap.Int("attempt", attempt))
+		zap.Int64("size", size))
 	startTime := time.Now()
-
 	if length := len(filterParameter.IDs); length > 0 {
 		queryIDsEnd := int(offset + size)
 		if queryIDsEnd > length {
@@ -1773,43 +1739,27 @@ func (s *MongodbIndexerStore) getDetailedTokensV2WithRetry(ctx context.Context, 
 // getDetailedTokensV2InView returns detail tokens from mongodb custom view
 func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error) {
 	tokens := []DetailedTokenV2{}
-	var pipelines []bson.M
-	if len(filterParameter.IDs) > 0 {
-		match := bson.M{"indexID": bson.M{"$in": filterParameter.IDs}}
-		if !filterParameter.BurnedIncluded {
-			match["burned"] = bson.M{"$ne": true}
-		}
-		pipelines = []bson.M{
-			{"$match": match},
-			{"$addFields": bson.M{"__order": bson.M{"$indexOfArray": bson.A{filterParameter.IDs, "$indexID"}}}},
-			{"$sort": bson.M{"__order": 1}},
-		}
-		if filterParameter.Source != "" {
-			pipelines = append(pipelines, bson.M{"$match": bson.M{"asset.source": filterParameter.Source}})
-		}
-	} else {
-		match := bson.M{}
-		if !filterParameter.BurnedIncluded {
-			match["burned"] = bson.M{"$ne": true}
-		}
-		if filterParameter.Source != "" {
-			match["asset.source"] = filterParameter.Source
-		}
-		if len(match) > 0 {
-			pipelines = append(pipelines, bson.M{"$match": match})
-		}
-		pipelines = append(pipelines, bson.M{"$sort": bson.D{{Key: "lastRefreshedTime", Value: -1}, {Key: "_id", Value: -1}}})
+	match := bson.M{"indexID": bson.M{"$in": filterParameter.IDs}}
+	if !filterParameter.BurnedIncluded {
+		match["burned"] = bson.M{"$ne": true}
 	}
+
+	pipelines := []bson.M{
+		{"$match": match},
+		{"$addFields": bson.M{"__order": bson.M{"$indexOfArray": bson.A{filterParameter.IDs, "$indexID"}}}},
+		{"$sort": bson.M{"__order": 1}},
+	}
+
+	if filterParameter.Source != "" {
+		pipelines = append(pipelines, bson.M{"$match": bson.M{"asset.source": filterParameter.Source}})
+	}
+
 	pipelines = append(pipelines,
 		bson.M{"$skip": offset},
 		bson.M{"$limit": size},
 	)
 
-	// Use SecondaryPreferred read preference to allow reading from secondary when primary is unavailable
-	// Create collection with secondary preferred read preference
-	collectionOpts := options.Collection().SetReadPreference(readpref.SecondaryPreferred())
-	collection := s.tokenAssetCollection.Database().Collection(s.tokenAssetCollection.Name(), collectionOpts)
-	cursor, err := collection.Aggregate(ctx, pipelines)
+	cursor, err := s.tokenAssetCollection.Aggregate(ctx, pipelines)
 
 	if err != nil {
 		return nil, err
