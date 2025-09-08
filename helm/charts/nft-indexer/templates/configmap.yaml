@@ -71,6 +71,11 @@ data:
     opensea:
       ratelimit: {{ .Values.serviceConfig.opensea_ratelimit }}
 
+    meilisearch:
+      endpoint: {{ .Values.serviceConfig.meilisearch.endpoint }}
+      index_name: {{ .Values.serviceConfig.meilisearch.indexName }}
+      index_key_prefix: {{ .Values.serviceConfig.meilisearch.indexKeyPrefix | default "" }}
+
     cache:
       bucket_name: {{ .Values.serviceConfig.cache_bucket_name }}
 

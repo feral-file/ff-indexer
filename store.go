@@ -548,6 +548,11 @@ func (s *MongodbIndexerStore) SwapToken(ctx context.Context, swap SwapUpdate) (s
 func (s *MongodbIndexerStore) FilterTokenIDsWithInconsistentProvenanceForOwner(ctx context.Context, indexIDs []string, owner string) ([]string, error) {
 	var tokenIDs []string
 
+	// Return empty result if no indexIDs provided
+	if len(indexIDs) == 0 {
+		return tokenIDs, nil
+	}
+
 	c, err := s.tokenCollection.Find(ctx,
 		bson.M{
 			"indexID":            bson.M{"$in": indexIDs},
@@ -657,6 +662,11 @@ func (s *MongodbIndexerStore) GetDetailedTokens(ctx context.Context, filterParam
 // FilterBurnedIndexIDs filter out burned tokens from provided list
 func (s *MongodbIndexerStore) FilterBurnedIndexIDs(ctx context.Context, indexIDs []string) ([]string, error) {
 	burnedTokens := make(map[string]struct{})
+
+	// Return empty result if no indexIDs provided
+	if len(indexIDs) == 0 {
+		return []string{}, nil
+	}
 
 	c, err := s.tokenCollection.Find(ctx, bson.M{
 		"indexID": bson.M{"$in": indexIDs},
@@ -1356,6 +1366,11 @@ func (s *MongodbIndexerStore) GetAccount(ctx context.Context, owner string) (Acc
 func (s *MongodbIndexerStore) GetLatestActivityTimeByIndexIDs(ctx context.Context, indexIDs []string) (map[string]time.Time, error) {
 	accountTokenLatestActivityTimes := map[string]time.Time{}
 
+	// Return empty result if no indexIDs provided
+	if len(indexIDs) == 0 {
+		return accountTokenLatestActivityTimes, nil
+	}
+
 	c, err := s.accountTokenCollection.Aggregate(ctx, []bson.M{
 		{"$match": bson.M{"indexID": bson.M{"$in": indexIDs}}},
 		{"$sort": bson.D{{Key: "lastActivityTime", Value: 1}}},
@@ -1562,6 +1577,11 @@ func (s *MongodbIndexerStore) GetTokenByIndexID(ctx context.Context, indexID str
 
 // MarkAccountTokenChanged sets the lastRefreshedTime to now
 func (s *MongodbIndexerStore) MarkAccountTokenChanged(ctx context.Context, indexIDs []string) error {
+	// Return early if no indexIDs provided
+	if len(indexIDs) == 0 {
+		return nil
+	}
+
 	_, err := s.accountTokenCollection.UpdateMany(ctx, bson.M{
 		"indexID": bson.M{"$in": indexIDs},
 	}, bson.M{
@@ -1739,15 +1759,27 @@ func (s *MongodbIndexerStore) GetDetailedTokensV2(ctx context.Context, filterPar
 // getDetailedTokensV2InView returns detail tokens from mongodb custom view
 func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, filterParameter FilterParameter, offset, size int64) ([]DetailedTokenV2, error) {
 	tokens := []DetailedTokenV2{}
-	match := bson.M{"indexID": bson.M{"$in": filterParameter.IDs}}
+	match := bson.M{}
+
+	// Only add indexID filter if IDs array is not empty
+	if len(filterParameter.IDs) > 0 {
+		match["indexID"] = bson.M{"$in": filterParameter.IDs}
+	}
+
 	if !filterParameter.BurnedIncluded {
 		match["burned"] = bson.M{"$ne": true}
 	}
 
 	pipelines := []bson.M{
 		{"$match": match},
-		{"$addFields": bson.M{"__order": bson.M{"$indexOfArray": bson.A{filterParameter.IDs, "$indexID"}}}},
-		{"$sort": bson.M{"__order": 1}},
+	}
+
+	// Only add ordering if we have specific IDs to order by
+	if len(filterParameter.IDs) > 0 {
+		pipelines = append(pipelines,
+			bson.M{"$addFields": bson.M{"__order": bson.M{"$indexOfArray": bson.A{filterParameter.IDs, "$indexID"}}}},
+			bson.M{"$sort": bson.M{"__order": 1}},
+		)
 	}
 
 	if filterParameter.Source != "" {
@@ -1820,6 +1852,11 @@ func (s *MongodbIndexerStore) GetTotalBalanceOfOwnerAccounts(ctx context.Context
 func (s *MongodbIndexerStore) GetNullProvenanceTokensByIndexIDs(ctx context.Context, indexIDs []string) ([]string, error) {
 	var nullProvenanceIDs []string
 	var tokens []Token
+
+	// Return empty result if no indexIDs provided
+	if len(indexIDs) == 0 {
+		return nullProvenanceIDs, nil
+	}
 
 	c, err := s.tokenCollection.Find(ctx, bson.M{
 		"indexID":    bson.M{"$in": indexIDs},

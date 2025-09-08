@@ -101,7 +101,7 @@ func main() {
 	workflow.Register(worker.RefreshTokenProvenanceByOwnerWorkflow)
 
 	// activities
-
+	activity.Register(worker.UpdateTokenOwnershipInMeilisearch)
 	activity.Register(worker.GetOwnedTokenIDsByOwner)
 	activity.Register(worker.FilterTokenIDsWithInconsistentProvenanceForOwner)
 	activity.Register(worker.RefreshTokenProvenance)

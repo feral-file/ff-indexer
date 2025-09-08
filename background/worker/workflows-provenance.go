@@ -80,5 +80,22 @@ func (w *NFTIndexerWorker) RefreshTokenOwnershipWorkflow(ctx workflow.Context, i
 		StartToCloseTimeout:    time.Hour,
 	}
 	ctx = workflow.WithActivityOptions(ctx, ao)
-	return workflow.ExecuteActivity(ctx, w.RefreshTokenOwnership, indexIDs, delay).Get(ctx, nil)
+	// First, refresh ownership data in the store
+	if err := workflow.ExecuteActivity(ctx, w.RefreshTokenOwnership, indexIDs, delay).Get(ctx, nil); err != nil {
+		return err
+	}
+
+	// Then, update Meilisearch ownership fields for each token
+	futures := make([]workflow.Future, 0, len(indexIDs))
+	for _, id := range indexIDs {
+		futures = append(futures, workflow.ExecuteActivity(ctx, w.UpdateTokenOwnershipInMeilisearch, id))
+	}
+
+	for _, f := range futures {
+		if err := f.Get(ctx, nil); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

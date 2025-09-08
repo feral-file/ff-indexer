@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	uberCadence "go.uber.org/cadence"
@@ -41,6 +42,56 @@ func StartIndexTokenWorkflow(c context.Context, client *cadence.WorkerClient, ow
 			zap.String("token_id", tokenID),
 			zap.String("workflow_id", workflow.ID))
 
+	}
+}
+
+// StartStreamTokensToMeilisearchWorkflow starts a workflow to stream tokens to Meilisearch
+func StartStreamTokensToMeilisearchWorkflow(c context.Context, client *cadence.WorkerClient, request MeilisearchStreamRequest) {
+	workflowContext := cadenceClient.StartWorkflowOptions{
+		ID:                           fmt.Sprintf("stream-tokens-meilisearch-%s-%d", strings.Join(request.Addresses, "-"), time.Now().UnixNano()),
+		TaskList:                     TaskListName,
+		ExecutionStartToCloseTimeout: 6 * time.Hour, // Longer timeout for large datasets
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyTerminateIfRunning,
+	}
+
+	var w NFTIndexerWorker
+
+	workflow, err := client.StartWorkflow(c, ClientName, workflowContext,
+		w.StreamTokensToMeilisearchWorkflow, request)
+	if err != nil {
+		log.WarnWithContext(c, "fail to start Meilisearch streaming workflow",
+			zap.Error(err),
+			zap.Any("addresses", request.Addresses),
+			zap.String("indexName", request.Config.IndexName))
+	} else {
+		log.Info("started workflow to stream tokens to Meilisearch",
+			zap.Any("addresses", request.Addresses),
+			zap.String("indexName", request.Config.IndexName),
+			zap.String("workflow_id", workflow.ID))
+	}
+}
+
+// StartRefreshTokensInMeilisearchWorkflow starts a workflow to refresh specific tokens in Meilisearch
+func StartRefreshTokensInMeilisearchWorkflow(c context.Context, client *cadence.WorkerClient, indexIDs []string) {
+	workflowContext := cadenceClient.StartWorkflowOptions{
+		ID:                           fmt.Sprintf("refresh-tokens-meilisearch-%d", time.Now().UnixNano()),
+		TaskList:                     TaskListName,
+		ExecutionStartToCloseTimeout: 2 * time.Hour,
+		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyTerminateIfRunning,
+	}
+
+	var w NFTIndexerWorker
+
+	workflow, err := client.StartWorkflow(c, ClientName, workflowContext,
+		w.RefreshTokensInMeilisearchWorkflow, indexIDs)
+	if err != nil {
+		log.WarnWithContext(c, "fail to start Meilisearch refresh workflow",
+			zap.Error(err),
+			zap.Any("indexIDs", indexIDs))
+	} else {
+		log.Info("started workflow to refresh tokens in Meilisearch",
+			zap.Int("tokenCount", len(indexIDs)),
+			zap.String("workflow_id", workflow.ID))
 	}
 }
 

@@ -37,6 +37,10 @@ serviceConfig:
   - ipfs.io
   asset_server:
     server_url: http://autonomy-asset-server.autonomy-staging.svc.cluster.local
+  meilisearch:
+    endpoint: https://search.feralfile.com
+    indexName: nft-indexer-staging
+    indexKeyPrefix: ""
 
 imagePullSecrets: []
 nameOverride: ""

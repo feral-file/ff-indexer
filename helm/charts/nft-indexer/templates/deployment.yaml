@@ -296,6 +296,11 @@ spec:
                 secretKeyRef:
                   name: {{ include "nft-indexer.fullname" . }}
                   key: sentry_dsn
+            - name: NFT_INDEXER_MEILISEARCH_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nft-indexer.fullname" . }}
+                  key: meilisearch_api_key
             - name: NFT_INDEXER_ETHERSCAN_APIKEY
               valueFrom:
                 secretKeyRef:

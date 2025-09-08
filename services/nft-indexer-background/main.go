@@ -101,6 +101,14 @@ func main() {
 	workflow.RegisterWithOptions(worker.IndexTokenWorkflow, workflow.RegisterOptions{
 		Name: "IndexTokenWorkflow",
 	})
+	// Meilisearch workflows
+	workflow.RegisterWithOptions(worker.StreamTokensToMeilisearchWorkflow, workflow.RegisterOptions{
+		Name: "StreamTokensToMeilisearchWorkflow",
+	})
+	workflow.Register(worker.ProcessTokenBatchToMeilisearchWorkflow)
+	workflow.Register(worker.ProcessAllTokensBatchToMeilisearchWorkflow)
+	workflow.Register(worker.RefreshTokensInMeilisearchWorkflow)
+	workflow.Register(worker.DeleteBurnedTokensFromMeilisearchWorkflow)
 	workflow.RegisterWithOptions(worker.IndexEthereumTokenSaleInBlockRange, workflow.RegisterOptions{
 		Name: "IndexEthereumTokenSaleInBlockRange"})
 	workflow.RegisterWithOptions(worker.IndexEthereumTokenSale, workflow.RegisterOptions{
@@ -155,6 +163,15 @@ func main() {
 	activity.Register(worker.WriteHistoricalExchangeRate)
 	activity.Register(worker.CrawlExchangeRateFromCoinbase)
 	activity.Register(worker.GetExchangeRateLastTime)
+
+	// Meilisearch activities
+	activity.Register(worker.CreateOrUpdateMeilisearchIndex)
+	activity.Register(worker.BatchIndexTokensToMeilisearch)
+	activity.Register(worker.GetTokensForAddresses)
+	activity.Register(worker.CountTokensForAddresses)
+	activity.Register(worker.DeleteBurnedTokensFromMeilisearch)
+	activity.Register(worker.WaitForMeilisearchTask)
+	activity.Register(worker.GetDetailedTokensV2)
 
 	// index account tokens
 	activity.Register(worker.IndexAccountTokens)
