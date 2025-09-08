@@ -336,19 +336,24 @@ jobs:
       with:
         version: v3.14.4
 
-    - name: Setup Helmfile
-      uses: mamezou-tech/setup-helmfile@v1.2.0
-      with:
-        helmfile-version: v0.156.0
-
-    - name: Install SOPS and Helm plugins
+    - name: Setup Helmfile and Install SOPS and Helm plugins
       run: |
+        # Install SOPS
         sudo apt-get update
         sudo apt-get install -y wget gnupg
         SOPS_VERSION=3.8.1
         wget -q https://github.com/getsops/sops/releases/download/v${SOPS_VERSION}/sops-v${SOPS_VERSION}.linux.amd64 -O sops
         sudo install -m 0755 sops /usr/local/bin/sops
         rm sops
+        
+        # Install Helmfile
+        HELMFILE_VERSION=v0.156.0
+        wget -q https://github.com/helmfile/helmfile/releases/download/${HELMFILE_VERSION}/helmfile_${HELMFILE_VERSION#v}_linux_amd64.tar.gz -O helmfile.tar.gz
+        tar -xzf helmfile.tar.gz
+        sudo install -m 0755 helmfile /usr/local/bin/helmfile
+        rm helmfile.tar.gz helmfile
+        
+        # Install Helm plugins with compatible versions
         helm plugin install https://github.com/jkroepke/helm-secrets --version v4.6.2 || helm plugin update secrets
         helm plugin install https://github.com/databus23/helm-diff --version v3.9.11 || true
 
