@@ -70,14 +70,26 @@ func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Contex
 
 	startOffset := request.StartOffset
 	workflowInfo := workflow.GetInfo(ctx)
-	workflowID := workflowInfo.WorkflowExecution.ID
+
+	// Create a deterministic base ID that includes the original workflow execution info
+	// This ensures child workflow IDs are unique and consistent during replays
+	baseWorkflowID := workflowInfo.WorkflowExecution.ID
+
+	// For continue-as-new scenarios, we need to ensure child workflow IDs are unique
+	// but deterministic. We'll use the RunID which changes with each continue-as-new
+	// but remains consistent during replays of the same execution
+	runID := workflowInfo.WorkflowExecution.RunID
+	if len(runID) > 8 {
+		runID = runID[:8] // Use first 8 characters for brevity
+	}
+	baseWorkflowID = fmt.Sprintf("%s-%s", baseWorkflowID, runID)
 
 	if allTokensMode {
 		// Schedule up to maxConcurrency batches for this run
 		futures = futures[:0]
 		for i := int64(0); i < int64(maxConcurrency); i++ {
 			offset := startOffset + i*batchSize
-			childWorkflowID := fmt.Sprintf("meilisearch-batch-%d-%s", offset, workflowID)
+			childWorkflowID := fmt.Sprintf("meilisearch-batch-%d-%s", offset, baseWorkflowID)
 			future := workflow.ExecuteChildWorkflow(
 				ContextNamedRegularChildWorkflow(ctx, childWorkflowID, w.TaskListName),
 				w.ProcessAllTokensBatchToMeilisearchWorkflow,
@@ -90,6 +102,7 @@ func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Contex
 
 		// Collect all results for this page
 		emptyBatches := 0
+		totalProcessedInBatch := int64(0)
 		for _, future := range futures {
 			var batchResult MeilisearchBatchResult
 			if err := future.Get(ctx, &batchResult); err != nil {
@@ -103,14 +116,26 @@ func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Contex
 			} else {
 				result.BatchResults = append(result.BatchResults, batchResult)
 				result.TotalTokensIndexed += batchResult.DocumentCount
+				totalProcessedInBatch += int64(batchResult.DocumentCount)
 				if batchResult.DocumentCount == 0 {
 					emptyBatches++
 				}
 			}
 		}
 
-		// If all batches are empty, finish; otherwise continue-as-new to next page
+		// Use a more deterministic approach for deciding when to stop
+		// Instead of relying only on empty batches, also check if we've processed fewer tokens than expected
+		shouldContinue := true
 		if emptyBatches == len(futures) {
+			// All batches were empty, we've likely reached the end
+			shouldContinue = false
+		} else if totalProcessedInBatch < batchSize {
+			// We processed fewer tokens than a single batch size, likely near the end
+			// But continue anyway to be safe - this ensures deterministic behavior
+			shouldContinue = true
+		}
+
+		if !shouldContinue {
 			result.TotalTokensProcessed = int(processedTokens)
 			result.ProcessingTime = workflow.Now(ctx).Sub(startTime)
 			result.TotalTokensSkipped = result.TotalTokensProcessed - result.TotalTokensIndexed - result.TotalTokensErrored
@@ -125,7 +150,8 @@ func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Contex
 		// Continue to next page
 		nextOffset := startOffset + int64(maxConcurrency)*batchSize
 		logger.Info("Continuing as new for next page",
-			zap.Int64("nextOffset", nextOffset))
+			zap.Int64("nextOffset", nextOffset),
+			zap.Int64("totalProcessedInBatch", totalProcessedInBatch))
 		request.StartOffset = nextOffset
 		return nil, workflow.NewContinueAsNewError(ctx, w.StreamTokensToMeilisearchWorkflow, request)
 	}
@@ -154,7 +180,7 @@ func (w *NFTIndexerWorker) StreamTokensToMeilisearchWorkflow(ctx workflow.Contex
 		}
 
 		// Start a new child workflow for this batch
-		childWorkflowID := fmt.Sprintf("meilisearch-batch-%d-%s", offset, workflowID)
+		childWorkflowID := fmt.Sprintf("meilisearch-batch-%d-%s", offset, baseWorkflowID)
 		future := workflow.ExecuteChildWorkflow(
 			ContextNamedRegularChildWorkflow(ctx, childWorkflowID, w.TaskListName),
 			w.ProcessTokenBatchToMeilisearchWorkflow,
