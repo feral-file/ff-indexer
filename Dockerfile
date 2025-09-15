@@ -1,10 +1,4 @@
 # syntax=docker/dockerfile:1.2
-
-# SPDX-License-Identifier: ISC
-# Copyright (c) 2019-2021 Bitmark Inc.
-# Use of this source code is governed by an ISC
-# license that can be found in the LICENSE file.
-
 FROM golang:1.21-alpine3.18 as build
 
 RUN apk add --no-cache git gcc musl-dev
