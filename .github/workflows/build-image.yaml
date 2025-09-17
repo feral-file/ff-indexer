@@ -19,8 +19,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.INDEXER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.INDEXER_AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-1
 
       - name: Login to Amazon ECR
@@ -35,7 +35,7 @@ jobs:
           IMAGE_TAG: api-${{ github.event.inputs.version }}
           DOCKERFILE: Dockerfile-api-gateway
           GITHUB_USER: bitmark-bot
-          GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ACTION_GITHUB_TOKEN }}
         run: |
           # Build a docker container and push it to ECR so that it can be deployed.
           # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
@@ -55,8 +55,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.INDEXER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.INDEXER_AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-1
       - name: Login to Amazon ECR
         id: login-ecr
@@ -69,7 +69,7 @@ jobs:
           IMAGE_TAG: background-${{ github.event.inputs.version }}
           DOCKERFILE: Dockerfile-workflow-runner
           GITHUB_USER: bitmark-bot
-          GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ACTION_GITHUB_TOKEN }}
         run: |
           # Build a docker container and push it to ECR so that it can be deployed.
           # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
@@ -91,8 +91,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.INDEXER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.INDEXER_AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-1
 
       - name: Login to Amazon ECR
@@ -106,7 +106,7 @@ jobs:
           IMAGE_TAG: grpc-${{ github.event.inputs.version }}
           DOCKERFILE: Dockerfile-grpc-gateway
           GITHUB_USER: bitmark-bot
-          GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ACTION_GITHUB_TOKEN }}
         run: |
           # Build a docker container and push it to ECR so that it can be deployed.
           # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
@@ -128,8 +128,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.INDEXER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.INDEXER_AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-1
 
       - name: Login to Amazon ECR
@@ -143,7 +143,7 @@ jobs:
           IMAGE_TAG: provenance-indexer-${{ github.event.inputs.version }}
           DOCKERFILE: Dockerfile-provenance-indexer
           GITHUB_USER: bitmark-bot
-          GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ACTION_GITHUB_TOKEN }}
         run: |
           # Build a docker container and push it to ECR so that it can be deployed.
           # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
@@ -165,8 +165,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.INDEXER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.INDEXER_AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-1
 
       - name: Login to Amazon ECR
@@ -180,7 +180,7 @@ jobs:
           IMAGE_TAG: image-indexer-${{ github.event.inputs.version }}
           DOCKERFILE: Dockerfile-image-indexer
           GITHUB_USER: bitmark-bot
-          GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ACTION_GITHUB_TOKEN }}
         run: |
           # Build a docker container and push it to ECR so that it can be deployed.
           # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
@@ -202,8 +202,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.INDEXER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.INDEXER_AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-1
 
       - name: Login to Amazon ECR
@@ -217,7 +217,7 @@ jobs:
           IMAGE_TAG: event-processor-${{ github.event.inputs.version }}
           DOCKERFILE: Dockerfile-event-processor
           GITHUB_USER: bitmark-bot
-          GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ACTION_GITHUB_TOKEN }}
         run: |
           # Build a docker container and push it to ECR so that it can be deployed.
           # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
@@ -229,7 +229,7 @@ jobs:
           echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
 
   build-ethereum-event-emitter:
-    name: Build Event Processor Ethereum Emitter Image
+    name: Build Ethereum Emitter Image
     runs-on: ubuntu-latest
 
     steps:
@@ -239,8 +239,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.INDEXER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.INDEXER_AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-1
 
       - name: Login to Amazon ECR
@@ -254,7 +254,7 @@ jobs:
           IMAGE_TAG: ethereum-emitter-${{ github.event.inputs.version }}
           DOCKERFILE: Dockerfile-ethereum-event-emitter
           GITHUB_USER: bitmark-bot
-          GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ACTION_GITHUB_TOKEN }}
         run: |
           # Build a docker container and push it to ECR so that it can be deployed.
           # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)
@@ -266,7 +266,7 @@ jobs:
           echo "::set-output name=image::${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
 
   build-tezos-event-emitter:
-    name: Build Event Processor Tezos Emitter Image
+    name: Build Tezos Emitter Image
     runs-on: ubuntu-latest
 
     steps:
@@ -276,8 +276,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AUTONOMY_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AUTONOMY_AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.INDEXER_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.INDEXER_AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-1
 
       - name: Login to Amazon ECR
@@ -291,7 +291,7 @@ jobs:
           IMAGE_TAG: tezos-emitter-${{ github.event.inputs.version }}
           DOCKERFILE: Dockerfile-tezos-event-emitter
           GITHUB_USER: bitmark-bot
-          GITHUB_TOKEN: ${{ secrets.ACTION_BOT_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ACTION_GITHUB_TOKEN }}
         run: |
           # Build a docker container and push it to ECR so that it can be deployed.
           # Build & push the docker image (check access policy: autonomy-ecr-pull-push-images)

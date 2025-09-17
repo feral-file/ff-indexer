@@ -17,7 +17,7 @@ RUN go mod download
 
 ADD . .
 
-RUN go build -o /go/bin/ff-indexer-background ./services/ff-indexer-background
+RUN go build -o /go/bin/workflow-runner ./services/workflow-runner
 
 # ---
 
@@ -26,6 +26,6 @@ ARG dist=0.0
 
 RUN apk add --no-cache curl
 
-COPY --from=build /go/bin/ff-indexer-background /ff-indexer-background
+COPY --from=build /go/bin/workflow-runner /workflow-runner
 
-ADD services/ff-indexer-background/config.yaml.sample /.config/config.yaml
+ADD services/workflow-runner/config.yaml.sample /.config/config.yaml

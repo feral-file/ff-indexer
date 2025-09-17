@@ -17,12 +17,12 @@ RUN go mod download
 
 ADD . .
 
-RUN go install github.com/feral-file/ff-indexer/services/ff-indexer-grpc
+RUN go install github.com/feral-file/ff-indexer/services/grpc-gateway
 
 # ---
 
 FROM alpine:3.18
 ARG dist=0.0
-COPY --from=build /go/bin/ff-indexer-grpc /ff-indexer-grpc
+COPY --from=build /go/bin/grpc-gateway /grpc-gateway
 
-ADD services/ff-indexer-grpc/config.yaml.sample /.config/config.yaml
+ADD services/grpc-gateway/config.yaml.sample /.config/config.yaml
