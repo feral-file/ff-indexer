@@ -9,12 +9,12 @@ import (
 	"go.uber.org/zap"
 
 	log "github.com/bitmark-inc/autonomy-logger"
-	indexer "github.com/bitmark-inc/nft-indexer"
+	indexer "github.com/feral-file/ff-indexer"
 )
 
 // IndexETHTokenWorkflow is a workflow to index and summarize ETH tokens for a owner.
 // The data now comes from OpenSea.
-func (w *NFTIndexerWorker) IndexETHTokenWorkflow(ctx workflow.Context, tokenOwner string, includeHistory bool) error {
+func (w *Worker) IndexETHTokenWorkflow(ctx workflow.Context, tokenOwner string, includeHistory bool) error {
 	logger := log.CadenceWorkflowLogger(ctx)
 
 	if includeHistory {
@@ -48,7 +48,7 @@ func (w *NFTIndexerWorker) IndexETHTokenWorkflow(ctx workflow.Context, tokenOwne
 }
 
 // IndexTezosTokenWorkflow is a workflow to index and summarized Tezos tokens for a owner
-func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOwner string, includeHistory bool) error {
+func (w *Worker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOwner string, includeHistory bool) error {
 	logger := log.CadenceWorkflowLogger(ctx)
 
 	if includeHistory {
@@ -74,7 +74,7 @@ func (w *NFTIndexerWorker) IndexTezosTokenWorkflow(ctx workflow.Context, tokenOw
 }
 
 // IndexTokenWorkflow is a workflow to index a single token
-func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contract, tokenID string, indexProvenance, indexPreview bool) error {
+func (w *Worker) IndexTokenWorkflow(ctx workflow.Context, owner, contract, tokenID string, indexProvenance, indexPreview bool) error {
 	logger := log.CadenceWorkflowLogger(ctx)
 
 	ao := workflow.ActivityOptions{
@@ -161,7 +161,7 @@ func (w *NFTIndexerWorker) IndexTokenWorkflow(ctx workflow.Context, owner, contr
 }
 
 // CacheIPFSArtifactWorkflow is a worlflow to cache an IPFS artifact
-func (w *NFTIndexerWorker) CacheIPFSArtifactWorkflow(ctx workflow.Context, fullDataLink string) error {
+func (w *Worker) CacheIPFSArtifactWorkflow(ctx workflow.Context, fullDataLink string) error {
 	logger := log.CadenceWorkflowLogger(ctx)
 
 	ao := workflow.ActivityOptions{
@@ -179,7 +179,7 @@ func (w *NFTIndexerWorker) CacheIPFSArtifactWorkflow(ctx workflow.Context, fullD
 	return nil
 }
 
-func (w *NFTIndexerWorker) IndexEthereumTokenSaleInBlockRange(
+func (w *Worker) IndexEthereumTokenSaleInBlockRange(
 	ctx workflow.Context,
 	fromBlk uint64,
 	toBlk uint64,
@@ -253,7 +253,7 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSaleInBlockRange(
 	return nil
 }
 
-func (w *NFTIndexerWorker) IndexTezosObjktTokenSaleFromTime(
+func (w *Worker) IndexTezosObjktTokenSaleFromTime(
 	ctx workflow.Context,
 	startTime time.Time,
 	offset int,

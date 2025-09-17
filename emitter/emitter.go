@@ -5,17 +5,16 @@ import (
 	"fmt"
 	"time"
 
+	pb "github.com/feral-file/ff-indexer/services/event-processor/grpc"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
-
-	"github.com/bitmark-inc/nft-indexer/services/nft-event-processor/grpc/processor"
 )
 
 type EventsEmitter struct {
-	grpcClient processor.EventProcessorClient
+	grpcClient pb.EventProcessorClient
 }
 
-func New(grpcClient processor.EventProcessorClient) EventsEmitter {
+func New(grpcClient pb.EventProcessorClient) EventsEmitter {
 	return EventsEmitter{
 		grpcClient: grpcClient,
 	}
@@ -23,7 +22,7 @@ func New(grpcClient processor.EventProcessorClient) EventsEmitter {
 
 // PushNftEvent submits nft events to event processor
 func (e *EventsEmitter) PushNftEvent(ctx context.Context, eventType, fromAddress, toAddress, contractAddress, blockchain, tokenID, txID string, eventIndex uint, txTime time.Time) error {
-	eventInput := processor.NftEventInput{
+	eventInput := pb.NftEventInput{
 		Type:       eventType,
 		Blockchain: blockchain,
 		Contract:   contractAddress,
@@ -57,7 +56,7 @@ func (e *EventsEmitter) PushSeriesRegistryEvent(ctx context.Context, eventType, 
 		}
 		sd = nd
 	}
-	eventInput := processor.SeriesRegistryEventInput{
+	eventInput := pb.SeriesRegistryEventInput{
 		Type:       eventType,
 		Contract:   contractAddress,
 		Data:       sd,

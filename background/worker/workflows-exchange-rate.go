@@ -8,8 +8,8 @@ import (
 	"time"
 
 	log "github.com/bitmark-inc/autonomy-logger"
-	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/externals/coinbase"
+	indexer "github.com/feral-file/ff-indexer"
+	"github.com/feral-file/ff-indexer/externals/coinbase"
 	"go.uber.org/cadence"
 	cadenceClient "go.uber.org/cadence/client"
 	"go.uber.org/cadence/workflow"
@@ -28,7 +28,7 @@ type RequestChunk struct {
 	endTime      int64
 }
 
-func (w *NFTIndexerWorker) CrawlHistoricalExchangeRate(
+func (w *Worker) CrawlHistoricalExchangeRate(
 	ctx workflow.Context,
 	currencyPairs []string,
 	start int64,
@@ -119,7 +119,7 @@ func (w *NFTIndexerWorker) CrawlHistoricalExchangeRate(
 	return nil
 }
 
-func (w *NFTIndexerWorker) CrawlExchangeRateByCurrencyPair(
+func (w *Worker) CrawlExchangeRateByCurrencyPair(
 	ctx workflow.Context,
 	currencyPair string,
 	start int64,

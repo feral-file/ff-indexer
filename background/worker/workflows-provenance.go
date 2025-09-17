@@ -10,7 +10,7 @@ import (
 )
 
 // refreshTokenProvenanceByOwnerDetachedWorkflow creates a detached workflow to trigger token provenance check
-func (w *NFTIndexerWorker) refreshTokenProvenanceByOwnerDetachedWorkflow(ctx workflow.Context, caller, owner string) {
+func (w *Worker) refreshTokenProvenanceByOwnerDetachedWorkflow(ctx workflow.Context, caller, owner string) {
 	logger := log.CadenceWorkflowLogger(ctx)
 
 	cwo := ContextDetachedChildWorkflow(ctx, WorkflowIDRefreshTokenProvenanceByOwner(caller, owner), ProvenanceTaskListName)
@@ -24,7 +24,7 @@ func (w *NFTIndexerWorker) refreshTokenProvenanceByOwnerDetachedWorkflow(ctx wor
 }
 
 // RefreshTokenProvenanceByOwnerWorkflow is a workflow to refresh provenance for a specific owner
-func (w *NFTIndexerWorker) RefreshTokenProvenanceByOwnerWorkflow(ctx workflow.Context, owner string) error {
+func (w *Worker) RefreshTokenProvenanceByOwnerWorkflow(ctx workflow.Context, owner string) error {
 	logger := log.CadenceWorkflowLogger(ctx)
 
 	var ownedTokenIDs []string
@@ -62,7 +62,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenanceByOwnerWorkflow(ctx workflow.Co
 }
 
 // RefreshTokenProvenanceWorkflow is a workflow to refresh provenance for a specific token
-func (w *NFTIndexerWorker) RefreshTokenProvenanceWorkflow(ctx workflow.Context, indexIDs []string, delay time.Duration) error {
+func (w *Worker) RefreshTokenProvenanceWorkflow(ctx workflow.Context, indexIDs []string, delay time.Duration) error {
 	ao := workflow.ActivityOptions{
 		TaskList:               w.ProvenanceTaskListName,
 		ScheduleToStartTimeout: 10 * time.Minute,
@@ -73,7 +73,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenanceWorkflow(ctx workflow.Context, 
 }
 
 // RefreshTokenOwnershipWorkflow is a workflow to refresh ownership for a specific token
-func (w *NFTIndexerWorker) RefreshTokenOwnershipWorkflow(ctx workflow.Context, indexIDs []string, delay time.Duration) error {
+func (w *Worker) RefreshTokenOwnershipWorkflow(ctx workflow.Context, indexIDs []string, delay time.Duration) error {
 	ao := workflow.ActivityOptions{
 		TaskList:               w.ProvenanceTaskListName,
 		ScheduleToStartTimeout: 10 * time.Minute,

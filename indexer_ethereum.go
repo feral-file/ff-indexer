@@ -18,7 +18,7 @@ import (
 
 	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
-	"github.com/bitmark-inc/nft-indexer/externals/opensea"
+	"github.com/feral-file/ff-indexer/externals/opensea"
 )
 
 type TransactionDetails struct {

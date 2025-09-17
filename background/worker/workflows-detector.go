@@ -13,10 +13,10 @@ import (
 
 	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
-	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/externals/etherscan"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	indexer "github.com/feral-file/ff-indexer"
+	"github.com/feral-file/ff-indexer/externals/etherscan"
 	"github.com/spf13/viper"
 )
 
@@ -42,7 +42,7 @@ type TokenSale struct {
 }
 
 // IndexEthereumTokenSale is a workflow to index the sale of an Ethereum token
-func (w *NFTIndexerWorker) IndexEthereumTokenSale(
+func (w *Worker) IndexEthereumTokenSale(
 	ctx workflow.Context,
 	txID string,
 	skipIndexed bool) error {
@@ -107,7 +107,7 @@ func (w *NFTIndexerWorker) IndexEthereumTokenSale(
 }
 
 // ParseEthereumTokenSale is a workflow to parse the sale of an Ethereum token
-func (w *NFTIndexerWorker) ParseEthereumTokenSale(ctx workflow.Context, txID string) (*TokenSale, error) {
+func (w *Worker) ParseEthereumTokenSale(ctx workflow.Context, txID string) (*TokenSale, error) {
 	ctx = ContextRegularActivity(ctx, TaskListName)
 	logger := log.CadenceWorkflowLogger(ctx)
 
@@ -470,7 +470,7 @@ func classifyTxLogs(logs []*types.Log) (map[string][]types.Log, []types.Log) {
 }
 
 // IndexTezosTokenSaleFromTzktTxID is a workflow to get the tezos transaction hash by tzkt txid
-func (w *NFTIndexerWorker) IndexTezosTokenSaleFromTzktTxID(
+func (w *Worker) IndexTezosTokenSaleFromTzktTxID(
 	ctx workflow.Context,
 	id uint64) error {
 	ctx = ContextRegularActivity(ctx, TaskListName)
@@ -506,7 +506,7 @@ func (w *NFTIndexerWorker) IndexTezosTokenSaleFromTzktTxID(
 }
 
 // IndexTezosObjktTokenSale is a workflow to index the sale of a Tezos objkt token
-func (w *NFTIndexerWorker) IndexTezosObjktTokenSale(ctx workflow.Context, txHash string, skipIndexed bool) error {
+func (w *Worker) IndexTezosObjktTokenSale(ctx workflow.Context, txHash string, skipIndexed bool) error {
 	ctx = ContextRegularActivity(ctx, TaskListName)
 	logger := log.CadenceWorkflowLogger(ctx)
 

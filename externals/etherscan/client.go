@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	indexer "github.com/bitmark-inc/nft-indexer"
+	indexer "github.com/feral-file/ff-indexer"
 )
 
 const (

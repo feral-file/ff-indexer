@@ -1,4 +1,4 @@
-module github.com/bitmark-inc/nft-indexer
+module github.com/feral-file/ff-indexer
 
 go 1.21
 
@@ -155,7 +155,7 @@ require (
 	github.com/multiformats/go-multibase v0.2.0 // indirect
 	github.com/multiformats/go-multihash v0.2.3 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
-	github.com/onsi/ginkgo v1.16.5 // indirect
+	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pborman/uuid v0.0.0-20160209185913-a97ce2ca70fa // indirect
 	github.com/pelletier/go-toml/v2 v2.2.0 // indirect

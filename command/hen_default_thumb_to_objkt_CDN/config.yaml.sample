@@ -1,4 +1,0 @@
-store:
-  db_uri: "mongodb://user:password@localhost:27017/"
-  db_name: db_name
-

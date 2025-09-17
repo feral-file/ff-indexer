@@ -8,7 +8,7 @@ ARG GITHUB_TOKEN=token
 
 RUN git config --global url."https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
 
-WORKDIR $GOPATH/github.com/bitmark-inc/nft-indexer
+WORKDIR $GOPATH/github.com/feral-file/ff-indexer
 
 ENV GOPRIVATE=github.com/bitmark-inc
 
@@ -17,7 +17,7 @@ RUN go mod download
 
 ADD . .
 
-RUN go build -o /go/bin/nft-event-processor ./services/nft-event-processor
+RUN go build -o /go/bin/event-processor ./services/event-processor
 
 # ---
 
@@ -26,6 +26,6 @@ ARG dist=0.0
 
 RUN apk add --no-cache curl
 
-COPY --from=build /go/bin/nft-event-processor /nft-event-processor
+COPY --from=build /go/bin/event-processor /event-processor
 
-ADD services/nft-event-processor/config.yaml.sample /.config/config.yaml
+ADD services/event-processor/config.yaml.sample /.config/config.yaml

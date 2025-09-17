@@ -26,8 +26,8 @@
   
 - generate protobuf golang code:
     ```
-    protoc --go-grpc_out=../services/nft-event-processor/ --go_out=../services/nft-event-processor/ event-processor.proto
-    protoc --go-grpc_out=../services/nft-indexer-grpc/ --go_out=../services/nft-indexer-grpc/ indexer.proto
+    protoc --go-grpc_out=../services/event-processor/ --go_out=../services/event-processor/ event-processor.proto
+    protoc --go-grpc_out=../services/grpc-gateway/ --go_out=../services/grpc-gateway/ gateway.proto
     ```
   
 - generate protobuf js code:
@@ -48,10 +48,6 @@
 	  --proto_path="../../protos/" \
          event-processor.proto
       ```
-    
-## Docs:
-1. indexer.proto function define:
-https://hackmd.io/aJv6_PYORyedDxDwzY5IDg
 
 
 

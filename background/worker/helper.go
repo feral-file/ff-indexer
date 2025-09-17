@@ -14,7 +14,7 @@ import (
 
 	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
-	"github.com/bitmark-inc/nft-indexer/cadence"
+	"github.com/feral-file/ff-indexer/cadence"
 )
 
 // StartIndexTokenWorkflow starts a workflow to index a single token
@@ -26,7 +26,7 @@ func StartIndexTokenWorkflow(c context.Context, client *cadence.WorkerClient, ow
 		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyTerminateIfRunning,
 	}
 
-	var w NFTIndexerWorker
+	var w Worker
 
 	workflow, err := client.StartWorkflow(c, ClientName, workflowContext,
 		w.IndexTokenWorkflow, owner, contract, tokenID, indexProvenance, indexPreview)
@@ -53,7 +53,7 @@ func ExecuteIndexTokenWorkflow(c context.Context, client *cadence.WorkerClient, 
 		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyTerminateIfRunning,
 	}
 
-	var w NFTIndexerWorker
+	var w Worker
 
 	exec, err := client.ExecuteWorkflow(c, ClientName, workflowContext,
 		w.IndexTokenWorkflow, owner, contract, tokenID, indexProvenance, indexPreview)
@@ -82,7 +82,7 @@ func StartIndexETHTokenWorkflow(c context.Context, client *cadence.WorkerClient,
 		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
 	}
 
-	var w NFTIndexerWorker
+	var w Worker
 
 	workflow, err := client.StartWorkflow(c, ClientName, option, w.IndexETHTokenWorkflow, owner, includeHistory)
 	if err != nil {
@@ -101,7 +101,7 @@ func StartIndexTezosTokenWorkflow(c context.Context, client *cadence.WorkerClien
 		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
 	}
 
-	var w NFTIndexerWorker
+	var w Worker
 
 	workflow, err := client.StartWorkflow(c, ClientName, option, w.IndexTezosTokenWorkflow, owner, includeHistory)
 	if err != nil {
@@ -120,7 +120,7 @@ func StartRefreshTokenProvenanceByOwnerWorkflow(c context.Context, client *caden
 		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
 	}
 
-	var w NFTIndexerWorker
+	var w Worker
 
 	workflow, err := client.StartWorkflow(c, ClientName, option, w.RefreshTokenProvenanceByOwnerWorkflow, owner)
 	if err != nil {
@@ -139,7 +139,7 @@ func StartRefreshTokenOwnershipWorkflow(c context.Context, client *cadence.Worke
 		WorkflowIDReusePolicy:        cadenceClient.WorkflowIDReusePolicyAllowDuplicate,
 	}
 
-	var w NFTIndexerWorker
+	var w Worker
 
 	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.RefreshTokenOwnershipWorkflow, []string{indexID}, delay)
 	if err != nil {
@@ -163,7 +163,7 @@ func StartRefreshTokenProvenanceWorkflow(c context.Context, client *cadence.Work
 		},
 	}
 
-	var w NFTIndexerWorker
+	var w Worker
 
 	workflow, err := client.StartWorkflow(c, ClientName, workflowContext, w.RefreshTokenProvenanceWorkflow, []string{indexID}, delay)
 	if err != nil {
@@ -190,7 +190,7 @@ func StartIndexingTokenSale(
 		},
 	}
 
-	var w NFTIndexerWorker
+	var w Worker
 	switch blockchain {
 	case utils.EthereumBlockchain:
 		opts.ID = fmt.Sprintf("IndexEthereumTokenSale-%s", txID)
@@ -241,7 +241,7 @@ func StartIndexExchangeRateCronWorkflow(c context.Context, client *cadence.Worke
 		CronSchedule:                 "*/5 * * * *", //every 5 mins
 	}
 
-	var w NFTIndexerWorker
+	var w Worker
 
 	pairs := []string{"ETH-USD", "XTZ-USD"}
 	if _, err := client.StartWorkflow(c, ClientName,

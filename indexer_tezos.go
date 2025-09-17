@@ -13,8 +13,8 @@ import (
 
 	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
-	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/tzkt-go"
+	"github.com/feral-file/ff-indexer/externals/objkt"
 )
 
 type HexString string

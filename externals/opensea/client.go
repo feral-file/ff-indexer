@@ -11,7 +11,7 @@ import (
 	"time"
 
 	log "github.com/bitmark-inc/autonomy-logger"
-	"github.com/bitmark-inc/nft-indexer/traceutils"
+	"github.com/feral-file/ff-indexer/traceutils"
 	"go.uber.org/zap"
 )
 

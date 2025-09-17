@@ -1,0 +1,31 @@
+# syntax=docker/dockerfile:1.2
+FROM golang:1.21-alpine3.18 as build
+
+RUN apk add --no-cache git gcc musl-dev
+
+ARG GITHUB_USER=bot
+ARG GITHUB_TOKEN=token
+
+RUN git config --global url."https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+
+WORKDIR $GOPATH/github.com/feral-file/ff-indexer
+
+ENV GOPRIVATE=github.com/bitmark-inc
+
+ADD go.mod .
+RUN go mod download
+
+ADD . .
+
+RUN go build -o /go/bin/tezos-event-emitter ./services/tezos-event-emitter
+
+# ---
+
+FROM alpine:3.18
+ARG dist=0.0
+
+RUN apk add --no-cache curl
+
+COPY --from=build /go/bin/tezos-event-emitter /tezos-event-emitter
+
+ADD services/tezos-event-emitter/config.yaml.sample /.config/config.yaml
