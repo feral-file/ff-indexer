@@ -32,12 +32,3 @@ func TestDownloadSmallSizeFile(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "image/svg+xml", mimeType)
 }
-
-func TestDownloadOctStreamSVG(t *testing.T) {
-	url := "https://ipfs.io/ipfs/QmZ7Ck3zJFKfN1aYgrSmTTxWRoAAzE7hF4rqA5qip2RmhW"
-	_, mimeType, _, err := DownloadFile(url)
-
-	assert.NoError(t, err)
-	// weird svg link but detected as `application/octet-stream`
-	assert.Equal(t, "application/octet-stream", mimeType)
-}

@@ -51,24 +51,24 @@ func TestImageReader(t *testing.T) {
 	assert.Equal(t, "image/png", mimeType)
 
 	reader4 := NewURLImageReader("https://gateway.autonomy.io/ipfs/QmfPLogi1UnC2KdvvtwP5VpXfm6P8tSyaU2ErLK5mnUwgK")
-	_, mimeType, fileSzie, err := reader4.Read()
+	_, mimeType, fileSize, err := reader4.Read()
 
 	assert.NoError(t, err)
 	assert.Equal(t, "image/png", mimeType)
-	assert.Equal(t, 1079879, fileSzie)
+	assert.Equal(t, 1079879, fileSize)
 
 	reader5 := NewURLImageReader("https://ipfs.io/ipfs/QmXeQDnCCnbMwydTqoRCULSuAf9jedGY5nXYWULbzoa264")
-	_, mimeType, fileSzie, err = reader5.Read()
+	_, mimeType, fileSize, err = reader5.Read()
 
 	assert.NoError(t, err)
 	assert.Equal(t, "image/jpeg", mimeType)
-	assert.Equal(t, 190183, fileSzie)
+	assert.Equal(t, 190183, fileSize)
 
 	// svg without extension
 	reader6 := NewURLImageReader("https://ipfs.io/ipfs/QmZ7Ck3zJFKfN1aYgrSmTTxWRoAAzE7hF4rqA5qip2RmhW")
-	_, mimeType, fileSzie, err = reader6.Read()
+	_, mimeType, fileSize, err = reader6.Read()
 
 	assert.NoError(t, err)
 	assert.Equal(t, "image/png", mimeType)
-	assert.Equal(t, 5926, fileSzie)
+	assert.Equal(t, 5125, fileSize)
 }

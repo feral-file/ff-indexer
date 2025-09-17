@@ -1,16 +1,30 @@
-node_modules
-dist
-bin
-config.yaml
-*.json
-*.db
-*.pub
-*.dec
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
 
-TAGS
-postgres-data
-.idea
-docker-compose*.yml
-data
+# Output of the go build tool
+*.out
+
+# Go coverage files
+*.cover
+*.coverprofile
+
+# Dependency directories (if using vendoring)
 vendor/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# IDE/editor specific files
+.idea/
+.vscode/
+*.swp
+
+# OS-specific files
 .DS_Store
+Thumbs.db
