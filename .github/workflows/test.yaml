@@ -18,6 +18,8 @@ jobs:
       GOPROXY: https://proxy.golang.org,direct
       # Optional: avoid CGO needs during analysis
       CGO_ENABLED: 0
+      AWS_ACCESS_KEY_ID: ${{ secrets.INDEXER_AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.INDEXER_AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
