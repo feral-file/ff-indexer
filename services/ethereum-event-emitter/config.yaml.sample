@@ -1,10 +1,16 @@
-cache_store:
-  db_uri:
-  db_name:
+log:
+  level: debug
 
+debug: true
+environment: development
+  
 ethereum:
   ws_url: wss://rinkeby.infura.io/ws/v3/<project_id>
   lastBlockKeyName: /autonomy/development/ethereum-last-stop-block
+
+cache_store:
+  db_uri:
+  db_name:
 
 event_processor_server:
   address: localhost:8765

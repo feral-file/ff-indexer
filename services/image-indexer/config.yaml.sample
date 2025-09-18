@@ -1,3 +1,5 @@
+debug: true
+
 cloudflare:
     account_hash:
     account_id:
@@ -18,3 +20,6 @@ log:
 thumbnail:
   cache_period: "144h"
   cache_retry_interval: "24h"
+
+sentry:
+  dsn:

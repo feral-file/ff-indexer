@@ -1,3 +1,6 @@
+environment: development
+debug: true
+
 tzkt:
   ws_url: https://api.tzkt.io/v1/ws
   lastBlockKeyName: /autonomy/development/tezos-last-stop-block
@@ -8,3 +11,7 @@ event_processor_server:
 
 sentry:
   dsn:
+
+aws:
+  access_key_id:
+  secret_access_key:

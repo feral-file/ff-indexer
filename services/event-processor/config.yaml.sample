@@ -1,29 +1,24 @@
-
 server:
   network: tcp
-  address: localhost:8765
+  address: 0.0.0.0:8765
 
 events:
   check_interval_seconds:
     token_updated: 1
-    exanple_event_name: 10
   process_delay_seconds:
     token_updated: 10
-    exanple_event_name: 10
+  expiry_days: 30
 
 store:
   dsn:
-  cache_expiry: 24h
   log_level: 1
 
 environment: development
 default_check_interval: 5s
-expiry_check_inverval: 30d
+debug: true
 
 log:
   level: debug
-
-debug: true
 
 sentry:
   dsn:
@@ -36,7 +31,6 @@ indexer:
 cadence:
   host_port:
   domain:
-  log_level: 0
 
 feed:
   endpoint:
@@ -59,8 +53,8 @@ indexer_grpc:
 
 ipfs:
   preferred_gateways:
-  - ipfs.bitmark.com
-  - ipfs.test.bitmark.com
+  - ipfs.feralfile.com
+  - ipfs.test.feralfile.com
 
 contract:
   series_registry: "0xDf0a1AD1E06bB2d70B590F73B1069A32f2B8Bc41"

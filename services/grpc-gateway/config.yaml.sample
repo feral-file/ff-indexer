@@ -1,3 +1,5 @@
+debug: true
+environment: development
 
 store:
   db_uri:

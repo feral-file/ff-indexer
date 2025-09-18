@@ -78,11 +78,11 @@ func main() {
 	checkInterval, err := time.ParseDuration(viper.GetString("default_check_interval"))
 	if err != nil {
 		log.WarnWithContext(ctx, "invalid check interval. set to default 10s",
-			zap.String("check_interval", viper.GetString("check_interval")), zap.Error(err))
+			zap.Int64("check_interval", int64(checkInterval)), zap.Error(err))
 		checkInterval = DefaultCheckInterval
 	}
 
-	eventExpiryDays := viper.GetInt64("event_expiry_days")
+	eventExpiryDays := viper.GetInt64("events.expiry_days")
 	if eventExpiryDays <= 0 {
 		eventExpiryDays = DefaultEventExpiryDays
 	}

@@ -9,9 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/managedblockchainquery"
 	log "github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/config-loader"
-	"github.com/bitmark-inc/config-loader/external/aws/ssm"
 	"github.com/bitmark-inc/tzkt-go"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/viper"
@@ -90,22 +88,7 @@ func main() {
 		managedblockchainquery.New(awsSession),
 	)
 
-	parameterStore, err := ssm.New(ctx)
-	if err != nil {
-		log.Panic("can not create new parameter store", zap.Error(err))
-	}
-
-	jwtPublicKeyString, err := parameterStore.GetString(ctx, viper.GetString("jwt.public_key_name"))
-	if err != nil {
-		log.Panic("get jwt public key failed", zap.Error(err))
-	}
-
-	jwtPubkey, err := jwt.ParseRSAPublicKeyFromPEM([]byte(jwtPublicKeyString))
-	if err != nil {
-		log.Panic("jwt public key parsing failed", zap.Error(err))
-	}
-
-	s := NewServer(cadenceClient, ensClient, tezosDomain, ethClient, indexerStore, cacheStore, engine, jwtPubkey, viper.GetString("server.api_token"), viper.GetString("server.admin_api_token"), viper.GetString("server.secret_symmetric_key"))
+	s := NewServer(cadenceClient, ensClient, tezosDomain, ethClient, indexerStore, cacheStore, engine, viper.GetString("server.api_token"), viper.GetString("server.admin_api_token"))
 	s.SetupRoute()
 	if err := s.Run(viper.GetString("server.port")); err != nil {
 		log.Panic("server interrupted", zap.Error(err))

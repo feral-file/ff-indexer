@@ -31,7 +31,6 @@ type EthereumEventsEmitter struct {
 	lastBlockKeyName       string
 	seriesRegistryContract string
 
-	grpcClient pb.EventProcessorClient
 	emitter.EventsEmitter
 	wsClient       *ethclient.Client
 	parameterStore *ssm.ParameterStore
@@ -54,7 +53,6 @@ func NewEthereumEventsEmitter(
 	return &EthereumEventsEmitter{
 		lastBlockKeyName:       lastBlockKeyName,
 		seriesRegistryContract: seriesRegistryContract,
-		grpcClient:             grpcClient,
 		parameterStore:         parameterStore,
 		cacheStore:             cacheStore,
 		EventsEmitter:          emitter.New(grpcClient),
