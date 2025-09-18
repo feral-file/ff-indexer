@@ -8,11 +8,12 @@ import (
 	"net/http"
 	"strings"
 
-	indexer "github.com/feral-file/ff-indexer"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 	"github.com/vektah/gqlparser/v2/ast"
 	"github.com/vektah/gqlparser/v2/parser"
+
+	indexer "github.com/feral-file/ff-indexer"
 )
 
 // TokenAuthenticate is the simplest authentication method based on a fixed key/value pair.

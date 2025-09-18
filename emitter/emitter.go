@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	pb "github.com/feral-file/ff-indexer/services/event-processor/grpc"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	pb "github.com/feral-file/ff-indexer/services/event-processor/grpc"
 )
 
 type EventsEmitter struct {

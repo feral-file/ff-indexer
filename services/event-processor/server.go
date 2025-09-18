@@ -10,13 +10,14 @@ import (
 	notificationConst "github.com/bitmark-inc/autonomy-notification"
 	notificationSdk "github.com/bitmark-inc/autonomy-notification/sdk"
 	"github.com/ethereum/go-ethereum/ethclient"
-	indexer "github.com/feral-file/ff-indexer"
-	"github.com/feral-file/ff-indexer/cadence"
-	grpcGatewaySDK "github.com/feral-file/ff-indexer/sdk/grpc-gateway"
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+
+	indexer "github.com/feral-file/ff-indexer"
+	"github.com/feral-file/ff-indexer/cadence"
+	grpcGatewaySDK "github.com/feral-file/ff-indexer/sdk/grpc-gateway"
 )
 
 type EventProcessor struct {
@@ -169,7 +170,7 @@ func (e *EventProcessor) StartNftEventWorker(ctx context.Context, currentStage, 
 
 				eventTx, err := e.eventQueue.GetNftEventTransaction(ctx, filters...)
 				if err != nil {
-					if err == gorm.ErrRecordNotFound {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
 						log.InfoWithContext(ctx, "No new events")
 					} else {
 						log.WarnWithContext(ctx, "Fail to get a event db transaction", zap.Error(err))
@@ -237,7 +238,7 @@ func (e *EventProcessor) StartSeriesRegistryEventWorker(ctx context.Context, cur
 
 				eventTx, err := e.eventQueue.GetSeriesRegistryEventTransaction(ctx, filters...)
 				if err != nil {
-					if err == gorm.ErrRecordNotFound {
+					if errors.Is(err, gorm.ErrRecordNotFound) {
 						log.InfoWithContext(ctx, "No new events")
 					} else {
 						log.WarnWithContext(ctx, "Fail to get a event db transaction", zap.Error(err))

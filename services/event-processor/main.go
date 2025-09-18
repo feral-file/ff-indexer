@@ -17,6 +17,7 @@ import (
 	log "github.com/bitmark-inc/autonomy-logger"
 	notification "github.com/bitmark-inc/autonomy-notification/sdk"
 	"github.com/bitmark-inc/config-loader"
+
 	indexer "github.com/feral-file/ff-indexer"
 	indexerWorker "github.com/feral-file/ff-indexer/background/worker"
 	"github.com/feral-file/ff-indexer/cadence"

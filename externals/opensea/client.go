@@ -11,8 +11,9 @@ import (
 	"time"
 
 	log "github.com/bitmark-inc/autonomy-logger"
-	"github.com/feral-file/ff-indexer/traceutils"
 	"go.uber.org/zap"
+
+	"github.com/feral-file/ff-indexer/traceutils"
 )
 
 var ErrTooManyRequest = fmt.Errorf("too many requests")
@@ -211,7 +212,9 @@ func (c *Client) makeRequest(ctx context.Context, method, url string, body io.Re
 
 	if resp.StatusCode != http.StatusOK {
 		// close the body only when we return an error
-		defer resp.Body.Close()
+		defer func() {
+			_ = resp.Body.Close()
+		}()
 		if resp.StatusCode == http.StatusTooManyRequests {
 			return nil, ErrTooManyRequest
 		}
@@ -244,7 +247,9 @@ func (c *Client) RetrieveAsset(ctx context.Context, contract, tokenID string) (*
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	var assetResp struct {
 		Asset DetailedAssetV2 `json:"nft"`
@@ -275,7 +280,9 @@ func (c *Client) RetrieveAssets(ctx context.Context, owner string, next string) 
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	var assetResp AssetsResponse
 

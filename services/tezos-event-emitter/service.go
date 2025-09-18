@@ -12,11 +12,12 @@ import (
 	utils "github.com/bitmark-inc/autonomy-utils"
 	"github.com/bitmark-inc/config-loader/external/aws/ssm"
 	"github.com/bitmark-inc/tzkt-go"
-	"github.com/feral-file/ff-indexer/emitter"
-	pb "github.com/feral-file/ff-indexer/services/event-processor/grpc"
 	"github.com/philippseith/signalr"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+
+	"github.com/feral-file/ff-indexer/emitter"
+	pb "github.com/feral-file/ff-indexer/services/event-processor/grpc"
 )
 
 const maxMessageSize = 1 << 20 // 1MiB

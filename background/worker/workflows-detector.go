@@ -15,9 +15,10 @@ import (
 	utils "github.com/bitmark-inc/autonomy-utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/spf13/viper"
+
 	indexer "github.com/feral-file/ff-indexer"
 	"github.com/feral-file/ff-indexer/externals/etherscan"
-	"github.com/spf13/viper"
 )
 
 type TokenSaleInfo struct {
@@ -434,7 +435,7 @@ func (w *Worker) ParseEthereumTokenSale(ctx workflow.Context, txID string) (*Tok
 	}
 
 	return &TokenSale{
-		Timestamp:       time.Unix(int64(blkHeader.Time), 0),
+		Timestamp:       time.Unix(int64(blkHeader.Time), 0), // #nosec G115 -- Ethereum block timestamps are safe to convert
 		Price:           price,
 		Marketplace:     marketplace,
 		Blockchain:      "ethereum",

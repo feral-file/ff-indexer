@@ -67,7 +67,9 @@ func (c *Client) MakeRequest(
 	if err != nil {
 		return fmt.Errorf("failed to make request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// Read and unmarshal the response body
 	respBody, err := io.ReadAll(resp.Body)

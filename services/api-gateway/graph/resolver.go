@@ -2,6 +2,7 @@ package graph
 
 import (
 	"github.com/ethereum/go-ethereum/ethclient"
+
 	indexer "github.com/feral-file/ff-indexer"
 	"github.com/feral-file/ff-indexer/cache"
 	"github.com/feral-file/ff-indexer/cadence"
@@ -142,7 +143,7 @@ func (r *Resolver) mapGraphQLProjectMetadata(p indexer.ProjectMetadata) *model.P
 func (r *Resolver) mapGraphQLProvenance(p indexer.Provenance) *model.Provenance {
 	var b int64
 	if p.BlockNumber != nil {
-		b = int64(*p.BlockNumber)
+		b = int64(*p.BlockNumber) // #nosec G115 -- BlockNumber is safe to convert to int64
 	}
 
 	return &model.Provenance{

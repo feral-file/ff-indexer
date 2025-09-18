@@ -19,6 +19,7 @@ import (
 
 	utils "github.com/bitmark-inc/autonomy-utils"
 	"github.com/bitmark-inc/tzkt-go"
+
 	indexer "github.com/feral-file/ff-indexer"
 	"github.com/feral-file/ff-indexer/contracts"
 	"github.com/feral-file/ff-indexer/externals/coinbase"
@@ -864,7 +865,7 @@ func (w *Worker) ParseTezosObjktTokenSale(ctx context.Context, hash string) (*To
 			}
 		} else {
 			// process revenue shares transfers
-			amount := big.NewInt(int64(tx.Amount))
+			amount := new(big.Int).SetUint64(tx.Amount)
 
 			// ignore proxy transfer to ProxyAddress for objktV1 contract
 			if tx.Target.Address == indexer.TezosOBJKTTreasuryProxyAddress {

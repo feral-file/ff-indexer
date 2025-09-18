@@ -9,12 +9,13 @@ import (
 	"time"
 
 	log "github.com/bitmark-inc/autonomy-logger"
-	indexer "github.com/feral-file/ff-indexer"
-	imageStore "github.com/feral-file/ff-indexer/services/image-indexer/store"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
+
+	indexer "github.com/feral-file/ff-indexer"
+	imageStore "github.com/feral-file/ff-indexer/services/image-indexer/store"
 )
 
 type Type string
@@ -87,7 +88,8 @@ func (s *NFTContentIndexer) spawnThumbnailWorker(ctx context.Context, dataChan <
 					info.Metadata,
 				)
 				if err != nil {
-					if uerr, ok := err.(imageStore.UnsupportedImageCachingError); ok {
+					var uerr imageStore.UnsupportedImageCachingError
+					if errors.As(err, &uerr) {
 						// add failure to the asset
 						if uerr.Reason() == imageStore.ReasonBrokenImage {
 							log.WarnWithContext(ctx, "broken image",

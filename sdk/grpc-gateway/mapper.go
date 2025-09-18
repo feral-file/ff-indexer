@@ -575,6 +575,7 @@ func (m *Mapper) MapToJson(input map[string]interface{}) (string, error) {
 func (m *Mapper) MapToGrpcSaleTimeSeriesListResponse(sales []indexer.SaleTimeSeries) (*grpc.SaleTimeSeriesListResponse, error) {
 	results := make([]*grpc.SaleTimeSeries, len(sales))
 	for i, s := range sales {
+		s := s // Create a local copy to avoid memory aliasing
 		metadata, err := m.MapToJson(s.Metadata)
 		if err != nil {
 			return nil, err

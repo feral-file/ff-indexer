@@ -12,7 +12,6 @@ import (
 	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
 	"github.com/fatih/structs"
-	coinbase "github.com/feral-file/ff-indexer/externals/coinbase"
 	"github.com/meirf/gopart"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -20,6 +19,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.uber.org/zap"
+
+	coinbase "github.com/feral-file/ff-indexer/externals/coinbase"
 )
 
 const (
@@ -258,7 +259,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 	assetResult := s.assetCollection.FindOne(ctx, bson.M{"indexID": assetIndexID},
 		options.FindOne().SetProjection(bson.M{"source": 1, "projectMetadata": 1}))
 	if err := assetResult.Err(); err != nil {
-		if assetResult.Err() == mongo.ErrNoDocuments {
+		if errors.Is(assetResult.Err(), mongo.ErrNoDocuments) {
 			// Create a new asset if it is not added
 			assetUpdateSet := AssetUpdateSet{
 				ID:                 id,
@@ -345,7 +346,7 @@ func (s *MongodbIndexerStore) IndexAsset(ctx context.Context, id string, assetUp
 		edition := token.Edition
 		lastActivityTime := token.LastActivityTime
 		if err := tokenResult.Err(); err != nil {
-			if err == mongo.ErrNoDocuments {
+			if errors.Is(err, mongo.ErrNoDocuments) {
 				// If a token is not found, insert a new token
 				log.InfoWithContext(ctx, "new token found", zap.String("token_id", token.ID))
 
@@ -598,7 +599,9 @@ func (s *MongodbIndexerStore) getDetailedTokensByAggregation(ctx context.Context
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
 
 	if err := cursor.All(ctx, &tokens); err != nil {
 		return nil, err
@@ -666,7 +669,9 @@ func (s *MongodbIndexerStore) FilterBurnedIndexIDs(ctx context.Context, indexIDs
 	if err != nil {
 		return nil, err
 	}
-	defer c.Close(ctx)
+	defer func() {
+		_ = c.Close(ctx)
+	}()
 
 	for c.Next(ctx) {
 		var v struct {
@@ -1186,7 +1191,7 @@ func (s *MongodbIndexerStore) GetIdentity(ctx context.Context, accountNumber str
 		bson.M{"accountNumber": accountNumber},
 	)
 	if err := r.Err(); err != nil {
-		if err != mongo.ErrNoDocuments {
+		if !errors.Is(err, mongo.ErrNoDocuments) {
 			return identity, err
 		}
 	} else {
@@ -1201,7 +1206,7 @@ func (s *MongodbIndexerStore) GetIdentity(ctx context.Context, accountNumber str
 			bson.M{"accountNumber": accountNumber},
 		)
 		if err := r.Err(); err != nil {
-			if err == mongo.ErrNoDocuments {
+			if errors.Is(err, mongo.ErrNoDocuments) {
 				return identity, nil
 			}
 		} else {
@@ -1339,7 +1344,7 @@ func (s *MongodbIndexerStore) GetAccount(ctx context.Context, owner string) (Acc
 		bson.M{"account": owner},
 	)
 	if err := r.Err(); err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return account, nil
 		}
 		return account, err
@@ -1446,7 +1451,7 @@ func (s *MongodbIndexerStore) IndexDemoTokens(ctx context.Context, owner string,
 
 		r := s.tokenCollection.FindOne(ctx, bson.M{"isDemo": true, "indexID": demoIndexID})
 		if err := r.Err(); err != nil {
-			if err == mongo.ErrNoDocuments {
+			if errors.Is(err, mongo.ErrNoDocuments) {
 				// Create a new demo token if it does not exist
 				r := s.tokenCollection.FindOne(ctx, bson.M{"indexID": indexID})
 				if err := r.Err(); err != nil {
@@ -1609,6 +1614,9 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 		if err != nil {
 			return nil, err
 		}
+		defer func() {
+			_ = cursor.Close(ctx)
+		}()
 
 		indexIDs := make([]string, 0)
 		for cursor.Next(ctx) {
@@ -1621,8 +1629,6 @@ func (s *MongodbIndexerStore) GetDetailedAccountTokensByOwners(ctx context.Conte
 			indexIDs = append(indexIDs, token.IndexID)
 			accountTokens = append(accountTokens, token)
 		}
-
-		cursor.Close(ctx)
 
 		if len(indexIDs) == 0 {
 			break
@@ -1765,7 +1771,9 @@ func (s *MongodbIndexerStore) getDetailedTokensV2InView(ctx context.Context, fil
 		return nil, err
 	}
 
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
 
 	if err := cursor.All(ctx, &tokens); err != nil {
 		return nil, err
@@ -1803,7 +1811,9 @@ func (s *MongodbIndexerStore) GetTotalBalanceOfOwnerAccounts(ctx context.Context
 		return 0, err
 	}
 
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
 
 	var totalBalance TotalBalance
 
@@ -1897,7 +1907,7 @@ func (s *MongodbIndexerStore) checkAddressOwnTokenHasIndexID(ctx context.Context
 			"$gt": 0,
 		},
 	}).Decode(&accountToken); err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return false, nil
 		}
 
@@ -1921,7 +1931,9 @@ func (s *MongodbIndexerStore) checkAddressOwnTokenInSource(ctx context.Context, 
 		return false, err
 	}
 
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
 
 	for cursor.Next(ctx) {
 		t := AccountToken{}
@@ -1949,7 +1961,7 @@ func (s *MongodbIndexerStore) checkAddressOwnTokenInSource(ctx context.Context, 
 		}).Decode(&token)
 
 		if err != nil {
-			if err == mongo.ErrNoDocuments {
+			if errors.Is(err, mongo.ErrNoDocuments) {
 				continue
 			}
 
@@ -2143,7 +2155,7 @@ func (s *MongodbIndexerStore) GetCollectionLastUpdatedTimeForCreator(ctx context
 	}, findOptions)
 
 	if err := r.Err(); err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			// If a token is not found, return zero time
 			return time.Time{}, nil
 		}
@@ -2166,7 +2178,7 @@ func (s *MongodbIndexerStore) GetCollectionLastUpdatedTime(ctx context.Context, 
 	})
 
 	if err := r.Err(); err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			// If a token is not found, return zero time
 			return time.Time{}, nil
 		}
@@ -2189,7 +2201,7 @@ func (s *MongodbIndexerStore) GetCollectionByID(ctx context.Context, id string) 
 	})
 
 	if err := r.Err(); err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil
 		}
 
@@ -2230,6 +2242,9 @@ func (s *MongodbIndexerStore) GetCollectionsByCreators(ctx context.Context, crea
 		if err != nil {
 			return nil, err
 		}
+		defer func() {
+			_ = cursor.Close(ctx)
+		}()
 
 		for cursor.Next(ctx) {
 			var collection Collection
@@ -2240,8 +2255,6 @@ func (s *MongodbIndexerStore) GetCollectionsByCreators(ctx context.Context, crea
 
 			collections = append(collections, collection)
 		}
-
-		cursor.Close(ctx)
 
 		if len(collections) < int(queryLimit) || isLastPage {
 			break
@@ -2410,7 +2423,7 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 					zap.String("value", v),
 					zap.Error(err),
 				)
-				return fmt.Errorf("Decimal128 error: %s on: values.%s = %q", err, k, v)
+				return fmt.Errorf("Decimal128 error: %w on: values.%s = %q", err, k, v)
 			}
 		}
 
@@ -2434,7 +2447,7 @@ func (s *MongodbIndexerStore) WriteTimeSeriesData(
 					zap.String("value", v),
 					zap.Error(err),
 				)
-				return fmt.Errorf("Decimal128 error: %s on: shares.%s = %q", err, k, v)
+				return fmt.Errorf("Decimal128 error: %w on: shares.%s = %q", err, k, v)
 			}
 		}
 		doc["shares"] = sv
@@ -2521,7 +2534,7 @@ func (s *MongodbIndexerStore) GetHistoricalExchangeRate(ctx context.Context, fil
 	lowerFindOptions.SetSort(bson.D{{Key: "timestamp", Value: -1}})
 
 	err := s.historicalExchangeRatesCollection.FindOne(ctx, lowerFilterMap, lowerFindOptions).Decode(&lowerExchangeRate)
-	if err != nil && err != mongo.ErrNoDocuments {
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 		return closestExchangeRate, err
 	}
 
@@ -2540,7 +2553,7 @@ func (s *MongodbIndexerStore) GetHistoricalExchangeRate(ctx context.Context, fil
 	greaterFindOptions.SetSort(bson.D{{Key: "timestamp", Value: 1}})
 
 	err = s.historicalExchangeRatesCollection.FindOne(ctx, greaterFilterMap, greaterFindOptions).Decode(&greaterExchangeRate)
-	if err != nil && err != mongo.ErrNoDocuments {
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 		return closestExchangeRate, err
 	}
 
@@ -2621,7 +2634,9 @@ func (s *MongodbIndexerStore) GetSaleTimeSeriesData(ctx context.Context, filter 
 		return nil, err
 	}
 
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
 
 	if err := cursor.All(ctx, &saleTimeSeries); err != nil {
 		return nil, err
@@ -2681,7 +2696,9 @@ func (s *MongodbIndexerStore) AggregateSaleRevenues(ctx context.Context, filter 
 		return nil, err
 	}
 
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
 
 	if err := cursor.All(ctx, &revenues); err != nil {
 		return nil, err
@@ -2700,7 +2717,7 @@ func (s *MongodbIndexerStore) GetExchangeRateLastTime(ctx context.Context) (time
 	r := s.historicalExchangeRatesCollection.FindOne(ctx, bson.M{}, findOptions)
 
 	if err := r.Err(); err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			// If a document is not found, return zero time
 			return time.Time{}, nil
 		}

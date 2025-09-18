@@ -3,6 +3,7 @@ package store
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -51,11 +52,14 @@ func (s *ImageStore) imageIDExisted(imageID string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
-	if resp.StatusCode == http.StatusOK {
+	switch resp.StatusCode {
+	case http.StatusOK:
 		return true, nil
-	} else if resp.StatusCode == http.StatusNotFound {
+	case http.StatusNotFound:
 		return false, nil
 	}
 
@@ -202,14 +206,17 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageReade
 
 		i, err := s.cloudflareAPI.UploadImage(ctx, s.cloudflareAccountID, uploadRequest)
 		if err != nil {
-			switch cerr := err.(type) {
-			case *cloudflare.RatelimitError:
-				log.Debug("caught cloudflare ratelimit error", zap.String("type", string(cerr.Type())))
+			var ratelimitError *cloudflare.RatelimitError
+			if errors.As(err, &ratelimitError) {
+				log.Debug("caught cloudflare ratelimit error", zap.String("type", string(ratelimitError.Type())))
 				return err
-			case *cloudflare.RequestError:
-				log.Debug("caught cloudflare request error", zap.String("type", string(cerr.Type())),
-					zap.Any("codes", cerr.ErrorCodes()), zap.Any("msg", cerr.ErrorMessages()))
-				for _, code := range cerr.ErrorCodes() {
+			}
+
+			var requestError *cloudflare.RequestError
+			if errors.As(err, &requestError) {
+				log.Debug("caught cloudflare request error", zap.String("type", string(requestError.Type())),
+					zap.Any("codes", requestError.ErrorCodes()), zap.Any("msg", requestError.ErrorMessages()))
+				for _, code := range requestError.ErrorCodes() {
 					switch code {
 					case 5455: // Unsupported content type
 						return NewImageCachingError(ReasonUnsupportedImageType)
@@ -222,8 +229,11 @@ func (s *ImageStore) UploadImage(ctx context.Context, assetID string, imageReade
 					}
 				}
 				return err
-			case *cloudflare.ServiceError:
-				log.Debug("caught cloudflare serivce error", zap.Any("codes", cerr.ErrorCodes()), zap.Any("msg", cerr.ErrorMessages()))
+			}
+
+			var serviceError *cloudflare.ServiceError
+			if errors.As(err, &serviceError) {
+				log.Debug("caught cloudflare service error", zap.Any("codes", serviceError.ErrorCodes()), zap.Any("msg", serviceError.ErrorMessages()))
 				return err
 			}
 

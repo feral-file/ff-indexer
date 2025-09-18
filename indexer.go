@@ -17,6 +17,7 @@ import (
 	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
 	"github.com/bitmark-inc/tzkt-go"
+
 	"github.com/feral-file/ff-indexer/externals/fxhash"
 	"github.com/feral-file/ff-indexer/externals/objkt"
 	"github.com/feral-file/ff-indexer/externals/opensea"

@@ -3,9 +3,10 @@ package main
 import (
 	"net/http"
 
+	"github.com/gin-gonic/gin"
+
 	indexer "github.com/feral-file/ff-indexer"
 	"github.com/feral-file/ff-indexer/traceutils"
-	"github.com/gin-gonic/gin"
 )
 
 type SalesQueryParams struct {

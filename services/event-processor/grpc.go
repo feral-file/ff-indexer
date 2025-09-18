@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	log "github.com/bitmark-inc/autonomy-logger"
+
 	pb "github.com/feral-file/ff-indexer/services/event-processor/grpc"
 )
 

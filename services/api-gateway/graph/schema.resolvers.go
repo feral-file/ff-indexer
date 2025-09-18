@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+
 	indexer "github.com/feral-file/ff-indexer"
 	indexerWorker "github.com/feral-file/ff-indexer/background/worker"
 	"github.com/feral-file/ff-indexer/services/api-gateway/graph/model"

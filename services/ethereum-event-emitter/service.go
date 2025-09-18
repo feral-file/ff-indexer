@@ -15,11 +15,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"go.uber.org/zap"
+
 	indexer "github.com/feral-file/ff-indexer"
 	"github.com/feral-file/ff-indexer/cache"
 	"github.com/feral-file/ff-indexer/emitter"
 	pb "github.com/feral-file/ff-indexer/services/event-processor/grpc"
-	"go.uber.org/zap"
 
 	seriesRegistry "github.com/bitmark-inc/feralfile-exhibition-smart-contract/go-binding/series-registry"
 )

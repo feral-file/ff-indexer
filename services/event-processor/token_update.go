@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	log "github.com/bitmark-inc/autonomy-logger"
+
 	indexer "github.com/feral-file/ff-indexer"
 	indexerWorker "github.com/feral-file/ff-indexer/background/worker"
 )

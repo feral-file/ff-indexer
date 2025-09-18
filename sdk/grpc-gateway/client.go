@@ -5,10 +5,11 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	indexer "github.com/feral-file/ff-indexer"
-	pb "github.com/feral-file/ff-indexer/services/grpc-gateway/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	indexer "github.com/feral-file/ff-indexer"
+	pb "github.com/feral-file/ff-indexer/services/grpc-gateway/grpc"
 )
 
 type GRPCClient struct {

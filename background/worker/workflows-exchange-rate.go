@@ -8,12 +8,13 @@ import (
 	"time"
 
 	log "github.com/bitmark-inc/autonomy-logger"
-	indexer "github.com/feral-file/ff-indexer"
-	"github.com/feral-file/ff-indexer/externals/coinbase"
 	"go.uber.org/cadence"
 	cadenceClient "go.uber.org/cadence/client"
 	"go.uber.org/cadence/workflow"
 	"go.uber.org/zap"
+
+	indexer "github.com/feral-file/ff-indexer"
+	"github.com/feral-file/ff-indexer/externals/coinbase"
 )
 
 const (

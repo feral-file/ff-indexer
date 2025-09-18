@@ -7,10 +7,11 @@ import (
 
 	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
-	indexer "github.com/feral-file/ff-indexer"
-	indexerWorker "github.com/feral-file/ff-indexer/background/worker"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/status"
+
+	indexer "github.com/feral-file/ff-indexer"
+	indexerWorker "github.com/feral-file/ff-indexer/background/worker"
 )
 
 // updateLatestOwner updates the latest owner of an existent token

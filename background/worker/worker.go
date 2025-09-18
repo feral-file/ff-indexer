@@ -7,9 +7,10 @@ import (
 	assetSDK "github.com/bitmark-inc/autonomy-asset-server/sdk/api"
 	bitmarkd "github.com/bitmark-inc/bitmarkdClient"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/spf13/viper"
+
 	indexer "github.com/feral-file/ff-indexer"
 	"github.com/feral-file/ff-indexer/cache"
-	"github.com/spf13/viper"
 )
 
 var ClientName = "nft-indexer-worker"

@@ -8,13 +8,14 @@ import (
 	"github.com/bitmark-inc/config-loader"
 	"github.com/bitmark-inc/config-loader/external/aws/ssm"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/feral-file/ff-indexer/cache"
-	pb "github.com/feral-file/ff-indexer/services/event-processor/grpc"
 	"github.com/getsentry/sentry-go"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/feral-file/ff-indexer/cache"
+	pb "github.com/feral-file/ff-indexer/services/event-processor/grpc"
 )
 
 func main() {
@@ -50,7 +51,9 @@ func main() {
 	if err != nil {
 		log.Sugar().Fatalf("did not connect: %v", err)
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	c := pb.NewEventProcessorClient(conn)
 	ethereumEventsEmitter := NewEthereumEventsEmitter(

@@ -14,6 +14,7 @@ import (
 
 	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
+
 	"github.com/feral-file/ff-indexer/cadence"
 )
 
@@ -246,8 +247,8 @@ func StartIndexExchangeRateCronWorkflow(c context.Context, client *cadence.Worke
 	pairs := []string{"ETH-USD", "XTZ-USD"}
 	if _, err := client.StartWorkflow(c, ClientName,
 		workflowContext, w.CrawlHistoricalExchangeRate, pairs, int64(0), int64(0)); err != nil {
-		_, isAlreadyStartedError := err.(*shared.WorkflowExecutionAlreadyStartedError)
-		if !isAlreadyStartedError {
+		var isAlreadyStartedError *shared.WorkflowExecutionAlreadyStartedError
+		if !errors.As(err, &isAlreadyStartedError) {
 			log.ErrorWithContext(c, errors.New("fail to start index exchange rate workflow"), zap.Error(err))
 			return err
 		}

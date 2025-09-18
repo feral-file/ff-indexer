@@ -23,7 +23,10 @@ func TestDecodeParameterValueFirstPattern(t *testing.T) {
 		}
 	]`
 	var mapArray interface{}
-	json.Unmarshal([]byte(data), &mapArray)
+	err := json.Unmarshal([]byte(data), &mapArray)
+	if err != nil {
+		t.Fatalf("Error unmarshalling data: %v", err)
+	}
 
 	expected := []tzkt.ParametersValue{
 		{
@@ -63,7 +66,10 @@ func TestDecodeParameterValueSecondPattern(t *testing.T) {
 		}
 	]`
 	var mapArray interface{}
-	json.Unmarshal([]byte(data), &mapArray)
+	err := json.Unmarshal([]byte(data), &mapArray)
+	if err != nil {
+		t.Fatalf("Error unmarshalling data: %v", err)
+	}
 
 	expected := []tzkt.ParametersValue{
 		{

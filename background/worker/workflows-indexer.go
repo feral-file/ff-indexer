@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 
 	log "github.com/bitmark-inc/autonomy-logger"
+
 	indexer "github.com/feral-file/ff-indexer"
 )
 

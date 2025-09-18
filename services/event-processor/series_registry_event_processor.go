@@ -13,11 +13,12 @@ import (
 	seriesRegistry "github.com/bitmark-inc/feralfile-exhibition-smart-contract/go-binding/series-registry"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	indexer "github.com/feral-file/ff-indexer"
-	indexerWorker "github.com/feral-file/ff-indexer/background/worker"
 	"github.com/google/uuid"
 	"go.uber.org/cadence/client"
 	"go.uber.org/zap"
+
+	indexer "github.com/feral-file/ff-indexer"
+	indexerWorker "github.com/feral-file/ff-indexer/background/worker"
 )
 
 func (e *EventProcessor) indexCollection(ctx context.Context, event SeriesRegistryEvent) error {

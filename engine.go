@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/managedblockchainquery"
 	"github.com/bitmark-inc/tzkt-go"
 	"github.com/ethereum/go-ethereum/ethclient"
+
 	"github.com/feral-file/ff-indexer/cache"
 	"github.com/feral-file/ff-indexer/externals/fxhash"
 	"github.com/feral-file/ff-indexer/externals/objkt"

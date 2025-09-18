@@ -41,7 +41,7 @@ func (e *ImageCachingError) Error() string {
 	return fmt.Sprintf("known image caching error: %s", ImageCachingErrorReasons[e.Reason()])
 }
 
-// NewImageCachingError retuns ImageCachingError if a reson is given.
+// NewImageCachingError returns ImageCachingError if a reson is given.
 // Otherwise, it returns a regular error.
 func NewImageCachingError(reason string) error {
 	if _, ok := ImageCachingErrorReasons[reason]; !ok {
@@ -53,20 +53,20 @@ func NewImageCachingError(reason string) error {
 	}
 }
 
-type UnsupportedSVG struct {
+type UnsupportedSVGError struct {
 	URL string
 }
 
-func (e *UnsupportedSVG) Reason() string {
+func (e *UnsupportedSVGError) Reason() string {
 	return ReasonUnsupportedSVGFile
 }
 
-func (e *UnsupportedSVG) Error() string {
+func (e *UnsupportedSVGError) Error() string {
 	return fmt.Sprintf("unsupported SVG Url: %v", e.URL)
 }
 
 func NewUnsupportedSVG(url string) error {
-	return &UnsupportedSVG{
+	return &UnsupportedSVGError{
 		URL: url,
 	}
 }

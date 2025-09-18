@@ -13,6 +13,11 @@ import (
 	"github.com/bitmark-inc/tzkt-go"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/getsentry/sentry-go"
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
+
 	indexer "github.com/feral-file/ff-indexer"
 	indexerWorker "github.com/feral-file/ff-indexer/background/worker"
 	"github.com/feral-file/ff-indexer/cache"
@@ -22,10 +27,6 @@ import (
 	"github.com/feral-file/ff-indexer/externals/objkt"
 	"github.com/feral-file/ff-indexer/externals/opensea"
 	tezosDomain "github.com/feral-file/ff-indexer/externals/tezos-domain"
-	"github.com/getsentry/sentry-go"
-	"github.com/spf13/viper"
-	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
 )
 
 func main() {

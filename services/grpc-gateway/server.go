@@ -8,11 +8,12 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"google.golang.org/grpc"
+
 	indexer "github.com/feral-file/ff-indexer"
 	"github.com/feral-file/ff-indexer/cache"
 	sdk "github.com/feral-file/ff-indexer/sdk/grpc-gateway"
 	pb "github.com/feral-file/ff-indexer/services/grpc-gateway/grpc"
-	"google.golang.org/grpc"
 )
 
 type Server struct {

@@ -15,6 +15,7 @@ import (
 
 	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
+
 	indexer "github.com/feral-file/ff-indexer"
 	indexerWorker "github.com/feral-file/ff-indexer/background/worker"
 	"github.com/feral-file/ff-indexer/traceutils"
@@ -83,7 +84,7 @@ func (s *Server) IndexMissingTokens(c *gin.Context, idMap map[string]bool) {
 	}
 }
 
-// ListNFTs returns information for a list of NFTs with some criterias.
+// ListNFTs returns information for a list of NFTs with some criteria.
 // It currently only supports listing by owners.
 func (s *Server) ListNFTs(c *gin.Context) {
 	traceutils.SetHandlerTag(c, "ListNFTs")
@@ -209,7 +210,10 @@ func (s *Server) refreshIdentity(accountNumber string) {
 		return
 	}
 
-	s.indexerStore.IndexIdentity(c, *id)
+	err = s.indexerStore.IndexIdentity(c, *id)
+	if err != nil {
+		log.ErrorWithContext(c, errors.New("fail to index identity to indexer store"), zap.Any("identity", id), zap.Error(err))
+	}
 }
 
 // GetIdentity returns the identity of an given account by querying indexer store. If an identity is not existent,
@@ -235,7 +239,7 @@ func (s *Server) GetIdentity(c *gin.Context) {
 
 	id, err := s.fetchIdentity(c, accountNumber)
 	if err != nil {
-		if err == ErrUnsupportedBlockchain {
+		if errors.Is(ErrUnsupportedBlockchain, err) {
 			abortWithError(c, http.StatusBadRequest, "fail to query account identity from blockchain", err)
 		} else {
 			abortWithError(c, http.StatusInternalServerError, "fail to query account identity from blockchain", err)
