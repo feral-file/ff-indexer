@@ -66,4 +66,4 @@ models:
       - github.com/99designs/gqlgen/graphql.Int64
   JSON:
     model:
-      - github.com/feral-file/ff-indexer/services/nft-indexer/graph/model.JSON
+      - github.com/feral-file/ff-indexer/services/api-gateway/graph/model.JSON

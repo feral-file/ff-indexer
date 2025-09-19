@@ -1710,7 +1710,7 @@ func (ec *executionContext) _Asset_attributes(ctx context.Context, field graphql
 	}
 	res := resTmp.(*model.AssetAttributes)
 	fc.Result = res
-	return ec.marshalOAssetAttributes2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐAssetAttributes(ctx, field.Selections, res)
+	return ec.marshalOAssetAttributes2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐAssetAttributes(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Asset_attributes(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1760,7 +1760,7 @@ func (ec *executionContext) _Asset_metadata(ctx context.Context, field graphql.C
 	}
 	res := resTmp.(*model.AssetMetadata)
 	fc.Result = res
-	return ec.marshalNAssetMetadata2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐAssetMetadata(ctx, field.Selections, res)
+	return ec.marshalNAssetMetadata2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐAssetMetadata(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Asset_metadata(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1890,7 +1890,7 @@ func (ec *executionContext) _AssetAttributes_configuration(ctx context.Context, 
 	}
 	res := resTmp.(*model.AssetConfiguration)
 	fc.Result = res
-	return ec.marshalNAssetConfiguration2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐAssetConfiguration(ctx, field.Selections, res)
+	return ec.marshalNAssetConfiguration2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐAssetConfiguration(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_AssetAttributes_configuration(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2440,7 +2440,7 @@ func (ec *executionContext) _AssetMetadata_project(ctx context.Context, field gr
 	}
 	res := resTmp.(*model.VersionedProjectMetadata)
 	fc.Result = res
-	return ec.marshalNVersionedProjectMetadata2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐVersionedProjectMetadata(ctx, field.Selections, res)
+	return ec.marshalNVersionedProjectMetadata2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐVersionedProjectMetadata(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_AssetMetadata_project(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3059,7 +3059,7 @@ func (ec *executionContext) _Collection_contracts(ctx context.Context, field gra
 	}
 	res := resTmp.(*model.ContractAddresses)
 	fc.Result = res
-	return ec.marshalNContractAddresses2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐContractAddresses(ctx, field.Selections, res)
+	return ec.marshalNContractAddresses2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐContractAddresses(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Collection_contracts(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3238,7 +3238,7 @@ func (ec *executionContext) _Collection_metadata(ctx context.Context, field grap
 	}
 	res := resTmp.(model.JSON)
 	fc.Result = res
-	return ec.marshalOJSON2githubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐJSON(ctx, field.Selections, res)
+	return ec.marshalOJSON2githubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐJSON(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Collection_metadata(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3364,7 +3364,7 @@ func (ec *executionContext) _ContractAddresses_Ethereum(ctx context.Context, fie
 	}
 	res := resTmp.(*model.EthereumContractAddresses)
 	fc.Result = res
-	return ec.marshalNEthereumContractAddresses2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐEthereumContractAddresses(ctx, field.Selections, res)
+	return ec.marshalNEthereumContractAddresses2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐEthereumContractAddresses(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_ContractAddresses_Ethereum(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3414,7 +3414,7 @@ func (ec *executionContext) _ContractAddresses_Tezos(ctx context.Context, field 
 	}
 	res := resTmp.(*model.TezosContractAddresses)
 	fc.Result = res
-	return ec.marshalNTezosContractAddresses2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐTezosContractAddresses(ctx, field.Selections, res)
+	return ec.marshalNTezosContractAddresses2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐTezosContractAddresses(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_ContractAddresses_Tezos(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4006,7 +4006,7 @@ func (ec *executionContext) _ProjectMetadata_artists(ctx context.Context, field 
 	}
 	res := resTmp.([]*model.Artist)
 	fc.Result = res
-	return ec.marshalNArtist2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐArtistᚄ(ctx, field.Selections, res)
+	return ec.marshalNArtist2ᚕᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐArtistᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_ProjectMetadata_artists(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4715,7 +4715,7 @@ func (ec *executionContext) _ProjectMetadata_artworkMetadata(ctx context.Context
 	}
 	res := resTmp.(model.JSON)
 	fc.Result = res
-	return ec.marshalOJSON2githubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐJSON(ctx, field.Selections, res)
+	return ec.marshalOJSON2githubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐJSON(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_ProjectMetadata_artworkMetadata(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5061,7 +5061,7 @@ func (ec *executionContext) _Query_tokens(ctx context.Context, field graphql.Col
 	}
 	res := resTmp.([]*model.Token)
 	fc.Result = res
-	return ec.marshalNToken2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐTokenᚄ(ctx, field.Selections, res)
+	return ec.marshalNToken2ᚕᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐTokenᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_tokens(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5157,7 +5157,7 @@ func (ec *executionContext) _Query_identity(ctx context.Context, field graphql.C
 	}
 	res := resTmp.(*model.Identity)
 	fc.Result = res
-	return ec.marshalOIdentity2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐIdentity(ctx, field.Selections, res)
+	return ec.marshalOIdentity2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐIdentity(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_identity(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5217,7 +5217,7 @@ func (ec *executionContext) _Query_ethBlockTime(ctx context.Context, field graph
 	}
 	res := resTmp.(*model.BlockTime)
 	fc.Result = res
-	return ec.marshalOBlockTime2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐBlockTime(ctx, field.Selections, res)
+	return ec.marshalOBlockTime2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐBlockTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_ethBlockTime(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5276,7 +5276,7 @@ func (ec *executionContext) _Query_collections(ctx context.Context, field graphq
 	}
 	res := resTmp.([]*model.Collection)
 	fc.Result = res
-	return ec.marshalNCollection2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐCollectionᚄ(ctx, field.Selections, res)
+	return ec.marshalNCollection2ᚕᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐCollectionᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_collections(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5358,7 +5358,7 @@ func (ec *executionContext) _Query_collection(ctx context.Context, field graphql
 	}
 	res := resTmp.(*model.Collection)
 	fc.Result = res
-	return ec.marshalOCollection2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐCollection(ctx, field.Selections, res)
+	return ec.marshalOCollection2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐCollection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_collection(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6088,7 +6088,7 @@ func (ec *executionContext) _Token_owners(ctx context.Context, field graphql.Col
 	}
 	res := resTmp.([]*model.Owner)
 	fc.Result = res
-	return ec.marshalOOwner2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐOwnerᚄ(ctx, field.Selections, res)
+	return ec.marshalOOwner2ᚕᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐOwnerᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Token_owners(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6135,7 +6135,7 @@ func (ec *executionContext) _Token_originTokenInfo(ctx context.Context, field gr
 	}
 	res := resTmp.([]*model.BaseTokenInfo)
 	fc.Result = res
-	return ec.marshalOBaseTokenInfo2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐBaseTokenInfoᚄ(ctx, field.Selections, res)
+	return ec.marshalOBaseTokenInfo2ᚕᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐBaseTokenInfoᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Token_originTokenInfo(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6367,7 +6367,7 @@ func (ec *executionContext) _Token_provenance(ctx context.Context, field graphql
 	}
 	res := resTmp.([]*model.Provenance)
 	fc.Result = res
-	return ec.marshalNProvenance2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐProvenanceᚄ(ctx, field.Selections, res)
+	return ec.marshalNProvenance2ᚕᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐProvenanceᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Token_provenance(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6509,7 +6509,7 @@ func (ec *executionContext) _Token_asset(ctx context.Context, field graphql.Coll
 	}
 	res := resTmp.(*model.Asset)
 	fc.Result = res
-	return ec.marshalNAsset2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐAsset(ctx, field.Selections, res)
+	return ec.marshalNAsset2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐAsset(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Token_asset(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6569,7 +6569,7 @@ func (ec *executionContext) _VersionedProjectMetadata_origin(ctx context.Context
 	}
 	res := resTmp.(*model.ProjectMetadata)
 	fc.Result = res
-	return ec.marshalNProjectMetadata2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐProjectMetadata(ctx, field.Selections, res)
+	return ec.marshalNProjectMetadata2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐProjectMetadata(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_VersionedProjectMetadata_origin(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6655,7 +6655,7 @@ func (ec *executionContext) _VersionedProjectMetadata_latest(ctx context.Context
 	}
 	res := resTmp.(*model.ProjectMetadata)
 	fc.Result = res
-	return ec.marshalNProjectMetadata2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐProjectMetadata(ctx, field.Selections, res)
+	return ec.marshalNProjectMetadata2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐProjectMetadata(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_VersionedProjectMetadata_latest(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -10060,7 +10060,7 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
-func (ec *executionContext) marshalNArtist2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐArtistᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Artist) graphql.Marshaler {
+func (ec *executionContext) marshalNArtist2ᚕᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐArtistᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Artist) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -10084,7 +10084,7 @@ func (ec *executionContext) marshalNArtist2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋ
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNArtist2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐArtist(ctx, sel, v[i])
+			ret[i] = ec.marshalNArtist2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐArtist(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -10104,7 +10104,7 @@ func (ec *executionContext) marshalNArtist2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋ
 	return ret
 }
 
-func (ec *executionContext) marshalNArtist2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐArtist(ctx context.Context, sel ast.SelectionSet, v *model.Artist) graphql.Marshaler {
+func (ec *executionContext) marshalNArtist2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐArtist(ctx context.Context, sel ast.SelectionSet, v *model.Artist) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -10114,7 +10114,7 @@ func (ec *executionContext) marshalNArtist2ᚖgithubᚗcomᚋbitmarkᚑincᚋnft
 	return ec._Artist(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNAsset2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐAsset(ctx context.Context, sel ast.SelectionSet, v *model.Asset) graphql.Marshaler {
+func (ec *executionContext) marshalNAsset2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐAsset(ctx context.Context, sel ast.SelectionSet, v *model.Asset) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -10124,7 +10124,7 @@ func (ec *executionContext) marshalNAsset2ᚖgithubᚗcomᚋbitmarkᚑincᚋnft�
 	return ec._Asset(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNAssetConfiguration2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐAssetConfiguration(ctx context.Context, sel ast.SelectionSet, v *model.AssetConfiguration) graphql.Marshaler {
+func (ec *executionContext) marshalNAssetConfiguration2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐAssetConfiguration(ctx context.Context, sel ast.SelectionSet, v *model.AssetConfiguration) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -10134,7 +10134,7 @@ func (ec *executionContext) marshalNAssetConfiguration2ᚖgithubᚗcomᚋbitmark
 	return ec._AssetConfiguration(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNAssetMetadata2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐAssetMetadata(ctx context.Context, sel ast.SelectionSet, v *model.AssetMetadata) graphql.Marshaler {
+func (ec *executionContext) marshalNAssetMetadata2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐAssetMetadata(ctx context.Context, sel ast.SelectionSet, v *model.AssetMetadata) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -10144,7 +10144,7 @@ func (ec *executionContext) marshalNAssetMetadata2ᚖgithubᚗcomᚋbitmarkᚑin
 	return ec._AssetMetadata(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNBaseTokenInfo2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐBaseTokenInfo(ctx context.Context, sel ast.SelectionSet, v *model.BaseTokenInfo) graphql.Marshaler {
+func (ec *executionContext) marshalNBaseTokenInfo2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐBaseTokenInfo(ctx context.Context, sel ast.SelectionSet, v *model.BaseTokenInfo) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -10169,7 +10169,7 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) marshalNCollection2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐCollectionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Collection) graphql.Marshaler {
+func (ec *executionContext) marshalNCollection2ᚕᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐCollectionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Collection) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -10193,7 +10193,7 @@ func (ec *executionContext) marshalNCollection2ᚕᚖgithubᚗcomᚋbitmarkᚑin
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNCollection2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐCollection(ctx, sel, v[i])
+			ret[i] = ec.marshalNCollection2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐCollection(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -10213,7 +10213,7 @@ func (ec *executionContext) marshalNCollection2ᚕᚖgithubᚗcomᚋbitmarkᚑin
 	return ret
 }
 
-func (ec *executionContext) marshalNCollection2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐCollection(ctx context.Context, sel ast.SelectionSet, v *model.Collection) graphql.Marshaler {
+func (ec *executionContext) marshalNCollection2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐCollection(ctx context.Context, sel ast.SelectionSet, v *model.Collection) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -10223,7 +10223,7 @@ func (ec *executionContext) marshalNCollection2ᚖgithubᚗcomᚋbitmarkᚑinc�
 	return ec._Collection(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNContractAddresses2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐContractAddresses(ctx context.Context, sel ast.SelectionSet, v *model.ContractAddresses) graphql.Marshaler {
+func (ec *executionContext) marshalNContractAddresses2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐContractAddresses(ctx context.Context, sel ast.SelectionSet, v *model.ContractAddresses) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -10233,7 +10233,7 @@ func (ec *executionContext) marshalNContractAddresses2ᚖgithubᚗcomᚋbitmark�
 	return ec._ContractAddresses(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNEthereumContractAddresses2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐEthereumContractAddresses(ctx context.Context, sel ast.SelectionSet, v *model.EthereumContractAddresses) graphql.Marshaler {
+func (ec *executionContext) marshalNEthereumContractAddresses2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐEthereumContractAddresses(ctx context.Context, sel ast.SelectionSet, v *model.EthereumContractAddresses) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -10273,7 +10273,7 @@ func (ec *executionContext) marshalNInt642int64(ctx context.Context, sel ast.Sel
 	return res
 }
 
-func (ec *executionContext) marshalNOwner2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐOwner(ctx context.Context, sel ast.SelectionSet, v *model.Owner) graphql.Marshaler {
+func (ec *executionContext) marshalNOwner2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐOwner(ctx context.Context, sel ast.SelectionSet, v *model.Owner) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -10283,7 +10283,7 @@ func (ec *executionContext) marshalNOwner2ᚖgithubᚗcomᚋbitmarkᚑincᚋnft�
 	return ec._Owner(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNProjectMetadata2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐProjectMetadata(ctx context.Context, sel ast.SelectionSet, v *model.ProjectMetadata) graphql.Marshaler {
+func (ec *executionContext) marshalNProjectMetadata2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐProjectMetadata(ctx context.Context, sel ast.SelectionSet, v *model.ProjectMetadata) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -10293,7 +10293,7 @@ func (ec *executionContext) marshalNProjectMetadata2ᚖgithubᚗcomᚋbitmarkᚑ
 	return ec._ProjectMetadata(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNProvenance2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐProvenanceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Provenance) graphql.Marshaler {
+func (ec *executionContext) marshalNProvenance2ᚕᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐProvenanceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Provenance) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -10317,7 +10317,7 @@ func (ec *executionContext) marshalNProvenance2ᚕᚖgithubᚗcomᚋbitmarkᚑin
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNProvenance2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐProvenance(ctx, sel, v[i])
+			ret[i] = ec.marshalNProvenance2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐProvenance(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -10337,7 +10337,7 @@ func (ec *executionContext) marshalNProvenance2ᚕᚖgithubᚗcomᚋbitmarkᚑin
 	return ret
 }
 
-func (ec *executionContext) marshalNProvenance2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐProvenance(ctx context.Context, sel ast.SelectionSet, v *model.Provenance) graphql.Marshaler {
+func (ec *executionContext) marshalNProvenance2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐProvenance(ctx context.Context, sel ast.SelectionSet, v *model.Provenance) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -10394,7 +10394,7 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	return ret
 }
 
-func (ec *executionContext) marshalNTezosContractAddresses2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐTezosContractAddresses(ctx context.Context, sel ast.SelectionSet, v *model.TezosContractAddresses) graphql.Marshaler {
+func (ec *executionContext) marshalNTezosContractAddresses2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐTezosContractAddresses(ctx context.Context, sel ast.SelectionSet, v *model.TezosContractAddresses) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -10419,7 +10419,7 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 	return res
 }
 
-func (ec *executionContext) marshalNToken2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐTokenᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Token) graphql.Marshaler {
+func (ec *executionContext) marshalNToken2ᚕᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐTokenᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Token) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -10443,7 +10443,7 @@ func (ec *executionContext) marshalNToken2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋn
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNToken2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐToken(ctx, sel, v[i])
+			ret[i] = ec.marshalNToken2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐToken(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -10463,7 +10463,7 @@ func (ec *executionContext) marshalNToken2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋn
 	return ret
 }
 
-func (ec *executionContext) marshalNToken2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐToken(ctx context.Context, sel ast.SelectionSet, v *model.Token) graphql.Marshaler {
+func (ec *executionContext) marshalNToken2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐToken(ctx context.Context, sel ast.SelectionSet, v *model.Token) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -10473,7 +10473,7 @@ func (ec *executionContext) marshalNToken2ᚖgithubᚗcomᚋbitmarkᚑincᚋnft�
 	return ec._Token(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNVersionedProjectMetadata2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐVersionedProjectMetadata(ctx context.Context, sel ast.SelectionSet, v *model.VersionedProjectMetadata) graphql.Marshaler {
+func (ec *executionContext) marshalNVersionedProjectMetadata2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐVersionedProjectMetadata(ctx context.Context, sel ast.SelectionSet, v *model.VersionedProjectMetadata) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -10736,14 +10736,14 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
-func (ec *executionContext) marshalOAssetAttributes2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐAssetAttributes(ctx context.Context, sel ast.SelectionSet, v *model.AssetAttributes) graphql.Marshaler {
+func (ec *executionContext) marshalOAssetAttributes2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐAssetAttributes(ctx context.Context, sel ast.SelectionSet, v *model.AssetAttributes) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._AssetAttributes(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOBaseTokenInfo2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐBaseTokenInfoᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.BaseTokenInfo) graphql.Marshaler {
+func (ec *executionContext) marshalOBaseTokenInfo2ᚕᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐBaseTokenInfoᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.BaseTokenInfo) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -10770,7 +10770,7 @@ func (ec *executionContext) marshalOBaseTokenInfo2ᚕᚖgithubᚗcomᚋbitmark�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNBaseTokenInfo2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐBaseTokenInfo(ctx, sel, v[i])
+			ret[i] = ec.marshalNBaseTokenInfo2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐBaseTokenInfo(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -10790,7 +10790,7 @@ func (ec *executionContext) marshalOBaseTokenInfo2ᚕᚖgithubᚗcomᚋbitmark�
 	return ret
 }
 
-func (ec *executionContext) marshalOBlockTime2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐBlockTime(ctx context.Context, sel ast.SelectionSet, v *model.BlockTime) graphql.Marshaler {
+func (ec *executionContext) marshalOBlockTime2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐBlockTime(ctx context.Context, sel ast.SelectionSet, v *model.BlockTime) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -10823,14 +10823,14 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
-func (ec *executionContext) marshalOCollection2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐCollection(ctx context.Context, sel ast.SelectionSet, v *model.Collection) graphql.Marshaler {
+func (ec *executionContext) marshalOCollection2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐCollection(ctx context.Context, sel ast.SelectionSet, v *model.Collection) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Collection(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOIdentity2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐIdentity(ctx context.Context, sel ast.SelectionSet, v *model.Identity) graphql.Marshaler {
+func (ec *executionContext) marshalOIdentity2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐIdentity(ctx context.Context, sel ast.SelectionSet, v *model.Identity) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -10853,7 +10853,7 @@ func (ec *executionContext) marshalOInt642ᚖint64(ctx context.Context, sel ast.
 	return res
 }
 
-func (ec *executionContext) unmarshalOJSON2githubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐJSON(ctx context.Context, v interface{}) (model.JSON, error) {
+func (ec *executionContext) unmarshalOJSON2githubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐJSON(ctx context.Context, v interface{}) (model.JSON, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -10861,7 +10861,7 @@ func (ec *executionContext) unmarshalOJSON2githubᚗcomᚋbitmarkᚑincᚋnftᚑ
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOJSON2githubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐJSON(ctx context.Context, sel ast.SelectionSet, v model.JSON) graphql.Marshaler {
+func (ec *executionContext) marshalOJSON2githubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐJSON(ctx context.Context, sel ast.SelectionSet, v model.JSON) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -10869,7 +10869,7 @@ func (ec *executionContext) marshalOJSON2githubᚗcomᚋbitmarkᚑincᚋnftᚑin
 	return res
 }
 
-func (ec *executionContext) marshalOOwner2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐOwnerᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Owner) graphql.Marshaler {
+func (ec *executionContext) marshalOOwner2ᚕᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐOwnerᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Owner) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -10896,7 +10896,7 @@ func (ec *executionContext) marshalOOwner2ᚕᚖgithubᚗcomᚋbitmarkᚑincᚋn
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNOwner2ᚖgithubᚗcomᚋbitmarkᚑincᚋnftᚑindexerᚋservicesᚋnftᚑindexerᚋgraphᚋmodelᚐOwner(ctx, sel, v[i])
+			ret[i] = ec.marshalNOwner2ᚖgithubᚗcomᚋferalᚑfileᚋffᚑindexerᚋservicesᚋapiᚑgatewayᚋgraphᚋmodelᚐOwner(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
