@@ -14,7 +14,7 @@ FF-Indexer is a microservices-based system designed to index NFT data from vario
 
 - **Multi-blockchain NFT Indexing**: Supports Ethereum, Tezos, and Bitmark blockchains
 - **Real-time Event Processing**: Captures and processes NFT transfer, mint, and burn events as they happen
-- **Cross-Marketplace Sales Data**: Aggregates NFT sales data from multiple marketplaces including OpenSea, Blur, X2Y2, OBJKT, HicEtNunc, Teia, and FxHash
+- **Cross-Marketplace Sales Data**: Aggregates NFT sales data from multiple marketplaces including OpenSea, Blur, X2Y2, OBJKT, FxHash, etc.,
 - **Comprehensive Metadata Management**: Fetches and stores NFT metadata from IPFS and external sources
 - **Image Processing**: Downloads, processes, and generates thumbnails for NFT images
 - **Provenance Tracking**: Maintains complete ownership history and transaction records
