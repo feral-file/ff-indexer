@@ -11,7 +11,6 @@ This document provides comprehensive information for developers working on the F
 - [Configuration](#configuration)
 - [Building and Running](#building-and-running)
 - [Testing](#testing)
-- [Docker Development](#docker-development)
 - [Makefile Usage](#makefile-usage)
 - [Architecture Details](#architecture-details)
 - [Database Schema](#database-schema)
@@ -24,10 +23,15 @@ This document provides comprehensive information for developers working on the F
 
 ### System Requirements
 
+- **Docker**: Version 20.10 or higher
+- **Docker Compose**: Version 2.0 or higher
+- **Make**: GNU Make or compatible
+- **Git**: For cloning the repository
+
+### Optional (for native development)
 - **Go**: Version 1.21 or higher
 - **MongoDB**: Version 7.0 or higher
 - **PostgreSQL**: Version 13 or higher
-- **Make**: GNU Make or compatible
 
 ### External Dependencies
 
@@ -216,7 +220,122 @@ ff-indexer/
 - Integration with external data sources
 
 ## Local Development Setup
-TBD
+
+The recommended approach for local development is using Docker Compose, which provides a complete development environment with all dependencies and services configured automatically.
+
+### Quick Start with Docker Compose
+
+1. **Clone the repository**:
+   ```bash
+   git clone <repository-url>
+   cd ff-indexer
+   ```
+
+2. **Set up environment variables**:
+   ```bash
+   # Copy the sample environment file
+   cp .env.sample .env
+   
+   # Edit the environment file with your configuration
+   nano .env
+   ```
+
+3. **Start all services in the correct order**:
+   ```bash
+   # Using the recommended ordered build script
+   make docker-build-ordered GITHUB_USER=your_github_user GITHUB_TOKEN=your_github_token
+   ```
+
+4. **Verify services are running**:
+   ```bash
+   docker compose ps
+   ```
+
+### Environment Configuration
+
+Create a `.env` file in the project root with the following variables:
+
+```bash
+# GitHub credentials (required for private dependencies)
+GITHUB_USER=your_github_username
+GITHUB_TOKEN=your_github_personal_access_token
+
+# Database passwords (optional - defaults provided)
+MONGO_ROOT_PASSWORD=ff_indexer_mongo_password
+POSTGRES_PASSWORD=ff_indexer_postgres_password
+
+# External API endpoints (required)
+ETHEREUM_RPC_URL=https://sepolia.infura.io/v3/YOUR_INFURA_KEY
+ETHEREUM_WS_URL=wss://sepolia.infura.io/ws/v3/YOUR_INFURA_KEY
+
+# Optional API keys and services
+OPENSEA_API_KEY=your_opensea_api_key
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+SENTRY_DSN=your_sentry_dsn
+
+# Cloudflare Images (for image processing)
+CLOUDFLARE_ACCOUNT_HASH=your_cloudflare_account_hash
+CLOUDFLARE_ACCOUNT_ID=your_cloudflare_account_id
+CLOUDFLARE_API_TOKEN=your_cloudflare_api_token
+CLOUDFLARE_URL_PREFIX=your_cloudflare_url_prefix
+
+# Database names (optional - defaults provided)
+MONGO_DATABASE=nft_indexer
+POSTGRES_USER=postgres
+
+# Account service endpoints (for account management)
+GRPC_ENDPOINT=grpc-gateway:8888
+
+# Contract addresses (optional - defaults provided)
+SERIES_REGISTRY_CONTRACT=0xDf0a1AD1E06bB2d70B590F73B1069A32f2B8Bc41
+```
+
+### Service Access Points
+
+Once all services are running, you can access:
+
+- **API Gateway**: http://localhost:8089
+  - REST API: http://localhost:8089/api/v2/
+  - GraphQL: http://localhost:8089/graphql
+  - Health check: http://localhost:8089/healthz
+
+- **Cadence Web UI**: http://localhost:8088
+  - Monitor workflows and activities
+
+- **gRPC Gateway**: localhost:8888
+  - Internal service communication
+
+### Development Workflow
+
+1. **Start services**:
+   ```bash
+   make docker-build-ordered GITHUB_USER=your_user GITHUB_TOKEN=your_token
+   ```
+
+2. **View logs**:
+   ```bash
+   # All services
+   docker compose logs -f
+   
+   # Specific service
+   docker compose logs -f api-gateway
+   ```
+
+3. **Restart a service**:
+   ```bash
+   docker compose restart api-gateway
+   ```
+
+4. **Stop all services**:
+   ```bash
+   docker compose down
+   ```
+
+5. **Clean up (remove volumes)**:
+   ```bash
+   docker compose down -v
+   ```
 
 
 ## Configuration
@@ -349,27 +468,6 @@ docker run -d --name test-postgres -p 5433:5432 -e POSTGRES_PASSWORD=test postgr
 export NFT_INDEXER_STORE_DB_URI="mongodb://localhost:27018/"
 export NFT_INDEXER_STORE_DB_NAME="nft_indexer_test"
 ```
-
-## Docker Development
-
-### Building Docker Images
-
-```bash
-# Build API Gateway image
-make build-api-gateway dist=dev
-
-# Build all images
-make image dist=dev GITHUB_USER=your-user GITHUB_TOKEN=your-token
-
-# Build with custom arguments
-docker build -f Dockerfile-api-gateway \
-  --build-arg GITHUB_USER=your_user \
-  --build-arg GITHUB_TOKEN=your_token \
-  -t ff-indexer:api-dev .
-```
-
-### Docker Compose Development
-TBD
 
 ## Makefile Usage
 

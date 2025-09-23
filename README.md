@@ -1,5 +1,8 @@
 # FF-Indexer
 
+[![Build status](https://github.com/feral-file/ff-indexer/actions/workflows/test.yaml/badge.svg)](https://github.com/feral-file/ff-indexer/actions)
+[![Lint](https://github.com/feral-file/ff-indexer/actions/workflows/lint.yaml/badge.svg)](https://github.com/feral-file/ff-indexer/actions)
+
 A comprehensive NFT indexing system that tracks, processes, and provides access to NFT data across multiple blockchains including Ethereum, Tezos, and Bitmark.
 
 ## Project Status
