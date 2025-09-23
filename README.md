@@ -1,7 +1,7 @@
 # FF-Indexer
 
-[![Build status](https://github.com/feral-file/ff-indexer/actions/workflows/test.yaml/badge.svg)](https://github.com/feral-file/ff-indexer/actions)
-[![Lint](https://github.com/feral-file/ff-indexer/actions/workflows/lint.yaml/badge.svg)](https://github.com/feral-file/ff-indexer/actions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/feral-file/ff-indexer/test.yaml?branch=main&label=build%20status&logo=github)](https://github.com/feral-file/ff-indexer/actions/workflows/test.yaml)
+[![Linter](https://img.shields.io/github/actions/workflow/status/feral-file/ff-indexer/lint.yaml?branch=main&label=linter&logo=github)](https://github.com/feral-file/ff-indexer/actions/workflows/lint.yaml)
 
 A comprehensive NFT indexing system that tracks, processes, and provides access to NFT data across multiple blockchains including Ethereum, Tezos, and Bitmark.
 
