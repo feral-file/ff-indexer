@@ -104,8 +104,7 @@ func (e *EventProcessor) updateOwnerAndProvenance(ctx context.Context, event NFT
 	tokenID := event.TokenID
 	to := event.To
 
-	// FIXME: Switch to account server GRPC
-	accounts, err := e.accountStore.GetAccountIDByAddress(to)
+	accounts, err := e.accountGRPCClient.GetAccountIDsByBlockchainAddresses(ctx, []string{to})
 	if err != nil {
 		log.ErrorWithContext(ctx, errors.New("fail to check accounts by address"), zap.Error(err))
 		return err
@@ -192,7 +191,7 @@ func (e *EventProcessor) notifyChangeTokenOwner(ctx context.Context, event NFTEv
 	tokenID := event.TokenID
 	to := event.To
 
-	accounts, err := e.accountStore.GetAccountIDByAddress(to)
+	accounts, err := e.accountGRPCClient.GetAccountIDsByBlockchainAddresses(ctx, []string{to})
 	if err != nil {
 		log.ErrorWithContext(ctx, errors.New("fail to check accounts by address"), zap.Error(err))
 		return err

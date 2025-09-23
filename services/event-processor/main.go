@@ -13,7 +13,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"github.com/bitmark-inc/autonomy-account/storage"
+	accountSDK "github.com/bitmark-inc/autonomy-account/sdk/account-grpc"
 	log "github.com/bitmark-inc/autonomy-logger"
 	notification "github.com/bitmark-inc/autonomy-notification/sdk"
 	"github.com/bitmark-inc/config-loader"
@@ -51,13 +51,6 @@ func main() {
 		panic(err)
 	}
 
-	accountDb, err := gorm.Open(postgres.Open(viper.GetString("account.db_uri")))
-	if err != nil {
-		log.Fatal("fail to connect database", zap.Error(err))
-	}
-
-	accountStore := storage.NewAccountInformationStorage(accountDb)
-
 	indexerGRPC, err := grpcGateway.NewGRPCClient(viper.GetString("indexer_grpc.endpoint"))
 	if err != nil {
 		log.Fatal("fail to connect indexer grpc", zap.Error(err))
@@ -93,6 +86,11 @@ func main() {
 		log.Panic(err.Error(), zap.Error(err))
 	}
 
+	accountGRPCClient, err := accountSDK.New(viper.GetString("account.grpc_endpoint"))
+	if err != nil {
+		log.Panic("fail to initiate account grpc client", zap.Error(err))
+	}
+
 	p := NewEventProcessor(
 		environment,
 		viper.GetString("contract.series_registry"),
@@ -104,11 +102,11 @@ func main() {
 		NewPostgresEventStore(db),
 		indexerGRPC,
 		cadenceClient,
-		accountStore,
 		indexerStore,
 		notification,
 		feedServer,
 		rpcClient,
+		accountGRPCClient,
 	)
 	p.Run(ctx)
 }

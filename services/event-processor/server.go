@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/bitmark-inc/autonomy-account/storage"
+	accountSDK "github.com/bitmark-inc/autonomy-account/sdk/account-grpc"
 	log "github.com/bitmark-inc/autonomy-logger"
 	notificationConst "github.com/bitmark-inc/autonomy-notification"
 	notificationSdk "github.com/bitmark-inc/autonomy-notification/sdk"
@@ -27,15 +27,15 @@ type EventProcessor struct {
 	defaultCheckInterval   time.Duration
 	eventExpiryDuration    time.Duration
 
-	grpcServer   *GRPCServer
-	eventQueue   *EventQueue
-	grpcGateway  *grpcGatewaySDK.GRPCClient
-	worker       *cadence.WorkerClient
-	accountStore *storage.AccountInformationStorage
-	indexerStore indexer.Store
-	notification *notificationSdk.Client
-	feedServer   *FeedClient
-	rpcClient    *ethclient.Client
+	grpcServer        *GRPCServer
+	eventQueue        *EventQueue
+	grpcGateway       *grpcGatewaySDK.GRPCClient
+	worker            *cadence.WorkerClient
+	indexerStore      indexer.Store
+	notification      *notificationSdk.Client
+	feedServer        *FeedClient
+	rpcClient         *ethclient.Client
+	accountGRPCClient *accountSDK.AccountGRPCClient
 }
 
 func NewEventProcessor(
@@ -49,11 +49,11 @@ func NewEventProcessor(
 	store EventStore,
 	grpcGateway *grpcGatewaySDK.GRPCClient,
 	worker *cadence.WorkerClient,
-	accountStore *storage.AccountInformationStorage,
 	indexerStore indexer.Store,
 	notification *notificationSdk.Client,
 	feedServer *FeedClient,
 	rpcClient *ethclient.Client,
+	accountGRPCClient *accountSDK.AccountGRPCClient,
 ) *EventProcessor {
 	queue := NewEventQueue(store)
 	grpcServer := NewGRPCServer(network, address, queue)
@@ -65,15 +65,15 @@ func NewEventProcessor(
 		defaultCheckInterval:   defaultCheckInterval,
 		eventExpiryDuration:    eventExpiryDuration,
 
-		grpcServer:   grpcServer,
-		eventQueue:   queue,
-		grpcGateway:  grpcGateway,
-		worker:       worker,
-		accountStore: accountStore,
-		indexerStore: indexerStore,
-		notification: notification,
-		feedServer:   feedServer,
-		rpcClient:    rpcClient,
+		grpcServer:        grpcServer,
+		eventQueue:        queue,
+		grpcGateway:       grpcGateway,
+		worker:            worker,
+		indexerStore:      indexerStore,
+		notification:      notification,
+		feedServer:        feedServer,
+		rpcClient:         rpcClient,
+		accountGRPCClient: accountGRPCClient,
 	}
 }
 
@@ -324,9 +324,4 @@ func (e *EventProcessor) ProcessEvents(ctx context.Context) {
 	e.DeleteCollection(ctx)
 	e.ReplaceCollectionCreator(ctx)
 	e.UpdateCollectionCreators(ctx)
-}
-
-// GetAccountIDByAddress get account IDS by address
-func (e *EventProcessor) GetAccountIDByAddress(address string) ([]string, error) {
-	return e.accountStore.GetAccountIDByAddress(address)
 }

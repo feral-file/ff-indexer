@@ -38,7 +38,7 @@ feed:
   debug: true
 
 account:
-  db_uri:
+  grpc_endpoint:
 
 network:
   tezos: testnet
