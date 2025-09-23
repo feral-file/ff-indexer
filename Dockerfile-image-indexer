@@ -1,6 +1,6 @@
-FROM golang:1.21-alpine3.18 as build
+FROM golang:1.23-bullseye AS build
 
-RUN apk add --no-cache git gcc musl-dev
+RUN apt-get update && apt-get install -y git gcc && rm -rf /var/lib/apt/lists/*
 
 ARG GITHUB_USER=bot
 ARG GITHUB_TOKEN=token
@@ -20,12 +20,12 @@ RUN go build -o /go/bin/image-indexer ./services/image-indexer
 
 # ---
 
-FROM 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:chromep-0.1.0
+FROM chromedp/headless-shell:latest
 ARG dist=0.0
 
 COPY --from=build /go/bin/image-indexer /image-indexer
 
 USER root
-RUN apk add --no-cache ffmpeg
+RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
 
-ADD services/image-indexer/config.yaml.sample /.config/config.yaml
+ENTRYPOINT ["/image-indexer"]

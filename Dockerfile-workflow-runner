@@ -1,4 +1,4 @@
-FROM golang:1.21-alpine3.18 as build
+FROM golang:1.23.7-alpine3.21 AS build
 
 RUN apk add --no-cache git gcc musl-dev
 
@@ -20,11 +20,11 @@ RUN go build -o /go/bin/workflow-runner ./services/workflow-runner
 
 # ---
 
-FROM alpine:3.18
+FROM alpine:3.21
 ARG dist=0.0
 
 RUN apk add --no-cache curl
 
 COPY --from=build /go/bin/workflow-runner /workflow-runner
 
-ADD services/workflow-runner/config.yaml.sample /.config/config.yaml
+ENTRYPOINT ["/workflow-runner"]

@@ -213,17 +213,8 @@ endif
 	-t nft-indexer:image-indexer-$(dist) -f Dockerfile-image-indexer .
 	docker tag nft-indexer:image-indexer-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:image-indexer-$(dist)
 
-.PHONY: build-chromep
-build-chromep:
-ifndef dist
-	$(error dist is undefined)
-endif
-	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
-	-t nft-indexer:chromep-$(dist) -f Dockerfile-chromep .
-	docker tag nft-indexer:chromep-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:chromep-$(dist)
-
 .PHONY: image
-image: build-api-gateway build-workflow-runner build-grpc-gateway build-provenance-indexer build-ethereum-event-emitter build-tezos-event-processor build-event-processor build-image-indexer build-chromep
+image: build-api-gateway build-workflow-runner build-grpc-gateway build-provenance-indexer build-ethereum-event-emitter build-tezos-event-processor build-event-processor build-image-indexer
 
 .PHONY: push
 push:
@@ -291,6 +282,52 @@ clean:
 .PHONY: complete-clean
 complete-clean: clean
 	go clean -cache -fuzzcache -modcache -testcache
+
+# Docker Compose Sequential Build Script
+# Builds services in dependency order using docker compose up service_name -d --build
+
+.PHONY: docker-build-ordered
+docker-build-ordered:
+	@echo "Building services in dependency order..."
+	@echo "Step 1: Building foundation services..."
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up mongodb -d
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up postgres -d
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up cadence-postgresql -d
+	@echo "Waiting for foundation services to be healthy..."
+	@until docker compose ps mongodb --format "{{.Status}}" | grep -q "healthy" && docker compose ps postgres --format "{{.Status}}" | grep -q "healthy" && docker compose ps cadence-postgresql --format "{{.Status}}" | grep -q "healthy"; do \
+		echo "Waiting for foundation services..."; \
+		sleep 2; \
+	done
+	@echo "Step 2: Building core services..."
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up cadence -d --build
+	@echo "Waiting for cadence to be healthy..."
+	@until docker compose ps cadence --format "{{.Status}}" | grep -q "healthy"; do \
+		echo "Waiting for cadence..."; \
+		sleep 2; \
+	done
+	@echo "Step 3: Building cadence-web and grpc-gateway..."
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up cadence-web -d
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up grpc-gateway -d --build
+	@echo "Waiting for grpc-gateway to be healthy..."
+	@until docker compose ps grpc-gateway --format "{{.Status}}" | grep -q "healthy"; do \
+		echo "Waiting for grpc-gateway..."; \
+		sleep 2; \
+	done
+	@echo "Step 4: Building event-processor and api-gateway..."
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up event-processor -d --build
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up api-gateway -d --build
+	@echo "Waiting for services to be healthy..."
+	@until docker compose ps event-processor --format "{{.Status}}" | grep -q "healthy" && docker compose ps api-gateway --format "{{.Status}}" | grep -q "healthy"; do \
+		echo "Waiting for services..."; \
+		sleep 2; \
+	done
+	@echo "Step 5: Building ethereum-event-emitter, tezos-event-emitter, workflow-runner, provenance-indexer, and image-indexer..."
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up ethereum-event-emitter -d --build
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up tezos-event-emitter -d --build
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up workflow-runner -d --build
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up provenance-indexer -d --build
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up image-indexer -d --build
+	@echo "All services built and started in dependency order!"
 
 .PHONY: help
 help:
