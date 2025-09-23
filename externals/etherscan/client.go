@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	indexer "github.com/bitmark-inc/nft-indexer"
+	indexer "github.com/feral-file/ff-indexer"
 )
 
 const (
@@ -118,7 +118,9 @@ func (r *Requester) request(
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// Decode the response
 	dec := json.NewDecoder(resp.Body)
@@ -143,6 +145,6 @@ func (r *Requester) request(
 		}
 		return errors.New(errMessage)
 	default:
-		return errors.New("Unexpected error happened.")
+		return errors.New("unexpected error happened")
 	}
 }

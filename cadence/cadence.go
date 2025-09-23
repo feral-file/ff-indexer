@@ -34,7 +34,7 @@ func BuildCadenceServiceClient(hostPort, clientName, cadenceService string) work
 }
 
 // BuildCadenceLogger creates a log instance for cadence client
-func BuildCadenceLogger(logLevel int) *zap.Logger {
+func BuildCadenceLogger(logLevel int8) *zap.Logger {
 	config := zap.NewDevelopmentConfig()
 	config.Level.SetLevel(zapcore.Level(logLevel))
 

@@ -1,0 +1,27 @@
+log:
+  level: debug
+
+debug: true
+environment: development
+  
+ethereum:
+  ws_url: wss://rinkeby.infura.io/ws/v3/<project_id>
+  lastBlockKeyName: /autonomy/development/ethereum-last-stop-block
+
+cache_store:
+  db_uri:
+  db_name:
+
+event_processor_server:
+  address: localhost:8765
+
+sentry:
+  dsn:
+
+contract: 
+      series_registry: "0xDf0a1AD1E06bB2d70B590F73B1069A32f2B8Bc41"
+
+aws:
+  region: ap-northeast-1
+  access_key_id:
+  secret_access_key:

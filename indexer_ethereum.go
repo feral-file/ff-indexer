@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -18,7 +19,8 @@ import (
 
 	log "github.com/bitmark-inc/autonomy-logger"
 	utils "github.com/bitmark-inc/autonomy-utils"
-	"github.com/bitmark-inc/nft-indexer/externals/opensea"
+
+	"github.com/feral-file/ff-indexer/externals/opensea"
 )
 
 type TransactionDetails struct {
@@ -285,20 +287,17 @@ func (e *IndexEngine) GetEthereumTxTimestamp(ctx context.Context, txHashString s
 	txHash := common.HexToHash(txHashString)
 	receipt, err := e.ethereum.TransactionReceipt(ctx, txHash)
 	if err != nil {
-		if err == ethereum.NotFound {
+		if errors.Is(err, ethereum.NotFound) {
 			return time.Time{}, ErrTXNotFound
 		}
 		return time.Time{}, err
 	}
 
-	if receipt.Status == 0 {
+	switch receipt.Status {
+	case 0:
 		return time.Time{}, fmt.Errorf("the transaction is not success")
-	} else if receipt.Status == 1 {
-		t, err := GetETHBlockTime(ctx, e.cacheStore, e.ethereum, receipt.BlockHash)
-		if err != nil {
-			return time.Time{}, err
-		}
-		return t, nil
+	case 1:
+		return GetETHBlockTime(ctx, e.cacheStore, e.ethereum, receipt.BlockHash)
 	}
 
 	return time.Time{}, fmt.Errorf("unexpected tx status for ethereum")

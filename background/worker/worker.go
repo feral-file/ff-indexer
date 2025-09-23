@@ -6,17 +6,18 @@ import (
 
 	assetSDK "github.com/bitmark-inc/autonomy-asset-server/sdk/api"
 	bitmarkd "github.com/bitmark-inc/bitmarkdClient"
-	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/cache"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"
+
+	indexer "github.com/feral-file/ff-indexer"
+	"github.com/feral-file/ff-indexer/cache"
 )
 
 var ClientName = "nft-indexer-worker"
 var TaskListName = "nft-indexer"
 var ProvenanceTaskListName = "nft-provenance-indexer"
 
-type NFTIndexerWorker struct {
+type Worker struct {
 	http *http.Client
 
 	ipfsCacheBucketName string
@@ -41,7 +42,7 @@ func New(environment string,
 	store indexer.Store,
 	assetClient *assetSDK.Client,
 	bitmarkdClient *bitmarkd.BitmarkdRPCClient,
-) *NFTIndexerWorker {
+) *Worker {
 
 	wsClient, err := ethclient.Dial(viper.GetString("ethereum.rpc_url"))
 	if err != nil {
@@ -57,7 +58,7 @@ func New(environment string,
 		bitmarkAPIEndpoint = "https://api.test.bitmark.com"
 	}
 
-	return &NFTIndexerWorker{
+	return &Worker{
 		http: &http.Client{
 			Timeout: 15 * time.Second,
 		},

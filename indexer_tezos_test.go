@@ -11,9 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	log "github.com/bitmark-inc/autonomy-logger"
-	"github.com/bitmark-inc/nft-indexer/externals/fxhash"
-	"github.com/bitmark-inc/nft-indexer/externals/objkt"
 	"github.com/bitmark-inc/tzkt-go"
+
+	"github.com/feral-file/ff-indexer/externals/fxhash"
+	"github.com/feral-file/ff-indexer/externals/objkt"
 )
 
 func TestMain(m *testing.M) {

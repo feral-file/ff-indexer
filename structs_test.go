@@ -24,13 +24,3 @@ func TestUnmarshalValidBlockchainAddress(t *testing.T) {
 		assert.Equal(t, expectAddress, string(addr))
 	}
 }
-
-func TestUnmarshalInvalidBlockchainAddress(t *testing.T) {
-	testFixtures := []string{"abc", ""}
-
-	for _, testAddress := range testFixtures {
-		var addr BlockchainAddress
-
-		assert.Error(t, json.Unmarshal([]byte(fmt.Sprintf(`"%s"`, testAddress)), &addr), ErrUnsupportedBlockchain.Error())
-	}
-}

@@ -1,8 +1,3 @@
-# SPDX-License-Identifier: ISC
-# Copyright (c) 2019-2024 Bitmark Inc.
-# Use of this source code is governed by an ISC
-# license that can be found in the LICENSE file.
-
 .PHONY:
 
 dist =
@@ -36,139 +31,135 @@ config:
 
 # build
 
-BUILD_LIST = nft-indexer
-.PHONY: nft-indexer
-nft-indexer:
-	go build -o bin/nft-indexer ./services/nft-indexer
+BUILD_LIST = api-gateway
+.PHONY: api-gateway
+api-gateway:
+	go build -o bin/api-gateway ./services/api-gateway
 
-BUILD_LIST += nft-indexer-background
-.PHONY: nft-indexer-background
-nft-indexer-background:
-	go build -o bin/nft-indexer-background ./services/nft-indexer-background
+BUILD_LIST += workflow-runner
+.PHONY: workflow-runner
+workflow-runner:
+	go build -o bin/workflow-runner ./services/workflow-runner
 
-BUILD_LIST += nft-indexer-grpc
-.PHONY: nft-indexer-grpc
-nft-indexer-grpc:
-	go build -o bin/nft-indexer-grpc ./services/nft-indexer-grpc
+BUILD_LIST += grpc-gateway
+.PHONY: grpc-gateway
+grpc-gateway:
+	go build -o bin/grpc-gateway ./services/grpc-gateway
 
-BUILD_LIST += nft-image-indexer
-.PHONY: nft-image-indexer
-nft-image-indexer:
-	go build -o bin/nft-image-indexer ./services/nft-image-indexer
+BUILD_LIST += image-indexer
+.PHONY: image-indexer
+image-indexer:
+	go build -o bin/image-indexer ./services/image-indexer
 
-BUILD_LIST += nft-event-processor
-.PHONY: nft-event-processor
-nft-event-processor:
-	go build -o bin/nft-event-processor ./services/nft-event-processor
+BUILD_LIST += event-processor
+.PHONY: event-processor
+event-processor:
+	go build -o bin/event-processor ./services/event-processor
 
-BUILD_LIST += nft-provenance-indexer
-.PHONY: nft-provenance-indexer
-nft-provenance-indexer:
-	go build -o bin/nft-provenance-indexer ./services/nft-provenance-indexer
+BUILD_LIST += provenance-indexer
+.PHONY: provenance-indexer
+provenance-indexer:
+	go build -o bin/provenance-indexer ./services/provenance-indexer
 
-BUILD_LIST += nft-ethereum-emitter
-.PHONY: nft-ethereum-emitter
-nft-ethereum-emitter:
-	go build -o bin/nft-ethereum-emitter ./services/nft-event-processor-ethereum-emitter
+BUILD_LIST += ethereum-event-emitter
+.PHONY: ethereum-event-emitter
+ethereum-event-emitter:
+	go build -o bin/ethereum-event-emitter ./services/ethereum-event-emitter
 
-BUILD_LIST += nft-tezos-emitter
-.PHONY: nft-tezos-emitter
-nft-tezos-emitter:
-	go build -o bin/nft-tezos-emitter ./services/nft-event-processor-tezos-emitter
+BUILD_LIST += tezos-event-emitter
+.PHONY: tezos-event-emitter
+tezos-event-emitter:
+	go build -o bin/tezos-event-emitter ./services/tezos-event-emitter
 
 # run
 
-.PHONY: run-nft-indexer
-run-nft-indexer: nft-indexer
-	./bin/nft-indexer -c config.yaml
+.PHONY: run-api-gateway
+run-api-gateway: api-gateway
+	./bin/api-gateway -c config.yaml
 
-.PHONY: run-nft-indexer-background
-run-nft-indexer-background: nft-indexer-background
-	./bin/nft-indexer-background -c config.yaml
+.PHONY: run-workflow-runner
+run-workflow-runner: workflow-runner
+	./bin/workflow-runner -c config.yaml
 
-.PHONY: run-nft-indexer-grpc
-run-nft-indexer-grpc: nft-indexer-grpc
-	./bin/nft-indexer-grpc -c config.yaml
+.PHONY: run-grpc-gateway
+run-grpc-gateway: grpc-gateway
+	./bin/grpc-gateway -c config.yaml
 
-.PHONY: run-nft-image-indexer
-run-nft-image-indexer: nft-image-indexer
-	./bin/nft-image-indexer -c config.yaml
+.PHONY: run-image-indexer
+run-image-indexer: image-indexer
+	./bin/image-indexer -c config.yaml
 
-.PHONY: run-nft-event-processor
-run-nft-event-processor: nft-event-processor
-	./bin/nft-event-processor -c config.yaml
+.PHONY: run-event-processor
+run-event-processor: event-processor
+	./bin/event-processor -c config.yaml
 
-.PHONY: run-nft-provenance-indexer
-run-nft-provenance-indexer: nft-provenance-indexer
-	./bin/nft-provenance-indexer -c config.yaml
+.PHONY: run-provenance-indexer
+run-provenance-indexer: provenance-indexer
+	./bin/provenance-indexer -c config.yaml
 
-.PHONY: run-nft-ethereum-emitter
-run-nft-ethereum-emitter: nft-ethereum-emitter
-	./bin/nft-ethereum-emitter -c config.yaml
+.PHONY: run-ethereum-event-emitter
+run-ethereum-event-emitter: ethereum-event-emitter
+	./bin/ethereum-event-emitter -c config.yaml
 
-.PHONY: run-nft-tezos-emitter
-run-nft-tezos-emitter: nft-tezos-emitter
-	./bin/nft-tezos-emitter -c config.yaml
-
-.PHONY: run
-run: config run-nft-indexer
+.PHONY: run-tezos-event-emitter
+run-tezos-event-emitter: tezos-event-emitter
+	./bin/tezos-event-emitter -c config.yaml
 
 # rebuild items
 
-.PHONY: renew-event-processor-grpc
-renew-event-processor-grpc:
-	protoc --proto_path=protos --go-grpc_out=services/nft-event-processor/ --go_out=services/nft-event-processor/ event-processor.proto
+.PHONY: generate-event-processor-grpc
+generate-event-processor-grpc:
+	protoc --proto_path=protos --go-grpc_out=services/event-processor/ --go_out=services/event-processor/ event-processor.proto
 
-.PHONY: renew-indexer-grpc
-renew-indexer-grpc:
-	protoc --proto_path=protos --go-grpc_out=services/nft-indexer-grpc/ --go_out=services/nft-indexer-grpc/ indexer.proto
+.PHONY: generate-gateway-grpc
+generate-gateway-grpc:
+	protoc --proto_path=protos --go-grpc_out=services/grpc-gateway/ --go_out=services/grpc-gateway/ gateway.proto
 
-.PHONY: generate-nft-indexer-graphql
-generate-nft-indexer-graphql:
-	${MAKE} -C services/nft-indexer/graph/ all
+.PHONY: generate-api-gateway-graphql
+generate-api-gateway-graphql:
+	${MAKE} -C services/api-gateway/graph/ all
 
 .PHONY: build-rebuild
-build-rebuild: generate-nft-indexer-graphql renew-event-processor-grpc build
+build-rebuild: generate-api-gateway-graphql generate-event-processor-grpc generate-gateway-grpc build
 
-#BL=nft-indexer nft-indexer-background nft-event-processor nft-provenance-indexer nft-ethereum-emitter nft-tezos-emitter
 .PHONY: build
 build: ${BUILD_LIST}
 
-.PHONY: build-nft-indexer
-build-nft-indexer:
+.PHONY: build-api-gateway
+build-api-gateway:
 ifndef dist
 	$(error dist is undefined)
 endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
-	-t nft-indexer:api-$(dist) .
+	-t nft-indexer:api-$(dist) -f Dockerfile-api-gateway .
 	docker tag nft-indexer:api-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:api-$(dist)
 
-.PHONY: build-nft-indexer-background
-build-nft-indexer-background:
+.PHONY: build-workflow-runner
+build-workflow-runner:
 ifndef dist
 	$(error dist is undefined)
 endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
-	-t nft-indexer:background-$(dist) -f Dockerfile-background .
+	-t nft-indexer:background-$(dist) -f Dockerfile-workflow-runner .
 	docker tag nft-indexer:background-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:background-$(dist)
 
-.PHONY: build-nft-indexer-grpc-image
-build-nft-indexer-grpc-image:
+.PHONY: build-grpc-gateway
+build-grpc-gateway:
 ifndef dist
 	$(error 'dist is undefined')
 endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
-	-t nft-indexer:grpc-'${dist}' -f Dockerfile-grpc .
+	-t nft-indexer:grpc-'${dist}' -f Dockerfile-grpc-gateway .
 	docker tag nft-indexer:grpc-'${dist}' 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:grpc-'${dist}'
 
-.PHONY: build-nft-provenance-indexer
-build-nft-provenance-indexer:
+.PHONY: build-provenance-indexer
+build-provenance-indexer:
 ifndef dist
 	$(error dist is undefined)
 endif
@@ -178,30 +169,30 @@ endif
 	-t nft-indexer:provenance-indexer-$(dist) -f Dockerfile-provenance-indexer .
 	docker tag nft-indexer:provenance-indexer-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:provenance-indexer-$(dist)
 
-.PHONY: build-nft-ethereum-emitter
-build-nft-ethereum-emitter:
+.PHONY: build-ethereum-event-emitter
+build-ethereum-event-emitter:
 ifndef dist
 	$(error dist is undefined)
 endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
-	-t nft-indexer:ethereum-emitter-$(dist) -f Dockerfile-ethereum-emitter .
+	-t nft-indexer:ethereum-emitter-$(dist) -f Dockerfile-ethereum-event-emitter .
 	docker tag nft-indexer:ethereum-emitter-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:ethereum-emitter-$(dist)
 
-.PHONY: build-nft-tezos-emitter
-build-nft-tezos-emitter:
+.PHONY: build-tezos-event-emitter
+build-tezos-event-emitter:
 ifndef dist
 	$(error dist is undefined)
 endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
-	-t nft-indexer:tezos-emitter-$(dist) -f Dockerfile-tezos-emitter .
+	-t nft-indexer:tezos-emitter-$(dist) -f Dockerfile-tezos-event-emitter .
 	docker tag nft-indexer:tezos-emitter-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:tezos-emitter-$(dist)
 
-.PHONY: build-nft-event-processor
-build-nft-event-processor:
+.PHONY: build-event-processor
+build-event-processor:
 ifndef dist
 	$(error dist is undefined)
 endif
@@ -211,8 +202,8 @@ endif
 	-t nft-indexer:event-processor-$(dist) -f Dockerfile-event-processor .
 	docker tag nft-indexer:event-processor-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:event-processor-$(dist)
 
-.PHONY: build-nft-image-indexer
-build-nft-image-indexer:
+.PHONY: build-image-indexer
+build-image-indexer:
 ifndef dist
 	$(error dist is undefined)
 endif
@@ -222,17 +213,8 @@ endif
 	-t nft-indexer:image-indexer-$(dist) -f Dockerfile-image-indexer .
 	docker tag nft-indexer:image-indexer-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:image-indexer-$(dist)
 
-.PHONY: build-chromep
-build-chromep:
-ifndef dist
-	$(error dist is undefined)
-endif
-	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
-	-t nft-indexer:chromep-$(dist) -f Dockerfile-chromep .
-	docker tag nft-indexer:chromep-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:chromep-$(dist)
-
 .PHONY: image
-image: build-nft-indexer build-nft-indexer-background
+image: build-api-gateway build-workflow-runner build-grpc-gateway build-provenance-indexer build-ethereum-event-emitter build-tezos-event-processor build-event-processor build-image-indexer
 
 .PHONY: push
 push:
@@ -300,6 +282,52 @@ clean:
 .PHONY: complete-clean
 complete-clean: clean
 	go clean -cache -fuzzcache -modcache -testcache
+
+# Docker Compose Sequential Build Script
+# Builds services in dependency order using docker compose up service_name -d --build
+
+.PHONY: docker-build-ordered
+docker-build-ordered:
+	@echo "Building services in dependency order..."
+	@echo "Step 1: Building foundation services..."
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up mongodb -d
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up postgres -d
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up cadence-postgresql -d
+	@echo "Waiting for foundation services to be healthy..."
+	@until docker compose ps mongodb --format "{{.Status}}" | grep -q "healthy" && docker compose ps postgres --format "{{.Status}}" | grep -q "healthy" && docker compose ps cadence-postgresql --format "{{.Status}}" | grep -q "healthy"; do \
+		echo "Waiting for foundation services..."; \
+		sleep 2; \
+	done
+	@echo "Step 2: Building core services..."
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up cadence -d --build
+	@echo "Waiting for cadence to be healthy..."
+	@until docker compose ps cadence --format "{{.Status}}" | grep -q "healthy"; do \
+		echo "Waiting for cadence..."; \
+		sleep 2; \
+	done
+	@echo "Step 3: Building cadence-web and grpc-gateway..."
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up cadence-web -d
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up grpc-gateway -d --build
+	@echo "Waiting for grpc-gateway to be healthy..."
+	@until docker compose ps grpc-gateway --format "{{.Status}}" | grep -q "healthy"; do \
+		echo "Waiting for grpc-gateway..."; \
+		sleep 2; \
+	done
+	@echo "Step 4: Building event-processor and api-gateway..."
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up event-processor -d --build
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up api-gateway -d --build
+	@echo "Waiting for services to be healthy..."
+	@until docker compose ps event-processor --format "{{.Status}}" | grep -q "healthy" && docker compose ps api-gateway --format "{{.Status}}" | grep -q "healthy"; do \
+		echo "Waiting for services..."; \
+		sleep 2; \
+	done
+	@echo "Step 5: Building ethereum-event-emitter, tezos-event-emitter, workflow-runner, provenance-indexer, and image-indexer..."
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up ethereum-event-emitter -d --build
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up tezos-event-emitter -d --build
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up workflow-runner -d --build
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up provenance-indexer -d --build
+	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up image-indexer -d --build
+	@echo "All services built and started in dependency order!"
 
 .PHONY: help
 help:

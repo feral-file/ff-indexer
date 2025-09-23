@@ -5,12 +5,13 @@ import (
 	"time"
 
 	log "github.com/bitmark-inc/autonomy-logger"
-	"github.com/bitmark-inc/nft-indexer/cache"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
+
+	"github.com/feral-file/ff-indexer/cache"
 )
 
 func GetETHBlockTime(ctx context.Context, store cache.Store, rpcClient *ethclient.Client, hash common.Hash) (time.Time, error) {
@@ -28,7 +29,7 @@ func GetETHBlockTime(ctx context.Context, store cache.Store, rpcClient *ethclien
 		return time.Time{}, err
 	}
 
-	blockTime := time.Unix(int64(block.Time()), 0)
+	blockTime := time.Unix(int64(block.Time()), 0) // #nosec G115 -- Ethereum block timestamps are safe to convert
 	err = store.Set(ctx, hash.Hex(), blockTime)
 	if err != nil {
 		log.WarnWithContext(ctx, "failed to save cache data", zap.Error(err))

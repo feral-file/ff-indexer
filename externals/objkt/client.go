@@ -157,8 +157,8 @@ func (g *Client) GetGalleries(ctx context.Context, address string, offset, limit
 
 	variables := map[string]interface{}{
 		"address": graphql.String(address),
-		"offset":  graphql.Int(offset),
-		"limit":   graphql.Int(limit),
+		"offset":  graphql.Int(offset), // #nosec G115 -- offset is safe to convert to int
+		"limit":   graphql.Int(limit),  // #nosec G115 -- limit is safe to convert to int
 	}
 
 	err := g.Client.Query(ctx, &query, variables)

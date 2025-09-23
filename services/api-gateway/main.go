@@ -1,0 +1,96 @@
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/managedblockchainquery"
+	log "github.com/bitmark-inc/autonomy-logger"
+	"github.com/bitmark-inc/config-loader"
+	"github.com/bitmark-inc/tzkt-go"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/getsentry/sentry-go"
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
+
+	indexer "github.com/feral-file/ff-indexer"
+	indexerWorker "github.com/feral-file/ff-indexer/background/worker"
+	"github.com/feral-file/ff-indexer/cache"
+	"github.com/feral-file/ff-indexer/cadence"
+	"github.com/feral-file/ff-indexer/externals/ens"
+	"github.com/feral-file/ff-indexer/externals/fxhash"
+	"github.com/feral-file/ff-indexer/externals/objkt"
+	"github.com/feral-file/ff-indexer/externals/opensea"
+	tezosDomain "github.com/feral-file/ff-indexer/externals/tezos-domain"
+)
+
+func main() {
+	ctx := context.Background()
+
+	config.LoadConfig("NFT_INDEXER")
+
+	environment := viper.GetString("environment")
+	if err := log.Initialize(viper.GetBool("debug"), &sentry.ClientOptions{
+		Dsn:         viper.GetString("sentry.dsn"),
+		Environment: environment,
+	}); err != nil {
+		panic(fmt.Errorf("fail to initialize logger with error: %s", err.Error()))
+	}
+
+	indexerStore, err := indexer.NewMongodbIndexerStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"), environment)
+	if err != nil {
+		log.Panic("fail to initiate indexer store", zap.Error(err))
+	}
+
+	cacheStore, err := cache.NewMongoDBCacheStore(ctx, viper.GetString("store.db_uri"), viper.GetString("store.db_name"))
+	if err != nil {
+		log.Panic("fail to initiate cache store", zap.Error(err))
+	}
+
+	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
+	cadenceClient.AddService(indexerWorker.ClientName)
+
+	ensClient := ens.New(viper.GetString("ens.rpc_url"))
+	tezosDomain := tezosDomain.New(viper.GetString("tezos.domain_api_url"))
+
+	var minterGateways map[string]string
+	if err := yaml.Unmarshal([]byte(viper.GetString("ipfs.minter_gateways")), &minterGateways); err != nil {
+		log.Panic("fail to initiate indexer store", zap.Error(err))
+	}
+
+	ethClient, err := ethclient.Dial(viper.GetString("ethereum.rpc_url"))
+	if err != nil {
+		log.Panic("fail to initiate eth client", zap.Error(err))
+	}
+
+	awsSession, err := session.NewSessionWithOptions(session.Options{
+		Config: aws.Config{
+			Region: aws.String("us-east-1"),
+		},
+	})
+	if err != nil {
+		log.Panic("fail to set up aws session", zap.Error(err))
+	}
+
+	engine := indexer.New(
+		environment,
+		viper.GetStringSlice("ipfs.preferred_gateways"),
+		minterGateways,
+		opensea.New(viper.GetString("network.ethereum"), viper.GetString("opensea.api_key"), viper.GetInt("opensea.ratelimit")),
+		tzkt.New(viper.GetString("network.tezos")),
+		fxhash.New(viper.GetString("fxhash.api_endpoint")),
+		objkt.New(viper.GetString("network.tezos")),
+		ethClient,
+		cacheStore,
+		managedblockchainquery.New(awsSession),
+	)
+
+	s := NewServer(cadenceClient, ensClient, tezosDomain, ethClient, indexerStore, cacheStore, engine, viper.GetString("server.api_token"), viper.GetString("server.admin_api_token"))
+	s.SetupRoute()
+	if err := s.Run(viper.GetString("server.port")); err != nil {
+		log.Panic("server interrupted", zap.Error(err))
+	}
+}

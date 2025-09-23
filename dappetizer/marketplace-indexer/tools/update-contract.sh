@@ -1,6 +1,0 @@
-#!/bin/sh
-
-dappetizer update fxhash KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE
-dappetizer update hicetniuc KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton
-dappetizer update versum KT1LjmAdYQCLBjwv4S2oFkEzyHVkomAf5MrW
-dappetizer update fxhashv2 KT1U6EHmNxJTkvaWJ4ThczG4FSDaHC21ssv

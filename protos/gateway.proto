@@ -1,0 +1,310 @@
+syntax = "proto3";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+package grpc;
+option go_package = "./grpc";
+
+service Grpc {
+  rpc GetTokenByIndexID(IndexID) returns (Token);
+  rpc PushProvenance(PushProvenanceRequest) returns (EmptyMessage);
+  rpc UpdateOwner(UpdateOwnerRequest) returns (EmptyMessage);
+  rpc UpdateOwnerForFungibleToken(UpdateOwnerForFungibleTokenRequest) returns (EmptyMessage);
+  rpc IndexAccountTokens(IndexAccountTokensRequest) returns (EmptyMessage);
+  rpc GetDetailedToken(GetDetailedTokenRequest) returns (DetailedToken);
+  rpc GetTotalBalanceOfOwnerAccounts(Addresses) returns (TotalBalance);
+  rpc GetOwnerAccountsByIndexIDs(IndexIDs) returns (Addresses);
+  rpc CheckAddressOwnTokenByCriteria(CheckAddressOwnTokenByCriteriaRequest) returns (CheckAddressOwnTokenByCriteriaResponse);
+  rpc GetOwnersByBlockchainContracts(GetOwnersByBlockchainContractsRequest) returns (Addresses);
+  rpc GetETHBlockTime(GetETHBlockTimeRequest) returns (BlockTime);
+  rpc GetIdentity(Address) returns (AccountIdentity);
+  rpc SendTimeSeriesData(SaleTimeSeriesRecords) returns(EmptyMessage);
+  rpc GetSaleTimeSeries(SaleTimeSeriesFilter) returns (SaleTimeSeriesListResponse);
+  rpc GetSaleRevenues(SaleTimeSeriesFilter) returns (SaleRevenuesResponse);
+  rpc GetHistoricalExchangeRate(HistoricalExchangeRateFilter) returns (ExchangeRateResponse);
+  rpc UpdateAssetsConfiguration(UpdateAssetsConfigurationRequest) returns(EmptyMessage);
+  rpc CheckAssetCreator(CheckAssetCreatorRequest) returns (CheckAssetCreatorResponse);
+}
+
+message CheckAddressOwnTokenByCriteriaResponse {
+  bool result = 1;
+}
+
+message CheckAddressOwnTokenByCriteriaRequest {
+  string Address = 1;
+  Criteria Criteria = 2;
+}
+
+message Criteria {
+  string IndexID = 1;
+  string Source = 2;
+}
+
+message GetOwnersByBlockchainContractsRequest {
+  map<string, Addresses> BlockchainContracts = 1;
+}
+
+message Addresses {
+  repeated string Addresses = 1;
+}
+
+message IndexIDs {
+  repeated string IndexIDs = 1;
+}
+
+message IndexID {
+  string IndexID = 1;
+}
+
+message TotalBalance {
+  int64 count = 1;
+}
+
+message DetailedToken {
+  Token Token = 1;
+  string ThumbnailID = 2;
+  bool IPFSPinned = 3;
+  AssetAttributes Attributes = 4;
+  VersionedProjectMetadata ProjectMetadata = 5;
+}
+
+message AssetConfiguration {
+  string Scaling = 1;
+  string BackgroundColor = 2;
+  double MarginLeft = 3;
+  double MarginRight = 4;
+  double MarginBottom = 5;
+  double MarginTop = 6;
+  bool AutoPlay = 7; 
+  bool Looping = 8; 
+  bool Interactable = 9;
+  bool Overridable = 10; 
+}
+
+message AssetAttributes {
+  AssetConfiguration Configuration = 1;
+}
+
+message VersionedProjectMetadata {
+  ProjectMetadata Origin = 1;
+  ProjectMetadata Latest = 2;
+}
+
+message ProjectMetadata {
+  string ArtistID = 1;
+  string ArtistName = 2;
+  string ArtistURL = 3;
+  string AssetID = 4;
+  string Title = 5;
+  string Description = 6;
+  string MIMEType = 7;
+  string Medium = 8;
+  int64 MaxEdition = 9;
+  string BaseCurrency = 10;
+  double BasePrice = 11;
+  string Source = 12;
+  string SourceURL = 13;
+  string PreviewURL = 14;
+  string ThumbnailURL = 15;
+  string GalleryThumbnailURL = 16;
+  string AssetData = 17;
+  string AssetURL = 18;
+
+  AssetAttributes Attributes = 19;
+  string ArtworkMetadata = 20;
+  string LastUpdatedAt = 21;
+  string InitialSaleModel = 22;
+  string OriginalFileURL = 23;
+
+  repeated Artist Artists = 24;
+}
+
+message Artist {
+  string ArtistID = 1;
+  string ArtistName = 2;
+  string ArtistURL = 3;
+}
+
+message IndexAccountTokensRequest {
+  string Owner = 1;
+  repeated AccountToken AccountTokens = 2;
+}
+
+message AccountToken {
+  string ID = 1; // FIXME: need implement BaseTokenInfo
+  string Blockchain = 2;
+  bool Fungible = 3;
+  string ContractType = 4;
+  string ContractAddress = 5;
+
+  string IndexID = 6;
+  string OwnerAccount = 7;
+  int64 Balance = 8;
+  string LastActivityTime = 9;
+  string LastRefreshedTime = 10;
+  repeated string LastPendingTime = 11;
+  string LastUpdatedAt = 12;
+  repeated string PendingTxs = 13;
+}
+
+message UpdateOwnerForFungibleTokenRequest {
+  string IndexID = 1;
+  string LockedTime = 2;
+  string To = 3;
+  int64 Total = 4;
+}
+
+message UpdateOwnerRequest {
+  string IndexID = 1;
+  string Owner = 2;
+  string UpdatedAt = 3;
+}
+
+message EmptyMessage {}
+
+message PushProvenanceRequest {
+  string IndexID = 1;
+  string LockedTime = 2;
+  Provenance Provenance = 3;
+}
+
+message Token {
+  string ID = 1;
+  string Blockchain = 2;
+  bool Fungible = 3;
+  string ContractType = 4;
+  string ContractAddress = 5;
+
+  int64 Edition = 6;
+  string EditionName = 7;
+  string MintedAt = 8; // time type is mapped by string
+  int64 Balance = 9;
+  string Owner = 10;
+  map<string,int64> Owners = 11;
+  repeated string OwnersArray = 12;
+
+  string AssetID = 13;
+  repeated BaseTokenInfo OriginTokenInfo = 14;
+  bool IsDemo = 15;
+
+  string IndexID = 16;
+  string Source = 17;
+  bool Swapped = 18;
+  string SwappedFrom = 19;
+  string SwappedTo = 20;
+  bool Burned = 21;
+
+  repeated Provenance Provenances = 22;
+  string LastActivityTime = 23;
+  string LastRefreshedTime = 24;
+}
+
+message Provenance {
+  string FormerOwner = 1;
+  string Type = 2;
+  string Owner = 3;
+  string Blockchain = 4;
+  optional uint64 BlockNumber = 5;
+
+  string Timestamp = 6;
+  string TxID = 7;
+  string TxURL = 8;
+}
+
+message BaseTokenInfo {
+  string ID = 1;
+  string Blockchain = 2;
+  bool Fungible = 3;
+  string ContractType = 4;
+  string ContractAddress = 5;
+}
+
+message GetETHBlockTimeRequest {
+  string BlockHash = 1;
+}
+
+message BlockTime {
+  string BlockTime = 1;
+}
+
+message Address {
+  string Address = 1;
+}
+
+message AccountIdentity {
+  string AccountNumber = 1;
+  string Blockchain = 2;
+  string Name = 3;
+  string LastUpdatedTime = 4;
+}
+
+// generic record to support any kind of time series data
+message SaleTimeSeriesRecord {
+  string timestamp = 1;             // ts.UTC().Format(time.RFC3339Nano) for BSON.ISODate()
+  google.protobuf.Struct metadata = 2; // just metata data for grouping/sorting
+  map<string,string> values = 3;    // top-level values for BSON.Decimal128()
+  map<string,string> shares = 4;    // sub-level values for BSON.Decimal128()
+}
+
+message SaleTimeSeriesRecords {
+  repeated SaleTimeSeriesRecord sales = 1;
+}
+
+message SaleTimeSeriesFilter {
+  repeated string addresses = 1;
+  string marketplace = 2;
+  optional google.protobuf.Timestamp from = 3;
+  optional google.protobuf.Timestamp to = 4;
+  optional int64 offset = 5;
+  optional int64 size = 6;
+  optional bool sortASC = 7;
+}
+
+message SaleTimeSeries {
+  google.protobuf.Timestamp timestamp = 1;
+  string metadata = 2;
+  string shares = 3;
+  string netValue = 4;
+	string paymentAmount = 5;
+	string platformFee = 6;
+	string usdQuote = 7;
+	string price = 8;
+}
+
+message SaleTimeSeriesListResponse {
+  repeated SaleTimeSeries sales = 1;
+}
+
+message SaleRevenuesResponse {
+  map<string,string> revenues = 1;
+}
+
+message HistoricalExchangeRateFilter {
+	google.protobuf.Timestamp timestamp    = 1; // ts.UTC().Format(time.RFC3339Nano) for BSON.ISODate()
+	string currencyPair = 2;
+}
+
+message ExchangeRateResponse {
+	google.protobuf.Timestamp timestamp = 1; // ts.UTC().Format(time.RFC3339Nano) for BSON.ISODate()
+  double price = 2;
+	string currencyPair = 3;
+}
+
+message GetDetailedTokenRequest {
+  string IndexID = 1;
+  bool BurnedIncluded = 2;
+}
+
+message UpdateAssetsConfigurationRequest {
+  repeated string IDs = 1;
+  AssetConfiguration configuration = 2;
+}
+
+message CheckAssetCreatorRequest {
+  repeated string IDs = 1;
+  repeated string CreatorAddresses = 2;
+}
+
+message CheckAssetCreatorResponse {
+  bool result = 1;
+}

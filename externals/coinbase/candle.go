@@ -2,6 +2,7 @@ package coinbase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -31,31 +32,31 @@ func (c *HistoricalExchangeRate) Scan(
 	currencyPair string) error {
 	unixTime, ok := candle[candleTimeIndex].(float64)
 	if !ok {
-		return fmt.Errorf("failed to parse unix time")
+		return errors.New("failed to parse unix time")
 	}
 	c.Time = time.Unix(int64(unixTime), 0).UTC()
 
 	candleLow, ok := candle[candleLowIndex].(float64)
 	if !ok {
-		return fmt.Errorf(errFailedToParseLowMessage)
+		return errors.New(errFailedToParseLowMessage)
 	}
 	c.Low = candleLow
 
 	candleHigh, ok := candle[candleHighIndex].(float64)
 	if !ok {
-		return fmt.Errorf(errFailedToParseLowMessage)
+		return errors.New(errFailedToParseLowMessage)
 	}
 	c.High = candleHigh
 
 	candleOpen, ok := candle[candleOpenIndex].(float64)
 	if !ok {
-		return fmt.Errorf(errFailedToParseLowMessage)
+		return errors.New(errFailedToParseLowMessage)
 	}
 	c.Open = candleOpen
 
 	candleClose, ok := candle[candleCloseIndex].(float64)
 	if !ok {
-		return fmt.Errorf(errFailedToParseLowMessage)
+		return errors.New(errFailedToParseLowMessage)
 	}
 	c.Close = candleClose
 

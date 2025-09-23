@@ -18,11 +18,12 @@ import (
 	"github.com/spf13/viper"
 
 	utils "github.com/bitmark-inc/autonomy-utils"
-	indexer "github.com/bitmark-inc/nft-indexer"
-	"github.com/bitmark-inc/nft-indexer/contracts"
-	"github.com/bitmark-inc/nft-indexer/externals/coinbase"
-	"github.com/bitmark-inc/nft-indexer/externals/etherscan"
 	"github.com/bitmark-inc/tzkt-go"
+
+	indexer "github.com/feral-file/ff-indexer"
+	"github.com/feral-file/ff-indexer/contracts"
+	"github.com/feral-file/ff-indexer/externals/coinbase"
+	"github.com/feral-file/ff-indexer/externals/etherscan"
 )
 
 var (
@@ -33,7 +34,7 @@ var (
 )
 
 // GetOwnedERC721TokenIDByContract returns a list of token id belongs to an owner for a specific contract
-func (w *NFTIndexerWorker) GetOwnedERC721TokenIDByContract(_ context.Context, contractAddress, ownerAddress string) ([]*big.Int, error) {
+func (w *Worker) GetOwnedERC721TokenIDByContract(_ context.Context, contractAddress, ownerAddress string) ([]*big.Int, error) {
 	rpcClient, err := ethclient.Dial(viper.GetString("ethereum.rpc_url"))
 	if err != nil {
 		return nil, err
@@ -65,7 +66,7 @@ func (w *NFTIndexerWorker) GetOwnedERC721TokenIDByContract(_ context.Context, co
 }
 
 // IndexETHTokenByOwner indexes ETH token data for an owner into the format of AssetUpdates
-func (w *NFTIndexerWorker) IndexETHTokenByOwner(ctx context.Context, owner string, next string) (string, error) {
+func (w *Worker) IndexETHTokenByOwner(ctx context.Context, owner string, next string) (string, error) {
 	updates, next, err := w.indexerEngine.IndexETHTokenByOwner(ctx, owner, next)
 	if err != nil {
 		return "", err
@@ -100,7 +101,7 @@ func (w *NFTIndexerWorker) IndexETHTokenByOwner(ctx context.Context, owner strin
 }
 
 // IndexTezosTokenByOwner indexes Tezos token data for an owner into the format of AssetUpdates
-func (w *NFTIndexerWorker) IndexTezosTokenByOwner(ctx context.Context, owner string, isFirstPage bool) (bool, error) {
+func (w *Worker) IndexTezosTokenByOwner(ctx context.Context, owner string, isFirstPage bool) (bool, error) {
 	account, err := w.indexerStore.GetAccount(ctx, owner)
 
 	if err != nil {
@@ -161,47 +162,47 @@ type TezosTokenRawData struct {
 }
 
 // GetTokenBalanceOfOwner returns the balance of a token for an owner
-func (w *NFTIndexerWorker) GetTokenBalanceOfOwner(ctx context.Context, contract, tokenID, owner string) (int64, error) {
+func (w *Worker) GetTokenBalanceOfOwner(ctx context.Context, contract, tokenID, owner string) (int64, error) {
 	return w.indexerEngine.GetTokenBalanceOfOwner(ctx, contract, tokenID, owner)
 }
 
 // IndexToken indexes a token by the given contract and token id
-func (w *NFTIndexerWorker) IndexToken(ctx context.Context, contract, tokenID string) (*indexer.AssetUpdates, error) {
+func (w *Worker) IndexToken(ctx context.Context, contract, tokenID string) (*indexer.AssetUpdates, error) {
 	return w.indexerEngine.IndexToken(ctx, contract, tokenID)
 }
 
 // GetTokenByIndexID gets a token by indexID
-func (w *NFTIndexerWorker) GetTokenByIndexID(ctx context.Context, indexID string) (*indexer.Token, error) {
+func (w *Worker) GetTokenByIndexID(ctx context.Context, indexID string) (*indexer.Token, error) {
 	return w.indexerStore.GetTokenByIndexID(ctx, indexID)
 }
 
 // GetOwnedTokenIDsByOwner gets tokenIDs by the given owner
-func (w *NFTIndexerWorker) GetOwnedTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
+func (w *Worker) GetOwnedTokenIDsByOwner(ctx context.Context, owner string) ([]string, error) {
 	return w.indexerStore.GetOwnedTokenIDsByOwner(ctx, owner)
 }
 
 // FilterTokenIDsWithInconsistentProvenanceForOwner gets tokenIDs by the given owner
-func (w *NFTIndexerWorker) FilterTokenIDsWithInconsistentProvenanceForOwner(ctx context.Context, tokenIDs []string, owner string) ([]string, error) {
+func (w *Worker) FilterTokenIDsWithInconsistentProvenanceForOwner(ctx context.Context, tokenIDs []string, owner string) ([]string, error) {
 	return w.indexerStore.FilterTokenIDsWithInconsistentProvenanceForOwner(ctx, tokenIDs, owner)
 }
 
 // IndexAsset saves asset data into indexer's storage
-func (w *NFTIndexerWorker) IndexAsset(ctx context.Context, updates indexer.AssetUpdates) error {
+func (w *Worker) IndexAsset(ctx context.Context, updates indexer.AssetUpdates) error {
 	return w.indexerStore.IndexAsset(ctx, updates.ID, updates)
 }
 
 // WriteSaleTimeSeriesData saves sales time series data into indexer's storage
-func (w *NFTIndexerWorker) WriteSaleTimeSeriesData(ctx context.Context, data []indexer.GenericSalesTimeSeries) error {
+func (w *Worker) WriteSaleTimeSeriesData(ctx context.Context, data []indexer.GenericSalesTimeSeries) error {
 	return w.indexerStore.WriteTimeSeriesData(ctx, data)
 }
 
 // IndexedSaleTx checks if a sale tx is indexed
-func (w *NFTIndexerWorker) IndexedSaleTx(ctx context.Context, txID, blockchain string) (bool, error) {
+func (w *Worker) IndexedSaleTx(ctx context.Context, txID, blockchain string) (bool, error) {
 	return w.indexerStore.SaleTimeSeriesDataExists(ctx, txID, blockchain)
 }
 
 // indexTezosAccount saves tezos account data into indexer's storage
-func (w *NFTIndexerWorker) indexTezosAccount(ctx context.Context, owner string, lastActivityTime time.Time) error {
+func (w *Worker) indexTezosAccount(ctx context.Context, owner string, lastActivityTime time.Time) error {
 	account := indexer.Account{
 		Account:          owner,
 		Blockchain:       "tezos",
@@ -212,23 +213,23 @@ func (w *NFTIndexerWorker) indexTezosAccount(ctx context.Context, owner string, 
 }
 
 // IndexAccountTokens saves account tokens data into indexer's storage
-func (w *NFTIndexerWorker) IndexAccountTokens(ctx context.Context, owner string, accountTokens []indexer.AccountToken) error {
+func (w *Worker) IndexAccountTokens(ctx context.Context, owner string, accountTokens []indexer.AccountToken) error {
 	return w.indexerStore.IndexAccountTokens(ctx, owner, accountTokens)
 }
 
-func (w *NFTIndexerWorker) MarkAccountTokenChanged(ctx context.Context, indexIDs []string) error {
+func (w *Worker) MarkAccountTokenChanged(ctx context.Context, indexIDs []string) error {
 	return w.indexerStore.MarkAccountTokenChanged(ctx, indexIDs)
 }
 
-func (w *NFTIndexerWorker) GetExchangeRateLastTime(ctx context.Context) (time.Time, error) {
+func (w *Worker) GetExchangeRateLastTime(ctx context.Context) (time.Time, error) {
 	return w.indexerStore.GetExchangeRateLastTime(ctx)
 }
 
-func (w *NFTIndexerWorker) WriteHistoricalExchangeRate(ctx context.Context, exchangeRate []coinbase.HistoricalExchangeRate) error {
+func (w *Worker) WriteHistoricalExchangeRate(ctx context.Context, exchangeRate []coinbase.HistoricalExchangeRate) error {
 	return w.indexerStore.WriteHistoricalExchangeRate(ctx, exchangeRate)
 }
 
-func (w *NFTIndexerWorker) CrawlExchangeRateFromCoinbase(
+func (w *Worker) CrawlExchangeRateFromCoinbase(
 	ctx context.Context,
 	currencyPair string,
 	granularity string,
@@ -260,7 +261,7 @@ type Bitmark struct {
 }
 
 // fetchBitmarkProvenance reads bitmark provenances through bitmark api
-func (w *NFTIndexerWorker) fetchBitmarkProvenance(_ context.Context, bitmarkID string) ([]indexer.Provenance, error) {
+func (w *Worker) fetchBitmarkProvenance(_ context.Context, bitmarkID string) ([]indexer.Provenance, error) {
 	provenanceResp, err := w.bitmarkdClient.GetBitmarkFullProvenance(bitmarkID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get bitmark provenance: %w", err)
@@ -349,7 +350,7 @@ func (w *NFTIndexerWorker) fetchBitmarkProvenance(_ context.Context, bitmarkID s
 }
 
 // fetchEthereumProvenance reads ethereum provenance through filterLogs
-func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID, contractAddress string) ([]indexer.Provenance, error) {
+func (w *Worker) fetchEthereumProvenance(ctx context.Context, tokenID, contractAddress string) ([]indexer.Provenance, error) {
 	hexID, err := indexer.OpenseaTokenIDToHex(tokenID)
 	if err != nil {
 		return nil, err
@@ -400,12 +401,12 @@ func (w *NFTIndexerWorker) fetchEthereumProvenance(ctx context.Context, tokenID,
 }
 
 // fetchTezosProvenance reads ethereum provenance through filterLogs
-func (w *NFTIndexerWorker) fetchTezosProvenance(ctx context.Context, tokenID, contractAddress string) ([]indexer.Provenance, error) {
+func (w *Worker) fetchTezosProvenance(ctx context.Context, tokenID, contractAddress string) ([]indexer.Provenance, error) {
 	return w.indexerEngine.IndexTezosTokenProvenance(contractAddress, tokenID)
 }
 
 // RefreshTokenProvenance refresh provenance. This is a heavy task
-func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs []string, delay time.Duration) error {
+func (w *Worker) RefreshTokenProvenance(ctx context.Context, indexIDs []string, delay time.Duration) error {
 	tokens, err := w.indexerStore.GetTokensByIndexIDs(ctx, indexIDs)
 	if err != nil {
 		return err
@@ -508,7 +509,7 @@ func (w *NFTIndexerWorker) RefreshTokenProvenance(ctx context.Context, indexIDs 
 }
 
 // RefreshTokenOwnership refreshes ownership for each tokens
-func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs []string, delay time.Duration) error {
+func (w *Worker) RefreshTokenOwnership(ctx context.Context, indexIDs []string, delay time.Duration) error {
 	accountTokenLatestActivityTimes, err := w.indexerStore.GetLatestActivityTimeByIndexIDs(ctx, indexIDs)
 	if err != nil {
 		return err
@@ -579,7 +580,7 @@ func (w *NFTIndexerWorker) RefreshTokenOwnership(ctx context.Context, indexIDs [
 }
 
 // GetBalanceDiffFromTezosTransaction gets the balance difference of TEZOS account tokens in a transaction.
-func (w *NFTIndexerWorker) GetBalanceDiffFromTezosTransaction(transactionDetails tzkt.DetailedTransaction, accountToken indexer.AccountToken) ([]indexer.AccountToken, error) {
+func (w *Worker) GetBalanceDiffFromTezosTransaction(transactionDetails tzkt.DetailedTransaction, accountToken indexer.AccountToken) ([]indexer.AccountToken, error) {
 	var updatedAccountTokens = []indexer.AccountToken{}
 	var totalTransferredAmount = int64(0)
 
@@ -621,7 +622,7 @@ func (w *NFTIndexerWorker) GetBalanceDiffFromTezosTransaction(transactionDetails
 }
 
 // GetBalanceDiffFromETHTransaction gets the balance difference of account tokens in a transaction for a specific indexID.
-func (w *NFTIndexerWorker) GetBalanceDiffFromETHTransaction(transactionDetails []indexer.TransactionDetails) ([]indexer.AccountToken, error) {
+func (w *Worker) GetBalanceDiffFromETHTransaction(transactionDetails []indexer.TransactionDetails) ([]indexer.AccountToken, error) {
 	var updatedAccountTokens = []indexer.AccountToken{}
 
 	for _, transactionDetail := range transactionDetails {
@@ -651,28 +652,28 @@ func (w *NFTIndexerWorker) GetBalanceDiffFromETHTransaction(transactionDetails [
 }
 
 // GetEthereumTxReceipt returns the ethereum transaction receipt object of a tx hash
-func (w *NFTIndexerWorker) GetEthereumTxReceipt(ctx context.Context, txID string) (*types.Receipt, error) {
+func (w *Worker) GetEthereumTxReceipt(ctx context.Context, txID string) (*types.Receipt, error) {
 	return w.ethClient.TransactionReceipt(ctx, common.HexToHash(txID))
 }
 
 // GetEthereumTx returns the ethereum transaction object of a tx hash
-func (w *NFTIndexerWorker) GetEthereumTx(ctx context.Context, txID string) (*types.Transaction, error) {
+func (w *Worker) GetEthereumTx(ctx context.Context, txID string) (*types.Transaction, error) {
 	tx, _, err := w.ethClient.TransactionByHash(ctx, common.HexToHash(txID))
 	return tx, err
 }
 
 // GetEthereumBlockHeaderHash returns the ethereum block object of a block hash
-func (w *NFTIndexerWorker) GetEthereumBlockHeaderHash(ctx context.Context, blkHash string) (*types.Header, error) {
+func (w *Worker) GetEthereumBlockHeaderHash(ctx context.Context, blkHash string) (*types.Header, error) {
 	return w.ethClient.HeaderByHash(ctx, common.HexToHash(blkHash))
 }
 
 // GetEthereumBlockHeaderByNumber returns the ethereum block object of a block number
-func (w *NFTIndexerWorker) GetEthereumBlockHeaderByNumber(ctx context.Context, blkNumber *big.Int) (*types.Header, error) {
+func (w *Worker) GetEthereumBlockHeaderByNumber(ctx context.Context, blkNumber *big.Int) (*types.Header, error) {
 	return w.ethClient.HeaderByNumber(ctx, blkNumber)
 }
 
 // GetEthereumInternalTxs returns the ethereum internal transactions of a tx hash
-func (w *NFTIndexerWorker) GetEthereumInternalTxs(ctx context.Context, txID string) ([]etherscan.Transaction, error) {
+func (w *Worker) GetEthereumInternalTxs(ctx context.Context, txID string) ([]etherscan.Transaction, error) {
 	ec := etherscan.NewClient(
 		viper.GetString("etherscan.url"),
 		viper.GetString("etherscan.apikey"))
@@ -682,7 +683,7 @@ func (w *NFTIndexerWorker) GetEthereumInternalTxs(ctx context.Context, txID stri
 }
 
 // FilterEthereumNFTTxByEventLogs filters ethereum NFT txs by event logs
-func (w *NFTIndexerWorker) FilterEthereumNFTTxByEventLogs(
+func (w *Worker) FilterEthereumNFTTxByEventLogs(
 	ctx context.Context,
 	addresses []string,
 	fromBlk uint64,
@@ -726,7 +727,7 @@ func (w *NFTIndexerWorker) FilterEthereumNFTTxByEventLogs(
 	return txs, nil
 }
 
-func (w *NFTIndexerWorker) ParseTokenSaleToGenericSalesTimeSeries(
+func (w *Worker) ParseTokenSaleToGenericSalesTimeSeries(
 	ctx context.Context,
 	tokenSale TokenSale) (*indexer.GenericSalesTimeSeries, error) {
 	shares := make(map[string]string)
@@ -772,7 +773,7 @@ func (w *NFTIndexerWorker) ParseTokenSaleToGenericSalesTimeSeries(
 }
 
 // GetTezosTxHashFromTzktTransactionID get tezos hash from transaction ID
-func (w *NFTIndexerWorker) GetTezosTxHashFromTzktTransactionID(_ context.Context, id uint64) (*string, error) {
+func (w *Worker) GetTezosTxHashFromTzktTransactionID(_ context.Context, id uint64) (*string, error) {
 	tx, err := w.indexerEngine.GetTzktTransactionByID(id)
 	if err != nil {
 		return nil, err
@@ -782,7 +783,7 @@ func (w *NFTIndexerWorker) GetTezosTxHashFromTzktTransactionID(_ context.Context
 }
 
 // GetObjktSaleTransactionHashes get objkt sale transaction hashes by time with paging
-func (w *NFTIndexerWorker) GetObjktSaleTransactionHashes(_ context.Context, lastTime *time.Time, offset, limit int) ([]string, error) {
+func (w *Worker) GetObjktSaleTransactionHashes(_ context.Context, lastTime *time.Time, offset, limit int) ([]string, error) {
 	var contracts []string
 	if viper.GetString("network") == "testnet" {
 		contracts = []string{indexer.TezosOBJKTMarketplaceAddressTestnet}
@@ -809,7 +810,7 @@ func (w *NFTIndexerWorker) GetObjktSaleTransactionHashes(_ context.Context, last
 }
 
 // GetTzktTransactionByID get tezos transaction hash by tzkt transaction id
-func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(ctx context.Context, hash string) (*TokenSale, error) {
+func (w *Worker) ParseTezosObjktTokenSale(ctx context.Context, hash string) (*TokenSale, error) {
 	txs, err := w.indexerEngine.GetTzktTransactionsByHash(hash)
 	if err != nil {
 		return nil, err
@@ -864,7 +865,7 @@ func (w *NFTIndexerWorker) ParseTezosObjktTokenSale(ctx context.Context, hash st
 			}
 		} else {
 			// process revenue shares transfers
-			amount := big.NewInt(int64(tx.Amount))
+			amount := new(big.Int).SetUint64(tx.Amount)
 
 			// ignore proxy transfer to ProxyAddress for objktV1 contract
 			if tx.Target.Address == indexer.TezosOBJKTTreasuryProxyAddress {

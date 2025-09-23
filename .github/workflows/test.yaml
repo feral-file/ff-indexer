@@ -1,0 +1,47 @@
+name: Test
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - '**/*.go'
+
+jobs:
+  test:
+    name: Test (Go)
+    runs-on: ubuntu-latest
+    env:
+      # private modules (apply to all steps)
+      GOPRIVATE: github.com/bitmark-inc/*,github.com/feral-file/*
+      GONOSUMDB: github.com/bitmark-inc/*,github.com/feral-file/*
+      # Optional: bypass proxy for private
+      GOPROXY: https://proxy.golang.org,direct
+      # Optional: avoid CGO needs during analysis
+      CGO_ENABLED: 0
+      AWS_ACCESS_KEY_ID: ${{ secrets.INDEXER_AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.INDEXER_AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup git config for private repo
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACTION_GITHUB_TOKEN }}
+        run: |
+          git config --global "url.https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: |
+            **/go.sum
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Run tests with coverage
+        run: go test -v -coverprofile=coverage.out -covermode=atomic $(go list ./... | grep -vE "/mocks|/wrapper")

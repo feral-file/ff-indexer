@@ -1,0 +1,63 @@
+server:
+  network: tcp
+  address: 0.0.0.0:8765
+
+events:
+  check_interval_seconds:
+    token_updated: 1
+  process_delay_seconds:
+    token_updated: 10
+  expiry_days: 30
+
+store:
+  dsn:
+  log_level: 1
+
+environment: development
+default_check_interval: 5s
+debug: true
+
+log:
+  level: debug
+
+sentry:
+  dsn:
+
+indexer:
+  store:
+    db_uri:
+    db_name:
+
+cadence:
+  host_port:
+  domain:
+
+feed:
+  endpoint:
+  api_token:
+  debug: true
+
+account:
+  grpc_endpoint:
+
+network:
+  tezos: testnet
+  ethereum: testnet
+  bitmark: testnet
+
+notification:
+  endpoint:
+
+indexer_grpc:
+  endpoint: localhost:8888
+
+ipfs:
+  preferred_gateways:
+  - ipfs.feralfile.com
+  - ipfs.test.feralfile.com
+
+contract:
+  series_registry: "0xDf0a1AD1E06bB2d70B590F73B1069A32f2B8Bc41"
+
+ethereum:
+  rpc_url:

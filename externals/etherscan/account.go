@@ -10,7 +10,7 @@ const (
 	accountModule = "account"
 )
 
-var errNoTxFound = errors.New("No transactions found")
+var errNoTxFound = errors.New("no transactions found")
 
 type AccountService Service
 

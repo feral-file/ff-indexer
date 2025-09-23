@@ -1,11 +1,4 @@
-# syntax=docker/dockerfile:1.2
-
-# SPDX-License-Identifier: ISC
-# Copyright (c) 2019-2021 Bitmark Inc.
-# Use of this source code is governed by an ISC
-# license that can be found in the LICENSE file.
-
-FROM golang:1.21-alpine3.18 as build
+FROM golang:1.23.7-alpine3.21 AS build
 
 RUN apk add --no-cache git gcc musl-dev
 
@@ -14,7 +7,7 @@ ARG GITHUB_TOKEN=token
 
 RUN git config --global url."https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
 
-WORKDIR $GOPATH/github.com/bitmark-inc/nft-indexer
+WORKDIR $GOPATH/github.com/feral-file/ff-indexer
 
 ENV GOPRIVATE=github.com/bitmark-inc
 
@@ -23,15 +16,15 @@ RUN go mod download
 
 ADD . .
 
-RUN go build -o /go/bin/nft-event-processor ./services/nft-event-processor
+RUN go build -o /go/bin/event-processor ./services/event-processor
 
 # ---
 
-FROM alpine:3.18
+FROM alpine:3.21
 ARG dist=0.0
 
 RUN apk add --no-cache curl
 
-COPY --from=build /go/bin/nft-event-processor /nft-event-processor
+COPY --from=build /go/bin/event-processor /event-processor
 
-ADD services/nft-event-processor/config.yaml.sample /.config/config.yaml
+ENTRYPOINT ["/event-processor"]

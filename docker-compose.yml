@@ -1,0 +1,427 @@
+networks:
+  ff-indexer:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  postgres_data:
+  cadence_data:
+
+services:
+  # Foundation Services
+  mongodb:
+    image: mongo:7.0
+    container_name: ff-indexer-mongodb
+    restart: unless-stopped
+    networks:
+      - ff-indexer
+    volumes:
+      - mongodb_data:/data/db
+      - ./scripts/init_mongodb.js:/docker-entrypoint-initdb.d/init_mongodb.js:ro
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-ff_indexer_mongo_password}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-nft_indexer}
+    healthcheck:
+      test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  postgres:
+    image: postgres:15
+    container_name: ff-indexer-postgres
+    restart: unless-stopped
+    networks:
+      - ff-indexer
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_postgres.sql:/docker-entrypoint-initdb.d/init_postgres.sql:ro
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ff_indexer_postgres_password}
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres}']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Cadence Services
+  cadence-postgresql:
+    image: postgres:17.4
+    container_name: cadence-postgresql
+    restart: unless-stopped
+    networks:
+      - ff-indexer
+    environment:
+      POSTGRES_DB: cadence
+      POSTGRES_USER: cadence
+      POSTGRES_PASSWORD: cadence
+    volumes:
+      - cadence_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U cadence']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  cadence:
+    image: ubercadence/server:master-auto-setup
+    container_name: ff-indexer-cadence
+    restart: unless-stopped
+    networks:
+      - ff-indexer
+    ports:
+      - '7933:7933'
+      - '7934:7934'
+      - '7935:7935'
+      - '7939:7939'
+    environment:
+      - DB=postgres
+      - DB_PORT=5432
+      - POSTGRES_USER=cadence
+      - POSTGRES_PWD=cadence
+      - POSTGRES_SEEDS=cadence-postgresql
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development.yaml
+    depends_on:
+      cadence-postgresql:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'netstat', '-tlnp', '|', 'grep', '7933']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  cadence-web:
+    image: ubercadence/web:latest
+    container_name: cadence-web
+    restart: unless-stopped
+    networks:
+      - ff-indexer
+    ports:
+      - '8088:8088'
+    environment:
+      - CADENCE_GRPC_PEERS=cadence:7833
+      - CADENCE_CLUSTER_NAME=cluster0
+    depends_on:
+      cadence:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://0.0.0.0:8088/',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Core Application Services
+  grpc-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile-grpc-gateway
+      args:
+        GITHUB_USER: ${GITHUB_USER}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    container_name: ff-indexer-grpc-gateway
+    restart: unless-stopped
+    networks:
+      - ff-indexer
+    ports:
+      - '8888:8888'
+    environment:
+      - NFT_INDEXER_SERVER_GRPC_PORT=8888
+      - NFT_INDEXER_SERVER_GRPC_NETWORK=tcp
+      - NFT_INDEXER_STORE_DB_URI=mongodb://admin:${MONGO_ROOT_PASSWORD:-ff_indexer_mongo_password}@mongodb:27017/
+      - NFT_INDEXER_STORE_DB_NAME=${MONGO_DATABASE:-nft_indexer}
+      - NFT_INDEXER_ETHEREUM_RPC_URL=${ETHEREUM_RPC_URL}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      cadence:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'netstat', '-tlnp', '|', 'grep', '8888']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  event-processor:
+    build:
+      context: .
+      dockerfile: Dockerfile-event-processor
+      args:
+        GITHUB_USER: ${GITHUB_USER}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    container_name: ff-indexer-event-processor
+    restart: unless-stopped
+    networks:
+      - ff-indexer
+    environment:
+      - NFT_INDEXER_SERVER_NETWORK=tcp
+      - NFT_INDEXER_SERVER_ADDRESS=0.0.0.0:8765
+      - NFT_INDEXER_STORE_DSN=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-ff_indexer_postgres_password}@postgres:5432/event_processor?sslmode=disable
+      - NFT_INDEXER_ACCOUNT_GRPC_ENDPOINT=${GRPC_ENDPOINT}
+      - NFT_INDEXER_INDEXER_STORE_DB_URI=mongodb://admin:${MONGO_ROOT_PASSWORD:-ff_indexer_mongo_password}@mongodb:27017/
+      - NFT_INDEXER_INDEXER_STORE_DB_NAME=${MONGO_DATABASE:-nft_indexer}
+      - NFT_INDEXER_INDEXER_GRPC_ENDPOINT=grpc-gateway:8888
+      - NFT_INDEXER_ETHEREUM_RPC_URL=${ETHEREUM_RPC_URL}
+      - NFT_INDEXER_SERIES_REGISTRY_CONTRACT=${SERIES_REGISTRY_CONTRACT:-0xDf0a1AD1E06bB2d70B590F73B1069A32f2B8Bc41}
+      - NFT_INDEXER_SENTRY_DSN=${SENTRY_DSN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      cadence:
+        condition: service_healthy
+      grpc-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'netstat', '-tlnp', '|', 'grep', '8765']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile-api-gateway
+      args:
+        GITHUB_USER: ${GITHUB_USER}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    container_name: ff-indexer-api-gateway
+    restart: unless-stopped
+    networks:
+      - ff-indexer
+    ports:
+      - '8089:8089'
+    environment:
+      - NFT_INDEXER_SERVER_PORT=:8089
+      - NFT_INDEXER_SERVER_GRPC_NETWORK=tcp
+      - NFT_INDEXER_SERVER_GRPC_PORT=8888
+      - NFT_INDEXER_SERVER_API_TOKEN=MVjYRXGLLNgvw51jMZiNExQPfAJQZnjFLWyVDytw7HY=
+      - NFT_INDEXER_SERVER_ADMIN_API_TOKEN=MVjYRXGLLNgvw51jMZiNExQPfAJQZnjFLWyVDytw7HY=
+      - NFT_INDEXER_NETWORK_TEZOS=testnet
+      - NFT_INDEXER_NETWORK_ETHEREUM=sepolia
+      - NFT_INDEXER_NETWORK_BITMARK=testnet
+      - NFT_INDEXER_CADENCE_HOST_PORT=cadence:7933
+      - NFT_INDEXER_CADENCE_DOMAIN=nft-indexer
+      - NFT_INDEXER_OPENSEA_API_KEY=${OPENSEA_API_KEY}
+      - NFT_INDEXER_OPENSEA_RATELIMIT=
+      - NFT_INDEXER_TEZOS_DOMAIN_API_URL=https://api.tezos.domains/graphql
+      - NFT_INDEXER_FERALFILE_API_URL=https://feralfile.com
+      - NFT_INDEXER_AWS_REGION=ap-northeast-1
+      - NFT_INDEXER_AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - NFT_INDEXER_AWS_SECRET_ACCESS_ID=${AWS_SECRET_ACCESS_KEY}
+      - NFT_INDEXER_STORE_DB_URI=mongodb://admin:${MONGO_ROOT_PASSWORD:-ff_indexer_mongo_password}@mongodb:27017/
+      - NFT_INDEXER_STORE_DB_NAME=${MONGO_DATABASE:-nft_indexer}
+      - NFT_INDEXER_SENTRY_DSN=${SENTRY_DSN}
+      - NFT_INDEXER_ENS_RPC_URL=${ETHEREUM_RPC_URL}
+      - NFT_INDEXER_ETHEREUM_RPC_URL=${ETHEREUM_RPC_URL}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      cadence:
+        condition: service_healthy
+      grpc-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8089/healthz']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  ethereum-event-emitter:
+    build:
+      context: .
+      dockerfile: Dockerfile-ethereum-event-emitter
+      args:
+        GITHUB_USER: ${GITHUB_USER}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    container_name: ff-indexer-ethereum-event-emitter
+    restart: unless-stopped
+    networks:
+      - ff-indexer
+    environment:
+      - NFT_INDEXER_ETHEREUM_WS_URL=${ETHEREUM_WS_URL}
+      - NFT_INDEXER_ETHEREUM_LASTBLOCKKEYNAME=/autonomy/development/event-processor-ethereum-emitter/last-stop-block
+      - NFT_INDEXER_CACHE_STORE_DB_URI=mongodb://admin:${MONGO_ROOT_PASSWORD:-ff_indexer_mongo_password}@mongodb:27017/
+      - NFT_INDEXER_CACHE_STORE_DB_NAME=${MONGO_DATABASE:-nft_indexer}
+      - NFT_INDEXER_EVENT_PROCESSOR_SERVER_ADDRESS=event-processor:8765
+      - NFT_INDEXER_SENTRY_DSN=${SENTRY_DSN}
+      - NFT_INDEXER_CONTRACT_SERIES_REGISTRY=${SERIES_REGISTRY_CONTRACT:-0xDf0a1AD1E06bB2d70B590F73B1069A32f2B8Bc41}
+      - NFT_INDEXER_AWS_REGION=ap-northeast-1
+      - NFT_INDEXER_AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - NFT_INDEXER_AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    depends_on:
+      event-processor:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'pgrep', '-f', 'ethereum-event-emitter']
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  tezos-event-emitter:
+    build:
+      context: .
+      dockerfile: Dockerfile-tezos-event-emitter
+      args:
+        GITHUB_USER: ${GITHUB_USER}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    container_name: ff-indexer-tezos-event-emitter
+    restart: unless-stopped
+    networks:
+      - ff-indexer
+    environment:
+      - NFT_INDEXER_TZKT_WS_URL=https://api.tzkt.io/v1/ws
+      - NFT_INDEXER_TZKT_LASTBLOCKKEYNAME=/autonomy/development/event-processor-tezos-emitter/last-stop-block
+      - NFT_INDEXER_TZKT_NETWORK=testnet
+      - NFT_INDEXER_EVENT_PROCESSOR_SERVER_ADDRESS=event-processor:8765
+      - NFT_INDEXER_SENTRY_DSN=${SENTRY_DSN}
+      - NFT_INDEXER_AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - NFT_INDEXER_AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    depends_on:
+      event-processor:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'pgrep', '-f', 'tezos-event-emitter']
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  workflow-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile-workflow-runner
+      args:
+        GITHUB_USER: ${GITHUB_USER}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    container_name: ff-indexer-workflow-runner
+    restart: unless-stopped
+    networks:
+      - ff-indexer
+    environment:
+      - NFT_INDEXER_STORE_DB_URI=mongodb://admin:${MONGO_ROOT_PASSWORD:-ff_indexer_mongo_password}@mongodb:27017/
+      - NFT_INDEXER_STORE_DB_NAME=${MONGO_DATABASE:-nft_indexer}
+      - NFT_INDEXER_CADENCE_HOST_PORT=cadence:7933
+      - NFT_INDEXER_CADENCE_DOMAIN=nft-indexer
+      - NFT_INDEXER_SENTRY_DSN=${SENTRY_DSN}
+      - NFT_INDEXER_ETHEREUM_RPC_URL=${ETHEREUM_RPC_URL}
+      - NFT_INDEXER_NETWORK_TEZOS=testnet
+      - NFT_INDEXER_NETWORK_ETHEREUM=sepolia
+      - NFT_INDEXER_NETWORK_BITMARK=testnet
+      - NFT_INDEXER_OPENSEA_API_KEY=${OPENSEA_API_KEY}
+      - NFT_INDEXER_OPENSEA_RATELIMIT=
+      - NFT_INDEXER_FXHASH_API_ENDPOINT=https://api.v2-temp.fxhash.xyz/graphql
+      - NFT_INDEXER_CACHE_BUCKET_NAME=
+      - NFT_INDEXER_ASSET_SERVER_SERVER_URL=
+      - NFT_INDEXER_ASSET_SERVER_SECRET_KEY=
+      - NFT_INDEXER_BITMARKD_RPC_CONN=bitmarkd-nodes.bitmark.com:2130
+    depends_on:
+      cadence:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'pgrep', '-f', 'workflow-runner']
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  provenance-indexer:
+    build:
+      context: .
+      dockerfile: Dockerfile-provenance-indexer
+      args:
+        GITHUB_USER: ${GITHUB_USER}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    container_name: ff-indexer-provenance-indexer
+    restart: unless-stopped
+    networks:
+      - ff-indexer
+    environment:
+      - NFT_INDEXER_STORE_DB_URI=mongodb://admin:${MONGO_ROOT_PASSWORD:-ff_indexer_mongo_password}@mongodb:27017/
+      - NFT_INDEXER_STORE_DB_NAME=${MONGO_DATABASE:-nft_indexer}
+      - NFT_INDEXER_CADENCE_HOST_PORT=cadence:7933
+      - NFT_INDEXER_CADENCE_DOMAIN=nft-indexer
+      - NFT_INDEXER_SENTRY_DSN=${SENTRY_DSN}
+      - NFT_INDEXER_ETHEREUM_RPC_URL=${ETHEREUM_RPC_URL}
+      - NFT_INDEXER_NETWORK_TEZOS=testnet
+      - NFT_INDEXER_NETWORK_ETHEREUM=sepolia
+      - NFT_INDEXER_NETWORK_BITMARK=testnet
+      - NFT_INDEXER_OPENSEA_API_KEY=${OPENSEA_API_KEY}
+      - NFT_INDEXER_OPENSEA_RATELIMIT=
+      - NFT_INDEXER_FXHASH_API_ENDPOINT=https://api.v2-temp.fxhash.xyz/graphql
+      - NFT_INDEXER_ASSET_SERVER_SERVER_URL=
+      - NFT_INDEXER_ASSET_SERVER_SECRET_KEY=
+      - NFT_INDEXER_EVENT_PROCESSOR_SERVER_ADDRESS=event-processor:8765
+      - NFT_INDEXER_BITMARKD_RPC_CONN=bitmarkd-nodes.bitmark.com:2130
+      - NFT_INDEXER_AWS_REGION=ap-northeast-1
+      - NFT_INDEXER_AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - NFT_INDEXER_AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    depends_on:
+      cadence:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'pgrep', '-f', 'provenance-indexer']
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  image-indexer:
+    build:
+      context: .
+      dockerfile: Dockerfile-image-indexer
+      args:
+        GITHUB_USER: ${GITHUB_USER}
+        GITHUB_TOKEN: ${GITHUB_TOKEN}
+    container_name: ff-indexer-image-indexer
+    restart: unless-stopped
+    networks:
+      - ff-indexer
+    environment:
+      - NFT_INDEXER_IMAGE_DB_DSN=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-ff_indexer_postgres_password}@postgres:5432/image_indexer?sslmode=disable
+      - NFT_INDEXER_IMAGE_DB_LOG_LEVEL=2
+      - NFT_INDEXER_STORE_DB_URI=mongodb://admin:${MONGO_ROOT_PASSWORD:-ff_indexer_mongo_password}@mongodb:27017/
+      - NFT_INDEXER_STORE_DB_NAME=nft_indexer
+      - NFT_INDEXER_CLOUDFLARE_ACCOUNT_HASH=${CLOUDFLARE_ACCOUNT_HASH}
+      - NFT_INDEXER_CLOUDFLARE_ACCOUNT_ID=${CLOUDFLARE_ACCOUNT_ID}
+      - NFT_INDEXER_CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+      - NFT_INDEXER_CLOUDFLARE_URL_PREFIX=${CLOUDFLARE_URL_PREFIX}
+      - NFT_INDEXER_THUMBNAIL_CACHE_PERIOD=144h
+      - NFT_INDEXER_THUMBNAIL_CACHE_RETRY_INTERVAL=24h
+      - NFT_INDEXER_SENTRY_DSN=${SENTRY_DSN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'pgrep', '-f', 'image-indexer']
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s

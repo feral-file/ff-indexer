@@ -3,7 +3,7 @@ package indexer
 import (
 	"bytes"
 	"context"
-	"crypto/sha1"
+	"crypto/sha1" // #nosec G505 -- FIXME: SHA1 used for non-cryptographic purposes (hashing, deduplication)
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -108,7 +108,9 @@ func CheckCDNURLIsExist(url string) bool {
 		return false
 	}
 
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 
 	if res.StatusCode >= 200 && res.StatusCode < 400 {
 		return true
@@ -141,7 +143,7 @@ func GetMIMETypeByURL(urlString string) string {
 	}
 }
 
-// GetCIDFromIPFSLink seaches and returns the CID for a give url
+// GetCIDFromIPFSLink searches and returns the CID for a give url
 func GetCIDFromIPFSLink(link string) (string, error) {
 	u, err := url.Parse(link)
 	if err != nil {
@@ -244,7 +246,7 @@ func HexToDec(hex string) string {
 }
 
 func HexSha1(str string) string {
-	h := sha1.New()
+	h := sha1.New() // #nosec G401 -- FIXME: SHA1 used for non-cryptographic purposes (hashing, deduplication)
 	h.Write([]byte(
 		str,
 	))
@@ -301,7 +303,9 @@ func ReadFromURL(ctx context.Context, url string, timeout time.Duration) ([]byte
 	if err != nil {
 		return nil, fmt.Errorf("HTTP request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code: %d for URL: %s", resp.StatusCode, url)

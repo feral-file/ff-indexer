@@ -1,0 +1,65 @@
+log:
+  level: debug
+
+debug: true
+environment: development
+
+server:
+  port: :8089
+  grpc_network: tcp
+  grpc_port: 8888
+  api_token:
+  admin_api_token:
+
+network:
+  tezos: testnet
+  ethereum: sepolia
+  bitmark: testnet
+
+cadence:
+  host_port: localhost:7933
+  domain: nft-indexer
+
+fxhash:
+  api_endpoint: https://api.v2-temp.fxhash.xyz/graphql
+
+opensea:
+  api_key:
+  ratelimit:
+
+tezos:
+  domain_api_url: https://api.tezos.domains/graphql
+
+feralfile:
+  api_url: https://feralfile.com
+
+ipfs:
+  preferred_gateways:
+  - nftstorage.link
+  - ipfs.nftstorage.link
+  - ipfs.feralfile.com
+  - ipfs.test.feralfile.com
+  - ipfs.io
+  minter_gateways: |
+    tz1Td5qwQxz5mDZiwk7TsRGhDU2HBvXgULip: ipfs.feralfile.com
+    tz1d6EdHCR6YSpW1dNcbF9BqG1SaY1nCxrLx: ipfs.feralfile.com
+    tz1hQbuRax3op9knY3YDxqNnqxzcmoxmv1qa: ipfs.test.feralfile.com
+
+aws:
+  region: ap-northeast-1
+  access_key_id:
+  secret_access_id:
+
+store:
+  db_uri: mongodb://localhost:27017/
+  db_name: nft_indexer
+
+sentry:
+  dsn:
+
+ens:
+  rpc_url:
+
+ethereum:
+  rpc_url:
+
