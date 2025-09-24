@@ -16,6 +16,7 @@ on:
       - 'go.sum'
       - '.golangci.yml'
       - '.golangci.yaml'
+  workflow_dispatch:
 
 jobs:
   lint:

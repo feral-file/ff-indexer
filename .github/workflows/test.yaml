@@ -5,6 +5,9 @@ on:
     branches: [main, develop]
     paths:
       - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+  workflow_dispatch:
 
 jobs:
   test:
