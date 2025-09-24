@@ -144,7 +144,7 @@ endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
-	-t nft-indexer:api-$(dist) -f Dockerfile-api-gateway .
+	-t api-gateway-$(dist) -f Dockerfile-api-gateway .
 
 .PHONY: build-image-workflow-runner
 build-image-workflow-runner:
@@ -154,7 +154,7 @@ endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
-	-t nft-indexer:background-$(dist) -f Dockerfile-workflow-runner .
+	-t workflow-runner-$(dist) -f Dockerfile-workflow-runner .
 
 .PHONY: build-image-grpc-gateway
 build-image-grpc-gateway:
@@ -164,7 +164,7 @@ endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
-	-t nft-indexer:grpc-'${dist}' -f Dockerfile-grpc-gateway .
+	-t grpc-gateway-$(dist) -f Dockerfile-grpc-gateway .
 
 .PHONY: build-image-provenance-indexer
 build-image-provenance-indexer:
@@ -174,7 +174,7 @@ endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
-	-t nft-indexer:provenance-indexer-$(dist) -f Dockerfile-provenance-indexer .
+	-t provenance-indexer-$(dist) -f Dockerfile-provenance-indexer .
 
 .PHONY: build-image-ethereum-event-emitter
 build-image-ethereum-event-emitter:
@@ -184,7 +184,7 @@ endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
-	-t nft-indexer:ethereum-emitter-$(dist) -f Dockerfile-ethereum-event-emitter .
+	-t ethereum-event-emitter-$(dist) -f Dockerfile-ethereum-event-emitter .
 
 .PHONY: build-image-tezos-event-emitter
 build-image-tezos-event-emitter:
@@ -194,7 +194,7 @@ endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
-	-t nft-indexer:tezos-emitter-$(dist) -f Dockerfile-tezos-event-emitter .
+	-t tezos-event-emitter-$(dist) -f Dockerfile-tezos-event-emitter .
 
 .PHONY: build-image-event-processor
 build-image-event-processor:
@@ -204,7 +204,7 @@ endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
-	-t nft-indexer:event-processor-$(dist) -f Dockerfile-event-processor .
+	-t event-processor-$(dist) -f Dockerfile-event-processor .
 
 .PHONY: build-image-image-indexer
 build-image-image-indexer:
@@ -214,7 +214,7 @@ endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
-	-t nft-indexer:image-indexer-$(dist) -f Dockerfile-image-indexer .
+	-t image-indexer-$(dist) -f Dockerfile-image-indexer .
 
 .PHONY: build-image
 build-image: build-image-api-gateway build-image-workflow-runner build-image-grpc-gateway build-image-provenance-indexer build-image-ethereum-event-emitter build-image-tezos-event-processor build-image-event-processor build-image-image-indexer
