@@ -31,82 +31,88 @@ config:
 
 # build
 
-BUILD_LIST = api-gateway
-.PHONY: api-gateway
-api-gateway:
+BUILD_LIST = build-api-gateway
+.PHONY: build-api-gateway
+build-api-gateway:
 	go build -o bin/api-gateway ./services/api-gateway
 
-BUILD_LIST += workflow-runner
-.PHONY: workflow-runner
-workflow-runner:
+BUILD_LIST += build-workflow-runner
+.PHONY: build-workflow-runner
+build-workflow-runner:
 	go build -o bin/workflow-runner ./services/workflow-runner
 
-BUILD_LIST += grpc-gateway
-.PHONY: grpc-gateway
-grpc-gateway:
+BUILD_LIST += build-grpc-gateway
+.PHONY: build-grpc-gateway
+build-grpc-gateway:
 	go build -o bin/grpc-gateway ./services/grpc-gateway
 
-BUILD_LIST += image-indexer
-.PHONY: image-indexer
-image-indexer:
+BUILD_LIST += build-image-indexer
+.PHONY: build-image-indexer
+build-image-indexer:
 	go build -o bin/image-indexer ./services/image-indexer
 
-BUILD_LIST += event-processor
-.PHONY: event-processor
-event-processor:
+BUILD_LIST += build-event-processor
+.PHONY: build-event-processor
+build-event-processor:
 	go build -o bin/event-processor ./services/event-processor
 
-BUILD_LIST += provenance-indexer
-.PHONY: provenance-indexer
-provenance-indexer:
+BUILD_LIST += build-provenance-indexer
+.PHONY: build-provenance-indexer
+build-provenance-indexer:
 	go build -o bin/provenance-indexer ./services/provenance-indexer
 
-BUILD_LIST += ethereum-event-emitter
-.PHONY: ethereum-event-emitter
-ethereum-event-emitter:
+BUILD_LIST += build-ethereum-event-emitter
+.PHONY: build-ethereum-event-emitter
+build-ethereum-event-emitter:
 	go build -o bin/ethereum-event-emitter ./services/ethereum-event-emitter
 
-BUILD_LIST += tezos-event-emitter
-.PHONY: tezos-event-emitter
-tezos-event-emitter:
+BUILD_LIST += build-tezos-event-emitter
+.PHONY: build-tezos-event-emitter
+build-tezos-event-emitter:
 	go build -o bin/tezos-event-emitter ./services/tezos-event-emitter
 
 # run
-
-.PHONY: run-api-gateway
-run-api-gateway: api-gateway
-	./bin/api-gateway -c config.yaml
-
-.PHONY: run-workflow-runner
-run-workflow-runner: workflow-runner
-	./bin/workflow-runner -c config.yaml
-
+RUN_LIST = run-grpc-gateway
 .PHONY: run-grpc-gateway
 run-grpc-gateway: grpc-gateway
 	./bin/grpc-gateway -c config.yaml
 
-.PHONY: run-image-indexer
-run-image-indexer: image-indexer
-	./bin/image-indexer -c config.yaml
-
+RUN_LIST += run-event-processor
 .PHONY: run-event-processor
 run-event-processor: event-processor
 	./bin/event-processor -c config.yaml
 
-.PHONY: run-provenance-indexer
-run-provenance-indexer: provenance-indexer
-	./bin/provenance-indexer -c config.yaml
+RUN_LIST += run-api-gateway
+.PHONY: run-api-gateway
+run-api-gateway: build-api-gateway
+	./bin/api-gateway -c config.yaml
 
+RUN_LIST += run-ethereum-event-emitter
 .PHONY: run-ethereum-event-emitter
-run-ethereum-event-emitter: ethereum-event-emitter
+run-ethereum-event-emitter: build-ethereum-event-emitter
 	./bin/ethereum-event-emitter -c config.yaml
 
+RUN_LIST += run-tezos-event-emitter
 .PHONY: run-tezos-event-emitter
-run-tezos-event-emitter: tezos-event-emitter
+run-tezos-event-emitter: build-tezos-event-emitter
 	./bin/tezos-event-emitter -c config.yaml
 
-# rebuild items
+RUN_LIST += run-workflow-runner
+.PHONY: run-workflow-runner
+run-workflow-runner: build-workflow-runner
+	./bin/workflow-runner -c config.yaml
 
+RUN_LIST += run-provenance-indexer
+.PHONY: run-provenance-indexer
+run-provenance-indexer: build-provenance-indexer
+	./bin/provenance-indexer -c config.yaml
+
+RUN_LIST += run-image-indexer
+.PHONY: run-image-indexer
+run-image-indexer: build-image-indexer
+	./bin/image-indexer -c config.yaml
+
+# generate codes
 .PHONY: generate-event-processor-grpc
 generate-event-processor-grpc:
 	protoc --proto_path=protos --go-grpc_out=services/event-processor/ --go_out=services/event-processor/ event-processor.proto
@@ -119,14 +125,19 @@ generate-gateway-grpc:
 generate-api-gateway-graphql:
 	${MAKE} -C services/api-gateway/graph/ all
 
-.PHONY: build-rebuild
-build-rebuild: generate-api-gateway-graphql generate-event-processor-grpc generate-gateway-grpc build
+.PHONY: rebuild
+rebuild: generate-api-gateway-graphql generate-event-processor-grpc generate-gateway-grpc build
 
 .PHONY: build
 build: ${BUILD_LIST}
 
-.PHONY: build-api-gateway
-build-api-gateway:
+.PHONY: run
+run: ${RUN_LIST}
+
+# Build docker images
+
+.PHONY: build-image-api-gateway
+build-image-api-gateway:
 ifndef dist
 	$(error dist is undefined)
 endif
@@ -134,10 +145,9 @@ endif
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t nft-indexer:api-$(dist) -f Dockerfile-api-gateway .
-	docker tag nft-indexer:api-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:api-$(dist)
 
-.PHONY: build-workflow-runner
-build-workflow-runner:
+.PHONY: build-image-workflow-runner
+build-image-workflow-runner:
 ifndef dist
 	$(error dist is undefined)
 endif
@@ -145,10 +155,9 @@ endif
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t nft-indexer:background-$(dist) -f Dockerfile-workflow-runner .
-	docker tag nft-indexer:background-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:background-$(dist)
 
-.PHONY: build-grpc-gateway
-build-grpc-gateway:
+.PHONY: build-image-grpc-gateway
+build-image-grpc-gateway:
 ifndef dist
 	$(error 'dist is undefined')
 endif
@@ -156,10 +165,9 @@ endif
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t nft-indexer:grpc-'${dist}' -f Dockerfile-grpc-gateway .
-	docker tag nft-indexer:grpc-'${dist}' 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:grpc-'${dist}'
 
-.PHONY: build-provenance-indexer
-build-provenance-indexer:
+.PHONY: build-image-provenance-indexer
+build-image-provenance-indexer:
 ifndef dist
 	$(error dist is undefined)
 endif
@@ -167,10 +175,9 @@ endif
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t nft-indexer:provenance-indexer-$(dist) -f Dockerfile-provenance-indexer .
-	docker tag nft-indexer:provenance-indexer-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:provenance-indexer-$(dist)
 
-.PHONY: build-ethereum-event-emitter
-build-ethereum-event-emitter:
+.PHONY: build-image-ethereum-event-emitter
+build-image-ethereum-event-emitter:
 ifndef dist
 	$(error dist is undefined)
 endif
@@ -178,10 +185,9 @@ endif
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t nft-indexer:ethereum-emitter-$(dist) -f Dockerfile-ethereum-event-emitter .
-	docker tag nft-indexer:ethereum-emitter-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:ethereum-emitter-$(dist)
 
-.PHONY: build-tezos-event-emitter
-build-tezos-event-emitter:
+.PHONY: build-image-tezos-event-emitter
+build-image-tezos-event-emitter:
 ifndef dist
 	$(error dist is undefined)
 endif
@@ -189,10 +195,9 @@ endif
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t nft-indexer:tezos-emitter-$(dist) -f Dockerfile-tezos-event-emitter .
-	docker tag nft-indexer:tezos-emitter-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:tezos-emitter-$(dist)
 
-.PHONY: build-event-processor
-build-event-processor:
+.PHONY: build-image-event-processor
+build-image-event-processor:
 ifndef dist
 	$(error dist is undefined)
 endif
@@ -200,10 +205,9 @@ endif
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t nft-indexer:event-processor-$(dist) -f Dockerfile-event-processor .
-	docker tag nft-indexer:event-processor-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:event-processor-$(dist)
 
-.PHONY: build-image-indexer
-build-image-indexer:
+.PHONY: build-image-image-indexer
+build-image-image-indexer:
 ifndef dist
 	$(error dist is undefined)
 endif
@@ -211,18 +215,9 @@ endif
 	--build-arg GITHUB_USER=$(GITHUB_USER) \
 	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t nft-indexer:image-indexer-$(dist) -f Dockerfile-image-indexer .
-	docker tag nft-indexer:image-indexer-$(dist) 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:image-indexer-$(dist)
 
-.PHONY: image
-image: build-api-gateway build-workflow-runner build-grpc-gateway build-provenance-indexer build-ethereum-event-emitter build-tezos-event-processor build-event-processor build-image-indexer
-
-.PHONY: push
-push:
-ifndef dist
-	$(error dist is undefined)
-endif
-	aws ecr get-login-password | docker login --username AWS --password-stdin 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com
-	docker push 083397868157.dkr.ecr.ap-northeast-1.amazonaws.com/nft-indexer:$(dist)
+.PHONY: build-image
+build-image: build-image-api-gateway build-image-workflow-runner build-image-grpc-gateway build-image-provenance-indexer build-image-ethereum-event-emitter build-image-tezos-event-processor build-image-event-processor build-image-image-indexer
 
 .PHONY: test
 test:

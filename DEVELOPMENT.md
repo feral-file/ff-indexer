@@ -221,9 +221,13 @@ ff-indexer/
 
 ## Local Development Setup
 
+There are two approaches for local development: **Docker Compose** (recommended) and **Native Development**. Docker Compose provides a complete development environment with all dependencies configured automatically, while native development gives you more control over individual services.
+
+### Option 1: Docker Compose (Recommended)
+
 The recommended approach for local development is using Docker Compose, which provides a complete development environment with all dependencies and services configured automatically.
 
-### Quick Start with Docker Compose
+#### Quick Start with Docker Compose
 
 1. **Clone the repository**:
    ```bash
@@ -250,6 +254,75 @@ The recommended approach for local development is using Docker Compose, which pr
    ```bash
    docker compose ps
    ```
+
+### Option 2: Native Development
+
+For native development, you'll need to set up the foundational services manually and run the Go services directly.
+
+#### Prerequisites for Native Development
+
+Before running the services natively, ensure you have the following foundational services running:
+
+- **PostgreSQL**: Database for event queue and image metadata
+  - See [PostgreSQL documentation](https://www.postgresql.org/docs/) for setup
+  - Default port: 5432
+
+- **MongoDB**: Database for indexer store and cache
+  - See [MongoDB documentation](https://www.mongodb.com/docs/) for setup
+  - Default port: 27017
+
+- **Uber Cadence**: Workflow orchestration engine
+  - See [Cadence documentation](https://cadenceworkflow.io/docs/get-started) for setup
+  - Default ports: 7933 (frontend), 7934 (history), 7935 (matching), 7936 (worker)
+
+#### Service Startup Order
+
+When running services natively, start them in the following order:
+
+1. **Foundational Services** (PostgreSQL, MongoDB, Cadence)
+2. **gRPC Gateway** - Internal service communication
+3. **Event Processor** - Processes blockchain events
+4. **API Gateway** - External API endpoints
+5. **Event Emitters** - Monitor blockchain networks
+   - Ethereum Event Emitter
+   - Tezos Event Emitter
+6. **Background workers** - Worker running on background
+   - Workflow Runner
+   - Provenance Indexer
+   - Image Indexer
+
+#### Configuration for Native Development
+
+Each service requires its own configuration file. Copy the sample configurations and update them:
+
+```bash
+# Copy sample configurations
+cp services/api-gateway/config.yaml.sample services/api-gateway/config.yaml
+cp services/event-processor/config.yaml.sample services/event-processor/config.yaml
+cp services/workflow-runner/config.yaml.sample services/workflow-runner/config.yaml
+cp services/grpc-gateway/config.yaml.sample services/grpc-gateway/config.yaml
+cp services/image-indexer/config.yaml.sample services/image-indexer/config.yaml
+cp services/provenance-indexer/config.yaml.sample services/provenance-indexer/config.yaml
+cp services/ethereum-event-emitter/config.yaml.sample services/ethereum-event-emitter/config.yaml
+cp services/tezos-event-emitter/config.yaml.sample services/tezos-event-emitter/config.yaml
+```
+
+Update the configuration files with your database connections, API keys, and service endpoints.
+
+#### Running Services Natively
+
+```bash
+# Build all services
+make build
+
+# Run services in order (use separate terminals)
+make run-grpc-gateway
+make run-event-processor  
+make run-workflow-runner
+make run-ethereum-event-emitter
+make run-tezos-event-emitter
+make run-api-gateway
+```
 
 ### Environment Configuration
 
@@ -364,14 +437,27 @@ The project includes comprehensive Makefile targets:
 make build
 
 # Build specific service
-make api-gateway
-make workflow-runner
-make event-processor
+make build-api-gateway
+make build-workflow-runner
+make build-event-processor
+make build-grpc-gateway
+make build-image-indexer
+make build-provenance-indexer
+make build-ethereum-event-emitter
+make build-tezos-event-emitter
 
-# Run services locally
+# Run all services in an order
+make run
+
+# Run specific service
 make run-api-gateway
 make run-workflow-runner
 make run-event-processor
+make run-grpc-gateway
+make run-image-indexer
+make run-provenance-indexer
+make run-ethereum-event-emitter
+make run-tezos-event-emitter
 
 # Generate code
 make generate-api-gateway-graphql
@@ -476,14 +562,14 @@ export NFT_INDEXER_STORE_DB_NAME="nft_indexer_test"
 | Target | Description |
 |--------|-------------|
 | `make build` | Build all services |
-| `make api-gateway` | Build API Gateway |
-| `make workflow-runner` | Build Workflow Runner |
-| `make event-processor` | Build Event Processor |
-| `make grpc-gateway` | Build gRPC Gateway |
-| `make image-indexer` | Build Image Indexer |
-| `make provenance-indexer` | Build Provenance Indexer |
-| `make ethereum-event-emitter` | Build Ethereum Event Emitter |
-| `make tezos-event-emitter` | Build Tezos Event Emitter |
+| `make build-api-gateway` | Build API Gateway |
+| `make build-workflow-runner` | Build Workflow Runner |
+| `make build-event-processor` | Build Event Processor |
+| `make build-grpc-gateway` | Build gRPC Gateway |
+| `make build-image-indexer` | Build Image Indexer |
+| `make build-provenance-indexer` | Build Provenance Indexer |
+| `make build-ethereum-event-emitter` | Build Ethereum Event Emitter |
+| `make build-tezos-event-emitter` | Build Tezos Event Emitter |
 
 ### Run Targets
 
@@ -502,11 +588,16 @@ export NFT_INDEXER_STORE_DB_NAME="nft_indexer_test"
 
 | Target | Description |
 |--------|-------------|
-| `make build-api-gateway dist=<version>` | Build API Gateway Docker image |
-| `make build-workflow-runner dist=<version>` | Build Workflow Runner Docker image |
-| `make build-event-processor dist=<version>` | Build Event Processor Docker image |
-| `make image dist=<version>` | Build all Docker images |
-| `make push dist=<version>` | Push images to registry |
+| `make build-image-api-gateway dist=<version>` | Build API Gateway Docker image |
+| `make build-image-workflow-runner dist=<version>` | Build Workflow Runner Docker image |
+| `make build-image-event-processor dist=<version>` | Build Event Processor Docker image |
+| `make build-image-grpc-gateway dist=<version>` | Build gRPC Gateway Docker image |
+| `make build-image-image-indexer dist=<version>` | Build Image Indexer Docker image |
+| `make build-image-provenance-indexer dist=<version>` | Build Provenance Indexer Docker image |
+| `make build-image-ethereum-event-emitter dist=<version>` | Build Ethereum Event Emitter Docker image |
+| `make build-image-tezos-event-emitter dist=<version>` | Build Tezos Event Emitter Docker image |
+| `make build-image` | Build all Docker images |
+| `make docker-build-ordered` | Build and start services in dependency order |
 
 ### Code Generation Targets
 
@@ -515,7 +606,7 @@ export NFT_INDEXER_STORE_DB_NAME="nft_indexer_test"
 | `make generate-api-gateway-graphql` | Generate GraphQL code |
 | `make generate-event-processor-grpc` | Generate Event Processor gRPC code |
 | `make generate-gateway-grpc` | Generate Gateway gRPC code |
-| `make build-rebuild` | Regenerate all code and build |
+| `make rebuild` | Regenerate all code and build |
 
 ### Utility Targets
 
@@ -525,7 +616,6 @@ export NFT_INDEXER_STORE_DB_NAME="nft_indexer_test"
 | `make vet` | Run Go vet linter |
 | `make clean` | Clean build artifacts |
 | `make complete-clean` | Clean all caches |
-| `make config` | Copy sample config files |
 | `make help` | Show available targets |
 
 ### Dependency Management
@@ -793,13 +883,10 @@ handler := traceutils.TraceHTTP(originalHandler)
 
 **Build images**:
 ```bash
-make image dist=v1.0.0 GITHUB_USER=your_user GITHUB_TOKEN=your_token
+make build-image dist=v1.0.0 GITHUB_USER=your_user GITHUB_TOKEN=your_token
 ```
 
-**Push to registry**:
-```bash
-make push dist=v1.0.0
-```
+**Note**: The Makefile doesn't include a `push` target. You'll need to manually push images to your registry using `docker push` commands.
 
 **Deploy with Docker Compose**:
 ```yaml

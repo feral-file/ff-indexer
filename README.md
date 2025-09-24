@@ -40,17 +40,20 @@ The system consists of several microservices:
 
 ### Prerequisites
 
-- Go 1.21+
+- Go 1.23+
 - MongoDB
-- PostgreSQL (for image indexer)
-- Docker & Docker Compose
-- Cadence (Temporal workflow engine)
+- PostgreSQL
+- Docker & Docker Compose (Recommended for quick setup)
+- Uber Cadence
 
 ### Using Docker Compose
 
 ```bash
-# Start all services
+# Build and start all services in parallel
 docker compose up --build -d
+
+# Or using the script
+make docker-build-ordered
 ```
 
 ### Manual Setup
@@ -69,12 +72,9 @@ cp services/api-gateway/config.yaml.sample services/api-gateway/config.yaml
 # Repeat for other services and update with your settings
 ```
 
-3. **Run individual services**:
+1. **Run all services**:
 ```bash
-make run-api-gateway
-make run-event-processor
-make run-workflow-runner
-# etc.
+make run
 ```
 
 ## Key Features
