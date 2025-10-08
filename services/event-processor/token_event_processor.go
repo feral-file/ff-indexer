@@ -126,10 +126,8 @@ func (e *EventProcessor) updateOwnerAndProvenance(ctx context.Context, event NFT
 			indexerWorker.StartRefreshTokenProvenanceWorkflow(ctx, e.worker, "processor", indexID, 0)
 		}
 	} else {
-		log.InfoWithContext(ctx, "start indexing a new token",
-			zap.String("indexID", indexID),
-			zap.String("from", from), zap.String("to", to))
-		indexerWorker.StartIndexTokenWorkflow(ctx, e.worker, to, contract, tokenID, true, false)
+		log.InfoWithContext(ctx, "token has not been indexed yet, skipped.", zap.String("indexID", indexID))
+		// Do nothing here.
 	}
 	return nil
 }
