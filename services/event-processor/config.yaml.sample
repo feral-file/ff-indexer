@@ -32,21 +32,10 @@ cadence:
   host_port:
   domain:
 
-feed:
-  endpoint:
-  api_token:
-  debug: true
-
-account:
-  grpc_endpoint:
-
 network:
   tezos: testnet
   ethereum: testnet
   bitmark: testnet
-
-notification:
-  endpoint:
 
 indexer_grpc:
   endpoint: localhost:8888

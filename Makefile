@@ -1,8 +1,6 @@
 .PHONY:
 
 dist =
-GITHUB_USER =
-GITHUB_TOKEN =
 
 ARCH = $(shell /usr/bin/uname -m)
 
@@ -11,11 +9,6 @@ DOCKER_BUILD_COMMAND = docker build
 ifeq ($(ARCH), arm64)
 DOCKER_BUILD_COMMAND = docker buildx build --platform linux/amd64 --load
 endif
-
-# needed to allow go list to work
-GOPRIVATE = github.com/bitmark-inc/*
-export GOPRIVATE
-
 
 .PHONY: all
 all: build
@@ -142,8 +135,6 @@ ifndef dist
 	$(error dist is undefined)
 endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
-	--build-arg GITHUB_USER=$(GITHUB_USER) \
-	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t api-gateway-$(dist) -f Dockerfile-api-gateway .
 
 .PHONY: build-image-workflow-runner
@@ -152,8 +143,6 @@ ifndef dist
 	$(error dist is undefined)
 endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
-	--build-arg GITHUB_USER=$(GITHUB_USER) \
-	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t workflow-runner-$(dist) -f Dockerfile-workflow-runner .
 
 .PHONY: build-image-grpc-gateway
@@ -162,8 +151,6 @@ ifndef dist
 	$(error 'dist is undefined')
 endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
-	--build-arg GITHUB_USER=$(GITHUB_USER) \
-	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t grpc-gateway-$(dist) -f Dockerfile-grpc-gateway .
 
 .PHONY: build-image-provenance-indexer
@@ -172,8 +159,6 @@ ifndef dist
 	$(error dist is undefined)
 endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
-	--build-arg GITHUB_USER=$(GITHUB_USER) \
-	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t provenance-indexer-$(dist) -f Dockerfile-provenance-indexer .
 
 .PHONY: build-image-ethereum-event-emitter
@@ -182,8 +167,6 @@ ifndef dist
 	$(error dist is undefined)
 endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
-	--build-arg GITHUB_USER=$(GITHUB_USER) \
-	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t ethereum-event-emitter-$(dist) -f Dockerfile-ethereum-event-emitter .
 
 .PHONY: build-image-tezos-event-emitter
@@ -192,8 +175,6 @@ ifndef dist
 	$(error dist is undefined)
 endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
-	--build-arg GITHUB_USER=$(GITHUB_USER) \
-	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t tezos-event-emitter-$(dist) -f Dockerfile-tezos-event-emitter .
 
 .PHONY: build-image-event-processor
@@ -202,8 +183,6 @@ ifndef dist
 	$(error dist is undefined)
 endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
-	--build-arg GITHUB_USER=$(GITHUB_USER) \
-	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t event-processor-$(dist) -f Dockerfile-event-processor .
 
 .PHONY: build-image-image-indexer
@@ -212,8 +191,6 @@ ifndef dist
 	$(error dist is undefined)
 endif
 	$(DOCKER_BUILD_COMMAND) --build-arg dist=$(dist) \
-	--build-arg GITHUB_USER=$(GITHUB_USER) \
-	--build-arg GITHUB_TOKEN=$(GITHUB_TOKEN) \
 	-t image-indexer-$(dist) -f Dockerfile-image-indexer .
 
 .PHONY: build-image
@@ -285,43 +262,43 @@ complete-clean: clean
 docker-build-ordered:
 	@echo "Building services in dependency order..."
 	@echo "Step 1: Building foundation services..."
-	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up mongodb -d
-	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up postgres -d
-	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up cadence-postgresql -d
+	docker compose up mongodb -d
+	docker compose up postgres -d
+	docker compose up cadence-postgresql -d
 	@echo "Waiting for foundation services to be healthy..."
 	@until docker compose ps mongodb --format "{{.Status}}" | grep -q "healthy" && docker compose ps postgres --format "{{.Status}}" | grep -q "healthy" && docker compose ps cadence-postgresql --format "{{.Status}}" | grep -q "healthy"; do \
 		echo "Waiting for foundation services..."; \
 		sleep 2; \
 	done
 	@echo "Step 2: Building core services..."
-	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up cadence -d --build
+	docker compose up cadence -d --build
 	@echo "Waiting for cadence to be healthy..."
 	@until docker compose ps cadence --format "{{.Status}}" | grep -q "healthy"; do \
 		echo "Waiting for cadence..."; \
 		sleep 2; \
 	done
 	@echo "Step 3: Building cadence-web and grpc-gateway..."
-	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up cadence-web -d
-	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up grpc-gateway -d --build
+	docker compose up cadence-web -d
+	docker compose up grpc-gateway -d --build
 	@echo "Waiting for grpc-gateway to be healthy..."
 	@until docker compose ps grpc-gateway --format "{{.Status}}" | grep -q "healthy"; do \
 		echo "Waiting for grpc-gateway..."; \
 		sleep 2; \
 	done
 	@echo "Step 4: Building event-processor and api-gateway..."
-	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up event-processor -d --build
-	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up api-gateway -d --build
+	docker compose up event-processor -d --build
+	docker compose up api-gateway -d --build
 	@echo "Waiting for services to be healthy..."
 	@until docker compose ps event-processor --format "{{.Status}}" | grep -q "healthy" && docker compose ps api-gateway --format "{{.Status}}" | grep -q "healthy"; do \
 		echo "Waiting for services..."; \
 		sleep 2; \
 	done
 	@echo "Step 5: Building ethereum-event-emitter, tezos-event-emitter, workflow-runner, provenance-indexer, and image-indexer..."
-	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up ethereum-event-emitter -d --build
-	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up tezos-event-emitter -d --build
-	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up workflow-runner -d --build
-	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up provenance-indexer -d --build
-	GITHUB_USER=$(GITHUB_USER) GITHUB_TOKEN=$(GITHUB_TOKEN) docker compose up image-indexer -d --build
+	docker compose up ethereum-event-emitter -d --build
+	docker compose up tezos-event-emitter -d --build
+	docker compose up workflow-runner -d --build
+	docker compose up provenance-indexer -d --build
+	docker compose up image-indexer -d --build
 	@echo "All services built and started in dependency order!"
 
 .PHONY: help

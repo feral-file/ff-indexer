@@ -5,12 +5,8 @@ import (
 	"errors"
 	"time"
 
-	accountSDK "github.com/bitmark-inc/autonomy-account/sdk/account-grpc"
 	log "github.com/bitmark-inc/autonomy-logger"
-	notificationConst "github.com/bitmark-inc/autonomy-notification"
-	notificationSdk "github.com/bitmark-inc/autonomy-notification/sdk"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -27,15 +23,12 @@ type EventProcessor struct {
 	defaultCheckInterval   time.Duration
 	eventExpiryDuration    time.Duration
 
-	grpcServer        *GRPCServer
-	eventQueue        *EventQueue
-	grpcGateway       *grpcGatewaySDK.GRPCClient
-	worker            *cadence.WorkerClient
-	indexerStore      indexer.Store
-	notification      *notificationSdk.Client
-	feedServer        *FeedClient
-	rpcClient         *ethclient.Client
-	accountGRPCClient *accountSDK.AccountGRPCClient
+	grpcServer   *GRPCServer
+	eventQueue   *EventQueue
+	grpcGateway  *grpcGatewaySDK.GRPCClient
+	worker       *cadence.WorkerClient
+	indexerStore indexer.Store
+	rpcClient    *ethclient.Client
 }
 
 func NewEventProcessor(
@@ -50,10 +43,7 @@ func NewEventProcessor(
 	grpcGateway *grpcGatewaySDK.GRPCClient,
 	worker *cadence.WorkerClient,
 	indexerStore indexer.Store,
-	notification *notificationSdk.Client,
-	feedServer *FeedClient,
 	rpcClient *ethclient.Client,
-	accountGRPCClient *accountSDK.AccountGRPCClient,
 ) *EventProcessor {
 	queue := NewEventQueue(store)
 	grpcServer := NewGRPCServer(network, address, queue)
@@ -65,29 +55,13 @@ func NewEventProcessor(
 		defaultCheckInterval:   defaultCheckInterval,
 		eventExpiryDuration:    eventExpiryDuration,
 
-		grpcServer:        grpcServer,
-		eventQueue:        queue,
-		grpcGateway:       grpcGateway,
-		worker:            worker,
-		indexerStore:      indexerStore,
-		notification:      notification,
-		feedServer:        feedServer,
-		rpcClient:         rpcClient,
-		accountGRPCClient: accountGRPCClient,
+		grpcServer:   grpcServer,
+		eventQueue:   queue,
+		grpcGateway:  grpcGateway,
+		worker:       worker,
+		indexerStore: indexerStore,
+		rpcClient:    rpcClient,
 	}
-}
-
-// notifyChangeOwner send change_token_owner notification to notification server
-func (e *EventProcessor) notifyChangeOwner(accountID, toAddress, tokenID string) error {
-	return e.notification.SendNotification("",
-		notificationConst.NewNFTArrived,
-		accountID,
-		[]any{},
-		gin.H{
-			"notification_type": "change_token_owner",
-			"owner":             toAddress,
-			"token_id":          tokenID,
-		})
 }
 
 // removeDeprecatedNftEvents removes expired archived events
@@ -301,15 +275,6 @@ func (e *EventProcessor) ProcessEvents(ctx context.Context) {
 
 	//stage 2-2: trigger full updates for the token for burned token
 	e.UpdateOwnerAndProvenanceForBurnedToken(ctx)
-
-	//stage 3-1: send notificationSdk for transfer tokens
-	e.NotifyChangeTokenOwnerForTransferToken(ctx)
-
-	//stage 3-2: send notificationSdk for minted tokens
-	e.NotifyChangeTokenOwnerForMintToken(ctx)
-
-	//stage 4: send to feed server
-	// e.SendEventToFeedServer(ctx)
 
 	//stage 5: index token sale
 	e.IndexTokenSale(ctx)

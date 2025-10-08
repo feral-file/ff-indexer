@@ -120,18 +120,6 @@ func (w *Worker) IndexTokenWorkflow(ctx workflow.Context, owner, contract, token
 		}
 	}
 
-	if indexPreview && indexer.IsIPFSLink(update.ProjectMetadata.PreviewURL) {
-		switch update.ProjectMetadata.Medium {
-		case "video", "image":
-			if err := workflow.ExecuteActivity(ctx, w.CacheArtifact, update.ProjectMetadata.PreviewURL).Get(ctx, nil); err != nil {
-				logger.Error(errors.New("fail to cache artifact"), zap.Error(err), zap.String("url", update.ProjectMetadata.PreviewURL))
-				return err
-			}
-		default:
-			// do nothing
-		}
-	}
-
 	indexID := update.Tokens[0].IndexID
 	if indexProvenance {
 		if update.Tokens[0].Fungible {
@@ -155,25 +143,6 @@ func (w *Worker) IndexTokenWorkflow(ctx workflow.Context, owner, contract, token
 
 	if err := workflow.ExecuteActivity(ctx, w.MarkAccountTokenChanged, []string{indexID}).Get(ctx, nil); err != nil {
 		logger.Error(errors.New("fail to mark account token changed"), zap.Error(err), zap.String("indexID", indexID))
-		return err
-	}
-
-	return nil
-}
-
-// CacheIPFSArtifactWorkflow is a worlflow to cache an IPFS artifact
-func (w *Worker) CacheIPFSArtifactWorkflow(ctx workflow.Context, fullDataLink string) error {
-	logger := log.CadenceWorkflowLogger(ctx)
-
-	ao := workflow.ActivityOptions{
-		TaskList:               w.TaskListName,
-		ScheduleToStartTimeout: 10 * time.Minute,
-		StartToCloseTimeout:    time.Hour,
-	}
-
-	ctx = workflow.WithActivityOptions(ctx, ao)
-	if err := workflow.ExecuteActivity(ctx, w.CacheArtifact, fullDataLink).Get(ctx, nil); err != nil {
-		logger.Error(errors.New("fail to cache artifact"), zap.Error(err), zap.String("url", fullDataLink))
 		return err
 	}
 

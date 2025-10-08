@@ -13,9 +13,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	accountSDK "github.com/bitmark-inc/autonomy-account/sdk/account-grpc"
 	log "github.com/bitmark-inc/autonomy-logger"
-	notification "github.com/bitmark-inc/autonomy-notification/sdk"
 	"github.com/bitmark-inc/config-loader"
 
 	indexer "github.com/feral-file/ff-indexer"
@@ -64,10 +62,6 @@ func main() {
 	cadenceClient := cadence.NewWorkerClient(viper.GetString("cadence.domain"))
 	cadenceClient.AddService(indexerWorker.ClientName)
 
-	notification := notification.New(viper.GetString("notification.endpoint"), nil)
-
-	feedServer := NewFeedClient(viper.GetString("feed.endpoint"), viper.GetString("feed.api_token"), viper.GetBool("feed.debug"))
-
 	checkInterval, err := time.ParseDuration(viper.GetString("default_check_interval"))
 	if err != nil {
 		log.WarnWithContext(ctx, "invalid check interval. set to default 10s",
@@ -86,11 +80,6 @@ func main() {
 		log.Panic(err.Error(), zap.Error(err))
 	}
 
-	accountGRPCClient, err := accountSDK.New(viper.GetString("account.grpc_endpoint"))
-	if err != nil {
-		log.Panic("fail to initiate account grpc client", zap.Error(err))
-	}
-
 	p := NewEventProcessor(
 		environment,
 		viper.GetString("contract.series_registry"),
@@ -103,10 +92,7 @@ func main() {
 		indexerGRPC,
 		cadenceClient,
 		indexerStore,
-		notification,
-		feedServer,
 		rpcClient,
-		accountGRPCClient,
 	)
 	p.Run(ctx)
 }

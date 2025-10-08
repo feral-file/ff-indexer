@@ -5,13 +5,13 @@ import "time"
 type Stage int8
 
 const (
-	NftEventStageDone         = 0
-	NftEventStageInit         = 1
-	NftEventStageFullSync     = 2
-	NftEventStageNotification = 3
+	NftEventStageDone     = 0
+	NftEventStageInit     = 1
+	NftEventStageFullSync = 2
 
 	// deprecated
-	NftEventStageFeed = 4
+	NftEventStageNotification = 3
+	NftEventStageFeed         = 4
 
 	NftEventStageTokenSaleIndexing = 5
 
