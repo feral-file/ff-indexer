@@ -1,6 +1,6 @@
 FROM golang:1.24-bullseye AS build
 
-RUN apt-get update && apt-get install -y gcc && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends gcc ca-certificates && update-ca-certificates && rm -rf /var/lib/apt/lists/*
 
 WORKDIR $GOPATH/github.com/feral-file/ff-indexer
 
@@ -16,6 +16,7 @@ RUN go build -o /go/bin/image-indexer ./services/image-indexer
 FROM chromedp/headless-shell:latest
 ARG dist=0.0
 
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=build /go/bin/image-indexer /image-indexer
 
 USER root
