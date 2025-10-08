@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"time"
 
-	assetSDK "github.com/bitmark-inc/autonomy-asset-server/sdk/api"
 	bitmarkd "github.com/bitmark-inc/bitmarkdClient"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/viper"
@@ -25,7 +24,6 @@ type Worker struct {
 	indexerEngine      *indexer.IndexEngine
 	indexerStore       indexer.Store
 	cacheStore         cache.Store
-	assetClient        *assetSDK.Client
 	ethClient          *ethclient.Client
 	bitmarkdClient     *bitmarkd.BitmarkdRPCClient
 	bitmarkZeroAddress string
@@ -40,7 +38,6 @@ func New(environment string,
 	indexerEngine *indexer.IndexEngine,
 	cacheStore cache.Store,
 	store indexer.Store,
-	assetClient *assetSDK.Client,
 	bitmarkdClient *bitmarkd.BitmarkdRPCClient,
 ) *Worker {
 
@@ -69,7 +66,6 @@ func New(environment string,
 		indexerEngine:  indexerEngine,
 		indexerStore:   store,
 		cacheStore:     cacheStore,
-		assetClient:    assetClient,
 		bitmarkdClient: bitmarkdClient,
 
 		bitmarkZeroAddress: bitmarkZeroAddress,

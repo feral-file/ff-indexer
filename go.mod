@@ -8,10 +8,7 @@ require (
 	github.com/99designs/gqlgen v0.17.45
 	github.com/aws/aws-sdk-go v1.51.9
 	github.com/aws/aws-sdk-go-v2 v1.26.0
-	github.com/bitmark-inc/autonomy-account v0.4.6
-	github.com/bitmark-inc/autonomy-asset-server v0.0.3
 	github.com/bitmark-inc/autonomy-logger v0.0.10
-	github.com/bitmark-inc/autonomy-notification v0.0.8
 	github.com/bitmark-inc/autonomy-utils v0.0.5
 	github.com/bitmark-inc/bitmarkdClient v0.0.0-20250124093304-dff4260ef91f
 	github.com/bitmark-inc/config-loader v0.1.1
@@ -72,10 +69,7 @@ require (
 	github.com/aws/smithy-go v1.20.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bitmark-inc/bitmarkd v0.14.0-beta.1 // indirect
-	github.com/bitmark-inc/go-utils v0.0.0-20220509034903-59f3369237d3 // indirect
-	github.com/bitmark-inc/httpsign v0.0.2-2 // indirect
 	github.com/bitmark-inc/logger v0.3.5 // indirect
-	github.com/bitmark-inc/traceutils v0.2.0 // indirect
 	github.com/bits-and-blooms/bitset v1.20.0 // indirect
 	github.com/btcsuite/btcd v0.21.0-beta // indirect
 	github.com/bytedance/sonic v1.12.2 // indirect
@@ -114,6 +108,7 @@ require (
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
@@ -127,12 +122,12 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20231201235250-de7065d80cb9 // indirect
 	github.com/jackc/pgx/v5 v5.5.5 // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
-	github.com/jinzhu/gorm v1.9.16 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/kisielk/errcheck v1.5.0 // indirect
 	github.com/klauspost/compress v1.17.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
@@ -151,6 +146,8 @@ require (
 	github.com/multiformats/go-multibase v0.2.0 // indirect
 	github.com/multiformats/go-multihash v0.2.3 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
+	github.com/nxadm/tail v1.4.11 // indirect
+	github.com/onsi/gomega v1.36.3 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pborman/uuid v0.0.0-20160209185913-a97ce2ca70fa // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect

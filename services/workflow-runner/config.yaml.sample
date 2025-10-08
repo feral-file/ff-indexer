@@ -31,10 +31,6 @@ fxhash:
 cache:
   bucket_name:
 
-asset_server:
-  server_url:
-  secret_key:
-
 ipfs:
   preferred_gateways:
   - nftstorage.link

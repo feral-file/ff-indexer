@@ -18,7 +18,6 @@ import (
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 
-	assetSDK "github.com/bitmark-inc/autonomy-asset-server/sdk/api"
 	log "github.com/bitmark-inc/autonomy-logger"
 	"github.com/bitmark-inc/config-loader"
 	"github.com/bitmark-inc/tzkt-go"
@@ -90,11 +89,9 @@ func main() {
 		managedblockchainquery.New(awsSession),
 	)
 
-	assetClient := assetSDK.New(viper.GetString("asset_server.server_url"), nil, viper.GetString("asset_server.secret_key"))
-
 	bitmarkdClient := bitmarkd.New(strings.Split(viper.GetString("bitmarkd.rpc_conn"), ","), time.Minute)
 
-	worker := indexerWorker.New(environment, indexerEngine, cacheStore, indexerStore, assetClient, bitmarkdClient)
+	worker := indexerWorker.New(environment, indexerEngine, cacheStore, indexerStore, bitmarkdClient)
 
 	// workflows
 	workflow.Register(worker.IndexETHTokenWorkflow)
@@ -123,9 +120,6 @@ func main() {
 	workflow.RegisterWithOptions(worker.CrawlExchangeRateByCurrencyPair, workflow.RegisterOptions{
 		Name: "CrawlExchangeRateByCurrencyPair",
 	})
-
-	// cache
-	activity.Register(worker.CacheArtifact)
 
 	// all blockchain
 	activity.Register(worker.IndexToken)

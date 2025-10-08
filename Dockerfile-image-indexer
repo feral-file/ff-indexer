@@ -1,15 +1,8 @@
 FROM golang:1.24-bullseye AS build
 
-RUN apt-get update && apt-get install -y git gcc && rm -rf /var/lib/apt/lists/*
-
-ARG GITHUB_USER=bot
-ARG GITHUB_TOKEN=token
-
-RUN git config --global url."https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+RUN apt-get update && apt-get install -y gcc && rm -rf /var/lib/apt/lists/*
 
 WORKDIR $GOPATH/github.com/feral-file/ff-indexer
-
-ENV GOPRIVATE=github.com/bitmark-inc
 
 ADD go.mod .
 RUN go mod download
