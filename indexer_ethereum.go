@@ -114,24 +114,40 @@ func (e *IndexEngine) IndexETHToken(ctx context.Context, contract, tokenID strin
 func (e *IndexEngine) indexETHToken(ctx context.Context, a *opensea.DetailedAssetV2, owner string, balance int64) (*AssetUpdates, error) {
 	dataSource := SourceOpensea
 
+	// Skip if the contract is ENS
 	contractAddress := EthereumChecksumAddress(a.Contract)
 	switch contractAddress {
 	case ENSContractAddress1, ENSContractAddress2:
 		return nil, nil
 	}
 
+	// Get token source
 	source := getTokenSourceByMetadataURL(a.MetadataURL)
-
 	if source == "" {
 		source = getTokenSourceByPreviewURL(a.AnimationURL)
 	}
-
 	if source == "" {
 		source = getTokenSourceByContract(contractAddress)
 	}
 
+	// Get metadata detail
 	metadataDetail := NewAssetMetadataDetail(contractAddress)
 	metadataDetail.FromOpenseaAsset(a, source)
+
+	// Lookup artist name from metadata
+	if metadataDetail.ArtistName == "" {
+		metadata, err := e.fetchTokenMetadata(a.MetadataURL)
+		if err != nil {
+			return nil, err
+		}
+		metadataDetail.ArtistName = lookupArtistName(metadata)
+
+		if len(metadataDetail.Artists) != 1 {
+			return nil, fmt.Errorf("unexpected number of artists: %d", len(metadataDetail.Artists))
+		}
+		metadataDetail.Artists[0].Name = metadataDetail.ArtistName
+	}
+
 	tokenDetail := TokenDetail{
 		MintedAt: a.CreatedAt.Time, // set minted_at to the contract creation time,
 		Edition:  e.GetEditionNumberByName(a.Name),

@@ -16,6 +16,8 @@ import (
 	"github.com/feral-file/ff-indexer/traceutils"
 )
 
+const HOST = "api.opensea.io"
+
 var ErrTooManyRequest = fmt.Errorf("too many requests")
 
 const QueryPageSize = "50"
@@ -65,6 +67,11 @@ type AssetsResponse struct {
 	Next string    `json:"next"`
 }
 
+type Trait struct {
+	Type  string `json:"trait_type"`
+	Value string `json:"value"`
+}
+
 type DetailedAssetV2 struct {
 	Identifier      string  `json:"identifier"`
 	Collection      string  `json:"collection"`
@@ -83,6 +90,7 @@ type DetailedAssetV2 struct {
 	Creator         string  `json:"creator"`
 	IsDisabled      bool    `json:"is_disabled"`
 	IsNsfw          bool    `json:"is_nsfw"`
+	Traits          []Trait `json:"traits"`
 }
 
 type Owner struct {
@@ -119,28 +127,16 @@ type Collection struct {
 }
 
 type Client struct {
-	debug       bool
-	apiKey      string
-	apiEndpoint string
-	chain       string //chain = ethereum, goerli, sepolia
-	client      *http.Client
+	debug  bool
+	apiKey string
+	client *http.Client
 
 	limiter RateLimiter
 }
 
-func New(chain, apiKey string, rps int) *Client {
-	if chain == "" {
-		chain = "ethereum"
-	}
-	apiEndpoint := "api.opensea.io"
-	if chain != "ethereum" {
-		apiEndpoint = "testnets-api.opensea.io"
-	}
-
+func New(apiKey string, rps int) *Client {
 	return &Client{
-		apiKey:      apiKey,
-		apiEndpoint: apiEndpoint,
-		chain:       chain,
+		apiKey: apiKey,
 		client: &http.Client{
 			Timeout: 15 * time.Second,
 		},
@@ -239,8 +235,8 @@ func (c *Client) makeRequest(ctx context.Context, method, url string, body io.Re
 func (c *Client) RetrieveAsset(ctx context.Context, contract, tokenID string) (*DetailedAssetV2, error) {
 	u := url.URL{
 		Scheme: "https",
-		Host:   c.apiEndpoint,
-		Path:   fmt.Sprintf("/api/v2/chain/%s/contract/%s/nfts/%s", c.chain, contract, tokenID),
+		Host:   HOST,
+		Path:   fmt.Sprintf("/api/v2/chain/ethereum/contract/%s/nfts/%s", contract, tokenID),
 	}
 
 	resp, err := c.makeRequest(ctx, "GET", u.String(), nil)
@@ -271,8 +267,8 @@ func (c *Client) RetrieveAssets(ctx context.Context, owner string, next string) 
 
 	u := url.URL{
 		Scheme:   "https",
-		Host:     c.apiEndpoint,
-		Path:     fmt.Sprintf("/api/v2/chain/%s/account/%s/nfts", c.chain, owner),
+		Host:     HOST,
+		Path:     fmt.Sprintf("/api/v2/chain/ethereum/account/%s/nfts", owner),
 		RawQuery: v.Encode(),
 	}
 

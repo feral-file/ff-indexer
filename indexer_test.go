@@ -50,7 +50,7 @@ func TestGetTokenBalanceOfOwner(t *testing.T) {
 		"",
 		[]string{},
 		map[string]string{},
-		opensea.New("livenet", "", 1),
+		opensea.New("", 1),
 		tzkt.New(""),
 		fxhash.New("https://api.fxhash.xyz/graphql"),
 		objkt.New(""),
@@ -92,4 +92,300 @@ func TestGetEditionNumberByName(t *testing.T) {
 	assert.Equal(t, int64(0), n1)
 	n2 := engine.GetEditionNumberByName("test #123")
 	assert.Equal(t, int64(123), n2)
+}
+
+func TestLookupArtistName(t *testing.T) {
+	tests := []struct {
+		name     string
+		metadata map[string]interface{}
+		expected string
+	}{
+		{
+			name: "artist field - direct match",
+			metadata: map[string]interface{}{
+				"artist": "John Doe",
+			},
+			expected: "John Doe",
+		},
+		{
+			name: "traits field - artist trait",
+			metadata: map[string]interface{}{
+				"traits": []interface{}{
+					map[string]interface{}{
+						"trait_type": "artist",
+						"value":      "Jane Smith",
+					},
+				},
+			},
+			expected: "Jane Smith",
+		},
+		{
+			name: "traits field - Artist trait (capitalized)",
+			metadata: map[string]interface{}{
+				"traits": []interface{}{
+					map[string]interface{}{
+						"trait_type": "Artist",
+						"value":      "Bob Wilson",
+					},
+				},
+			},
+			expected: "Bob Wilson",
+		},
+		{
+			name: "traits field - Creator trait",
+			metadata: map[string]interface{}{
+				"traits": []interface{}{
+					map[string]interface{}{
+						"trait_type": "Creator",
+						"value":      "Alice Brown",
+					},
+				},
+			},
+			expected: "Alice Brown",
+		},
+		{
+			name: "traits field - creator trait (lowercase)",
+			metadata: map[string]interface{}{
+				"traits": []interface{}{
+					map[string]interface{}{
+						"trait_type": "creator",
+						"value":      "Charlie Davis",
+					},
+				},
+			},
+			expected: "Charlie Davis",
+		},
+		{
+			name: "traits field - multiple traits, artist first",
+			metadata: map[string]interface{}{
+				"traits": []interface{}{
+					map[string]interface{}{
+						"trait_type": "color",
+						"value":      "blue",
+					},
+					map[string]interface{}{
+						"trait_type": "artist",
+						"value":      "David Lee",
+					},
+					map[string]interface{}{
+						"trait_type": "size",
+						"value":      "large",
+					},
+				},
+			},
+			expected: "David Lee",
+		},
+		{
+			name: "traits field - invalid trait type",
+			metadata: map[string]interface{}{
+				"traits": []interface{}{
+					map[string]interface{}{
+						"trait_type": "invalid",
+						"value":      "Some Value",
+					},
+				},
+			},
+			expected: "",
+		},
+		{
+			name: "traits field - non-string trait type",
+			metadata: map[string]interface{}{
+				"traits": []interface{}{
+					map[string]interface{}{
+						"trait_type": 123,
+						"value":      "Some Value",
+					},
+				},
+			},
+			expected: "",
+		},
+		{
+			name: "traits field - non-string value",
+			metadata: map[string]interface{}{
+				"traits": []interface{}{
+					map[string]interface{}{
+						"trait_type": "artist",
+						"value":      123,
+					},
+				},
+			},
+			expected: "",
+		},
+		{
+			name: "traits field - non-map trait",
+			metadata: map[string]interface{}{
+				"traits": []interface{}{
+					"invalid trait",
+					map[string]interface{}{
+						"trait_type": "artist",
+						"value":      "Eve Johnson",
+					},
+				},
+			},
+			expected: "Eve Johnson",
+		},
+		{
+			name: "collection_name field - with 'by' separator",
+			metadata: map[string]interface{}{
+				"collection_name": "Amazing Collection by Frank Miller",
+			},
+			expected: "Frank Miller",
+		},
+		{
+			name: "collection_name field - empty string",
+			metadata: map[string]interface{}{
+				"collection_name": "",
+			},
+			expected: "",
+		},
+		{
+			name: "collection_name field - no 'by' separator",
+			metadata: map[string]interface{}{
+				"collection_name": "Amazing Collection",
+			},
+			expected: "",
+		},
+		{
+			name: "createdBy field",
+			metadata: map[string]interface{}{
+				"createdBy": "Grace Wilson",
+			},
+			expected: "Grace Wilson",
+		},
+		{
+			name: "created_by field",
+			metadata: map[string]interface{}{
+				"created_by": "Henry Taylor",
+			},
+			expected: "Henry Taylor",
+		},
+		{
+			name: "creator field",
+			metadata: map[string]interface{}{
+				"creator": "Ivy Chen",
+			},
+			expected: "Ivy Chen",
+		},
+		{
+			name: "priority order - artist field takes precedence",
+			metadata: map[string]interface{}{
+				"artist":          "Primary Artist",
+				"createdBy":       "Secondary Artist",
+				"created_by":      "Tertiary Artist",
+				"creator":         "Quaternary Artist",
+				"collection_name": "Collection by Fifth Artist",
+				"traits": []interface{}{
+					map[string]interface{}{
+						"trait_type": "artist",
+						"value":      "Trait Artist",
+					},
+				},
+			},
+			expected: "Primary Artist",
+		},
+		{
+			name: "priority order - traits take precedence over collection_name",
+			metadata: map[string]interface{}{
+				"createdBy":       "Secondary Artist",
+				"created_by":      "Tertiary Artist",
+				"creator":         "Quaternary Artist",
+				"collection_name": "Collection by Fifth Artist",
+				"traits": []interface{}{
+					map[string]interface{}{
+						"trait_type": "artist",
+						"value":      "Trait Artist",
+					},
+				},
+			},
+			expected: "Trait Artist",
+		},
+		{
+			name: "priority order - collection_name takes precedence over createdBy",
+			metadata: map[string]interface{}{
+				"createdBy":       "Secondary Artist",
+				"created_by":      "Tertiary Artist",
+				"creator":         "Quaternary Artist",
+				"collection_name": "Collection by Fifth Artist",
+			},
+			expected: "Fifth Artist",
+		},
+		{
+			name: "priority order - createdBy takes precedence over created_by",
+			metadata: map[string]interface{}{
+				"createdBy":  "Secondary Artist",
+				"created_by": "Tertiary Artist",
+				"creator":    "Quaternary Artist",
+			},
+			expected: "Secondary Artist",
+		},
+		{
+			name: "priority order - created_by takes precedence over creator",
+			metadata: map[string]interface{}{
+				"created_by": "Tertiary Artist",
+				"creator":    "Quaternary Artist",
+			},
+			expected: "Tertiary Artist",
+		},
+		{
+			name:     "empty metadata",
+			metadata: map[string]interface{}{},
+			expected: "",
+		},
+		{
+			name:     "nil metadata",
+			metadata: nil,
+			expected: "",
+		},
+		{
+			name: "non-string artist field",
+			metadata: map[string]interface{}{
+				"artist": 123,
+			},
+			expected: "",
+		},
+		{
+			name: "non-array traits field",
+			metadata: map[string]interface{}{
+				"traits": "not an array",
+			},
+			expected: "",
+		},
+		{
+			name: "non-string collection_name field",
+			metadata: map[string]interface{}{
+				"collection_name": 123,
+			},
+			expected: "",
+		},
+		{
+			name: "non-string createdBy field",
+			metadata: map[string]interface{}{
+				"createdBy": 123,
+			},
+			expected: "",
+		},
+		{
+			name: "non-string created_by field",
+			metadata: map[string]interface{}{
+				"created_by": 123,
+			},
+			expected: "",
+		},
+		{
+			name: "non-string creator field",
+			metadata: map[string]interface{}{
+				"creator": 123,
+			},
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := lookupArtistName(tt.metadata)
+			if result != tt.expected {
+				t.Errorf("lookupArtistName() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
 }

@@ -108,7 +108,7 @@ func (e *IndexEngine) IndexTezosToken(ctx context.Context, contract, tokenID str
 // searchMetadataFromIPFS searches token metadata from a list of preferred ipfs gateway
 func (e *IndexEngine) searchMetadataFromIPFS(ipfsURI string) (*tzkt.TokenMetadata, error) {
 	if strings.HasPrefix(ipfsURI, "https://") {
-		return e.fetchMetadataByLink(ipfsURI)
+		return e.fetchTzktMetadataByLink(ipfsURI)
 	}
 
 	if !strings.HasPrefix(ipfsURI, "ipfs://") {
@@ -117,14 +117,14 @@ func (e *IndexEngine) searchMetadataFromIPFS(ipfsURI string) (*tzkt.TokenMetadat
 
 	for _, gateway := range e.ipfsGateways {
 		u := ipfsURLToGatewayURL(gateway, ipfsURI)
-		return e.fetchMetadataByLink(u)
+		return e.fetchTzktMetadataByLink(u)
 	}
 
 	return nil, fmt.Errorf("fail to get metadata from the preferred gateways")
 }
 
-// fetchMetadataByLink reads tezos metadata by a given link
-func (e *IndexEngine) fetchMetadataByLink(url string) (*tzkt.TokenMetadata, error) {
+// fetchTzktMetadataByLink reads tezos metadata by a given link
+func (e *IndexEngine) fetchTzktMetadataByLink(url string) (*tzkt.TokenMetadata, error) {
 	resp, err := e.http.Get(url)
 	if err != nil {
 		return nil, err
@@ -234,7 +234,7 @@ func (e *IndexEngine) indexTezosToken(ctx context.Context, tzktToken tzkt.Token,
 			if gateway != DefaultIPFSGateway {
 				var err error
 				tokenMetadataURL = ipfsURLToGatewayURL(gateway, tokenMetadataURL)
-				metadata, err = e.fetchMetadataByLink(tokenMetadataURL)
+				metadata, err = e.fetchTzktMetadataByLink(tokenMetadataURL)
 				if err != nil {
 					log.WarnWithContext(ctx, "fail to read token metadata from ipfs",
 						zap.Error(err), zap.String("gateway", gateway), log.SourceTZKT)
