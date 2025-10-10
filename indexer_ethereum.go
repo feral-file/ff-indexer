@@ -135,7 +135,7 @@ func (e *IndexEngine) indexETHToken(ctx context.Context, a *opensea.DetailedAsse
 	metadataDetail.FromOpenseaAsset(a, source)
 
 	// Lookup artist name from metadata
-	if metadataDetail.ArtistName == "" {
+	if metadataDetail.ArtistName == "" && a.MetadataURL != "" {
 		metadata, err := e.fetchTokenMetadata(a.MetadataURL)
 		if err != nil {
 			log.WarnWithContext(ctx, "fail to fetch token metadata", zap.Error(err))
