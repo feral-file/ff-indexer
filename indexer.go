@@ -801,6 +801,16 @@ func lookupArtistName(metadata map[string]interface{}) string {
 func (e *IndexEngine) fetchTokenMetadata(url string) (map[string]interface{}, error) {
 	// Handle HTTP/HTTPS URLs normally
 	if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
+		// If the URL is actually a ipfs gateway, try with some other well-known gateways
+		// to avoid the private gateway like https://opensea-private.mypinata.cloud
+		if strings.Contains(url, "/ipfs/") {
+			// Extract the CID from the URL
+			urlParts := strings.Split(url, "/ipfs/")
+			if len(urlParts) > 1 && urlParts[1] != "" {
+				return e.fetchMetadataFromIPFS(fmt.Sprintf("ipfs://%s", urlParts[1]))
+			}
+		}
+
 		return e.fetchMetadataFromURL(url)
 	}
 
