@@ -308,6 +308,10 @@ db.getCollection('assets').createIndex(
   { name: 'projectMetadata.origin.artistID_1' }
 );
 db.getCollection('assets').createIndex(
+  { 'projectMetadata.latest.artistID': 1 },
+  { name: 'projectMetadata.latest.artistID_1' }
+);
+db.getCollection('assets').createIndex(
   { 'projectMetadata.latest.description': 1 },
   { name: 'projectMetadata.latest.description_1' }
 );
