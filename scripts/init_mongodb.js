@@ -331,6 +331,14 @@ db.getCollection('assets').createIndex(
   { 'projectMetadata.origin.title': 1 },
   { name: 'projectMetadata.origin.title_1', sparse: true }
 );
+db.getCollection('assets').createIndex(
+  { 'projectMetadata.origin.artistName': 1 },
+  { name: 'projectMetadata.origin.artistName_1'}
+);
+db.getCollection('assets').createIndex(
+  { 'projectMetadata.latest.artistName': 1 },
+  { name: 'projectMetadata.latest.artistName_1' }
+);
 
 // Indexes for collections
 db.getCollection('collections').createIndex(
