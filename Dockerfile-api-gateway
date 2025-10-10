@@ -4,8 +4,9 @@ RUN apk add --no-cache gcc musl-dev
 
 WORKDIR $GOPATH/github.com/feral-file/ff-indexer
 
-ADD go.mod .
+ADD go.mod go.sum ./
 RUN go mod download
+    
 
 ADD . .
 
@@ -16,8 +17,6 @@ RUN go build -o /go/bin/api-gateway ./services/api-gateway
 
 FROM alpine:3.21
 ARG dist=0.0
-
-RUN apk add --no-cache curl
 
 COPY --from=build /go/bin/api-gateway /api-gateway
 #COPY --from=build /go/bin/replace-ipfs-link-by-objkt-cdn /tools/replace-ipfs-link-by-objkt-cdn

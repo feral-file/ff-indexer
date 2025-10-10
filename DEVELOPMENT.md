@@ -247,7 +247,7 @@ The recommended approach for local development is using Docker Compose, which pr
 3. **Start all services in the correct order**:
    ```bash
    # Using the recommended ordered build script
-   make docker-build-ordered GITHUB_USER=your_github_user GITHUB_TOKEN=your_github_token
+   make docker-build-ordered
    ```
 
 4. **Verify services are running**:
@@ -329,10 +329,6 @@ make run-api-gateway
 Create a `.env` file in the project root with the following variables:
 
 ```bash
-# GitHub credentials (required for private dependencies)
-GITHUB_USER=your_github_username
-GITHUB_TOKEN=your_github_personal_access_token
-
 # Database passwords (optional - defaults provided)
 MONGO_ROOT_PASSWORD=ff_indexer_mongo_password
 POSTGRES_PASSWORD=ff_indexer_postgres_password
@@ -383,7 +379,7 @@ Once all services are running, you can access:
 
 1. **Start services**:
    ```bash
-   make docker-build-ordered GITHUB_USER=your_user GITHUB_TOKEN=your_token
+   make docker-build-ordered
    ```
 
 2. **View logs**:
@@ -883,7 +879,7 @@ handler := traceutils.TraceHTTP(originalHandler)
 
 **Build images**:
 ```bash
-make build-image dist=v1.0.0 GITHUB_USER=your_user GITHUB_TOKEN=your_token
+make build-image dist=v1.0.0
 ```
 
 **Note**: The Makefile doesn't include a `push` target. You'll need to manually push images to your registry using `docker push` commands.

@@ -4,7 +4,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends gcc ca-certific
 
 WORKDIR $GOPATH/github.com/feral-file/ff-indexer
 
-ADD go.mod .
+ADD go.mod go.sum ./
 RUN go mod download
 
 ADD . .

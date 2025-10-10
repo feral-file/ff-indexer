@@ -79,7 +79,7 @@ func main() {
 		environment,
 		viper.GetStringSlice("ipfs.preferred_gateways"),
 		minterGateways,
-		opensea.New(viper.GetString("network.ethereum"), viper.GetString("opensea.api_key"), viper.GetInt("opensea.ratelimit")),
+		opensea.New(viper.GetString("opensea.api_key"), viper.GetInt("opensea.ratelimit")),
 		tzkt.New(viper.GetString("network.tezos")),
 		fxhash.New(viper.GetString("fxhash.api_endpoint")),
 		objkt.New(viper.GetString("network.tezos")),

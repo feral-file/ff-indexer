@@ -4,7 +4,7 @@ RUN apk add --no-cache gcc musl-dev
 
 WORKDIR $GOPATH/github.com/feral-file/ff-indexer
 
-ADD go.mod .
+ADD go.mod go.sum ./
 RUN go mod download
 
 ADD . .

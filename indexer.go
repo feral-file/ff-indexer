@@ -2,7 +2,9 @@ package indexer
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"path/filepath"
 	"regexp"
@@ -11,7 +13,6 @@ import (
 	"time"
 
 	"github.com/fatih/structs"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
 	log "github.com/bitmark-inc/autonomy-logger"
@@ -31,6 +32,12 @@ const (
 	FxhashDevIPFSGateway       = "gateway.fxhash-dev2.xyz"
 	FxhashWaitingToBeSignedCID = "QmbvEAn7FLMeYBDroYwBP8qWc3d3VVWbk19tTB83LCMB5S"
 	FxhashOnchfsGateway        = "onchfs.fxhash2.xyz"
+
+	// domains
+	ARTBLOCKS_DOMAIN    = "https://www.artblocks.io"
+	FXHASH_DOMAIN       = "https://www.fxhash.xyz"
+	CRAYON_CODES_DOMAIN = "https://openprocessing.org/crayon"
+	OPENSEA_DOMAIN      = "https://opensea.io"
 )
 
 var inhouseMinter = map[string]struct{}{
@@ -365,27 +372,26 @@ func (detail *AssetMetadataDetail) FromTZIP21TokenMetadata(md tzkt.TokenMetadata
 }
 
 func (detail *AssetMetadataDetail) FromOpenseaAsset(a *opensea.DetailedAssetV2, source string) {
-	var sourceURL string
+	// get artist information
+	var artistID string
 	var artistURL string
-	artistID := EthereumChecksumAddress(a.Creator)
-
-	switch source {
-	case sourceArtBlocks:
-		sourceURL = "https://www.artblocks.io/"
-		artistURL = fmt.Sprintf("%s/%s", sourceURL, a.Creator)
-	case sourceCrayonCodes:
-		sourceURL = "https://openprocessing.org/crayon/"
-		artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator)
-	case sourceFxHash:
-		sourceURL = "https://www.fxhash.xyz/"
-		artistURL = fmt.Sprintf("https://www.fxhash.xyz/u/%s", a.Creator)
-	default:
-		if viper.GetString("network") == "testnet" {
-			sourceURL = "https://testnets.opensea.io"
-		} else {
-			sourceURL = "https://opensea.io"
+	var sourceURL string
+	if a.Creator != "" {
+		artistID = EthereumChecksumAddress(a.Creator)
+		switch source {
+		case sourceArtBlocks:
+			sourceURL = ARTBLOCKS_DOMAIN
+			artistURL = fmt.Sprintf("%s/%s", ARTBLOCKS_DOMAIN, a.Creator)
+		case sourceCrayonCodes:
+			sourceURL = CRAYON_CODES_DOMAIN
+			artistURL = fmt.Sprintf("%s/%s", OPENSEA_DOMAIN, a.Creator)
+		case sourceFxHash:
+			sourceURL = FXHASH_DOMAIN
+			artistURL = fmt.Sprintf("%s/u/%s", FXHASH_DOMAIN, a.Creator)
+		default:
+			sourceURL = OPENSEA_DOMAIN
+			artistURL = fmt.Sprintf("%s/%s", OPENSEA_DOMAIN, a.Creator)
 		}
-		artistURL = fmt.Sprintf("https://opensea.io/%s", a.Creator)
 	}
 
 	log.Debug("source debug", zap.String("source", source), zap.String("contract", a.Contract), zap.String("id", a.Identifier))
@@ -393,9 +399,8 @@ func (detail *AssetMetadataDetail) FromOpenseaAsset(a *opensea.DetailedAssetV2, 
 	// Opensea GET assets API just provide a creator, not multiple creator
 	artists := []Artist{
 		{
-			ID:   artistID,
-			Name: artistID,
-			URL:  artistURL,
+			ID:  artistID,
+			URL: artistURL,
 		},
 	}
 
@@ -419,7 +424,7 @@ func (detail *AssetMetadataDetail) FromOpenseaAsset(a *opensea.DetailedAssetV2, 
 	}
 
 	if source == sourceFxHash {
-		assetURL = fmt.Sprintf("https://www.fxhash.xyz/gentk/%s-%s", a.Contract, a.Identifier)
+		assetURL = fmt.Sprintf("%s/gentk/%s-%s", FXHASH_DOMAIN, a.Contract, a.Identifier)
 		imageURL = OptimizeFxHashIPFSURL(imageURL)
 		animationURL = OptimizeFxHashIPFSURL(animationURL)
 	}
@@ -730,4 +735,137 @@ func (e *IndexEngine) indexTokenFromFXHASH(ctx context.Context, fxhashObjectID s
 		tokenDetail.MintedAt = detail.CreatedAt
 		tokenDetail.Edition = detail.Iteration
 	}
+}
+
+// lookupArtistName lookup artist name from metadata
+func lookupArtistName(metadata map[string]interface{}) string {
+	// Lookup from "artist" field
+	artistName, ok := metadata["artist"].(string)
+	if ok {
+		return artistName
+	}
+
+	// Lookup from "traits" field
+	traits, ok := metadata["traits"].([]interface{})
+	if ok {
+		for _, trait := range traits {
+			traitMap, ok := trait.(map[string]interface{})
+			if !ok {
+				continue
+			}
+
+			traitType, ok := traitMap["trait_type"].(string)
+			if !ok || (traitType != "artist" && traitType != "Artist" && traitType != "Creator" && traitType != "creator") {
+				continue
+			}
+
+			artistName, ok = traitMap["value"].(string)
+			if ok {
+				return artistName
+			}
+		}
+	}
+
+	// Lookup from "collection_name" field
+	collectionName, ok := metadata["collection_name"].(string)
+	if ok && collectionName != "" {
+		parts := strings.Split(collectionName, " by ")
+		if len(parts) > 1 {
+			artistName = parts[1]
+			return artistName
+		}
+	}
+
+	// Lookup from "createdBy" field
+	artistName, ok = metadata["createdBy"].(string)
+	if ok {
+		return artistName
+	}
+
+	// Lookup "created_by" field
+	artistName, ok = metadata["created_by"].(string)
+	if ok {
+		return artistName
+	}
+
+	// Lookup "creator" field
+	creator, ok := metadata["creator"].(string)
+	if ok {
+		return creator
+	}
+
+	return ""
+}
+
+// fetchTokenMetadata fetches token metadata from a given URL
+func (e *IndexEngine) fetchTokenMetadata(url string) (map[string]interface{}, error) {
+	// Handle HTTP/HTTPS URLs normally
+	if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
+		return e.fetchMetadataFromURL(url)
+	}
+
+	// Handle IPFS URLs concurrently through multiple gateways
+	if strings.HasPrefix(url, "ipfs://") {
+		return e.fetchMetadataFromIPFS(url)
+	}
+
+	return nil, fmt.Errorf("unsupported URL scheme: %s", url)
+}
+
+// fetchMetadataFromURL fetches metadata from a regular HTTP/HTTPS URL
+func (e *IndexEngine) fetchMetadataFromURL(url string) (map[string]interface{}, error) {
+	resp, err := e.http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d for URL: %s", resp.StatusCode, url)
+	}
+
+	var metadata map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&metadata); err != nil {
+		return nil, fmt.Errorf("failed to decode JSON response: %w", err)
+	}
+
+	return metadata, nil
+}
+
+// fetchMetadataFromIPFS fetches metadata from IPFS using multiple gateways concurrently
+func (e *IndexEngine) fetchMetadataFromIPFS(ipfsURL string) (map[string]interface{}, error) {
+	if len(e.ipfsGateways) == 0 {
+		return nil, fmt.Errorf("no IPFS gateways configured")
+	}
+
+	// Create a channel to receive results
+	type result struct {
+		metadata map[string]interface{}
+		err      error
+	}
+
+	resultChan := make(chan result, len(e.ipfsGateways))
+
+	// Launch goroutines for each gateway
+	for _, gateway := range e.ipfsGateways {
+		go func(gateway string) {
+			gatewayURL := ipfsURLToGatewayURL(gateway, ipfsURL)
+			metadata, err := e.fetchMetadataFromURL(gatewayURL)
+			resultChan <- result{metadata: metadata, err: err}
+		}(gateway)
+	}
+
+	// Wait for the first successful result
+	var lastErr error
+	for i := 0; i < len(e.ipfsGateways); i++ {
+		res := <-resultChan
+		if res.err == nil {
+			return res.metadata, nil
+		}
+		lastErr = res.err
+	}
+
+	return nil, fmt.Errorf("all IPFS gateways failed, last error: %w", lastErr)
 }

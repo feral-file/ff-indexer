@@ -4,7 +4,7 @@ RUN apk add --no-cache gcc musl-dev
 
 WORKDIR $GOPATH/github.com/feral-file/ff-indexer
 
-ADD go.mod .
+ADD go.mod go.sum ./
 RUN go mod download
 
 ADD . .
@@ -15,8 +15,6 @@ RUN go build -o /go/bin/ethereum-event-emitter ./services/ethereum-event-emitter
 
 FROM alpine:3.21
 ARG dist=0.0
-
-RUN apk add --no-cache curl
 
 COPY --from=build /go/bin/ethereum-event-emitter /ethereum-event-emitter
 

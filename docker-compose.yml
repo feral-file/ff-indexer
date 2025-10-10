@@ -130,9 +130,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-grpc-gateway
-      args:
-        GITHUB_USER: ${GITHUB_USER}
-        GITHUB_TOKEN: ${GITHUB_TOKEN}
     container_name: ff-indexer-grpc-gateway
     restart: unless-stopped
     networks:
@@ -161,9 +158,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-event-processor
-      args:
-        GITHUB_USER: ${GITHUB_USER}
-        GITHUB_TOKEN: ${GITHUB_TOKEN}
     container_name: ff-indexer-event-processor
     restart: unless-stopped
     networks:
@@ -198,9 +192,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-api-gateway
-      args:
-        GITHUB_USER: ${GITHUB_USER}
-        GITHUB_TOKEN: ${GITHUB_TOKEN}
     container_name: ff-indexer-api-gateway
     restart: unless-stopped
     networks:
@@ -248,9 +239,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-ethereum-event-emitter
-      args:
-        GITHUB_USER: ${GITHUB_USER}
-        GITHUB_TOKEN: ${GITHUB_TOKEN}
     container_name: ff-indexer-ethereum-event-emitter
     restart: unless-stopped
     networks:
@@ -282,9 +270,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-tezos-event-emitter
-      args:
-        GITHUB_USER: ${GITHUB_USER}
-        GITHUB_TOKEN: ${GITHUB_TOKEN}
     container_name: ff-indexer-tezos-event-emitter
     restart: unless-stopped
     networks:
@@ -311,9 +296,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-workflow-runner
-      args:
-        GITHUB_USER: ${GITHUB_USER}
-        GITHUB_TOKEN: ${GITHUB_TOKEN}
     container_name: ff-indexer-workflow-runner
     restart: unless-stopped
     networks:
@@ -349,9 +331,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-provenance-indexer
-      args:
-        GITHUB_USER: ${GITHUB_USER}
-        GITHUB_TOKEN: ${GITHUB_TOKEN}
     container_name: ff-indexer-provenance-indexer
     restart: unless-stopped
     networks:
@@ -390,9 +369,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-image-indexer
-      args:
-        GITHUB_USER: ${GITHUB_USER}
-        GITHUB_TOKEN: ${GITHUB_TOKEN}
     container_name: ff-indexer-image-indexer
     restart: unless-stopped
     networks:
