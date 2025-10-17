@@ -134,8 +134,8 @@ func (e *IndexEngine) indexETHToken(ctx context.Context, a *opensea.DetailedAsse
 	metadataDetail := NewAssetMetadataDetail(contractAddress)
 	metadataDetail.FromOpenseaAsset(a, source)
 
-	// Lookup artist name from metadata
-	if metadataDetail.ArtistName == "" && a.MetadataURL != "" {
+	// Fetch metadata to lookup artist name or animation url (ArtBlocks only)
+	if a.MetadataURL != "" && (metadataDetail.ArtistName == "" || source == sourceArtBlocks) {
 		metadata, err := e.fetchTokenMetadata(a.MetadataURL)
 		if err != nil {
 			log.WarnWithContext(ctx, "fail to fetch token metadata", zap.Error(err))
@@ -144,6 +144,12 @@ func (e *IndexEngine) indexETHToken(ctx context.Context, a *opensea.DetailedAsse
 
 		if len(metadataDetail.Artists) == 1 {
 			metadataDetail.Artists[0].Name = metadataDetail.ArtistName
+		}
+
+		// ArtBlocks metadata contains the generator url that could be used as preview url
+		if animationURL, ok := metadata["generator_url"].(string); ok && source == sourceArtBlocks {
+			metadataDetail.PreviewURI = animationURL
+			metadataDetail.MIMEType = MediumSoftware
 		}
 	}
 
